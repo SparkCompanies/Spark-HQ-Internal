@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Spark Companies internal training platform, intranet, and team directory" />
+    <title>Spark HQ</title>
+    <style>
+      html, body, #root { height: 100%; margin: 0; padding: 0; }
+      body {
+        font-family: 'Century Gothic', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        background: #f7f7f5;
+        color: #1a1a2e;
+        -webkit-font-smoothing: antialiased;
+      }
+      #boot-loader {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #f7f7f5; z-index: 9999;
+        flex-direction: column; gap: 16px;
+      }
+      .boot-spinner {
+        width: 40px; height: 40px;
+        border: 3px solid #f0e8c8;
+        border-top-color: #C9A84C;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .boot-text { color: #94a3b8; font-size: 13px; letter-spacing: 0.5px; }
+    </style>
+  </head>
+  <body>
+    <div id="boot-loader">
+      <div class="boot-spinner"></div>
+      <div class="boot-text">Loading Spark HQ…</div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
