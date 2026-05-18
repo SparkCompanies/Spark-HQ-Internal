@@ -1,1378 +1,3382 @@
-/* Spark HQ v2.4 — Trainual Content Pre-loaded */
-import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
-
-/* ── THEME ── */
-const ThemeCtx = createContext({ dark: true, toggle: () => {} });
-function useTheme() { return useContext(ThemeCtx); }
-
-const Y = "#FFD200";
-const YD = "#EDBD00";
-const YL = "#FFE34D";
-const YW = "#F59E0B";
-const BG = "#f7f7f5";
-const CARD = "#fff";
-const GLASS = "#fff";
-const BORDER = "#eee";
-
-const SparkLogo = ({ height = 32 }) => {
-const s = height / 32;
-return (
-<svg width={180 * s} height={height} viewBox="0 0 180 32" fill="none">
-<path d="M14.5 2L8 16h7l-3.5 14L22 14h-7.5L18.5 2h-4z" fill="#FFC629" stroke="#E5AD00" strokeWidth="0.5"/>
-<text x="30" y="18" fontFamily="Outfit,sans-serif" fontSize="14" fontWeight="800" fill="#1a1a2e" letterSpacing="3">SPARK</text>
-<text x="30" y="29" fontFamily="Outfit,sans-serif" fontSize="7.5" fontWeight="400" fill="#999" letterSpacing="4">COMPANIES</text>
-<text x="105" y="24" fontFamily="Outfit,sans-serif" fontSize="5" fill="#bbb">{"™"}</text>
-</svg>
-);
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area } from "recharts";
+import * as XLSX from "xlsx";
+// Manual CSV parser (no external dependency)
+var parseCSV = function(text) {
+  var rows = [];
+  var lines = text.split("\n");
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var cells = [];
+    var inQuote = false;
+    var cell = "";
+    for (var j = 0; j < line.length; j++) {
+      var ch = line[j];
+      if (ch === '"' && !inQuote) { inQuote = true; }
+      else if (ch === '"' && inQuote) {
+        if (j + 1 < line.length && line[j + 1] === '"') { cell += '"'; j++; }
+        else { inQuote = false; }
+      } else if (ch === "," && !inQuote) { cells.push(cell); cell = ""; }
+      else { cell += ch; }
+    }
+    cells.push(cell);
+    rows.push(cells);
+  }
+  return rows;
 };
-
-const I = ({ name, size = 16, color = "currentColor", sw = 1.5 }) => {
-const d = {
-home: <><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>,
-rocket: <><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 3 0 3 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-3 0-3"/></>,
-users: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></>,
-book: <><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></>,
-clipboard: <><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></>,
-target: <><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>,
-zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
-chevDown: <polyline points="6 9 12 15 18 9"/>,
-chevRight: <polyline points="9 18 15 12 9 6"/>,
-chevLeft: <polyline points="15 18 9 12 15 6"/>,
-chevUp: <polyline points="18 15 12 9 6 15"/>,
-ext: <><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>,
-shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
-star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>,
-check: <polyline points="20 6 9 17 4 12"/>,
-award: <><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>,
-map: <><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></>,
-layers: <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
-grid: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>,
-dollar: <><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></>,
-trending: <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></>,
-play: <><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></>,
-file: <><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></>,
-link: <><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></>,
-mail: <><path d="M4 4h16c1.1 0 2 .9 2 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
-phone: <><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.13.81.36 1.6.69 2.35a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.75.33 1.54.56 2.35.69a2 2 0 011.72 2.01z"/></>,
-search: <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
-menu: <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
-x: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
-arrowUp: <><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></>,
-clock: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>,
-settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></>,
-compass: <><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></>,
-send: <><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></>,
-briefcase: <><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></>,
-heart: <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>,
-globe: <><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></>,
-info: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
-sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
-moon: <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>,
+/* ═══════════════════════════════════════════════════════════════
+   SPARK COMMISSIONS v7.0 — CHARGE-FIRST ARCHITECTURE
+   Weekly charge import is the foundation. Everything else hangs on it.
+   ═══════════════════════════════════════════════════════════════ */
+// ── Design Tokens ──────────────────────────────────────────────
+var C={bg:"#11141B",bg2:"#141820",bgCard:"#181D27",bgCardHover:"#1E2433",bgSurface:"#1C2230",bgInput:"#0D1017",accent:"#FFD700",accentDim:"rgba(255,215,0,.06)",accentGlow:"rgba(255,215,0,.2)",border:"rgba(255,255,255,.07)",borderLight:"rgba(255,255,255,.1)",text:"#ECF0F6",textMuted:"#A0AEBF",textDim:"#6B7D95",green:"#34D058",greenDim:"rgba(52,208,88,.07)",greenGlow:"rgba(52,208,88,.2)",red:"#F85149",redDim:"rgba(248,81,73,.07)",redGlow:"rgba(248,81,73,.15)",blue:"#58A6FF",blueDim:"rgba(88,166,255,.07)",blueGlow:"rgba(88,166,255,.15)",orange:"#D29922",orangeDim:"rgba(210,153,34,.07)",purple:"#BC8CFF",purpleDim:"rgba(188,140,255,.07)",teal:"#39D0D8",tealDim:"rgba(57,208,216,.07)",gold:"#FFD700",goldDim:"rgba(255,215,0,.06)"};
+var FM="'DM Sans','Outfit',system-ui,-apple-system,sans-serif";
+var FU="'Outfit','DM Sans',system-ui,-apple-system,sans-serif";
+var CSS=`
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 6px rgba(255,215,0,.05)}50%{box-shadow:0 0 12px rgba(255,215,0,.1)}}
+*{box-sizing:border-box}
+body{background:#0D1017;color:#ECF0F6}
+.scanlines,.vignette{display:none}
+.trow{transition:all .12s ease}.trow:hover{background:rgba(255,255,255,.03) !important}.trow:nth-child(even){background:rgba(255,255,255,.012)}
+.panel{background:#13171F;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.15);margin-bottom:12px}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.06);background:#10141B}
+.panel-hdr h3{font-size:12px;font-weight:700;color:#8B98AC;letter-spacing:1px;margin:0;font-family:'DM Sans',sans-serif;text-transform:none}
+.panel-body{padding:16px}
+.nav-item{transition:all .15s ease;position:relative;border-left:2px solid transparent}.nav-item:hover{background:rgba(255,215,0,.03) !important}.nav-item.active{border-left-color:#FFD700;background:rgba(255,215,0,.05) !important}
+select,input[type="text"],input[type="number"],input[type="date"],textarea{background:#0B0E14 !important;color:#E8ECF2 !important;border:1px solid rgba(255,255,255,.06) !important;font-size:14px !important;border-radius:6px !important;transition:all .15s ease;font-family:'DM Sans',sans-serif !important}
+::placeholder{color:#6B7A8D !important;opacity:1 !important}
+input::placeholder{color:#6B7A8D !important;opacity:1 !important}
+select:focus,input:focus,textarea:focus{border-color:#FFD70066 !important;outline:none;box-shadow:0 0 0 2px rgba(255,215,0,.08) !important}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.14)}
+.btn-primary{background:linear-gradient(135deg,#FFD700 0%,#FFC000 100%);color:#0B0E14;border:none;font-weight:700;transition:all .15s ease;letter-spacing:.3px;box-shadow:0 2px 8px rgba(255,215,0,.2)}.btn-primary:hover{background:linear-gradient(135deg,#FFE033 0%,#FFD700 100%);transform:translateY(-1px);box-shadow:0 4px 16px rgba(255,215,0,.3)}
+.btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.1);color:#8899AA;transition:all .15s ease;border-radius:6px;font-family:'DM Sans',sans-serif}.btn-ghost:hover{border-color:#FFD70044;color:#FFD700;background:rgba(255,215,0,.03)}
+.glow-card{animation:glowPulse 3s ease-in-out infinite}
+.stat-card{transition:all .15s ease;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:#181D27}.stat-card:hover{border-color:rgba(255,215,0,.12);background:#1C2230}
+.fade-section{animation:fadeIn .25s ease}
+table{border-collapse:separate;border-spacing:0}
+button{cursor:pointer;font-family:'DM Sans',sans-serif}
+select{font-family:'DM Sans',sans-serif}
+@media(max-width:768px){.rep-grid4{grid-template-columns:repeat(2,1fr) !important}.rep-header{flex-direction:column !important;gap:10px !important;text-align:center}.rep-header select{width:100%}}
+table{border-spacing:0}th{text-transform:none;letter-spacing:.5px}
+`;
+// ── Constants ──────────────────────────────────────────────────
+var UNITS=["MI Metro","Light Industrial","Automation","Enterprise","Southeast","Spark Sales","Ignite","JJP","Fulfillment","Central","BPO"];
+var CP_DEFAULTS=[
+["Recruiter",0.15,0.05,0.15,0.05,0,0],
+["DH Recruiter II",0.15,0.06,0.15,0.06,0,0],
+["Sr. DH Recruiter II",0.15,0.06,0.15,0.06,0,0],
+["Sr. Recruiter",0.15,0.06,0.15,0.06,0,0],
+["Exec Recruiter",0.15,0.06,0.15,0.06,0,0],
+["ARM Level II",0.15,0.06,0.15,0.06,0,0],
+["ARM Level III",0.15,0.08,0.15,0.08,0,0],
+["Acct Recruiting Exec",0.16,0.08,0.16,0.08,0,0],
+["Sr Acct Exec Lead",0.16,0.08,0.16,0.08,0,0],
+["Sr Acct Recruiting Exec",0.16,0.12,0.16,0.12,0,0],
+["Account Executive",0.15,0.08,0.15,0.08,0,0],
+["Sr Sales Executive",0,0.16,0.20,0.16,0,0],
+["Sr Exec Sales Lead",0,0,0,0,0.05,0],
+["Sr Dir Fulfillment",0,0,0,0,0.05,0],
+["Sr Dir RPS",0,0,0,0,0.05,0],
+["Director",0,0,0,0,0.05,0],
+["Manager",0,0,0,0,0.05,0]
+];
+var FLOOR=25000;var FLOOR_ANNUAL=100000;var FLOOR_WEEKLY_DEDUCT=2500;var ENTITIES=["Talent","Ignite","JJP"];
+var DEFAULT_CFG={
+  floors:{weekly:2500,quarterly:25000,annual:100000},
+  dhDefaults:{guaranteeDays:90},
+  adminPin:"",
+  branding:{companyName:"Spark Companies",emailDomain:"sparkcompanies.com",statementNote:""},
+  careerPaths:[
+    {id:"cp1",name:"Recruiter",fdDH:0.15,sDH:0.05,fdA:0.15,sA:0.05,flat:0,dhExempt:false},
+    {id:"cp2",name:"Recruiter - Skilled Trades",fdDH:0.15,sDH:0.05,fdA:0.15,sA:0.05,flat:0,dhExempt:false},
+    {id:"cp3",name:"Recruiter - Technical",fdDH:0.15,sDH:0.06,fdA:0.15,sA:0.06,flat:0,dhExempt:false},
+    {id:"cp4",name:"Sr. Recruiter - Skilled Trades",fdDH:0.15,sDH:0.06,fdA:0.15,sA:0.08,flat:0,dhExempt:false},
+    {id:"cp5",name:"Sr. Recruiter - Technical",fdDH:0.10,sDH:0.10,fdA:0.10,sA:0.10,flat:0,dhExempt:false},
+    {id:"cp6",name:"Executive Recruiter",fdDH:0.15,sDH:0.06,fdA:0.15,sA:0.06,flat:0,dhExempt:false},
+    {id:"cp7",name:"Executive Recruiter - Technical",fdDH:0.15,sDH:0.06,fdA:0.08,sA:0.06,flat:0,dhExempt:false},
+    {id:"cp8",name:"Account Recruiting Manager",fdDH:0.15,sDH:0.06,fdA:0.15,sA:0.06,flat:0,dhExempt:false},
+    {id:"cp9",name:"Account Recruiting Manager - Level 2",fdDH:0.15,sDH:0.08,fdA:0.15,sA:0.08,flat:0,dhExempt:false},
+    {id:"cp10",name:"Account Recruiting Executive",fdDH:0.16,sDH:0.08,fdA:0.16,sA:0.08,flat:0,dhExempt:false},
+    {id:"cp11",name:"Sr. Account Recruiting Executive",fdDH:0.16,sDH:0.08,fdA:0.16,sA:0.08,flat:0,dhExempt:false},
+    {id:"cp12",name:"Sr. Account Recruiting Executive - PC",fdDH:0,sDH:0.16,fdA:0.20,sA:0.16,flat:0,dhExempt:false},
+    {id:"cp13",name:"Sr. Sales Executive",fdDH:0,sDH:0.10,fdA:0,sA:0.10,flat:0,dhExempt:false},
+    {id:"cp14",name:"Sr. Sales Executive - PC",fdDH:0.16,sDH:0.12,fdA:0.16,sA:0.12,flat:0,dhExempt:false},
+    {id:"cp15",name:"Senior Regional Onsite Manager - PC",fdDH:0.16,sDH:0.08,fdA:0.16,sA:0.08,flat:0,dhExempt:false},
+    {id:"cp16",name:"Sr. Director",fdDH:0,sDH:0,fdA:0,sA:0,flat:0.05,dhExempt:true},
+  ],
+  entities:["Talent","Ignite","JJP"],
+  units:[
+    {name:"MI Metro",color:"blue"},{name:"Light Industrial",color:"purple"},{name:"Automation",color:"teal"},
+    {name:"Enterprise",color:"blue"},{name:"South East",color:"orange"},{name:"Spark Sales",color:"gold"},
+    {name:"Ignite",color:"blue"},{name:"JJP",color:"orange"},{name:"Fulfillment",color:"green"},
+    {name:"Central",color:"orange"},{name:"BPO",color:"teal"}
+  ]
 };
-return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{d[name]}</svg>;
-};
-
-function useW() {
-const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1080);
-useEffect(() => { const h = () => setW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-return w;
+var getQ=function(dateStr){if(!dateStr)return 0;var d=new Date(dateStr);var m=d.getMonth();return m<3?1:m<6?2:m<9?3:4;};
+var getQY=function(dateStr){if(!dateStr)return"";var d=new Date(dateStr);return getQ(dateStr)+"-"+d.getFullYear();};
+var UC=["#4DA6FF","#F0B429","#00E68A","#A78BFA","#FF4757","#2DD4BF","#FF9F43","#EC4899","#F97316"];
+var UB={"MI Metro":"blue","Light Industrial":"purple","Automation":"teal","Enterprise":"blue","Southeast":"orange","Spark Sales":"gold","Ignite":"blue","JJP":"orange","Fulfillment":"green","Central":"orange","BPO":"teal"};
+var NAV=[{id:"command",icon:"grid",label:"Command Center"},{id:"charges",icon:"dollar",label:"Weekly Charges"},{id:"dh",icon:"briefcase",label:"Direct Hires"},{id:"team",icon:"users",label:"Team"},{id:"payroll",icon:"check",label:"Payroll"},{id:"floor",icon:"dollar",label:"Floor Tracker"},{id:"exec",icon:"briefcase",label:"Exec Summary"},{id:"recon",icon:"alert",label:"Recon"},{id:"audit",icon:"bar",label:"Audit Log"},{id:"admin",icon:"settings",label:"Admin Settings"}];
+var ST_MAP={p:{l:"Pending",v:"orange"},o:{l:"On Charge",v:"blue"},c:{l:"Clear",v:"green"},d:{l:"Complete",v:"teal"},t:{l:"Terminated",v:"red"},r:{l:"Ready to Pay",v:"gold"}};
+var ST_OPTS=[["p","Pending"],["o","On Charge"],["c","Clear"],["d","Complete"],["t","Terminated"]];
+var NOW=new Date("2026-02-26");
+// ── Real DH Data ───────────────────────────────────────────────
+// DH data loads from storage. Start empty if no saved data.
+var _DH=[];
+// ── Real Team Roster ───────────────────────────────────────────
+// [name, entity, manager, unit, careerPath, dhFullDesk, dhSplit, assignFullDesk, assignSplit, flat, drRate, notes]
+var _T=[
+["Aidan Juengel","Talent","Jamie Platt","MI Metro","Executive Recruiter - Technical",0.15,0.06,0.08,0.06,0,0,""],["Alec Czartoryski","Talent","Jamie Platt","MI Metro","Account Recruiting Manager - Level 2",0.15,0.08,0.15,0.08,0,0,""],["Amanda Bowman","JJP","","JJP","Account Recruiting Executive",0,0,0,0,0.05,0,"quarterly flat"],["Anja Domazet","Talent","Jamie Platt","MI Metro","Sr. Account Recruiting Executive",0.16,0.08,0.16,0.08,0,0,""],["Aron Carroll","Talent","Fletcher Kundtz","South East","Sr. Account Recruiting Executive",0.16,0.06,0.08,0.04,0,0.005,"HOLD - old comp plan until 2025 DH fully pays out"],["Ben Ockerman","Talent","Jamie Platt","MI Metro","Recruiter - Skilled Trades",0.15,0.05,0.15,0.05,0,0,""],["Brandon Shrewsberry","Talent","Jacob Patrico","Fulfillment","Sr. Recruiter - Skilled Trades",0.15,0.06,0.15,0.08,0,0,""],["Carlin McCrimmon","Ignite","Kevin MacKillop","Ignite","Sr. Recruiter - Technical",0.10,0.10,0.10,0.10,0,0,"Final 2025 DH $820.80; new comp plan eff 2/16/26"],["Charles Hemstrom","Talent","Jamie Platt","MI Metro","Account Recruiting Manager - Level 2",0.15,0.06,0.15,0.06,0,0,""],["Chris Bull","Talent","Jennifer Shy","Automation","Recruiter - Skilled Trades",0.15,0.05,0.15,0.05,0,0,""],["Christina Getz","Talent","Ryan Aymen","Light Industrial","Sr. Recruiter - Technical",0.15,0.06,0.15,0.06,0,0,""],["Chuck Chesner","Talent","Jamie Platt","MI Metro","Sr. Sales Executive",0,0.10,0,0.10,0,0,"commission floor until 3/1/2026"],["CJ Olaniyan","Talent","Jamie Platt","MI Metro","Account Recruiting Manager - Level 2",0.12,0.06,0.12,0.06,0,0,""],["Claire Woodrow","Talent","Kristin Voyer","Enterprise","Account Recruiting Manager - Level 2",0.15,0.06,0.15,0.06,0,0,""],["Colin Clancy","Talent","Jamie Platt","MI Metro","Account Recruiting Executive",0.16,0.08,0.16,0.08,0,0,""],["Cor'Sean Woodard","Talent","Jennifer Shy","Automation","Recruiter - Skilled Trades",0.15,0.05,0.15,0.05,0,0,""],["Darrell Templeton","Talent","Jamie Platt","Spark Sales","Sr. Account Recruiting Executive - PC",0,0.16,0.20,0.16,0,0,"no unit commission eff 12/14/2025"],["Ethan Zavier","Talent","Chuck Chesner","MI Metro","Sr. Recruiter - Skilled Trades",0.15,0.06,0.15,0.06,0,0,""],["Jacob Patrico","Talent","Jamie Platt","Fulfillment","Sr. Director",0,0,0,0,0.05,0,"quarterly 5% flat"],["Jacob Roux","Talent","Jacob Patrico","Fulfillment","Sr. Recruiter - Skilled Trades",0.15,0.06,0.15,0.06,0,0,""],["Jamie Bell","Talent","Jacob Patrico","Fulfillment","Executive Recruiter",0.15,0.06,0.15,0.06,0,0,""],["Jamie Platt","Talent","","MI Metro","Sr. Director",0,0,0,0,0.05,0,"quarterly 5% flat"],["Jennifer Neuenfeldt","JJP","Amanda Bowman","JJP","Sr. Recruiter - Technical",0.15,0.06,0.15,0.06,0,0,""],["Jennifer Shy","Talent","Ryan Aymen","Automation","Account Recruiting Manager - Level 2",0.15,0.06,0.15,0.06,0,0.005,"DR: Anthony Caucci"],["Julie Rinaldi","Talent","Jamie Platt","Automation","Sr. Sales Executive - PC",0.16,0.12,0.16,0.12,0,0,""],["Kade Manzo","Talent","Jacob Patrico","Fulfillment","Recruiter",0.15,0.05,0.15,0.05,0,0,""],["Kevin MacKillop","Ignite","","Ignite","Sr. Sales Executive - PC",0,0,0,0,0.05,0,"quarterly flat"],["Kristin Scarth","Talent","Jamie Platt","Enterprise","Sr. Director",0,0,0,0,0.05,0,"quarterly 5% flat"],["Luke Oliver","Talent","Jacob Patrico","Fulfillment","Sr. Recruiter - Skilled Trades",0.15,0.06,0.15,0.06,0,0,""],["Nathan Edmiston","Talent","Julie Rinaldi","Automation","Recruiter - Technical",0.15,0.06,0.15,0.06,0,0,""],["Nick Greenfelder","Talent","Ryan Aymen","Light Industrial","Account Recruiting Manager - Level 2",0.15,0.06,0.15,0.06,0,0,""],["Samantha Ban","Talent","","Enterprise","Recruiter - Technical",0.15,0.08,0.15,0.08,0,0,""],["Samantha Webb","Talent","Kristin Voyer","Enterprise","Account Recruiting Manager",0.15,0.06,0.15,0.06,0,0,""],["Sarah Keel","Talent","Darrell Templeton","Spark Sales","Account Recruiting Executive",0.16,0.08,0.16,0.08,0,0,""],["Scott Tanghe","Talent","Jamie Platt","MI Metro","Recruiter - Skilled Trades",0.05,0.05,0.05,0.05,0,0,"new hire"],["Sean Casey","Talent","Ryan Aymen","Light Industrial","Senior Regional Onsite Manager - PC",0.16,0.08,0.16,0.08,0,0.005,"DR: Nick Greenfelder"],["Theresa Ferencz","Talent","Kristin Voyer","Enterprise","Sr. Recruiter - Skilled Trades",0.15,0.06,0.15,0.06,0,0,""]
+];
+// ── Helpers ────────────────────────────────────────────────────
+var fmt=function(n){return"$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});};
+var fmtD=function(n){return"$"+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});};
+var parseCurrency=function(s){if(!s)return 0;var v=String(s).replace(/[$,\s]/g,"").replace(/[()]/g,function(m){return m==="("?"-":"";});return parseFloat(v)||0;};
+function genPin(existingMembers){
+  var used={};(existingMembers||[]).forEach(function(m){if(m.pin)used[m.pin]=true;});
+  var pin;var attempts=0;
+  do{pin=String(100000+Math.floor(Math.random()*900000));attempts++;}while(used[pin]&&attempts<1000);
+  return pin;
 }
+var initM=function(t,allMembers){var p=genPin(allMembers||[]);return{id:Date.now()+Math.random(),name:t[0],entity:t[1]||"Talent",manager:t[2]||"",unit:t[3]||"MI Metro",careerPath:t[4]||"",rates:{fdDH:t[5]||0,sDH:t[6]||0,fdA:t[7]||0,sA:t[8]||0,flat:t[9]||0,drRate:t[10]||0},notes:t[11]||"",email:EMAIL_MAP[t[0]]||"",pin:p,guarantee:{amount:0,endDate:"",active:false}};};
 
-function Reveal({ children, delay = 0, style = {} }) {
-const ref = useRef(null);
-const [vis, setVis] = useState(false);
-useEffect(() => {
-const o = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVis(true); }, { threshold: 0.08 });
-if (ref.current) o.observe(ref.current);
-return () => o.disconnect();
-}, []);
-return <div ref={ref} style={{ opacity: vis ? 1 : 0, transform: vis ? "translateY(0)" : "translateY(24px)", transition: `all 0.7s cubic-bezier(0.22,1,0.36,1) ${delay}s`, ...style }}>{children}</div>;
+var EMAIL_MAP={"Aidan Juengel":"ajuengel@sparkcompanies.com","Alec Czartoryski":"aczartoryski@sparkcompanies.com","Amanda Bowman":"abowman@sparkcompanies.com","Anja Domazet":"adomazet@sparkcompanies.com","Aron Carroll":"acarroll@sparkcompanies.com","Ben Ockerman":"bockerman@sparkcompanies.com","Brandon Shrewsberry":"bshrewsberry@sparkcompanies.com","Carlin McCrimmon":"cmccrimmon@sparkcompanies.com","Charles Hemstrom":"chemstrom@sparkcompanies.com","Chris Bull":"cbull@sparkcompanies.com","Christina Getz":"cgetz@sparkcompanies.com","Chuck Chesner":"cchesner@sparkcompanies.com","CJ Olaniyan":"colaniyan@sparkcompanies.com","Claire Woodrow":"cwoodrow@sparkcompanies.com","Colin Clancy":"cclancy@sparkcompanies.com","Cor'Sean Woodard":"cwoodard@sparkcompanies.com","Darrell Templeton":"dtempleton@sparkcompanies.com","Ethan Zavier":"ezavier@sparkcompanies.com","Jacob Patrico":"jpatrico@sparkcompanies.com","Jacob Roux":"jroux@sparkcompanies.com","Jamie Bell":"jbell@sparkcompanies.com","Jamie Platt":"jplatt@sparkcompanies.com","Jennifer Neuenfeldt":"jneuenfeldt@sparkcompanies.com","Jennifer Shy":"jshy@sparkcompanies.com","Julie Rinaldi":"jrinaldi@sparkcompanies.com","Kade Manzo":"kmanzo@sparkcompanies.com","Kevin MacKillop":"kmackillop@sparkcompanies.com","Kristin Scarth":"kscarth@sparkcompanies.com","Luke Oliver":"loliver@sparkcompanies.com","Nathan Edmiston":"nedmiston@sparkcompanies.com","Nick Greenfelder":"ngreenfelder@sparkcompanies.com","Samantha Ban":"sban@sparkcompanies.com","Samantha Webb":"swebb@sparkcompanies.com","Sarah Keel":"skeel@sparkcompanies.com","Scott Tanghe":"stanghe@sparkcompanies.com","Sean Casey":"scasey@sparkcompanies.com","Theresa Ferencz":"tferencz@sparkcompanies.com"};
+var daysTo=function(dt){if(!dt)return null;return Math.ceil((new Date(dt)-NOW)/864e5);};
+var isReady=function(d){if(d.st==="t"||d.paidOut)return false;return d.cd&&d.cd.length>0&&new Date(d.cd)<=NOW&&d.invPaid&&d.invPaid.length>0;};
+var blockReason=function(d){if(d.st==="t")return"Termed";if(d.paidOut)return"Paid";if(d.st==="p")return"Pending";if(!d.cd)return"No clearance";var dt=daysTo(d.cd);if(dt>0)return"On charge ("+dt+"d)";if(!d.invPaid)return"No invoice";return null;};
+// Fuzzy name matching — strips spaces, punctuation, case
+var normName=function(s){return(s||"").toLowerCase().replace(/[^a-z]/g,"");};
+var matchMember=function(csvName,members){var n=normName(csvName);var exact=members.find(function(m){return normName(m.name)===n;});if(exact)return exact;var best=null,bestScore=0;members.forEach(function(m){var mn=normName(m.name);var parts=n.split("").filter(function(c){return mn.indexOf(c)>=0;}).length;var score=parts/Math.max(n.length,mn.length);if(score>bestScore&&score>0.7){bestScore=score;best=m;}});return best;};
+// Quick lookup: find member by name (fuzzy)
+var findM=function(name,members){return matchMember(name,members);};
+// DR mappings
+var DR_MAP={};_T.forEach(function(t){var n=t[11]||"";var m=n.match(/DR:\s*(.+)/i);if(m&&t[10]>0){DR_MAP[t[0].toLowerCase()]=DR_MAP[t[0].toLowerCase()]||[];DR_MAP[t[0].toLowerCase()].push(m[1].trim().toLowerCase());}});
+function detectAnomalies(dhData,members){var flags=[];dhData.forEach(function(d){if(d.st==="c"&&!d.invPaid)flags.push({type:"warn",msg:d.can+" @ "+d.cl+": Clear but no invoice paid"});if(d.st==="o"&&d.cd&&new Date(d.cd)<=NOW&&!d.invPaid)flags.push({type:"warn",msg:d.can+" @ "+d.cl+": past clearance, no invoice"});if(d.raw>d.inv&&d.st!=="t")flags.push({type:"err",msg:d.can+": raw exceeds invoice"});});
+  // Guarantee expiration warnings (60 days)
+  var today=new Date().toISOString().slice(0,10);var sixtyOut=new Date(Date.now()+60*24*60*60*1000).toISOString().slice(0,10);
+  members.forEach(function(m){if(m.guarantee&&m.guarantee.active&&m.guarantee.endDate){
+    if(m.guarantee.endDate<today)flags.push({type:"err",msg:m.name+": Floor EXPIRED on "+m.guarantee.endDate+" — still marked active"});
+    else if(m.guarantee.endDate<=sixtyOut){var dLeft=Math.ceil((new Date(m.guarantee.endDate)-Date.now())/(1000*60*60*24));flags.push({type:"warn",msg:m.name+": Floor expires in "+dLeft+" days ("+m.guarantee.endDate+") — "+fmtD(m.guarantee.amount)+"/wk"});}
+  }});
+  return flags;}
+// ── UI Components ──────────────────────────────────────────────
+function Badge({v,children}){var m={green:{bg:C.greenDim,c:C.green},red:{bg:C.redDim,c:C.red},gold:{bg:C.goldDim,c:C.gold},blue:{bg:C.blueDim,c:C.blue},orange:{bg:C.orangeDim,c:C.orange},purple:{bg:C.purpleDim,c:C.purple},teal:{bg:C.tealDim,c:C.teal},muted:{bg:"rgba(255,255,255,.04)",c:C.textMuted}};var s=m[v]||m.muted;return <span style={{display:"inline-block",padding:"3px 9px",borderRadius:5,fontSize:12,fontWeight:600,fontFamily:FM,background:s.bg,color:s.c,whiteSpace:"nowrap"}}>{children}</span>;}
+function Icon({name,sz,cl}){var s=sz||16,c=cl||C.textDim;var p={grid:"M3 3h7v7H3zM14 3h7v7H14zM3 14h7v7H3zM14 14h7v7H14z",upload:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12",dollar:"M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",users:"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",briefcase:"M2 7h20v14H2zM16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16",bar:"M18 20V10M12 20V4M6 20v-6",alert:"M12 9v4M12 17h.01M10.29 3.86l-8.6 14.86A2 2 0 0 0 3.4 22h17.2a2 2 0 0 0 1.71-2.98l-8.6-14.86a2 2 0 0 0-3.42 0z",edit:"M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",check:"M20 6L9 17l-5-5",download:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",plus:"M12 5v14M5 12h14",mgr:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M22 11h-6",settings:"M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"};return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d={p[name]||""}/></svg>;}
+function Stat({l,v,s,c}){return <div style={{background:C.bgCard,border:"1px solid "+C.border,borderRadius:10,borderTop:"2px solid "+(c||C.accent)+"44",padding:"16px 18px",overflow:"hidden"}}><p style={{fontSize:12,color:C.textDim,margin:"0 0 6px",fontWeight:600,letterSpacing:".8px",fontFamily:FM}}>{l}</p><p style={{fontSize:26,fontWeight:800,margin:0,color:c||C.accent,fontFamily:FU,lineHeight:1.1}}>{v}</p>{s&&<p style={{fontSize:13,color:C.textMuted,margin:"6px 0 0",fontFamily:FM}}>{s}</p>}</div>;}
+function Spark({data,w,h,color}){if(!data||data.length<2)return null;var mn=Math.min.apply(null,data),mx=Math.max.apply(null,data),range=mx-mn||1;var pts=data.map(function(d,i){return(i/(data.length-1))*w+","+(h-((d-mn)/range)*h);}).join(" ");var last=data[data.length-1],prev=data[data.length-2];var up=last>=prev;return <svg width={w} height={h} style={{display:"block"}}><polyline points={pts} fill="none" stroke={color||(up?C.green:C.red)} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx={w} cy={h-((last-mn)/range)*h} r="2" fill={color||(up?C.green:C.red)}/></svg>;}
+function Panel({title,icon,right,children}){return <div className="panel"><div className="panel-hdr"><div style={{display:"flex",alignItems:"center",gap:6}}>{icon&&<Icon name={icon} sz={11} cl={C.textDim}/>}<h3>{title}</h3></div>{right&&<div style={{display:"flex",alignItems:"center",gap:4}}>{right}</div>}</div><div className="panel-body">{children}</div></div>;}
+function Overlay({children,onClose}){return <div onClick={function(e){if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>{children}</div>;}
+function TT({active,payload,label}){if(!active||!payload)return null;return <div style={{background:C.bgCard,border:"1px solid "+C.border,borderRadius:6,padding:"8px 12px",fontFamily:FM,fontSize:14,boxShadow:"0 4px 20px rgba(0,0,0,.5)"}}><p style={{margin:"0 0 4px",color:C.textMuted,fontSize:13}}>{label}</p>{payload.map(function(p,i){return <p key={i} style={{margin:0,color:p.color||C.accent,fontWeight:600}}>{p.name||""}: {fmt(p.value)}</p>;})}</div>;}
+function DHEditModal({dh,onSave,onClose,onDelete}){
+  var [d,setD]=useState(Object.assign({},dh));var up=function(k,v){setD(function(p){return Object.assign({},p,{[k]:v});});};
+  var fi={width:"100%",borderRadius:4,padding:"7px 10px",fontSize:15,boxSizing:"border-box",fontFamily:FM};
+  var lb={fontSize:12,color:C.textDim,fontWeight:700,textTransform:"uppercase",marginBottom:3,display:"block",letterSpacing:"1px",fontFamily:FM};
+  var rf=function(l,k,w,ty){return <div key={k} style={{gridColumn:w?"span 2":undefined}}><label style={lb}>{l}</label>{ty==="select"?<select value={d[k]} onChange={function(e){up(k,e.target.value);}} style={fi}>{ST_OPTS.map(function(o){return <option key={o[0]} value={o[0]}>{o[1]}</option>;})}</select>:ty==="unit"?<select value={d[k]} onChange={function(e){up(k,e.target.value);}} style={fi}>{UNITS.map(function(u){return <option key={u}>{u}</option>;})}</select>:ty==="type"?<select value={d[k]} onChange={function(e){up(k,e.target.value);}} style={fi}><option value="S">Split</option><option value="FD">Full Desk</option></select>:<input value={d[k]||""} onChange={function(e){up(k,ty==="num"?+e.target.value||0:e.target.value);}} type={ty==="num"?"number":"text"} style={fi}/>}</div>;};
+  return <Overlay onClose={onClose}><div className="panel" style={{maxWidth:600,width:"95%",maxHeight:"90vh",overflowY:"auto"}}><div className="panel-hdr"><h3>{dh.can?"EDIT DH PLACEMENT":"NEW DH PLACEMENT"}</h3></div><div className="panel-body" style={{padding:12}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8}}>{rf("Client","cl",true)}{rf("Candidate","can")}{rf("Position","pos")}{rf("Account Manager","am")}{rf("Recruiter","rec")}{rf("Unit","unit",false,"unit")}</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:8}}>{rf("Invoice","inv",false,"num")}{rf("Charge","chg",false,"num")}{rf("Raw","raw",false,"num")}{rf("Type","typ",false,"type")}</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:8}}>{rf("Start Date","sd")}{rf("Guarantee Days","gd",false,"num")}{rf("Clearance","cd")}{rf("Status","st",false,"select")}</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:8}}>{rf("Invoice Paid","invPaid")}{rf("Payroll WE","payrollWE")}{rf("Paid Date","paidDate")}</div>
+    <div style={{marginBottom:16}}><label style={lb}>Notes</label><input value={d.notes||""} onChange={function(e){up("notes",e.target.value);}} style={fi} placeholder="Optional..."/></div>
+    <div style={{display:"flex",gap:6,justifyContent:"flex-end"}}>{onDelete&&<button onClick={function(){onClose();onDelete();}} style={{marginRight:"auto",background:"transparent",border:"1px solid "+C.red+"44",color:C.red,padding:"5px 12px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>Delete</button>}<button onClick={onClose} className="btn-ghost" style={{padding:"5px 12px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>Cancel</button><button onClick={function(){onSave(d);}} className="btn-primary" style={{padding:"5px 12px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>Save</button></div>
+  </div></div></Overlay>;
 }
-
-/* ────── DATA ────── */
-
-const DIVISIONS = [
-{ name: "Spark Talent Acquisition", abbr: "STA", color: "#FFD200", desc: "Skilled trades, engineering, light industrial, professional services. Temp, contract-to-hire, direct placement nationwide.", url: "https://sparktalentinc.com", founded: "2013" },
-{ name: "Spark Packaging", abbr: "SPK", color: "#FF6B35", desc: "Niche staffing for converting, printing, packaging, food & beverage. Data-driven recruiting with Packaging School-trained recruiters.", url: "https://sparkpackaginginc.com", founded: "2018" },
-{ name: "Flex Workforce Solutions", abbr: "FLX", color: "#4ECDC4", desc: "Specialized in automation industry staffing: engineers, programmers, project managers for robotics and automation.", url: "https://flexworkforceco.com", founded: "2020" },
-{ name: "Ignite Search", abbr: "IGN", color: "#FF3366", desc: "Executive and leadership search in manufacturing, finance, and special projects. CFOs, COOs, VPs, and Directors.", url: "https://ignitesearch.com", founded: "2022" },
-{ name: "John Joseph Partners", abbr: "JJP", color: "#7C5CFC", desc: "IT staffing for the MSP ecosystem: MSPs, MSSPs, TSPs, VARs. Help desk through C-suite technology roles.", url: "https://johnjosephpartners.com", founded: "2021" },
-];
-
-const CAREER_TRACKS = [
-{ name: "Recruiter Career Path", icon: "search", color: "#FFD200", tag: "PRODUCTION", desc: "Technical/Skilled Trades/Light Industrial recruiting roles", keyMetrics: "$29K Target Raw Total Monthly · $40K Goal Raw Total Monthly",
-levels: [
-{ title: "Recruiter", salary: "$50,000", rates: [{ label: "Recruiting", val: "5% (10% of raw total)" }, { label: "Full Desk", val: "15% — Needs Executive Approval" }], floor: true, criteria: "$25K/quarter commission floor", promo: "$50K in one quarter + completed checklist in first 6 months, or $200K cumulative annual if past 6 months → Sr. Recruiter" },
-{ title: "Sr. Recruiter", salary: "$60,000", rates: [{ label: "Recruiting", val: "6% (12% of raw total)" }, { label: "Full Desk", val: "15% — Needs Executive Approval" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $286K raw total charge → Executive Recruiter (commission to 8%)" },
-{ title: "Executive Recruiter", salary: "$60,000", rates: [{ label: "Recruiting", val: "8% (16% of raw total)" }, { label: "Full Desk", val: "15% — Needs Executive Approval" }], floor: true, criteria: "$25K/quarter commission floor. Must achieve 2 annual contests", promo: "Cross $338K raw total + 2 annual contests → Presidents Club ($70K base, floor removed)" },
-{ title: "Executive Recruiter — Presidents Club", salary: "$70,000", rates: [{ label: "Recruiting", val: "8% (16% of raw total)" }, { label: "Full Desk", val: "15% — Needs Executive Approval" }], floor: false, criteria: "No commission floor ($16K annual raise = 23% base increase). Must achieve 3 annual contests", promo: "Cross $442K raw total + 3 annual contests → Sr. Exec Recruiter PC" },
-{ title: "Sr. Executive Recruiter — Presidents Club", salary: "$70,000 → $80,000", rates: [{ label: "Recruiting", val: "8% (16% of raw total)" }, { label: "Full Desk", val: "15% — Needs Executive Approval" }], floor: false, criteria: "No commission floor. Cross $500K to move to $80K base", promo: "Cross $552K raw total charge → top tier ($80K base)" },
-] },
-{ name: "Account Recruiting Manager (ARM)", icon: "star", color: "#4ECDC4", tag: "PRODUCTION", desc: "Full desk account management — split and full desk commission", keyMetrics: "$29K Target Raw Total Monthly · $40K Goal Raw Total Monthly",
-levels: [
-{ title: "ARM Level I", salary: "$50,000", rates: [{ label: "Full Desk", val: "15% (12% of raw total)" }, { label: "Split", val: "6% (12% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "$50K in one quarter + checklist in first 6 months, or $200K cumulative annual → ARM Level II" },
-{ title: "ARM Level II", salary: "$60,000", rates: [{ label: "Full Desk", val: "15% (12% of raw total)" }, { label: "Split", val: "6% (12% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross contest $312K → Account Recruiting Executive. Miss contest 2 years → demotion" },
-{ title: "Account Recruiting Executive", salary: "$60,000", rates: [{ label: "Full Desk", val: "16% (16% of raw total)" }, { label: "Split", val: "8% (16% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $390K → Sr. ARE ($70K base). Miss contest 2 years → demotion" },
-{ title: "Sr. Account Recruiting Executive", salary: "$70,000", rates: [{ label: "Full Desk", val: "16% (16% of raw total)" }, { label: "Split", val: "8% (16% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $442K → Presidents Club (floor removed). Miss contest 2 years → demotion" },
-{ title: "Sr. ARE — Presidents Club", salary: "$70,000 → $80,000", rates: [{ label: "Full Desk", val: "16% (16% of raw total)" }, { label: "Split", val: "8% (16% of raw total)" }], floor: false, criteria: "No commission floor ($16K annual raise). Cross $500K → $80K base", promo: "Cross $552K raw total charge → top tier" },
-] },
-{ name: "Sales Career Path", icon: "trending", color: "#FF6B35", tag: "PRODUCTION", desc: "Business development through split commission on account sales", keyMetrics: "$29K Target Raw Total Monthly · $40K Goal Raw Total Monthly",
-levels: [
-{ title: "Sales Manager Level I", salary: "$50,000", rates: [{ label: "Split", val: "6% (12% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "$50K in one quarter + checklist in first 6 months, or $200K cumulative annual → Level II" },
-{ title: "Sales Manager Level II", salary: "$60,000", rates: [{ label: "Split", val: "8% (16% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross contest $312K → Sales Executive. Miss contest 2 years → demotion" },
-{ title: "Sales Executive", salary: "$60,000", rates: [{ label: "Split", val: "10% (20% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $390K → Sr. Sales Exec ($70K base). Miss contest 2 years → demotion" },
-{ title: "Sr. Sales Executive", salary: "$70,000", rates: [{ label: "Split", val: "10% (20% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $442K → Presidents Club (floor removed). Miss contest 2 years → demotion" },
-{ title: "Sr. Sales Executive — Presidents Club", salary: "$70,000 → $80,000", rates: [{ label: "Split", val: "12% (24% of raw total)" }], floor: false, criteria: "No commission floor ($20K annual raise). Above $500K paid at 12%. Cross $500K → $80K base", promo: "Cross $552K raw total charge → top tier" },
-] },
-{ name: "Onsite Manager Career Path", icon: "map", color: "#FF3366", tag: "PRODUCTION", desc: "Client-embedded management with full desk & split commission", keyMetrics: "Client-site based · Full desk + split structure",
-levels: [
-{ title: "Onsite Manager", salary: "$55,000", rates: [{ label: "Full Desk", val: "15% (12% of raw total)" }, { label: "Split", val: "6% (12% of raw total)" }], floor: false, criteria: "Client-site production role", promo: "$50K in one quarter + checklist in first 6 months, or $200K cumulative annual → Sr. Onsite Manager" },
-{ title: "Sr. Onsite Manager", salary: "$60,000", rates: [{ label: "Full Desk", val: "15% (12% of raw total)" }, { label: "Split", val: "6% (12% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $286K contest → Regional Onsite Manager PC. Miss contest 2 years → demotion" },
-{ title: "Regional Onsite Manager — Presidents Club", salary: "$70,000", rates: [{ label: "Full Desk", val: "16% (16% of raw total)" }, { label: "Split", val: "8% (16% of raw total)" }], floor: true, criteria: "$25K/quarter commission floor", promo: "Cross $442K → Regional Onsite Executive PC. Miss contest 2 years → demotion" },
-{ title: "Regional Onsite Executive — Presidents Club", salary: "$70,000", rates: [{ label: "Full Desk", val: "16% (16% of raw total)" }, { label: "Split", val: "8% (16% of raw total)" }], floor: false, criteria: "No commission floor", promo: "Cross $500K → Sr. Regional ($80K base). Miss contest 2 years → demotion" },
-{ title: "Sr. Regional Onsite Executive — Presidents Club", salary: "$80,000", rates: [{ label: "Full Desk", val: "16% (16% of raw total)" }, { label: "Split", val: "8% (16% of raw total)" }], floor: false, criteria: "No commission floor ($16K annual raise)", promo: "Cross $552K raw total charge → top tier" },
-] },
-{ name: "Business Development Associate", icon: "rocket", color: "#7C5CFC", tag: "PRODUCTION", desc: "Entry-level business development with contest-based salary progression", keyMetrics: "3% Signed Accounts + 3% Recruiting commission",
-levels: [
-{ title: "BD Associate — Contest 1", salary: "$40–50K", rates: [{ label: "Signed Accounts", val: "3%" }, { label: "Recruiting", val: "3%" }], floor: false, criteria: "Entry level business development", promo: "$143K cumulative charge → $45K base" },
-{ title: "BD Associate — Contest 2", salary: "$45K → $47K", rates: [{ label: "Signed Accounts", val: "3%" }, { label: "Recruiting", val: "3%" }], floor: false, criteria: "Contest Level 2 achieved", promo: "$286K cumulative charge → $47K base" },
-{ title: "BD Associate — Contest 3", salary: "$47K → $50K", rates: [{ label: "Signed Accounts", val: "3%" }, { label: "Recruiting", val: "3%" }], floor: false, criteria: "Contest Level 3 achieved", promo: "$429K cumulative charge → $50K base" },
-{ title: "BD Executive — Contest 4–8", salary: "$53K → $70K", rates: [{ label: "Signed Accounts", val: "3%" }, { label: "Recruiting", val: "3%" }], floor: false, criteria: "Contest levels 4–8 with increasing salary. 18 months from signature date", promo: "Continue advancing through contest levels to Sr. BD Executive" },
-] },
-{ name: "BD Lead / Client Success Manager", icon: "award", color: "#E84393", tag: "PRODUCTION", desc: "Account leadership — BD Lead, Client Success Manager, Director progression", keyMetrics: "3–3.5% Signed Accounts + 3–3.5% Recruiting",
-levels: [
-{ title: "Business Development Lead", salary: "$60K → $75K", rates: [{ label: "Signed Accounts", val: "3%" }, { label: "Recruiting", val: "3%" }], floor: false, criteria: "Contest-based progression through 4 tiers", promo: "Team Igniter Achieved → Client Success Manager" },
-{ title: "Client Success Manager", salary: "$65K → $100K", rates: [{ label: "Signed Accounts", val: "3.5%" }, { label: "Recruiting", val: "3.5%" }], floor: false, criteria: "Elevated commission rate. Contest-based progression through 4 tiers", promo: "Team Igniter Achieved → Director of Client Success" },
-{ title: "Director of Client Success", salary: "$75K → $100K", rates: [{ label: "Signed Accounts", val: "3.5%" }, { label: "Recruiting", val: "3.5%" }], floor: false, criteria: "Director-level leadership. Contest-based through 4 tiers", promo: "Team Igniter Achieved → Sr. Director of Business Development" },
-] },
-{ name: "Operations Track", icon: "settings", color: "#636e72", tag: "BACK OFFICE", desc: "Systems, data, process, and operational excellence", keyMetrics: "Internal role · Salaried",
-levels: [
-{ title: "Internal Recruiter", salary: "Varies", rates: [], floor: false, criteria: "Internal talent pipeline, job postings, interview coordination", promo: "Operations Coordinator or HR track based on interest" },
-{ title: "Data Analyst", salary: "Varies", rates: [], floor: false, criteria: "Salesforce reporting, fill ratio analysis, recruiting metrics, business intelligence", promo: "Systems Operations Manager" },
-{ title: "Systems Operations Manager", salary: "Varies", rates: [], floor: false, criteria: "ATS management, tech tools, vendor relationships, system integrations", promo: "Director of Operations" },
-{ title: "Director of Operations", salary: "Varies", rates: [], floor: false, criteria: "Champion ATS, job boards, career mapping, onboarding & training, HR service projects", promo: "VP of Operations" },
-] },
-{ name: "Payroll Track", icon: "dollar", color: "#00b894", tag: "BACK OFFICE", desc: "Payroll processing, compliance, and financial operations", keyMetrics: "Internal role · Salaried",
-levels: [
-{ title: "Payroll Specialist", salary: "Varies", rates: [], floor: false, criteria: "Weekly payroll processing, timesheet verification, tax filing support, employee pay inquiries", promo: "Demonstrate accuracy, volume handling, multi-entity expertise → Payroll Manager" },
-{ title: "Payroll Manager", salary: "Varies", rates: [], floor: false, criteria: "Full payroll oversight across all entities, tax compliance, Greenshades admin, team leadership", promo: "Senior leadership / VP of Operations support" },
-] },
-{ name: "HR Track", icon: "shield", color: "#fd79a8", tag: "BACK OFFICE", desc: "Human resources, compliance, and team member experience", keyMetrics: "Internal role · Salaried",
-levels: [
-{ title: "HR Generalist", salary: "Varies", rates: [], floor: false, criteria: "Onboarding, benefits administration, employee relations, compliance documentation, background checks", promo: "Demonstrate leadership in compliance, escalation handling, training → HR Lead" },
-{ title: "HR Lead", salary: "Varies", rates: [], floor: false, criteria: "Team leadership, policy development, escalation management, compliance training", promo: "HR Manager or VP of Operations pathway" },
-] },
-];
-
-const BONUS_SCHEDULE = { quarterly: [
-{ level: 1, charge: 87000, bonus: 1250 },{ level: 2, charge: 90000, bonus: 1500 },{ level: 3, charge: 95500, bonus: 1750 },{ level: 4, charge: 102000, bonus: 2000 },{ level: 5, charge: 108500, bonus: 2250 },{ level: 6, charge: 115000, bonus: 2500 },{ level: 7, charge: 121500, bonus: 2750 },{ level: 8, charge: 136000, bonus: 3000 },{ level: 9, charge: 144000, bonus: 3250 },
-], annual: [
-{ level: 1, charge: 286000, bonus: 4500, uars: 1000 },{ level: 2, charge: 312000, bonus: 5000, uars: 1500 },{ level: 3, charge: 338000, bonus: 5500, uars: 2000 },{ level: 4, charge: 364000, bonus: 6000, uars: 2500 },{ level: 5, charge: 390000, bonus: 6500, uars: 3000 },{ level: 6, charge: 416000, bonus: 6500, uars: 3000 },{ level: 7, charge: 442000, bonus: 7000, uars: 3500 },{ level: 8, charge: 500000, bonus: 7500, uars: 4000 },{ level: 9, charge: 552000, bonus: 8000, uars: 5000 },
-]};
-const TRAINING_SECTIONS = [
-{ cat: "Computer Setup & Onboarding", icon: "settings", assignedGroups: ["All Employees"], items: [
-  { name: "Computer Setup & Microsoft Authenticator", quiz: false, desc: "First-day tech setup: password, Wi-Fi, OneDrive, Chrome, MFA", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Change Your Password & Connect", body: "Go to microsoft.com, click sign in, then click your profile photo > View Account > Change Password. Connect to Wi-Fi (SparkWireless / PW: Spark2015 if in Troy office). Download the Microsoft Outlook app on your phone." },
-    { heading: "OneDrive & Browser Setup", body: "Check the cloud icon at the bottom of your screen. If it says 'up to date' you're good. If there's a no-smoking sign, sign in with your email and password. Always save files under OneDrive. Use Google Chrome — not Internet Explorer." },
-    { heading: "Microsoft Authenticator Setup", body: "Open the Authenticator app on your phone. Select Add Account (+). Choose Work Account. Sign in with your company email/password, or scan the QR code. After your account appears, use one-time codes to sign into Microsoft 365." },
-    { heading: "Power, Display & Notification Settings", body: "Set power settings so closing the lid doesn't shut down unexpectedly. Pin key apps to taskbar: Chrome, Teams, Outlook, Files, Excel, Word, Snip. Set up multiple monitors under Settings > System > Display." },
-    { heading: "Set Default Browser", body: "In Windows Settings: search 'default apps', scroll to browser, switch to Chrome. In Teams: three dots > Settings > Files and Links > set to 'default browser'." }
-  ] },
-  { name: "Tech Stack & Teams Setup", quiz: false, desc: "All the tools you'll use daily and how to configure Teams", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Your Daily Tech Stack", body: "Microsoft 365, Monday.com, SharePoint, Salesforce/Asymbl, LinkedIn/Indeed/ZipRecruiter/ZoomInfo, GreenEmployee. Download on phone: Outlook, Teams, LinkedIn, Microsoft Authenticator, GreenEmployee." },
-    { heading: "Teams Backdrop & Auto-Start", body: "Save company backdrop. Teams > Calendar > Meet Now > Camera > Effects > More > Add New > select backdrop. Auto-start: three dots > Settings > General > check Auto-Start." },
-    { heading: "Teams Channels & Group Chats", body: "Spark Portfolio Channel: weekly announcements, tracker updates, charge reports. Spark Portfolio ALL TEAM Chat: quick company-wide messages — birthdays, reminders." }
-  ] },
-  { name: "Outlook Signature & Communication Guide", quiz: false, desc: "Email signature setup and when to use Teams vs Email", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Outlook Signature Setup", body: "Outlook > Settings > Account > Signature > Add New. Copy/paste template, fill in your info. Right-click LinkedIn photo > Edit Link > paste your profile URL. Set as default for new messages and replies." },
-    { heading: "Teams vs Email", body: "Teams: quick response, short questions, real-time collaboration, file sharing. Email: detailed/formal info, external contacts, documenting decisions, non-urgent." },
-    { heading: "Never Miss a Teams Message", body: "Profile > Settings > Notifications > Missed Activity Emails > 'As soon as possible'. Customize @mentions, replies, and chat alerts." }
-  ] },
-  { name: "LinkedIn, Google & Bookmarks Setup", quiz: false, desc: "Brand your LinkedIn, Google account, essential bookmarks, Bookings", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "LinkedIn Profile", body: "Profile > Edit > add title and company. Update header photo with Spark backdrop. Add position under Experience." },
-    { heading: "Google & Bookmarks", body: "Create Google account with Spark email. Bookmark: Paycor, LinkedIn, Michigan Talent Bank, Microsoft 365, Trainual, PI Board, SharePoint, Monday." },
-    { heading: "Microsoft Bookings", body: "office.com > All Apps > Bookings. Name = Your Name, add logo, Hours = M-F 8-5 PM. Customize and publish." }
-  ] },
-] },
-{ cat: "Company Culture & Core Values", icon: "star", assignedGroups: ["All Employees"], items: [
-  { name: "Welcome to Spark Companies", quiz: true, desc: "History, purpose, family of companies, org structure, dress code", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "History & Purpose", body: "Founded 2013 by Aaron Opalewski. Michigan-headquartered recruiting and staffing. Purpose: help PEOPLE grow — 100,000 annual opportunities nationwide. Money follows service, it doesn't lead. We're in the people development business." },
-    { heading: "Family of Companies", body: "1 Management Company (Spark Companies), 1 Content Company (Bolt Creative), 5 Staffing Companies: Spark Talent, Spark Packaging, John Joseph Partners, Ignite Executive Search, Flex Workforce Solutions." },
-    { heading: "Key Leadership", body: "CEO: Aaron Opalewski. VP Ops: Allie Spegel. CSO: Dave Veres. VP Professional Dev: Alex Gorman. VP ARMs: Ryan Aymen. Dir of Ops: Mary Patrico. Payroll Mgr: Priyanka Malani." },
-    { heading: "Dress Code", body: "Casual but appropriate. No offensive imagery. Company logo apparel encouraged. Business casual for client meetings. No lounge/sweatpants. Shorts on Fridays in summer. Hats only Fridays unless company logo." }
-  ] },
-  { name: "Core Values Deep Dive", quiz: false, desc: "All 8 core values with detailed explanations", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Leading by Example", body: "It isn't just a way — it's the ONLY way. Every person leads by example regardless of title. Be willing to do hard tasks. Model behavior. Seek feedback." },
-    { heading: "Do the Right Thing", body: "Integrity and respect — always. Act with honesty. Maintain ethics even when no one is watching." },
-    { heading: "Conquering Adversity", body: "Challenges are normal. Use mistakes to learn. Stay persistent. Celebrate successes when they come." },
-    { heading: "Be Humble, Crave Improvement", body: "Be coachable. No matter how good, there's another level. Ask for and apply feedback." },
-    { heading: "People Driven; Service Focused", body: "Go the extra mile. Same professionalism to colleagues as clients. Listen before offering solutions." },
-    { heading: "Dominate the Day", body: "Take control with determination. Prepare today for tomorrow. Each day is a chance to excel." },
-    { heading: "Deliver Value & Mindset", body: "Understand needs first. Stay curious and committed. Positive mindset is the foundation — obstacles are opportunities." }
-  ] },
-  { name: "Language, Meetings & Igniters", quiz: false, desc: "Words matter, mandatory meetings, PI Board, terminology", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Words Matter", body: "'Team members' not 'employees'. 'My pleasure' not 'No problem'. In sales: 'investment' not 'fee', 'invoice' not 'bill'." },
-    { heading: "Mandatory Meetings", body: "Bi-weekly Company: Tuesdays 4 PM (everyone). Sales/Recruiting Trainings (production). PI Board: 8:45 AM Mon & Fri (production). Igniters = division GP goals." }
-  ] },
-] },
-{ cat: "Recruiting Process Training", icon: "search", assignedGroups: ["All Employees"], items: [
-  { name: "The Complete Recruiting Lifecycle", quiz: true, desc: "Req qualification through placement, ongoing service, and terminations", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Staffing Fundamentals", body: "Staffing: strategically identifying, recruiting, and placing talent. Components: workforce planning, recruitment, selection, onboarding, retention & development." },
-    { heading: "Req Qualification & Research", body: "Clarify expectations with Account Manager. Understand opening type. Identify must-haves vs. nice-to-haves. Study JD, research client industry and culture." },
-    { heading: "Sourcing & Contact", body: "Boolean search strings with keywords, locations, titles, certifications. Tools: LinkedIn, Indeed, ZipRecruiter, ZoomInfo, ATS. Daily phone screen goals per KPIs. Call sheets prepared night before." },
-    { heading: "Prescreening & References", body: "Flow: Intro > Candidate Overview > Role Overview > Q&A > Next Steps. Asymbl templates: CTRL + . in text box. References use TEDW: Tell me, Explain, Describe, Walk me through." },
-    { heading: "Submittals & Interviews", body: "Use submittal template. Attach resume. For interviews: schedule, send candidate prep, share tips, debrief both sides after." },
-    { heading: "Offer Through Ongoing Service", body: "Call with excitement for offers. Send details to TMX. Prep email 2 days before start. Day-before check-in. First-day follow-up. Regular check-ins throughout." },
-    { heading: "Terminations", body: "Get client feedback. Call directly — never voicemail details. Factual and calm. Document in ATS. Notify payroll. Offer future help." }
-  ] },
-  { name: "Salesforce: Jobs, Sourcing & Call Sheets", quiz: false, desc: "Creating posts, sourcing in ATS, managing KanBan", type: "process", location: "All Team Members", url: null, content: [
-    { heading: "Job Posts", body: "Job > Details tab > External Job Description > paste JD > check 'Post Externally'. Update logo to correct entity." },
-    { heading: "Sourcing & Call Sheets", body: "Search with Filters or via Job > Applicants & Match. Task button on profiles to schedule calls. Call sheet in ATS KanBan. Log all activities." }
-  ] },
-] },
-{ cat: "Recruiting & Employment Law", icon: "shield", assignedGroups: ["All Employees"], items: [
-  { name: "Federal Laws & Protected Classes", quiz: true, desc: "EEOC, 8 key federal laws, interview compliance tips", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Protected Classes", body: "Spark is Equal Opportunity. Protected: national origin, race, color, sex, age 40+, religion, genetic info, marital status, height/weight, arrest record, disability." },
-    { heading: "Key Federal Laws", body: "Title VII (1964), Equal Pay Act (1963), ADA, ADEA, Immigration Reform Act (1986), Bankruptcy Act, EEOC Act, Civil Rights Act (1966)." },
-    { heading: "Compliance Tips", body: "Be conversational. If candidate mentions protected class, pivot and note EEOC compliance. Never ask personal questions. Document only facts." }
-  ] },
-  { name: "Terminations & Michigan Law", quiz: true, desc: "At-will employment, legal do's and don'ts", type: "doc", location: "All Team Members", url: null, content: [
-    { heading: "Michigan At-Will", body: "Can terminate anytime for any legal reason. Illegal: discrimination (Elliott-Larsen), retaliation (Whistleblowers' Act), breach of contract." },
-    { heading: "Do's", body: "Document with objective language. Review policies. Communicate clearly and privately. Provide final details. Update ATS." },
-    { heading: "Don'ts", body: "Don't discriminate or retaliate. No voicemail terminations. Don't apologize or get personal. Don't violate confidentiality." }
-  ] },
-] },
-{ cat: "Sales Process Training", icon: "trending", assignedGroups: ["Production"], items: [
-  { name: "Prospect: Target Strategy", quiz: true, desc: "Top 20/Next 20, ZoomInfo, daily prospecting discipline", type: "doc", location: "ARM's and Sales", url: null, content: [
-    { heading: "Top 20 / Next 20", body: "20 primary + 20 secondary accounts. Criteria: use staffing, hire 3-5x/year technical or 5+ contractors/week, your top 5 skills, competitive pay, local decision-maker. Target 3-5 managers per account. Tag by skill sets." },
-    { heading: "Daily Discipline", body: "80% of time on target accounts. Track outreach consistently. ZoomInfo: set workflows/alerts for prospect activity and manager changes." }
-  ] },
-  { name: "Engage: Discovery & Meetings", quiz: false, desc: "Preparation, productive meetings, consultative positioning", type: "doc", location: "ARM's and Sales", url: null, content: [
-    { heading: "Discovery Prep", body: "Research careers page/job boards. Identify similar clients. Questions: hiring volume, pain points, decision structure, budget/timeline. Bring candidates to meetings." },
-    { heading: "Meeting Execution", body: "Agenda: discovery, candidate review, next steps. Gather intel on org structure, process, procurement, competition. Position as consultative partner." }
-  ] },
-  { name: "Qualify: The 4 P's", quiz: false, desc: "Position, Pay, Process, People — negotiation and sourcing strategy", type: "doc", location: "ARM's and Sales", url: null, content: [
-    { heading: "The 4 P's", body: "Position: role/responsibilities/skills. Pay: competitive? Process: interviews/timeline/decision-makers. People: stakeholders — HM, leads, procurement." },
-    { heading: "Close Qualification", body: "Get 2 technical questions from HM. Negotiate win/win/win. Create sourcing strategy with recruiter. Schedule interviews during qualification." }
-  ] },
-  { name: "Deliver, Service & Knowledge", quiz: false, desc: "Screening, influence, ongoing service, documentation", type: "doc", location: "ARM's and Sales", url: null, content: [
-    { heading: "Deliver", body: "Collaborate with recruiter pre-submit. Review past candidates. Call don't email. Sell strengths. Sit in on interviews. Debrief both sides." },
-    { heading: "Service", body: "Contractor performance feedback. Intro to other managers. Always ask for next req. Liaison for hours/pay." },
-    { heading: "Knowledge", body: "Log everything in ATS. Involve recruiter in docs. Teach lead generation from talent and reference techniques." }
-  ] },
-] },
-{ cat: "Recruiter Compliance Refresher", icon: "shield", assignedGroups: ["Production"], items: [
-  { name: "Compliance Training & Assessment", quiz: true, desc: "Protected categories, FCRA, drug screening, social media, AI in hiring", type: "doc", location: "Recruiting", url: null, content: [
-    { heading: "What's Covered", body: "Protected categories, compliant vs. non-compliant questions, red flag phrases, drug screening/marijuana laws, background checks (FCRA, Ban the Box, adverse action), social media screening, AI/technology regulations." },
-    { heading: "Tools & Resources", body: "State-by-state alerts (CA, NY, IL, MA, TX, CO, WA, FL). Compliance timeline. Escalation flowchart. Note-taking guide. Accommodation handling. Communication templates." },
-    { heading: "Assessment", body: "Practice scenarios + 12-question quiz. Need 10/12 to pass. Reflects general U.S. employment law. Consult legal for jurisdiction-specific guidance." }
-  ] },
-] },
-{ cat: "Leader-Based Training Activities", icon: "award", assignedGroups: ["All Employees"], items: [
-  { name: "KPI, Call Sheet & Boolean Activities", quiz: false, desc: "Hands-on leader-guided training exercises", type: "interactive", location: "All Team Members", url: null, content: [
-    { heading: "Reading KPIs", body: "Leader explains PI Board KPIs, shows each section, covers daily meeting updates, and explains how to exceed metrics." },
-    { heading: "Call Sheet Activity", body: "Leader shows their call sheet. Together, build yours with a curated candidate list." },
-    { heading: "Boolean Search", body: "Create an in-depth Boolean string for a current opening — location, titles, certifications." }
-  ] },
-  { name: "Contact, Prescreen & Submittal Activities", quiz: false, desc: "Message templates, role-play, dummy submittals, reference practice", type: "interactive", location: "All Team Members", url: null, content: [
-    { heading: "Message Template", body: "Leader helps create outreach message for a current opening. Send to candidate and work through response together." },
-    { heading: "Prescreen Role-Play", body: "Mock prescreen with real JD. Take turns as recruiter/candidate. Focus on tone, flow, questions. Debrief." },
-    { heading: "Submittal & Reference", body: "Create 1-2 dummy submittals with resume, notes, feedback. Role-play reference call with leader as 'client'." }
-  ] },
-] },
-{ cat: "Sales Mastery", icon: "trending", assignedGroups: ["Production"], items: [
-    { name: "Sales Mastery Day 1: Objection Handling", quiz: true, desc: "Recognize the 6 objection types, diagnose the real concern beneath the words, and respond with empathy and evidence.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Why objections are a buying signal", body: "Objections aren't rejection — they're requests for more information. A prospect who pushes back is engaged. A prospect who says 'sounds great, send me info' is usually gone. Treat every objection as an invitation to go deeper. The reps who close the most deals are the ones who hear the most objections — because they're earning trust at every step instead of running from friction." },
-      { heading: "The 6 objection types", body: "1) PRICE — 'It costs too much.' 2) VALUE — 'I don't see the ROI.' 3) NEED — 'We're not hiring right now.' 4) TIMING — 'Not the right quarter.' 5) TRUST — 'I've never heard of you.' 6) COMPETITOR — 'We already work with someone.' Every objection you'll ever hear maps to one of these six. Your first job is to label it correctly — because the response for Price is completely different from the response for Trust." },
-      { heading: "Root cause analysis: What are they really saying?", body: "'It's too expensive' rarely means the price is too high. It usually means: 'I don't see enough value to justify the cost,' OR 'I haven't sold this internally yet,' OR 'I'm comparing apples to oranges.' Your job is to ask one more question before you respond. 'Help me understand — too expensive compared to what?' That single question separates pros from amateurs." },
-      { heading: "Active listening and mirroring", body: "Mirroring = repeat the last 2-3 words of what they said as a question. Prospect: 'We just don't have the bandwidth right now.' You: 'Don't have the bandwidth?' This forces them to elaborate, and 80% of the time they'll reveal the real concern. Don't interrupt. Don't problem-solve until they've fully unloaded. People feel heard when you slow down." },
-      { heading: "Probing questions that diagnose the real issue", body: "Ask: 'When you say it's too much, are you reacting to the per-hour rate, the total spend, or the comparison to your last vendor?' / 'If price weren't a factor, would you move forward?' / 'What would have to be true for this to be a no-brainer?' These questions surface whether you have a price problem, a value problem, or a buy-in problem — and each requires a different play." },
-      { heading: "The Acknowledge → Reframe → Evidence → Confirm framework", body: "ACKNOWLEDGE: 'I hear you, that's a fair concern.' REFRAME: 'Let me put this in context — most of our clients felt the same way before they saw the cost of the open role.' EVIDENCE: Use a specific case study, ROI number, or reference. CONFIRM: 'Does that change how you're thinking about it?' Never skip the confirm — it tells you whether the objection is handled or whether you need another lap." }
-    ] },
-    { name: "Sales Mastery Day 2: Negotiation Strategies", quiz: true, desc: "Shift conversations from price to value, anchor strong, bundle instead of discount, and walk away with confidence.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Shift the conversation from price to value", body: "When a prospect leads with price, you've already lost the frame. Reset it: 'Before we talk numbers, let's make sure we're solving the right problem. What's the cost to you of this role staying open another 30 days?' Now you're negotiating on impact, not invoice. The prospect who anchors on price is comparing you to a commodity. Your job is to refuse the commodity frame." },
-      { heading: "Anchor early and high", body: "Whoever anchors first sets the gravity of the negotiation. State your standard fee with confidence and zero apology: '20% of first-year base, paid net 30 on start date.' Don't preface with 'normally' or 'we usually.' Don't trail off. Anchoring high gives you room to negotiate; anchoring low gives the prospect a floor to push beneath." },
-      { heading: "Bundle, don't discount", body: "If a prospect pushes for a discount, never just lower the number. INSTEAD: add or remove scope. 'I can hit that number if we move from 90-day to 60-day guarantee.' OR 'At that rate, we'd run a 4-week exclusive instead of 6.' Discounting trains the prospect that your price was inflated. Bundling teaches them that price tracks value. Every concession should cost them something in return." },
-      { heading: "Leverage urgency and opportunity cost", body: "Reinforce what they lose by waiting: 'The role has been open 47 days. At your loaded cost of vacancy of $1,800/day, that's $84,600 in lost productivity. Our average time-to-fill is 21 days. Even at our full rate, the ROI is in week one.' Make the cost of inaction more vivid than the cost of action." },
-      { heading: "Scripts: 'Can you do better on price?'", body: "RESPONSE A: 'I appreciate the ask. Help me understand — if we hit your number, are we moving forward today, or is there another step?' (Surfaces real authority.) RESPONSE B: 'I have flexibility, but it's tied to scope. Are you open to a different guarantee window or exclusivity period?' (Bundles instead of discounts.) RESPONSE C: 'The fee reflects the search depth this role requires. If we cut the fee, we'd cut the depth — and that's not a win for either of us.' (Holds the line on value.)" },
-      { heading: "Walk away with confidence", body: "The most powerful word in negotiation is the willingness to use 'no.' If the deal economics don't work, name it: 'It sounds like we're not aligned on investment level. I'd rather pass than under-deliver. If your situation changes, I'm here.' 90% of the time, the prospect comes back. The other 10%, you saved yourself a money-losing engagement. Either outcome is a win." }
-    ] },
-    { name: "Sales Mastery Day 3: Value-Based Selling", quiz: true, desc: "Sell results, not features. Make the buyer the hero. Tie every benefit to a business goal.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Sell results, not features", body: "Features tell. Results sell. 'We have 50 recruiters' is a feature. 'We fill controls roles in 18 days versus the industry's 47' is a result. Every feature in your pitch needs a 'so that' — 'We have a dedicated industry team SO THAT your role is filled by someone who already speaks PLC.' If you can't finish the 'so that,' cut the feature." },
-      { heading: "Make the buyer the hero", body: "Your prospect isn't buying staffing services — they're buying the version of themselves who solved a problem and got promoted. Frame every win in their language: 'When we fill this role, you'll be the one who unblocked the production line and got the plant back to capacity.' You are Yoda, not Luke. Their wins are the story. Your service is the lightsaber." },
-      { heading: "Tie benefits to business goals", body: "Don't sell faster fills — sell shorter time-to-revenue. Don't sell quality candidates — sell reduced turnover cost. Every conversation should map your offering to one of: revenue growth, cost reduction, risk mitigation, or speed to market. If a prospect can't tell their CFO why they bought you in those terms, you didn't sell value — you sold features." },
-      { heading: "Personalize by stakeholder", body: "CFO: lead with ROI, payback period, cost-of-vacancy math. OPS LEADER: lead with time saved, throughput, headache reduction. CEO: lead with strategic capacity, market position, growth enablement. HR/TA: lead with workload relief, candidate experience, brand. Same service, four different pitches. Identify the stakeholder before you build the pitch — never the reverse." },
-      { heading: "Create urgency with the value gap", body: "The value gap = the cost of inaction minus the cost of action. Make it concrete: 'You're losing $1,800/day in vacancy. Our fee amortized over the year is $42/day. Every day you wait costs you 43x our daily fee.' When the gap is vivid, urgency follows automatically. You don't have to manufacture pressure — the math does it for you." }
-    ] },
-    { name: "Sales Mastery Day 4: Time Management", quiz: true, desc: "Spend your hours on revenue-generating activity. Build a system that protects your top of the day from chaos.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "High-value vs low-value activities", body: "HIGH-VALUE (revenue-driving): client calls, candidate prescreens, submissions, closes, prospect outreach, deal-stage progression. LOW-VALUE (feels productive but doesn't drive revenue): inbox triage, internal Slack threads, formatting resumes, debating org charts. Every morning, ask: 'Of the next 4 hours, how many will be on the high-value list?' If the answer is less than 3, your day is already broken." },
-      { heading: "Time blocking", body: "Block your calendar like it's a client meeting. 8:30-10:00 prospecting calls. 10:00-11:30 candidate prescreens. 11:30-12:00 submissions. 1:00-2:30 client follow-ups. 2:30-4:00 second prospecting block. Email and Slack get specific windows — they don't get to interrupt the blocks. If you don't own your calendar, someone else will." },
-      { heading: "The 2-minute rule", body: "If a task takes less than 2 minutes — do it now. Reply to the candidate confirming the interview. Log the call. Send the calendar invite. Anything else goes on a list for the next batch window. The cost of context-switching from calls to admin all day is enormous. The cost of letting tiny tasks pile up to 50 unanswered emails is also enormous. The 2-minute rule is the cutoff." },
-      { heading: "Inbox zero (or near it)", body: "Process email in batches, not continuously. Three windows: morning (8:00-8:30), midday (12:00-12:30), end of day (4:30-5:00). Each email gets one of four actions: REPLY (if under 2 min), DELEGATE (forward with one-line ask), DEFER (add to task list), DELETE. Don't 'check email' between client calls — you'll never close the loop, and every glance taxes your focus." },
-      { heading: "Weekly review framework", body: "Friday afternoon, 30 minutes: Review the week's activity numbers (calls, submissions, meetings) against KPIs. Identify the top 3 deals that moved and the top 3 that stalled. Plan next week's pipeline pressure points. Reset your calendar blocks. Top reps don't out-hustle other reps — they out-plan them." }
-    ] },
-    { name: "Sales Mastery Day 5: Listening & Questioning", quiz: true, desc: "Be a doctor: diagnose before you prescribe. Master the question types that surface the real deal.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "The consultative selling goal", body: "Average reps talk 70% of the call. Top reps talk 30%. The job isn't to perform — it's to diagnose. Every minute you're talking, you're not learning. Every minute they're talking, you're earning the right to recommend something specific. If you walked out of a doctor's office and they prescribed before they asked any questions, you'd never go back. Don't be that rep." },
-      { heading: "Core listening skills", body: "Three layers: (1) HEAR the words. (2) UNDERSTAND the meaning. (3) FEEL the emotion. Most reps only operate at layer 1. Layer 2 is paraphrasing back: 'So what I'm hearing is the last vendor missed the cultural fit and you ended up with two terms in 90 days.' Layer 3 is reading the energy: 'Sounds like that one was painful to live through.' Layer 3 is where trust is built." },
-      { heading: "Open-ended questions", body: "Closed: 'Are you happy with your current vendor?' (Yes/no — dead end.) Open: 'Walk me through your experience with your current vendor — what's working, what isn't?' (Story.) Open-ended starts with: What, How, Tell me about, Walk me through, Help me understand. Ban 'Are' and 'Do' from your discovery vocabulary." },
-      { heading: "Diagnostic questions", body: "These surface PAIN. 'What happens to the team when this role stays open?' / 'When was the last time you tried to fill this and what happened?' / 'What's the impact on production each week this isn't filled?' Pain is the fuel for action. Without quantified pain, your proposal is a nice-to-have." },
-      { heading: "Quantifying questions", body: "Move pain from vague to specific: 'When you say it's costing you a lot, what does a lot mean in dollars or hours per week?' / 'How many candidates have you seen so far?' / 'How long has this been open?' Numbers get budget approved. Adjectives get ignored." },
-      { heading: "Stakeholder questions", body: "Surface the room: 'Besides yourself, who else is involved in this decision?' / 'Has someone else been burned by a vendor on a search like this?' / 'Who signs the contract — and is that the same person who signs the check?' If you don't know who else has a vote, you're going to lose to someone you never met." },
-      { heading: "Future-state questions", body: "Help them see the win: 'Picture this role filled and ramped — what changes for your week?' / 'If we hit your target start date, what does Q2 look like?' Once a prospect can SEE the outcome, your job is mostly done. They start selling themselves." }
-    ] },
-    { name: "Sales Mastery Day 7: Running Effective Follow-Ups", quiz: true, desc: "Pre-schedule your cadence. Bump with value. Use breakup emails to flush stalled deals.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Pre-schedule the next touch before the call ends", body: "Never end a call without a confirmed next step on the calendar. 'Let's lock in 15 minutes Thursday at 2 — I'll send the invite now.' If you leave it as 'I'll follow up next week,' the deal is in 50/50 land. Calendar invites are commitments. Promises to circle back are not." },
-      { heading: "The cadence framework: Days 1-14+", body: "DAY 1: Recap email — what we discussed, what you're sending, when you'll be back. DAY 3: Value bump — relevant case study or industry insight. DAY 7: LinkedIn touch — comment on a post or connect. DAY 10: Direct check-in — 'Where are your thoughts?' DAY 14: Breakup. After 14 days, if no response, move them to a long-tail nurture, not your active pipeline." },
-      { heading: "Bump with value, not 'just checking in'", body: "'Just checking in' is dead. Every follow-up needs to give them something: an article relevant to their challenge, a candidate that fits their ICP, a benchmark from a similar client, a piece of news about a competitor of theirs. Every touch should make them slightly smarter or slightly better at their job. Otherwise you're noise." },
-      { heading: "The 'bump with value' formula", body: "Subject: [Specific topic that matters to them]. Body: 'Saw this and thought of you — [link or insight]. The reason it's relevant: [one sentence on why]. While I have you — any update on [the thing we discussed]?' Three sentences. Always tied to their world. Never about you." },
-      { heading: "The breakup email", body: "Subject: 'Should I close the loop?' Body: 'Hi [Name] — I haven't heard back, which usually means one of three things: (1) you've decided to go a different direction, (2) the timing isn't right, or (3) you've been buried. No problem with any of those. Could you reply with 1, 2, or 3 so I know how to be helpful? If 1, I'll close the file and stop reaching out. — [You]' Breakups have a 30-40% response rate. Your unanswered 'just checking in' has 2%." },
-      { heading: "Template: First follow-up email after a discovery call", body: "Subject: Recap — [their company] / Spark next steps\n\nHi [Name],\nThanks for the time today. Quick recap:\n• You're looking for [role] by [date], driven by [pain].\n• Top must-haves: [skill 1], [skill 2], [skill 3].\n• Compensation target: $[X].\n\nI'll have 3 vetted candidates to you by [day]. In the meantime, attached is a quick overview of how we approach [their industry] searches.\n\nCalendar holds for our next sync — Thursday 10am or Friday 2pm. Which works?\n\n— [You]" }
-    ] },
-    { name: "Sales Mastery Day 10: Closing Techniques", quiz: true, desc: "5 close types, the staffing-objection playbook, and the Cost of Vacancy formula every rep needs in their pocket.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "The Assumptive Close", body: "Don't ask if they want to move forward — ask which version. 'Should we send the agreement to you or your procurement contact?' / 'Do you want me to start sourcing today or kick off Monday?' Assumptive closes work because they skip the binary yes/no and move straight to logistics. The prospect either says 'send to me' or surfaces the real objection." },
-      { heading: "The Summary Close", body: "Recap the wins back to them: 'So we've agreed: 21-day fill target, 90-day guarantee, locked rate at 22%. Sound right?' Get three yeses in a row, then: 'Great — I'll send the agreement.' The summary close works because the prospect has already verbally committed to every component. The signature is just paperwork." },
-      { heading: "The Urgency Close", body: "Tie the close to a real, specific deadline they care about: 'If we kick off this week, we have someone starting before your busy season. If we wait two weeks, we miss it.' Manufactured urgency ('this rate expires Friday!') destroys trust. REAL urgency tied to their calendar wins deals." },
-      { heading: "The Calendar Close", body: "Skip the contract conversation entirely. 'Let's get the kickoff call on the calendar — Tuesday at 10 work?' Once it's on the calendar, the contract becomes a formality. People defend their calendar more than their inbox. Calendar = commitment." },
-      { heading: "The Option Close", body: "Two yeses, never a yes/no. 'Do you want to start with the controls engineer search first, or run both in parallel?' Both options move forward. Neither option is 'no.' This closes 30% better than 'are you ready to start?' because it removes the easiest answer (no)." },
-      { heading: "Staffing objection responses", body: "'WE'RE WORKING WITH ANOTHER FIRM' → 'Most of our best clients started by adding us as a second source. We don't ask for exclusivity — we ask for a shot.' 'YOUR FEE IS HIGHER' → 'I'd rather be the firm that fills it once than the cheaper firm that fills it twice.' 'WE'RE TRYING INTERNALLY FIRST' → 'Smart. While you do, we'll line up backups so if internal stalls, you don't lose 30 days.'" },
-      { heading: "The Cost of Vacancy calculator", body: "FORMULA: Annual loaded labor cost ÷ 220 working days = daily cost of role. Loaded = base salary × 1.3 (benefits, taxes, overhead). Example: $80K base × 1.3 = $104K loaded ÷ 220 = $473/day. If the role is open 30 days, you've spent $14,190 in vacancy. Our fee on a $80K role at 20% = $16,000. The role pays for itself in roughly 34 days of fill — and every day past that is pure ROI." },
-      { heading: "ROI pitch phrases", body: "'Our fee is roughly 34 days of vacancy cost. After that, every day this person is in the seat is profit.' / 'You're not buying a recruiter — you're buying back 60-90 days of lost output.' / 'If we fill this in 21 days versus your average 60, that's 39 days of recovered productivity. At your daily cost of vacancy, that's [$X] in your pocket.'" }
-    ] },
-    { name: "Sales Mastery Day 12: Handling Complex Procurement", quiz: true, desc: "Procurement isn't the enemy — they're a buyer with different incentives. Learn the 5-step framework to navigate big-company purchasing.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "The 5-step framework for complex procurement", body: "1) MAP the buying structure (who are all the players?). 2) IDENTIFY the executive sponsor (who actually wants this to happen?). 3) UNDERSTAND procurement's incentives (cost, risk, vendor consolidation, compliance). 4) BUILD a compliant proposal that makes them look smart. 5) CO-SELL with your sponsor — never go around them. Most reps lose at step 1 because they treat procurement as the buyer when they're really the gatekeeper." },
-      { heading: "Map the buying structure", body: "Five roles in any complex deal: ECONOMIC BUYER (signs the check), USER BUYER (will use the service), TECHNICAL BUYER (verifies it meets requirements), CHAMPION (advocates internally), GATEKEEPER (procurement, legal). You need direct or indirect contact with all five. Map them on paper before your next call. If you can't fill in all five names, you have a discovery problem, not a closing problem." },
-      { heading: "Multi-thread the deal", body: "Single-threaded deals die when your one contact gets reorged, fired, or distracted. Always have at least 3 active relationships inside the account. Get introduced to your champion's boss. LinkedIn-connect with the user buyer. Ask procurement who else needs to weigh in. The more threads, the more resilient the deal." },
-      { heading: "Procurement hurdles", body: "Common procurement asks: MSA in their paper (not yours), insurance certificates, vendor questionnaires, security reviews, diversity supplier data, payment terms negotiation, fee benchmarking. Have these answers and documents READY before they ask. Speed of response on procurement asks is a deal accelerator. Slow responses signal a small/inexperienced vendor." },
-      { heading: "Procurement value creation", body: "Procurement's job is to demonstrate savings, reduce risk, and consolidate vendors. Speak their language: 'We can offer a master pricing schedule that saves you X% on volume.' 'Our 90-day guarantee transfers risk back to us.' 'We can replace three of your existing point vendors with one MSA.' Every point you make should map to ONE of those three procurement KPIs." },
-      { heading: "Soft control statements", body: "Maintain process control without being pushy: 'In my experience, deals like this typically need [X], [Y], and [Z] to get to signature. Where are we on each?' / 'Just so I'm helpful — what's the slowest part of your typical process? I'd like to start that piece now.' These statements position you as a guide, not a vendor begging for next steps." },
-      { heading: "Procurement objection responses", body: "'WE NEED 3 BIDS' → 'Happy to participate. What criteria are you weighting heaviest?' (Get the rubric.) 'NET 60 PAYMENT' → 'We can do net 30 standard or net 60 with a 1.5% fee adjustment.' (Make terms a tradeoff.) 'MUST USE OUR MSA' → 'Send it over. We'll redline within 48 hours.' (Speed wins.) 'YOUR FEE IS ABOVE BENCHMARK' → 'Happy to walk through what's in the fee. Most benchmarks include only sourcing — ours includes guarantee, replacement, and dedicated team.' (Reframe scope.)" }
-    ] },
-    { name: "Sales Mastery Day 14: Handling No-Decision", quiz: true, desc: "Most deals don't lose to competitors — they lose to the status quo. Learn to prevent stalls and re-engage stalled deals.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Why deals stall", body: "Five reasons a deal goes to no-decision: (1) URGENCY wasn't real. (2) BUY-IN — your champion couldn't sell internally. (3) BUDGET wasn't actually approved. (4) STATUS QUO felt safer than change. (5) WEAK CASE — you didn't quantify pain. The most common is #4: doing nothing was the easiest option. Your job is to make doing nothing feel risky." },
-      { heading: "Prevent stalls with discovery questions", body: "Ask EARLY, not late: 'What happens if you don't fix this in the next 90 days?' / 'Has anyone tried to solve this before? What happened?' / 'Walk me through how decisions like this typically get approved here.' / 'On a scale of 1-10, how urgent is this for you personally?' If the answer to the last one is below an 8, you don't have a deal yet — you have a conversation." },
-      { heading: "The cost-of-vacancy pitch", body: "Make inaction expensive. Use real math: 'Your loaded cost on this role is $473/day. You've already been open 60 days — that's $28,380 in lost productivity. Every additional 30 days costs another $14,190. Our fee is $16,000.' Now they're not deciding whether to spend $16K — they're deciding whether to keep losing $14K/month. Same money, completely different frame." },
-      { heading: "Surface the real risk of waiting", body: "Every stall has hidden risk the prospect isn't seeing. Articulate it: 'If you wait until Q3, your competitors will have hired the talent pool you need.' / 'The candidates we're tracking now will be off the market in 4-6 weeks.' / 'Your team is showing turnover signals — adding capacity now is also a retention play.' Don't manufacture risk. Find the real risks they haven't named yet." },
-      { heading: "Re-engagement framework for stalled deals", body: "Don't keep sending 'just checking in.' Instead: (1) NEW INSIGHT — 'Saw a hiring trend in your industry I want to share.' (2) NEW STAKEHOLDER — 'Want to introduce you to one of our subject matter experts.' (3) NEW URGENCY — 'A candidate I think you'd love just came on the market.' (4) NEW ANGLE — 'I've been thinking about your situation and have a different way to approach it.' Each restart is a NEW reason to talk." },
-      { heading: "Re-engagement email template", body: "Subject: New angle on your [role/challenge]\n\nHi [Name],\nWhen we spoke in [month], you mentioned [specific challenge]. I haven't been able to stop thinking about it because [reason it's interesting].\n\nA few things have changed since:\n• [New insight, candidate, or industry data]\n• [Something that affects their timeline]\n\nI'd love 15 minutes to share — even if you've already moved a different direction, the data might be useful for next time. Calendar: [link]\n\n— [You]" }
-    ] },
-    { name: "Sales Mastery Day 19: Effective Prospecting", quiz: true, desc: "Build your ICP, run a multi-channel cadence, and craft outreach that earns a response.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Define your ICP (Ideal Client Profile)", body: "Your ICP is the intersection of: INDUSTRY (where we win), SIZE (50-2000 employees is our sweet spot for most segments), GEOGRAPHY (Michigan, Ohio, Indiana, Illinois primarily), HIRING SIGNALS (recent funding, growth job postings, leadership changes), PAIN (chronic open reqs, post-attrition, expansion). Spend 80% of prospecting time on accounts that hit 4-of-5. The 20% that hit 5-of-5 are your A-list — they get personal touches every 30 days regardless of response." },
-      { heading: "Multi-channel cadence (7-day)", body: "DAY 1: LinkedIn connection request (no pitch, just relevance). DAY 2: Email with value-led intro. DAY 3: Phone call + voicemail. DAY 4: LinkedIn engagement (comment on their post). DAY 5: Email — different angle, new insight. DAY 6: Phone call + voicemail. DAY 7: Breakup email. After Day 7, drop them into a 60-day nurture. Multi-channel beats single-channel by 4-6x on response." },
-      { heading: "Micro-personalization with triggers", body: "Generic outreach is dead. Lead with a SPECIFIC trigger: 'Saw your team posted a Senior Controls Engineer req on Indeed 11 days ago — usually a sign you've burned through internal channels.' / 'Noticed [Company] just announced expansion into the Tier 2 line — that usually drives 8-12 manufacturing hires over the next 6 months.' / 'Your post about plant capacity hit my feed. I work with companies in your spot.' Triggers signal you did your homework. They respond at 5-10x the rate of generic outreach." },
-      { heading: "Problem → Impact → Solution → CTA formula", body: "PROBLEM: 'Manufacturers like yours typically lose 60-90 days filling senior controls roles internally.' IMPACT: 'At your scale, that's roughly $40K-$60K in vacancy cost and 1-2 missed production milestones.' SOLUTION: 'We fill these in 18-24 days because we have a dedicated controls bench.' CTA: 'Worth a 15-minute conversation to see if we'd be a fit?' Four sentences. Always in this order. Never reverse it." },
-      { heading: "The give-to-get offer", body: "Lead with something they get whether they buy or not. 'Happy to share our 2026 manufacturing comp benchmarks for your region — even if we never work together, you'll find them useful for your next req.' / 'I'll send our top 3 controls engineer talent profiles in your area — yours to use as a benchmark or to reach out directly.' Give-to-get offers triple meeting rates because they remove the 'what's in it for me?' friction." },
-      { heading: "What kills outreach", body: "Avoid: 'I hope you're well' (lazy opener). 'I wanted to reach out' (everyone wanted to). 'Quick question' (no it isn't). Mentioning your service in sentence 1. Sending a 6-paragraph email. Sending a calendar link before they've shown interest. Asking 'what keeps you up at night.' Talking about yourself before talking about them. Cut all of these from your templates today." },
-      { heading: "Prospecting math", body: "100 outreach touches → 10 conversations → 3 meetings → 1 deal (typical staffing benchmarks). To hit 1 new deal/week, you need ~100 outbound touches/week — about 20/day. KPIs reflect this: 30 calls/day, 10 submissions/week. The numbers work IF the targeting is good. Bad list × big volume = nothing. Good list × big volume = pipeline." }
-    ] },
-    { name: "Sales Voicemails & Role Plays", quiz: true, desc: "7 voicemail templates and 7 role-play scenarios you'll face every week.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Voicemail principles", body: "Keep it under 25 seconds. State your name and company up front. Lead with relevance, not pitch. Always end with a specific reason to call back. Smile while you talk — it's audible. NEVER leave a 'just calling to introduce myself' VM. They'll hear it once and delete. Every VM needs a reason to return the call." },
-      { heading: "VM Template 1: Cold (first contact)", body: "'Hi [Name], this is [You] with Spark. Reason for the call — saw [trigger: their job posting / news / LinkedIn activity]. We help [industry] hiring leaders fill [role type] in roughly half the time most internal teams take. Worth a quick chat? My number is [X]. Following up by email today either way.'" },
-      { heading: "VM Template 2: Job posting", body: "'Hi [Name], [You] with Spark. Saw your [role] posting — appears it's been live about [X] days. That usually means internal channels haven't worked. We've filled three of those exact roles in the last 90 days for [comparable company type]. Quick 10 minutes to see if we should be involved? [Phone number].'" },
-      { heading: "VM Template 3: Reference call follow-up", body: "'Hi [Name], [You] with Spark. [Reference name] at [Company] suggested I reach out — they mentioned you're in the same spot they were last quarter on [pain]. We helped them solve it in [time]. Wanted to see if a similar approach makes sense for you. Call me at [X].'" },
-      { heading: "VM Template 4: Recruiter lead", body: "'Hi [Name], [You] with Spark. One of our recruiters is in active conversation with a [title] candidate who specifically asked about your team. Wanted to make sure you knew before they got recruited elsewhere. Quick callback? [Phone].'" },
-      { heading: "VM Template 5: Rate negotiation", body: "'Hi [Name], [You] with Spark. Following up on the rate question. I've put together two options that both work — one keeps the original scope, one adjusts on guarantee. Want 5 minutes to walk through? [Phone].'" },
-      { heading: "VM Template 6: Differentiation", body: "'Hi [Name], [You] with Spark. I know you're talking to other firms. Two things make us different from the rest — [point 1] and [point 2]. Worth 10 minutes to see if either one matters for your situation? [Phone].'" },
-      { heading: "VM Template 7: Rate pushback", body: "'Hi [Name], [You] with Spark. Heard the feedback that the rate was higher than expected. Before you make a decision, I want to walk through what's IN the fee that benchmarks usually leave out. 7 minutes — call me back at [X].'" },
-      { heading: "Role-play scenarios (practice with your AM)", body: "Pick one each week and practice live: (1) Cold call from a job posting trigger. (2) Reference-check conversion (prospect calls you to ask about a candidate, you flip to discovery). (3) Recruiter lead → AM handoff. (4) Rate negotiation — prospect asks for 15% off. (5) Differentiation — prospect says 'we already have 3 firms.' (6) Rate pushback — prospect says you're 5 points above another vendor. (7) Re-engagement — prospect ghosted 30 days ago and you're calling to restart." }
-    ] },
-    { name: "GP Discussion: Margins, Tiers & A-Player Standards", quiz: true, desc: "Contract GP minimums, A-player vs B-player standards, and the 6 traits that define top Sales/ARM performers at Spark.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Contract GP minimums and targets", body: "By category, the minimum and target GP percentages are:\n• Light Industrial: minimum 15%, target 20%\n• Skilled Trades: minimum 20%, target 35%\n• Technical / Engineering: minimum 35%, target 50%\nMinimum is the floor — anything below requires explicit approval. Target is what an A-player consistently lands. If you're regularly hitting minimum but not target, that's a coaching conversation, not a celebration." },
-      { heading: "Why GP discipline matters", body: "Spark wins by being known for quality, not by being the cheap option. Every dollar of GP funds: (1) the depth of search we do, (2) the speed of fill, (3) the guarantees we honor, (4) commission for the producer, (5) the company's ability to invest in better tools, training, and people. GP isn't an abstract finance metric — it's the budget for everything that makes us better than the firm down the street." },
-      { heading: "A-player vs B-player definitions", body: "A-PLAYER: hits target GP consistently, owns their pipeline, multi-threads accounts, books their own meetings, finishes the week with the next week already planned. They don't need to be managed — they need to be coached. B-PLAYER: hits minimums but not targets, depends on inbound or assigned leads, has a couple of strong months and a couple of weak ones, needs prompting to follow up. B-players become A-players through accountability, not encouragement." },
-      { heading: "Trait 1: Hunger", body: "Top performers have an internal scoreboard that runs 24/7. They know their submission count, their meeting count, their pipeline value, their year-to-date GP — without checking. If you have to look it up, you don't care enough. Hunger isn't volume for its own sake — it's the unwillingness to end a week below standard." },
-      { heading: "Trait 2: Curiosity", body: "A-players ask 3 more questions on every discovery call than B-players. They learn the prospect's industry, the prospect's competitors, the prospect's career path. Curiosity is what turns a vendor into a trusted advisor — and trusted advisors don't compete on price." },
-      { heading: "Trait 3: Discipline", body: "Same routine, every week. Same number of calls, same time blocks, same Friday review. Discipline is boring. Discipline is what separates a 12-month performer from a 3-month flash. The fanciest sales tactic in the world doesn't beat showing up Monday morning at 8am with a list and a plan." },
-      { heading: "Trait 4: Coachability", body: "Top performers ask their leader, 'What's one thing I should be doing differently?' — and then actually do it. B-players defend, deflect, or nod and ignore. Coachability is the single highest predictor of who becomes great in this industry." },
-      { heading: "Trait 5: Resilience", body: "You will lose deals. You will get hung up on. You will have weeks where nothing closes. The A-player doesn't let one bad week become two. They understand that activity drives outcomes — and that the slump ends the same way every time: by going back to the basics that built the pipeline in the first place." },
-      { heading: "Trait 6: Ownership", body: "When something goes wrong — a candidate falls off, a client delays, a deal slips — the A-player asks 'what could I have done differently?' before asking 'whose fault is it?' Ownership doesn't mean blame. It means treating every account like it's yours, not the company's." }
-    ] }
-] },
-{ cat: "Value Proposition Deep Dives", icon: "award", assignedGroups: ["Production"], items: [
-    { name: "Value Prop: RPO Deep Dive", quiz: true, desc: "The hidden cost of open roles, the RPO savings model, and how to position RPO to procurement, HR, and the C-suite.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "What RPO actually is", body: "RPO (Recruitment Process Outsourcing) is when Spark embeds inside the client's hiring function — handling sourcing, screening, scheduling, and offer management at scale. Unlike contingent search (paid only on hire), RPO is a subscription-style engagement: a fixed monthly fee or per-hire fee for managed volume. The client gets dedicated capacity that scales without adding headcount." },
-      { heading: "The hidden cost of open roles", body: "Open requisitions look like inactive expense lines on a budget — but they're the most expensive line item in the company. EVERY open role has: (1) lost productivity from the missing seat, (2) burnout cost on the team covering, (3) overtime spend, (4) recruiter time, (5) hiring manager time, (6) onboarding rework if the eventual hire fails. Internal teams capture (4) on a spreadsheet. The other 5 are invisible until you map them — which is why RPO sells when you make the invisible visible." },
-      { heading: "Vacancy as a cost center, not a savings", body: "Most leaders think 'we saved money this quarter — we had 12 open reqs and only paid for 8 hires.' Wrong. They paid for the 8 hires AND the 12 reqs in lost output. At an average loaded cost of $400-$600/day per role, 12 open reqs for 60 days = $300K-$432K in evaporated value. RPO converts that invisible loss into a visible spend that's a fraction of the cost." },
-      { heading: "The RPO savings model", body: "Compare with-and-without: WITHOUT RPO — internal recruiter ($85K loaded) handles 30 hires/year, time-to-fill 55 days, fail rate 12% (4 turn within 90 days), each turn costs ~$15K = $60K. Total: $145K + 30 × 55 days vacancy = enormous. WITH RPO — Spark fee ($120K/yr managed), 30 hires in 28 days average, fail rate 4% (1 turn = $15K). Total: $135K + 30 × 28 days vacancy = roughly half the with-out scenario when you include vacancy cost." },
-      { heading: "Procurement pitch for RPO", body: "Procurement loves: VENDOR CONSOLIDATION (one MSA replaces multiple staffing firms). VARIABLE COST (scales up/down with hiring volume — no fixed headcount). RISK TRANSFER (Spark eats the cost of bad hires under guarantee). MEASURABLE KPIs (time-to-fill, cost-per-hire, candidate quality scores). When pitching procurement, lead with these four. NEVER lead with 'better candidates' — that's a pitch for HR, not procurement." },
-      { heading: "Challenge → Solution matrix", body: "CHALLENGE: 'TA team can't keep up with hiring volume' → SOLUTION: dedicated Spark recruiter pod scales with req load. CHALLENGE: 'Time-to-fill is 60+ days' → SOLUTION: pre-built talent pipeline cuts to 21-28. CHALLENGE: 'Quality is inconsistent' → SOLUTION: structured intake, calibrated scoring, slate reviews. CHALLENGE: 'Multiple agencies with no accountability' → SOLUTION: single MSA, single point of contact, single scorecard. CHALLENGE: 'Hiring spikes break the team' → SOLUTION: variable model — pay for what you use." },
-      { heading: "7 RPO benefits", body: "(1) SPEED — sub-30-day time-to-fill at scale. (2) COST — 30-50% lower than agency-by-agency. (3) QUALITY — calibrated, scored, multi-stakeholder evaluation. (4) FLEXIBILITY — scale up/down without HR layoffs. (5) BRAND — every candidate experience reflects positively on the client. (6) DATA — real-time dashboards on funnel, source, time-to-fill, cost-per-hire. (7) FOCUS — internal HR can stop sourcing and start strategic work." },
-      { heading: "Best people to pitch for RPO", body: "VP HR — feels the pain daily, owns the budget. DIRECTOR OF TA — usually the one drowning, wants help. VP OPERATIONS — feels the cost of vacancy directly. VP PROCUREMENT — if they're consolidating vendors, they're a buyer. CFO — only when the deal is large enough to matter at their level (typically 50+ hires/year). Avoid pitching RPO to managers below VP — they don't have authority to switch." },
-      { heading: "RPO outreach email template", body: "Subject: [Company] hiring volume — quick benchmark question\n\nHi [Name],\nI work with manufacturing/[industry] companies that have hit a hiring volume wall — usually around the 30-50 reqs/year range — where the internal TA team can't scale without adding fixed headcount.\n\nIs that something you're seeing? If yes, I can share how a few of our clients converted that pain into a 30-50% reduction in cost-per-hire by moving to an embedded RPO model.\n\nWorth 15 minutes? I have Tuesday at 10 or Thursday at 2 open.\n\n— [You]" }
-    ] },
-    { name: "Value Prop: Engaged Search", quiz: true, desc: "Why engaged search beats contingent for senior roles, the cost of a mis-hire, and how to pitch it across stakeholders.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Three search models — quick comparison", body: "CONTINGENT: paid only on hire, no exclusivity, multiple firms competing on same role. ENGAGED: partial fee up front (engagement), exclusive or semi-exclusive, dedicated team, 6-8 week structured search. RETAINED: full fee in three installments, fully exclusive, comprehensive process, typically C-suite or specialized roles. Engaged is the sweet spot for senior individual contributors and director-level roles where contingent isn't deep enough but retained is overkill." },
-      { heading: "Why contingent fails on senior roles", body: "Contingent recruiters work the easiest reqs first — the ones most likely to close fast. Senior roles ($120K+) take longer, require deeper sourcing, and have lower fill probability. So they get worked LAST or ABANDONED when an easier req comes in. Result: senior roles linger 90-120+ days. Engaged search fixes this because the engagement fee buys the prospect priority." },
-      { heading: "Value prop by audience: HR/TA", body: "FOR HR/TA — engaged search reduces the burden on internal sourcing, ensures every candidate is calibrated, gives HR back time for strategic work. Pitch language: 'You'll see 4-6 vetted, scored candidates per role within 21 days — not 60 unscreened resumes you have to filter.'" },
-      { heading: "Value prop by audience: Ops/Hiring Managers", body: "FOR OPS/HMs — engaged search fills the seat with someone who can actually do the job, not someone who looked good on paper. Pitch language: 'I'll spend 4 hours with you up front to learn what 'great' looks like in this role. Every candidate I send has been measured against that profile — so you spend 1 hour interviewing, not 8.'" },
-      { heading: "Value prop by audience: Executives", body: "FOR EXECS — engaged search is risk reduction on a high-impact hire. Pitch language: 'A bad senior hire costs you 3-5x their first-year salary in lost productivity and team disruption. Engaged search front-loads the work that prevents that bad hire — at a fraction of the cost of fixing one.'" },
-      { heading: "Cost of a mis-hire", body: "Standard finance estimate: 3-5x first-year salary for a senior mis-hire. Components: (1) salary paid during the failed tenure, (2) severance/transition cost, (3) recruiting cost #2, (4) onboarding cost #2, (5) lost productivity during ramp/stall, (6) team morale and turnover ripple. On a $120K role, that's $360K-$600K. The engaged search fee is $20K-$30K. The math is unambiguous." },
-      { heading: "Engaged search comparison table (use in proposals)", body: "CONTINGENT — Fee: 20-25% on hire. Exclusivity: none. Avg time-to-fill: 60-90 days. Fill rate: 40-50%. Best for: junior/mid roles with broad talent pools.\n\nENGAGED — Fee: 25-30% (1/3 engagement, 2/3 on hire). Exclusivity: yes, 60-90 days. Avg time-to-fill: 35-50 days. Fill rate: 80-90%. Best for: senior IC, director-level, niche skill sets.\n\nRETAINED — Fee: 30-35% (1/3 retainer, 1/3 short-list, 1/3 hire). Exclusivity: yes, full search. Avg time-to-fill: 60-90 days. Fill rate: 95%+. Best for: VP, C-suite, board-level, board-search-required roles." },
-      { heading: "7-step engaged search process flow", body: "1) INTAKE (4 hrs) — calibrate role, success criteria, scorecard. 2) MARKET MAP (week 1) — 100-200 target candidates identified. 3) OUTREACH (weeks 1-3) — multi-channel cadence, 50%+ response. 4) SCREENING (weeks 2-4) — structured interview + scoring. 5) SLATE PRESENTATION (week 4-5) — 4-6 ranked candidates with scorecards. 6) INTERVIEW MANAGEMENT (weeks 5-7) — coordination, debriefs, calibration. 7) OFFER & CLOSE (week 7-8) — negotiation support, counter-offer prep, start date confirmation." },
-      { heading: "Engaged search outreach email template", body: "Subject: [Role] — engaged search proposal for [Company]\n\nHi [Name],\nFor a role like [title], contingent typically delivers in 60-90 days with a 40-50% fill rate. That's because contingent works the easiest reqs first — and senior roles aren't easy.\n\nOur engaged model gets you 4-6 calibrated candidates in 21 days and fills at 85%+. The investment is roughly $X up front, balance on hire.\n\nGiven the cost of this seat staying open and the cost of a mis-hire (3-5x salary), the math typically works out in week one.\n\nWorth 20 minutes to walk through?\n\n— [You]" }
-    ] }
-] },
-{ cat: "Contract Needs Talk Track", icon: "clipboard", assignedGroups: ["Production"], items: [
-    { name: "Contract Needs Talk Track", quiz: true, desc: "Leadership directive on contract visibility — what every client-facing rep is expected to cover and confirm.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Why contract visibility matters", body: "Most lost deals don't lose at the close — they lose because nobody asked the right contract questions early. A signed MSA without clear visibility into spend caps, headcount limits, rate schedules, and renewal dates is a deal that's slowly leaking value. Every Sales and ARM is expected to know — not guess — the contract terms governing their book of business." },
-      { heading: "What every client-facing rep should be able to answer", body: "For every active client, you should know without checking: (1) Current rate schedule by category. (2) Volume commitments or caps. (3) Guarantee terms (length, replacement vs refund). (4) Exclusivity terms. (5) Renewal/auto-renewal date and notice period. (6) Diversity requirements or carve-outs. (7) MSA expiration. If you can't answer 5 of 7 for your top accounts, you're flying blind." },
-      { heading: "Contract review cadence", body: "Top 10 accounts: review contract terms quarterly. Active mid-tier: review at every QBR. New deals: review at 30/60/90 days post-signature. Renewal alerts: 90 days, 60 days, 30 days before renewal date. Set Salesforce reminders. The renewal you forgot is the renewal that auto-extends on terms you would have negotiated up." },
-      { heading: "How to surface contract conversation with a client", body: "Don't wait for problems. Open with: 'It's been [X] months since we signed — want to do a quick review of how the contract is working? I want to make sure the terms still make sense for both sides.' This positions you as a partner, not a vendor. It also surfaces issues BEFORE they become losses or breach disputes." },
-      { heading: "What to flag to leadership", body: "Escalate immediately to Allie/Aaron/Dave: any rate concession requested below contract minimums, any scope change request that affects guarantee terms, any signal of vendor consolidation or RFP pressure, any client request to renegotiate exclusivity, any breach of payment terms beyond 30 days. Don't try to handle these alone — leadership needs visibility to protect the relationship and the company." },
-      { heading: "Action item for every rep", body: "Within 7 days: pull your top 5 active clients. For each, write down the 7 contract data points listed in step 2. Cross-check against the actual signed MSA. Anywhere you guessed, you have homework. Send the completed sheet to your manager. This is a hard expectation, not a suggestion." }
-    ] }
-] },
-{ cat: "Back Office Operations", icon: "briefcase", assignedGroups: ["Back Office"], items: [
-    { name: "Back Office Training Overview", quiz: true, desc: "Who TMX is, the onboarding process, payroll basics, and I-9 acceptable documents.", type: "doc", location: "Back Office", url: null, content: [
-      { heading: "Who is TMX?", body: "TMX is the Spark internal team that handles every administrative touchpoint with our placed contractors — onboarding, badging, drug screens, I-9 verification, payroll setup, benefits enrollment, and ongoing employee relations. From the contractor's first hello to their last paycheck, TMX is the team that makes Spark feel professional and human. Knowing how TMX works is non-negotiable for any back-office or production team member." },
-      { heading: "The onboarding process at a glance", body: "Five steps: (1) OFFER ACCEPTED — TMX gets handoff from recruiter. (2) PRE-EMPLOYMENT — background check (Asurint), drug screen (in-house or Concentra), I-9 verification. (3) NEW HIRE PAPERWORK — Greenshades enrollment, direct deposit, W-4. (4) DAY ONE — meet TMX, badge, plant orientation. (5) FIRST 30 DAYS — benefits enrollment window, check-ins, role calibration." },
-      { heading: "Paycor vs Greenshades — what's what", body: "GREENSHADES is Spark's primary payroll system for our W-2 contractor population. Daniel is our tax specialist contact at Greenshades. Employees access pay stubs, W-2s, and direct deposit settings through the Greenshades portal. PAYCOR is used for [internal employees on certain entities — confirm with payroll team for current scope]. Don't confuse the two. If you're directing a contractor to a portal, it's Greenshades 95% of the time." },
-      { heading: "Payroll basics every rep needs to know", body: "Payroll runs WEDNESDAY, employees are paid FRIDAY. Cutoff for time submission is Wednesday 3pm. Pay change requests use the Pay Change Authorization Form (Conga). Pre-payroll audit happens Wednesday at 10am. Variance alerts at ±$50 or ±5% trigger review. If a contractor calls Friday morning panicked about their check, the answer is almost always: their timecard wasn't approved by the Wednesday cutoff." },
-      { heading: "External benefits — quick reference", body: "30-day enrollment window from start date (do not miss this). Coverage options: MEC (Minimum Essential Coverage — basic preventative), Major Medical via Priority Health, dental (Ameritas Classic PPO, $500/yr), vision (VSP Choice via Ameritas), and Teladoc telehealth (free 24/7 — 1-800-835-2362). Employees who miss the 30-day window have to wait until the next open enrollment unless they qualify for a life event." },
-      { heading: "I-9 acceptable documents — what counts", body: "LIST A (proves both identity AND work authorization, ONE doc is enough): U.S. passport, Permanent Resident Card, Foreign Passport with I-551 stamp/I-94, Employment Authorization Document. LIST B + LIST C (one from each — identity + work authorization): LIST B: Driver's license, school ID with photo, voter registration. LIST C: Social Security Card (unrestricted), original/certified birth certificate, U.S. citizen ID card. NEVER accept a photocopy. NEVER accept an expired document. NEVER ask which documents the employee is going to bring — they choose." },
-      { heading: "Workers' comp basics", body: "If a contractor is injured on assignment: (1) Get them medical attention IMMEDIATELY. (2) Notify TMX within 4 hours. (3) Notify the client. (4) Document the incident on the WC form. (5) TMX initiates the claim with WESCO INS. Do NOT delay reporting — late reporting tanks our experience modifier and increases premiums for everyone next year." }
-    ] },
-    { name: "Back Office: TMX Detailed Presentation", quiz: true, desc: "Comprehensive 21-page TMX walkthrough — meet the team, the 5-step onboarding, scheduling, IDs, background, drug, payroll, PTO, benefits, workers' comp, contacts.", type: "doc", location: "Back Office", url: null, content: [
-      { heading: "Meet the TMX & Payroll team", body: "TAMIKA — TMX lead, owns onboarding orchestration end-to-end. ALLIE — VP Operations, oversees payroll, HR, compliance. MARYAM — TMX coordinator, day-to-day onboarding execution. ERICA — payroll/back-office support, timecards and corrections. PRIYANKA — Payroll Manager (pmalani@sparkcompanies.com), owns weekly payroll runs and tax compliance. Know who does what — calling the wrong person costs everyone time." },
-      { heading: "Onboarding 5-step flow (detail)", body: "STEP 1 — OFFER HANDOFF: recruiter triggers TMX with offer details, start date, location, role, pay rate. STEP 2 — PRE-EMPLOYMENT KICKOFF: TMX schedules badging appointment, sends Asurint background invitation, schedules drug test. STEP 3 — NEW HIRE PAPERWORK: contractor completes Greenshades registration, direct deposit, W-4, I-9 Section 1. STEP 4 — DAY ONE: contractor reports to TMX office or designated location, completes I-9 Section 2 in person, receives badge, completes plant-specific orientation. STEP 5 — POST-START: TMX confirms first timecard, monitors first 30 days, opens benefits enrollment." },
-      { heading: "Scheduling in Outlook", body: "All TMX appointments are booked through Outlook calendar invites. When a recruiter triggers onboarding, TMX sends the contractor an Outlook invite for: badging appointment, drug screen (if Concentra), in-person I-9 verification. Always include: TMX office address (901 Wilshire Dr, Suite 585, Troy, MI 48084), required documents list, parking instructions, contact phone for questions. If the contractor doesn't show, follow up within 30 minutes — most no-shows are confusion, not rejection." },
-      { heading: "IDs and I-9 — the rules in detail", body: "Federal law requires I-9 Section 2 verification IN PERSON within 3 business days of start. Contractor presents original (no copies) documents from List A OR (List B + List C). TMX physically inspects and signs. If documents are deficient: (a) explain what's needed, (b) give the contractor 3 days to return with valid docs, (c) document the conversation. NEVER advise which documents to bring — that's a federal violation. NEVER accept expired documents (except expired U.S. passports for List A in some cases — confirm current rule)." },
-      { heading: "Greenshades new hire registration", body: "Contractor receives email invite to Greenshades portal. They complete: personal info, direct deposit (TMX recommends 100% direct deposit — paper checks are deprecated), W-4 federal and state withholding, voluntary deductions if any. TMX verifies completion BEFORE first timecard runs. Incomplete Greenshades = delayed first paycheck = unhappy contractor + angry client. Catching this on Day 1 saves the relationship." },
-      { heading: "Asurint background checks", body: "Asurint runs SSN trace, county criminal (7 years), federal criminal (7 years), motor vehicle (when role requires), employment verification (when client requires). Standard turnaround: 24-72 hours. If a contractor's background returns with a hit, follow the EEOC-compliant adjudication process: review nature of offense vs role requirements, give contractor a chance to explain, document the decision. Never make a unilateral 'no hire' call without TMX leadership review." },
-      { heading: "Drug testing — in-house and Concentra", body: "IN-HOUSE: TMX runs basic instant tests at Spark office for low-volume locations. Result available in 5-10 minutes. CONCENTRA: used for clients requiring lab-confirmed results, expanded panels, or DOT compliance. Concentra appointments scheduled by TMX, contractor goes to nearest Concentra location, results return in 24-72 hours. Negative dilute results trigger an automatic retest. Positive results trigger MRO review before final adjudication." },
-      { heading: "Greenshades employee access and self-service", body: "After registration, contractors access Greenshades self-service for: viewing pay stubs (current and historical), W-2s (Jan-Feb each year), updating direct deposit, updating tax withholding (W-4), viewing PTO balance (where applicable), updating address. Train every contractor on Day 1: 'You don't need to call us for these — log into Greenshades.' Reduces back-office volume by 60%+." },
-      { heading: "Payroll dates — the rhythm", body: "TIMECARDS submitted by contractor: by end of day Sunday for the prior week. SUPERVISOR APPROVAL: by end of day Monday. PRE-PAYROLL AUDIT: Wednesday 10am (Allie/Priyanka). PAYROLL RUNS: Wednesday afternoon. DIRECT DEPOSIT HITS: Friday morning. POST-PAYROLL VARIANCE REPORT: following Monday. Anything that misses Wednesday 3pm cutoff goes to next week's run." },
-      { heading: "Pay change forms", body: "All pay rate changes — raises, role changes, role exits, location changes — require a Pay Change Authorization Form filed via Conga. The form requires: contractor name, current rate, new rate, effective date, reason, client approval. Manager submits, payroll approves, change reflects in Greenshades within one pay cycle. NEVER make a verbal commitment to a rate change without filing the form — verbal commits aren't binding and create payroll disputes." },
-      { heading: "PTO requests", body: "Eligible contractors (per client agreement) request PTO through Greenshades self-service. Manager approves in Greenshades. PTO accrual is tracked automatically — current balance visible to contractor. Unused PTO at end of assignment: depends on state law and client contract. Michigan: typically not paid out unless contract specifies. California: paid out always. Know your state." },
-      { heading: "30-day benefits enrollment", body: "From start date, contractor has 30 calendar days to enroll in benefits. Reminder emails sent at Day 7, Day 14, Day 25. Coverage options: MEC (basic preventative, low cost), Major Medical via Priority Health (full coverage, higher premium), Dental via Ameritas Classic PPO ($500/yr cap), Vision via VSP/Ameritas. ELIGIBILITY: typically 30+ hours/week, but check client-specific rules. After Day 30: contractor must wait for open enrollment OR qualifying life event (marriage, baby, loss of other coverage)." },
-      { heading: "Coverage options — what to recommend", body: "MEC: best for healthy contractors who want catastrophic backup, very low premium. MAJOR MEDICAL (Priority Health): best for contractors with families or chronic conditions, real coverage but higher cost. DENTAL: ALWAYS recommend — $500/yr cap pays for itself with one cleaning + one filling. VISION: recommend if they wear glasses/contacts. TELADOC: free, automatic, 24/7 — make sure contractors know they have it. NEVER advise on specific medical decisions, but DO make sure contractors understand what's available." },
-      { heading: "Workers' comp process — full detail", body: "INJURY OCCURS → (1) IMMEDIATE: get medical attention, document time/location/witnesses. (2) WITHIN 4 HOURS: contractor or supervisor notifies TMX. (3) WITHIN 24 HOURS: incident report filed by TMX. (4) WITHIN 48 HOURS: claim opened with WESCO INS. (5) ONGOING: TMX coordinates return-to-work, light-duty if applicable. (6) CLOSED: claim resolved, file documented. Spark's mod rate is currently 0.73 (excellent — 35% below industry). Late or missed reporting destroys this. Take it seriously." },
-      { heading: "Contact directory", body: "TMX MAIN: sterlingtmx@sparktalentinc.com / 586-930-5000. PAYROLL: Priyanka Malani (pmalani@sparkcompanies.com). HR/COMPLIANCE: Allie Spegel. GREENSHADES SUPPORT: Daniel (tax specialist) — route through TMX first. WORKERS' COMP CARRIER: WESCO INS, claims line in Greenshades portal. BENEFITS QUESTIONS: route to TMX first; for medical specifics, contractors call carrier directly (Priority Health, Ameritas, VSP, Teladoc). When in doubt: TMX first, they triage." }
-    ] }
-] },
-{ cat: "KPI Performance Standards", icon: "target", assignedGroups: ["All Employees"], items: [
-    { name: "KPI Performance Standards", quiz: true, desc: "The exact weekly KPIs every Recruiter, ARM, and Sales rep is measured against — and the growth goals beyond them.", type: "doc", location: "All Team Members", url: null, content: [
-      { heading: "Why KPIs exist", body: "KPIs aren't a punishment — they're the activity floor that produces predictable results. Every great rep at Spark has, at some point, hit these numbers consistently. Below the floor, you're not yet generating enough activity for outcomes to follow. At the floor, you're earning the right to be coached on quality. Above the floor, you're ready for stretch goals. The KPIs are simple — the discipline to hit them every week is the hard part." },
-      { heading: "Recruiter KPIs — weekly", body: "10 SUBMISSIONS per week (qualified candidates submitted to clients). 30 CALLS per day (outbound to candidates and prospects — voicemails count IF you also send a follow-up email/text). 25 PRESCREENS per week (full structured screening calls, 20-30 min each, scored against the role). These three numbers together produce: active pipeline, fill velocity, and recruiter gross profit. Miss one, the funnel breaks. Miss two, you're below standard." },
-      { heading: "ARM KPIs — weekly", body: "5 CLIENT MEETINGS per week (in-person or video, 20+ minutes, with a hiring manager or stakeholder). 1 NEW MEETING per week (a client or prospect you've never met before — net new logo or new stakeholder at existing logo). 20 PRESCREENS per week (you should know your candidate side as well as your client side — every ARM is half-recruiter at heart). New logos are the lifeblood. An ARM without weekly net-new is an ARM coasting on existing book." },
-      { heading: "Sales KPIs — weekly", body: "10 CLIENT MEETINGS per week (full discovery, scoping, or relationship meetings). 2 NEW MEETINGS per week (net new logos — first-time meetings with prospects). Sales is responsible for the top of the funnel — without 2 net-new meetings/week, the pipeline runs dry in 60-90 days. Every Monday morning, you should know your 10 meetings for the week and which 2 are net-new." },
-      { heading: "Why prescreens matter even for ARM and Sales", body: "The fastest way to lose credibility with a client is to recommend a candidate you haven't actually talked to. Every ARM and Sales rep is expected to maintain prescreen volume because: (1) you stay sharp on candidate evaluation, (2) you can speak to candidate quality firsthand, (3) you can fill in for recruiters during volume spikes, (4) you understand the candidate market your clients are competing in. Prescreens aren't 'recruiter work' — they're table stakes for everyone client-facing." },
-      { heading: "Tracking and accountability", body: "Weekly KPI reports run every Monday. Numbers come from Salesforce — calls logged, submissions in Asymbl, meetings on calendar with notes. If your numbers don't match what you THINK you did, you're not logging activity. Logging IS part of the job. 'I made the calls but didn't log them' = you didn't make the calls, from a measurement standpoint. KPI reviews happen every Friday in 1:1s. Three consecutive weeks below standard triggers a structured improvement plan." },
-      { heading: "Growth goals beyond KPIs", body: "Hitting KPIs gets you to standard. Going beyond gets you to top-tier comp and promotion. STRETCH MARKERS by role: RECRUITER → 15+ submissions/wk, 35+ prescreens/wk, 1+ start/wk. ARM → 7+ client meetings/wk, 2+ new/wk, 30+ prescreens/wk. SALES → 12+ meetings/wk, 4+ new/wk. Top performers don't aim for the floor — they aim for the ceiling. The floor is the qualifying round." }
-    ] }
-] },
-{ cat: "Salesforce & ATS Training", icon: "grid", assignedGroups: ["All Employees"], items: [
-    { name: "Learning Salesforce & Asymbl ATS", quiz: true, desc: "The core Salesforce/Asymbl object model, Outlook sync setup, and how to log everything from your inbox.", type: "doc", location: "All Team Members", url: null, content: [
-      { heading: "Why this matters", body: "Salesforce is Spark's source of truth for every client, every candidate, every job, every placement, every dollar. If activity isn't in Salesforce, it didn't happen. If a placement isn't in Salesforce, commissions don't get paid. If a candidate's status isn't in Salesforce, two recruiters work the same person. Master Salesforce and you master your job. Avoid Salesforce and you'll fight the system every day." },
-      { heading: "The core object model — definitions", body: "LEAD: a prospect we haven't qualified yet — top of funnel. Once qualified, converts to Account + Contact + Opportunity. ACCOUNT: a company. CLIENT CONTACT: a person inside an account (Hiring Manager, HR, etc.). OPPORTUNITY: a deal — usually tied to a job order or a master agreement. JOB: a specific requisition we're working. CANDIDATE: a person in our talent database. ATS APPLICANT: the link between a Candidate and a Job — it's a candidate APPLIED to a specific job, with status (sourced → screened → submitted → interview → offer → placed). PLACEMENT: a closed-won applicant — the contractor or perm hire we billed for." },
-      { heading: "How the objects connect", body: "Account → has many → Client Contacts. Account → has many → Opportunities. Opportunity → has many → Jobs. Job → has many → ATS Applicants. ATS Applicant → links to one → Candidate. Candidate → can have many → ATS Applicants (across different jobs). Placement is the final stage of an ATS Applicant. Understanding this model means you'll never be confused about where to log what — every piece of activity belongs to an object." },
-      { heading: "The Asymbl namespace (bpats__)", body: "Asymbl is the staffing ATS layer built on Salesforce. Custom objects and fields use the bpats__ prefix (e.g., bpats__Job__c, bpats__Applicant__c). When you build reports or formulas, you'll see this everywhere. It's not a bug — it's the namespace that separates Asymbl's package from native Salesforce. Don't try to rename or remove it. When in doubt about a field, search for the bpats__ version first." },
-      { heading: "Outlook email sync — initial setup", body: "Step 1: in Salesforce, navigate to Setup → Email Integration → Outlook Integration. Step 2: install the Outlook plugin from Microsoft AppSource (search 'Salesforce'). Step 3: in Outlook, click the Salesforce icon in the ribbon, sign in with your Spark Salesforce credentials. Step 4: link your Outlook account to your Salesforce user. After setup, the Salesforce panel appears in every email — showing related records and giving you one-click logging." },
-      { heading: "Viewing and editing records from Outlook", body: "When an email comes in from a contact in Salesforce, the Outlook plugin automatically shows: the contact, the related account, recent opportunities, recent jobs, recent activities. You can edit the record directly from Outlook — update phone, add notes, change opportunity stage — without leaving your inbox. Most reps double their CRM hygiene the first week they use this feature properly." },
-      { heading: "Creating records from Outlook", body: "If an email is from someone NOT in Salesforce, the plugin offers: Create Lead, Create Contact, Create Account. One click captures the email signature into a new record. ALWAYS create the record at the time of first email — adding it 'later' means it doesn't get added. Treat the inbox as the on-ramp into Salesforce. Every meaningful email becomes a record." },
-      { heading: "Logging emails to records", body: "Every email related to a deal, job, or placement should be logged. From Outlook, click 'Log to Salesforce' and select the record (account, opportunity, job). The email becomes part of the activity history. RULE: if you're cc'd on something deal-relevant, log it. Six months from now, when the deal is at risk, the activity history is your only memory." },
-      { heading: "Tracking former client engagement", body: "When a client contact leaves their job, do NOT delete the contact — mark them 'No Longer With Company' and update their LinkedIn / new email if known. Former clients often resurface at new companies as new buyers. The contact who left ABC Corp last year may be the buyer at XYZ Corp this year — and YOU should be the first call they make. Keeping former-client relationships alive is the single highest-ROI activity in this business." },
-      { heading: "Daily Salesforce hygiene", body: "End of every day, 10 minutes: (1) Log every call (use Outlook plugin or quick-log on phone). (2) Update opportunity stages on anything that moved. (3) Note next steps on each active deal. (4) Check tomorrow's calendar — pull each meeting record up and review history. Reps who do this finish weeks ahead of reps who don't. The compound effect of clean data is enormous." }
-    ] },
-    { name: "Recruiter's Salesforce Playbook", quiz: true, desc: "Find requisitions, post jobs, drag candidates through Kanban, source efficiently, and log activity that compounds over time.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Finding job requisitions", body: "Top nav → Jobs tab → list view 'My Open Jobs' (or 'All Open Jobs' for full visibility). Filter by: Account, Recruiter Assignment, Status (Open / On Hold / Closed), Date Posted, Priority. Bookmark 'My Open Jobs' as your home view. Every morning, you should be able to see your full active load on one screen — if you can't, your view is misconfigured." },
-      { heading: "Creating a job posting", body: "From the Job record, click 'Post to Job Boards' → select boards (Indeed, LinkedIn, ZipRecruiter as available) → confirm description, location, salary range, must-haves. ALWAYS preview before publishing. Job postings with: clear title, clear must-haves in first 3 bullets, salary range posted, manager intro line — get 3-5x the application rate of generic postings. Treat every posting as a marketing piece." },
-      { heading: "Adding candidates to the Kanban board", body: "From the Job record → Kanban view. Drag a candidate from 'Sourced' into 'Screened' once you've completed a prescreen. Drag from 'Screened' into 'Submitted' when the client has the resume. Drag from 'Submitted' into 'Interview' when the interview is scheduled. The drag-and-drop IS the system of record — when you move the card, statuses, dates, and counters update everywhere automatically." },
-      { heading: "Drag-and-drop best practices", body: "Move candidates the SAME DAY the status changes — not at the end of the week. The Kanban board feeds: client-facing dashboards, your KPI numbers, the AM's pipeline view, payroll commission timing. A candidate stuck in 'Screened' for 5 days when they're actually 'Submitted' costs everyone — and your KPI submission count is artificially low. Move the card. Always." },
-      { heading: "Sourcing inside Salesforce (existing talent pool)", body: "Top nav → Candidates → list view 'All Candidates'. Filter by: skill tags, location, last activity date, preferred industry. Always source EXISTING candidates first before posting jobs externally — there's gold in the database that hasn't been called in 6+ months. A 'cold' candidate from your own database who already knows Spark closes 3-5x faster than a cold external hit." },
-      { heading: "Sourcing inside the job posting", body: "From Job record → 'Applicants' tab. As applications roll in from job boards, this is where they land. Triage daily: review, score (5-star or pass), prescreen the 5-stars, reject (with auto-email) the others. Letting applications sit destroys candidate experience and your time-to-fill. Top recruiters touch every applicant within 24 hours of receipt." },
-      { heading: "Finding applicants across multiple jobs", body: "Sometimes a great applicant for Job A would also fit Job B you're working. From the Candidate record → 'Match to Other Jobs' → Salesforce surfaces compatible open reqs. Two-fer placements (one screen, two submission options) are pure efficiency gain. Check every prescreen completion against your open req board for cross-fits." },
-      { heading: "Logging activities — the discipline", body: "Every call, every email, every text, every LinkedIn message related to a candidate or client should be logged. Use Quick Log: from any record → 'Log a Call' → 60 seconds to capture date, type, outcome, next step. Reps who hit 30 calls/day and log all 30 hit their KPI numbers automatically. Reps who don't log are eventually fired for being below standard — even if they're actually doing the work." },
-      { heading: "Onboarding and placements", body: "When a candidate accepts an offer: (1) Move ATS Applicant to 'Offer Accepted'. (2) Create Placement record (auto-prompted in most cases). (3) Confirm: start date, pay rate, bill rate, location, supervisor. (4) Trigger TMX handoff (auto-email or Slack notification depending on your setup). (5) Log final commission-relevant data — first-day-billed date, guarantee end date, fee amount. Errors at this step cost the company in commission disputes and payroll problems. Slow down and verify." },
-      { heading: "Reports every recruiter should run weekly", body: "(1) MY ACTIVE JOBS — open reqs by stage. (2) MY KPI DASHBOARD — calls, prescreens, submissions vs target. (3) FILL RATIO REPORT — submissions to placements (Job report type, not Applicant). (4) AT-RISK SUBMISSIONS — submitted candidates with no movement in 7+ days (need a nudge). (5) MY UPCOMING STARTS — placements starting in next 14 days (verify everything is locked). Run them every Monday in 15 minutes — sets your week." }
-    ] }
-] },
-{ cat: "Industry Knowledge — Plastics", icon: "layers", assignedGroups: ["Production"], items: [
-    { name: "Industry Knowledge: Plastics", quiz: true, desc: "Sourcing strategies, search terms, press types, and robot types for the plastics industry.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Why plastics matters for Spark", body: "Injection molding and thermoplastics manufacturing is one of Spark's strongest industry verticals — particularly automotive plastics, packaging, and medical components. The skill set is specialized enough that internal HR teams struggle to find qualified people. That's where we come in. The recruiter who can speak press tonnage, robot programming, and process tech has a permanent edge over recruiters who can't." },
-      { heading: "Maintenance role search terms", body: "Use these in Indeed, LinkedIn, and ZipRecruiter searches: 'injection molding technician,' 'process technician,' 'mold setter,' 'tool & die,' 'press maintenance,' 'plastics maintenance technician,' 'auxiliary equipment technician,' 'robot technician plastics,' 'molding mechanic.' Combine with location and pay range filters. Boolean: ('injection molding' OR 'plastics manufacturing') AND ('maintenance' OR 'technician' OR 'mechanic')." },
-      { heading: "Process tech search terms", body: "Process technicians are the bridge between operators and engineering. Search terms: 'process technician,' 'process engineer,' 'molding process tech,' 'plastics process specialist,' 'scientific molding,' 'RJG certified,' 'Master Molder.' RJG and Master Molder certifications are gold — candidates with these certifications command 15-25% premium and are in chronic short supply. Always ask: 'Are you RJG certified?' on the prescreen." },
-      { heading: "Common press types — vocabulary", body: "EMAG — German-engineered, common in automotive. UBE — Japanese, large tonnage capability, hybrid hydraulic-electric. ENGEL — Austrian, premium brand, all-electric and hybrid lines. WITTMANN — Austrian, often paired with Wittmann Battenfeld auxiliaries. ARBURG — German, reliable workhorses, very common in medical and small parts. KRAUSS-MAFFEI — German, large tonnage and multi-component capability. MILACRON — American, common across automotive and packaging. NEGRI BOSSI — Italian, growing share. When a candidate mentions one of these by name, they're real." },
-      { heading: "Robot types in plastics manufacturing", body: "STAR — Star Automation, American-made, common in mid-tonnage cells. RANGER — Ranger Automation, similar mid-market position. SEPRO — French, premium positioning, common in European-OEM-supplied plants. WITTMANN — paired with Wittmann presses, fully integrated. YUSHIN — Japanese, often paired with Japanese presses. When a candidate says they 'program robots,' ask which brand and what they program — pick-and-place vs sprue removal vs full insert molding are very different skill sets." },
-      { heading: "Search technique tips", body: "ZIPCODE RADIUS: plastics talent is very location-sensitive — 30-mile radius is usually max viable commute. CERTIFICATION FILTERS: RJG, Master Molder, Six Sigma. SHIFT PREFERENCE: ask early — many plastics ops are 12-hour rotating shifts, not everyone can do them. PAY RATE: research before posting — undershooting market rate kills response rate. Use BLS data + local Indeed salary insights as your benchmark." },
-      { heading: "Qualifying questions for plastics candidates", body: "(1) What press brands have you worked on, and what tonnage range? (2) Have you done mold changes, and how long is your typical changeover time? (3) RJG certified? Master Molder? (4) What auxiliary equipment — chillers, dryers, conveyors, robots? (5) Have you led process improvements or troubleshooting? Give me an example. (6) What's your shift preference and is rotating shift OK? (7) What's your pay expectation? Use these on EVERY prescreen — they separate real plastics talent from people who 'kind of worked at a plastics plant.'" }
-    ] }
-] },
-{ cat: "Industry Knowledge — Automation", icon: "zap", assignedGroups: ["Production"], items: [
-    { name: "Industry Knowledge: Automation & Controls", quiz: true, desc: "The deep dive — controls vocabulary, robot brands, protocols, and a job-by-job breakdown of 17 automation roles with pay ranges, search terms, and qualifying questions.", type: "doc", location: "ARM's and Sales", url: null, content: [
-      { heading: "Why automation is Spark's deepest vertical", body: "Automation and controls is the niche where Spark wins almost every search we engage on. Why? Because the skill set is specialized enough that most internal HR teams and most generic recruiters can't tell a real Controls Engineer from someone who watched a YouTube video. The vocabulary is dense, the pay rates are high ($70K-$150K range), and the candidate pool is small. If you become fluent in this language, you become irreplaceable to your clients." },
-      { heading: "Controls engineering basics — what controls people actually do", body: "A Controls Engineer designs, programs, and commissions the systems that make automated equipment work. Think: the brain that tells the conveyor when to start, the robot when to grab a part, the press when to close, the inspection station when to fail a part. They write code (PLC ladder logic, structured text, function blocks), wire panels, configure HMIs (touch screens), and integrate sensors and motors. A great controls engineer can take a customer requirement and deliver a fully working production line." },
-      { heading: "Major PLC/PAC brands", body: "ALLEN-BRADLEY (Rockwell Automation) — the dominant brand in North American automotive and food/bev. Software: Studio 5000 (formerly RSLogix 5000), CompactLogix and ControlLogix lines. SIEMENS — dominant in Europe, growing in North America. Software: TIA Portal, S7-1500/S7-1200. OMRON — common in food/bev and packaging, especially Japanese-owned plants. Software: Sysmac Studio. MITSUBISHI — common in Japanese-owned auto plants and machine tool. Software: GX Works. When a candidate says they 'program PLCs,' ALWAYS ask which brand and which software. AB and Siemens experience aren't fully interchangeable." },
-      { heading: "Industrial communication protocols", body: "ETHERNET/IP — Allen-Bradley's protocol, dominant where AB is dominant. PROFINET — Siemens' protocol, dominant where Siemens is dominant. MODBUS TCP — vendor-neutral, common for legacy and third-party device integration. DEVICENET — older AB protocol, still common in legacy plants. PROFIBUS — older Siemens protocol, still in older Siemens plants. When evaluating candidates: 'What protocols have you worked with?' is a great filter — they should be able to name 2-3 fluently." },
-      { heading: "Major industrial robot brands", body: "FANUC — Japanese, the dominant robot brand globally and in automotive. Yellow color is iconic. Programming language: Karel and TPP. KUKA — German, premium brand, very common in BMW/Mercedes/automotive supply chain. Programming: KRL. ABB — Swedish, strong in welding and material handling. Programming: RAPID. YASKAWA / MOTOMAN — Japanese, strong in welding. Programming: INFORM. When a candidate says they 'program robots,' ask: which brand, what application (welding, material handling, painting, inspection), and how many cells they've programmed. Numbers separate real candidates from imposters." },
-      { heading: "Great qualifying questions for any automation engineer", body: "(1) Walk me through your last project — what did you design or program? (2) Which PLC platform are you strongest on, and how many years? (3) Which HMI software? (Wonderware, FactoryTalk, WinCC, Ignition, Rockwell PanelView). (4) Have you commissioned equipment on the customer floor, or only programmed in the office? (Commissioning experience is the dividing line between mid and senior.) (5) What protocols have you used? (6) Have you led a team? How many people? (7) Travel tolerance — some commissioning roles are 50%+ travel." },
-      { heading: "Job 1: Controls Engineer ($71K-$120K)", body: "PRIMARY ROLE: Designs and programs control systems for industrial equipment. Combines electrical engineering with software. KEY TOOLS: PLC software (Studio 5000, TIA Portal), HMI software, CAD (AutoCAD Electrical, EPLAN). SEARCH TERMS: 'controls engineer,' 'PLC programmer,' 'automation engineer.' QUALIFYING: 'What PLC platforms? How many lines have you programmed end-to-end? Commissioning experience?' EDUCATION: BS Electrical Engineering or Mechatronics typical, but degree-equivalent experience common in this field." },
-      { heading: "Job 2: Controls Project Engineer ($77K-$120K)", body: "PRIMARY ROLE: Owns full project lifecycle — scope, design, build, commission, customer signoff. The Controls Engineer who also project-manages. KEY TOOLS: Same as Controls Engineer + Microsoft Project / Smartsheet for scheduling. SEARCH TERMS: 'controls project engineer,' 'controls PM,' 'automation project engineer.' QUALIFYING: 'How many projects have you owned end-to-end? Largest project budget you've managed? Customer-facing experience?' Pay premium over standard Controls Engineer reflects the project ownership and customer-facing skill." },
-      { heading: "Job 3: Controls Technician ($53K-$89K)", body: "PRIMARY ROLE: Hands-on technician who installs, troubleshoots, and maintains automated systems. NOT typically a programmer — they support systems engineers programmed. KEY TOOLS: Multimeter, oscilloscope, PLC software (read-only typically), basic ladder logic understanding. SEARCH TERMS: 'controls technician,' 'automation technician,' 'electrical technician PLC.' QUALIFYING: 'Can you read ladder logic? Can you troubleshoot a PLC fault? Can you wire a panel?' EDUCATION: Associate's in electronics or industrial electrical typical." },
-      { heading: "Job 4: Electrical Engineer ($68K-$115K)", body: "PRIMARY ROLE: Designs electrical systems — power distribution, motor control, panel design, schematic generation. May or may not also do controls programming. KEY TOOLS: AutoCAD Electrical, EPLAN, SolidWorks Electrical. SEARCH TERMS: 'electrical engineer,' 'controls electrical engineer,' 'panel designer.' QUALIFYING: 'What electrical CAD tool? NEC code knowledge? UL panel design? Single-line diagram experience?' EDUCATION: BS Electrical Engineering required for higher end of range." },
-      { heading: "Job 5: Field Service Engineer ($63K-$105K)", body: "PRIMARY ROLE: Travels to customer sites to install, troubleshoot, and service equipment. Heavy travel role (50-75%). KEY TOOLS: Diagnostic tools, customer's PLC software, troubleshooting documentation. SEARCH TERMS: 'field service engineer,' 'service technician,' 'field service technician automation.' QUALIFYING: 'Travel tolerance? Customer-facing comfort? Troubleshooting under pressure? Available for emergency calls?' This role is ALL about temperament — the technical skills are easier to find than the customer skills." },
-      { heading: "Job 6: Machine Tool Builder ($16-$34/hr)", body: "PRIMARY ROLE: Skilled hands-on assembler who physically builds large machine tools — drilling, milling, grinding equipment from raw castings to finished machine. KEY TOOLS: Precision measurement tools, hand tools, overhead cranes. SEARCH TERMS: 'machine tool builder,' 'machine tool assembler,' 'machinery builder.' QUALIFYING: 'What size machines have you built? Heavy equipment experience? Read mechanical prints? Tolerance to .0001?' EDUCATION: Apprenticeship traditionally, on-the-job training increasingly common. Hourly role, often unionized." },
-      { heading: "Job 7: Machine Tool Electrician ($13-$34/hr)", body: "PRIMARY ROLE: Wires the electrical systems of machine tools — power, motors, sensors, control panels. KEY TOOLS: Schematic reading, multimeter, conduit benders, hand tools. SEARCH TERMS: 'machine tool electrician,' 'industrial electrician,' 'panel wirer.' QUALIFYING: 'Read electrical prints? Conduit experience? UL panel wiring? Three-phase power familiarity? Voltage levels you've worked on?' Often paired with Machine Tool Builder on the same project." },
-      { heading: "Job 8: Machine Tool Pipefitter ($17-$47/hr)", body: "PRIMARY ROLE: Installs and maintains hydraulic, pneumatic, and coolant piping systems on machine tools. Often the highest-paid hourly role due to specialization. KEY TOOLS: Pipe benders, threaders, welders, pressure testers. SEARCH TERMS: 'machine tool pipefitter,' 'industrial pipefitter,' 'hydraulic pipefitter.' QUALIFYING: 'High-pressure hydraulic experience? Stainless steel piping? Tube bending vs threading? Welding certifications?' Often unionized." },
-      { heading: "Job 9: Manufacturing Engineer ($69K-$122K)", body: "PRIMARY ROLE: Improves manufacturing processes — layout, throughput, cycle time, quality. Lives between Engineering and Operations. KEY TOOLS: Lean tools, Six Sigma methods, CAD, time studies, simulation software. SEARCH TERMS: 'manufacturing engineer,' 'process engineer,' 'production engineer,' 'industrial engineer.' QUALIFYING: 'Lean certifications? Six Sigma belt? Process improvement projects led? Cost savings delivered?' EDUCATION: BS Mechanical, Industrial, or Manufacturing Engineering." },
-      { heading: "Job 10: Mechanical Engineer ($80K-$122K)", body: "PRIMARY ROLE: Designs mechanical systems — machinery, fixtures, tooling, structures. The 'CAD jockey' but also the design owner. KEY TOOLS: SolidWorks, Inventor, Creo, AutoCAD; FEA tools (ANSYS); GD&T fluency. SEARCH TERMS: 'mechanical engineer,' 'mechanical design engineer,' 'machine designer.' QUALIFYING: 'Primary CAD tool? GD&T experience? FEA exposure? Largest assembly modeled? Industries served?' EDUCATION: BS Mechanical Engineering." },
-      { heading: "Job 11: Process Engineer ($80K-$115K)", body: "PRIMARY ROLE: Specific to a manufacturing process — molding, welding, machining, casting. Owns process parameters, troubleshooting, optimization. KEY TOOLS: SPC software, DOE design, process simulation. SEARCH TERMS: 'process engineer,' specific to the process: 'welding process engineer,' 'molding process engineer.' QUALIFYING: 'Which process are you the expert in? Years in that process? Cost savings or quality improvements driven? Six Sigma?' EDUCATION: BS Engineering, often specialized." },
-      { heading: "Job 12: Robot Commissioning Engineer ($74K-$120K)", body: "PRIMARY ROLE: Integrates and commissions industrial robots into customer cells. Heavy on-site / customer-facing work. KEY TOOLS: Robot programming software (Fanuc Roboguide, KUKA WorkVisual, ABB RobotStudio), simulation, safety systems. SEARCH TERMS: 'robot commissioning,' 'robot integration engineer,' 'robotic systems engineer.' QUALIFYING: 'Which robot brands? Largest cell commissioned? Travel tolerance? Customer-facing comfort? Safety system experience (Pilz, Sick)?' Travel-heavy role." },
-      { heading: "Job 13: Robotics Engineer ($90K-$135K)", body: "PRIMARY ROLE: Designs robotic systems and integrations from scratch — picks the robot, designs the cell, programs the application. Higher on the value chain than Robot Commissioning. KEY TOOLS: Same as Commissioning + simulation + offline programming + cell design. SEARCH TERMS: 'robotics engineer,' 'robotic systems designer,' 'automation engineer (robots).' QUALIFYING: 'Designed cells from scratch? Robot brand expertise? Vision system integration (Cognex, Keyence)? Force-torque integration?' Premium role." },
-      { heading: "Job 14: Robot Programmer ($55K-$98K)", body: "PRIMARY ROLE: Pure programmer — given a designed cell and robot, writes the program to make it do the work. Less project ownership, more technical depth. KEY TOOLS: Robot programming languages (Karel, KRL, RAPID, INFORM), teach pendant, offline programming. SEARCH TERMS: 'robot programmer,' 'robotics programmer,' 'industrial robot programmer.' QUALIFYING: 'Robot brand depth? Application type (welding, material handling, painting)? Online vs offline programming? Vision system integration?'" },
-      { heading: "Job 15: Simulation Engineer ($63K-$108K)", body: "PRIMARY ROLE: Builds digital twins and simulations of manufacturing cells before physical build — proves the design works, optimizes layout. KEY TOOLS: Tecnomatix Process Simulate, Robcad, RobotStudio, Visual Components, Delmia. SEARCH TERMS: 'simulation engineer,' 'digital twin engineer,' 'process simulate engineer.' QUALIFYING: 'Which simulation platform? Industries simulated? Largest cell simulated? Hand-off to commissioning experience?' Niche but high-demand." },
-      { heading: "Job 16: Software Engineer ($86K-$153K)", body: "PRIMARY ROLE: In automation context — typically writes higher-level software that interfaces with PLCs, MES systems, databases, dashboards. Bridge between IT and OT. KEY TOOLS: C#, Python, SQL, sometimes C++. SCADA platforms (Ignition, Wonderware), MES systems. SEARCH TERMS: 'software engineer manufacturing,' 'controls software engineer,' 'MES software engineer.' QUALIFYING: 'Languages? Manufacturing/industrial domain experience? PLC integration? Database design? SCADA platforms?' Highest pay band in the automation list — strong demand." },
-      { heading: "Job 17: Systems Engineer ($81K-$125K)", body: "PRIMARY ROLE: Owns the integration of multiple subsystems — controls + mechanical + software + safety — into one working system. Often the lead role on large projects. KEY TOOLS: Systems engineering frameworks, project management, deep cross-discipline knowledge. SEARCH TERMS: 'systems engineer automation,' 'integration engineer,' 'lead systems engineer.' QUALIFYING: 'Largest system integrated? Cross-discipline experience? Customer-facing? Project budget owned?' Senior, broad role." },
-      { heading: "Prescreen template: Machine Tool Builder", body: "Required questions: (1) Years building machine tools, and what types/sizes? (2) Comfortable reading mechanical assembly prints? (3) Heavy lifting capacity (50+ lbs)? Overhead crane operation? (4) Tolerance levels — have you measured to .0001? Mic, indicator, surface plate? (5) Apprenticeship completed, or how many years OJT? (6) Shift preference and OT willingness? (7) Pay expectation per hour? (8) Why are you looking? (9) Notice required at current role? (10) Closest cities you'll commute to." },
-      { heading: "Prescreen template: Machine Tool Electrician", body: "Required questions: (1) Years wiring industrial control panels? (2) Read electrical schematics fluently? (3) UL 508A panel build experience? (4) Voltage levels you've worked on (control voltage 24VDC, 120/240VAC, 480V three-phase)? (5) Conduit bending and pulling — pipe sizes? (6) Motor wiring — VFDs, soft starts? (7) Apprenticeship complete or hours? (8) Pay expectation? (9) Travel willingness if applicable? (10) References from previous machine builders?" },
-      { heading: "Prescreen template: Machine Tool Pipefitter", body: "Required questions: (1) Years pipefitting on machine tools or industrial equipment? (2) Hydraulic system experience — what pressures? (3) Pneumatic system experience? (4) Welding certifications (TIG, MIG, stainless)? (5) Pipe materials — black iron, stainless, copper, hose? (6) Tube bending experience? (7) Pressure testing methods? (8) Apprenticeship status? (9) Pay expectation? (10) Heavy lifting OK? Confined space comfortable?" },
-      { heading: "Active automation client targets", body: "Spark has active engagements or warm relationships with the following automation segment clients. Don't cold-call these without checking with your AM first — but DO know they're active accounts: 27 companies across automotive supply, machine tool, robotic integrators, and end-of-line automation. Confirm current target list with your manager. Cross-reference any new lead against existing account list before initiating outreach to avoid stepping on a colleague's deal." },
-      { heading: "Final word: become the automation expert", body: "If you commit to learning this material — really learning it, not just skimming — you will out-recruit every generic competitor in this space. Clients can tell within 30 seconds whether a recruiter speaks their language. The recruiter who says 'We have someone with 8 years on AB ControlLogix, programmed three full automotive body-shop cells, and commissioned them on-site at GM Lordstown' wins the call. The recruiter who says 'We have controls people' loses every time. Vocabulary is the moat." }
-    ] }
-] }
-];
-
-
-
-const QUIZZES = {
-"Company Culture & Core Values": [
-  { q: "When was Spark Talent Acquisition founded?", opts: ["2010", "2013", "2015", "2018"], answer: 1 },
-  { q: "Who founded Spark Companies?", opts: ["Dave Veres", "Fletcher Kundtz", "Aaron Opalewski", "Ryan Aymen"], answer: 2 },
-  { q: "How many staffing companies are under Spark?", opts: ["3", "4", "5", "6"], answer: 2 },
-  { q: "Which is NOT a Spark core value?", opts: ["Dominate the Day", "Maximize Profit", "Be Humble", "Do the Right Thing"], answer: 1 },
-  { q: "What is Spark's stated purpose?", opts: ["Maximize revenue", "Help PEOPLE grow", "Become largest staffing firm", "Win market share"], answer: 1 },
-  { q: "What should you say instead of 'No problem'?", opts: ["You're welcome", "My pleasure or Absolutely", "Sure thing", "Don't mention it"], answer: 1 },
-  { q: "When are hats allowed?", opts: ["Any day", "Only Fridays unless company logo", "Never", "Only outside"], answer: 1 },
-],
-"Recruiting Process Training": [
-  { q: "What does TEDW stand for?", opts: ["Track, Evaluate, Document, Wrap-up", "Tell me, Explain, Describe, Walk me through", "Test, Engage, Deliver, Win", "Time, Effort, Dedication, Work"], answer: 1 },
-  { q: "How to access prescreen templates in Asymbl?", opts: ["Settings > Templates", "CTRL + . in the text box", "File > New > Template", "Ask your manager"], answer: 1 },
-  { q: "Correct prescreen flow?", opts: ["Q&A > Intro > Overview", "Intro > Candidate > Role > Q&A > Next Steps", "Screen > Test > Evaluate", "Background > Interview > Offer"], answer: 1 },
-  { q: "When to send first-day prep email?", opts: ["Day of", "1 day before", "At least 2 business days before", "1 week before"], answer: 2 },
-  { q: "How to handle a termination call?", opts: ["Leave a voicemail", "Send email", "Call directly, factual and calm", "Have coworker deliver"], answer: 2 },
-],
-"Recruiting & Employment Law": [
-  { q: "Which act protects workers 40+?", opts: ["Title VII", "ADA", "ADEA", "FCRA"], answer: 2 },
-  { q: "If candidate mentions protected class:", opts: ["End interview", "Write it down", "Pivot, note EEOC compliance", "Ask follow-up questions"], answer: 2 },
-  { q: "Michigan at-will employment means:", opts: ["Must give 2 weeks", "Terminate anytime for legal reason", "Must provide severance", "Contracts required"], answer: 1 },
-  { q: "Illegal termination reason?", opts: ["Poor attendance", "Budget cuts", "Retaliation for whistleblowing", "Job elimination"], answer: 2 },
-  { q: "Termination notes should contain:", opts: ["Personal opinions", "Only facts, objective language", "Protected class mentions", "Informal observations"], answer: 1 },
-],
-"Terminations & Michigan Law": [
-  { q: "Michigan follows which employment doctrine?", opts: ["Right to work", "At-will", "Just cause", "Employment contract"], answer: 1 },
-  { q: "Which Michigan law prohibits discrimination?", opts: ["Whistleblowers' Act", "Elliott-Larsen Civil Rights Act", "FCRA", "OSHA"], answer: 1 },
-  { q: "You should NEVER deliver termination via:", opts: ["Phone call", "Voicemail", "In-person meeting", "Video call"], answer: 1 },
-],
-"Sales Process Training": [
-  { q: "How many primary target accounts?", opts: ["5", "10", "20", "50"], answer: 2 },
-  { q: "% of time on target accounts?", opts: ["50%", "60%", "80%", "100%"], answer: 2 },
-  { q: "The 4 P's of every requirement?", opts: ["Product, Price, Place, Promotion", "Position, Pay, Process, People", "Plan, Prepare, Present, Perform", "Prospect, Pipeline, Pitch, Place"], answer: 1 },
-  { q: "Managers to target per account?", opts: ["1-2", "3-5", "6-8", "10+"], answer: 1 },
-  { q: "After a placement, always ask:", opts: ["For a bonus", "For a reference", "What's coming up next?", "For extension"], answer: 2 },
-],
-"Recruiter Compliance Refresher": [
-  { q: "Score needed to pass compliance quiz?", opts: ["8/12", "9/12", "10/12", "12/12"], answer: 2 },
-  { q: "Highest-risk compliance area?", opts: ["Phone screening", "Social media screening", "Reference checks", "Job postings"], answer: 1 },
-  { q: "FCRA regulates:", opts: ["Fair pay", "Background checks", "Social media", "Interviews"], answer: 1 },
-  { q: "Ban the Box restricts:", opts: ["Drug testing", "Salary history", "Criminal history on initial apps", "Social media"], answer: 2 },
-],
-"New Hire Onboarding": [
-  { q: "What system does Spark use for electronic onboarding paperwork?", opts: ["Workday", "Greenshades", "ADP", "Paycor"], answer: 1 },
-  { q: "What is the GreenEmployee company code for Spark?", opts: ["sparktalent", "sparkco", "sparkportfolio", "sparkgroup"], answer: 2 },
-  { q: "What should candidates download for paystubs and time tracking?", opts: ["Spark Group app", "GreenEmployee app", "Greenshades Portal", "ADP Mobile"], answer: 1 },
-  { q: "Who should recruiters direct candidates to for onboarding questions?", opts: ["Their manager", "Allie Spegel", "Tamika Coleman / HR", "Payroll team"], answer: 2 },
-  { q: "What triggers the onboarding workflow for a new hire?", opts: ["Email to HR", "Placement approved in Salesforce", "Phone call to Tamika", "SharePoint form"], answer: 1 },
-],
-"Benefits & Enrollment": [
-  { q: "What is the effective date of the current benefits plan?", opts: ["01/01/2026", "11/21/2025", "03/01/2026", "07/01/2025"], answer: 1 },
-  { q: "How do you enroll in benefits?", opts: ["SharePoint form", "TheAmericanWorker.com or call (855) 495-1190", "Email HR", "GreenEmployee app"], answer: 1 },
-  { q: "What is the annual deductible for the Priority Health Major Medical plan?", opts: ["$3,000", "$5,000", "$6,350", "$10,000"], answer: 2 },
-  { q: "Which network provides dental coverage?", opts: ["VSP Choice", "First Health", "Ameritas Classic PPO", "Delta Dental"], answer: 2 },
-  { q: "What does Teladoc provide?", opts: ["Dental cleanings", "24/7 virtual doctor consultations at no cost", "Vision exams", "Prescription delivery"], answer: 1 },
-  { q: "When can you change benefits coverage?", opts: ["Anytime", "Only during Open Enrollment or within 30 days of qualifying life event", "Monthly", "Every 6 months"], answer: 1 },
-],
-"Compliance & Legal": [
-  { q: "What does Ban the Box legislation restrict?", opts: ["Drug testing", "Salary history questions", "Criminal history questions on initial applications", "Social media screening"], answer: 2 },
-  { q: "What federal law governs background checks in employment?", opts: ["HIPAA", "FCRA", "FMLA", "OSHA"], answer: 1 },
-  { q: "Before taking adverse action based on a background check, what must you send?", opts: ["Termination letter", "Pre-adverse action notice", "Final paycheck", "COBRA notice"], answer: 1 },
-  { q: "Which of these is an illegal interview question?", opts: ["Tell me about your experience", "What year did you graduate?", "Are you authorized to work in the US?", "Describe a challenge you overcame"], answer: 1 },
-],
-"Systems & Tools": [
-  { q: "What is Spark's primary ATS?", opts: ["Indeed", "Salesforce", "Greenshades", "Workday"], answer: 1 },
-  { q: "Where are 2025 W-2s located?", opts: ["GreenEmployee", "Greenshades", "Paycor", "SharePoint"], answer: 2 },
-  { q: "What is the Salesforce URL for Spark?", opts: ["salesforce.com/spark", "spark-companies.my.salesforce.com", "sparktalent.salesforce.com", "crm.sparkcompanies.com"], answer: 1 },
-],
-"Performance Management": [
-  { q: "What are the three steps in Spark's performance management process?", opts: ["Warning, Write-up, Termination", "Friendly Conversation, Serious Discussion, Opportunity Plan", "Verbal, Written, Final", "Coaching, PIP, Separation"], answer: 1 },
-  { q: "What should you do FIRST when behavior doesn't align?", opts: ["Put them on an opportunity plan", "Have a friendly conversation", "Document it formally", "Escalate to HR"], answer: 1 },
-  { q: "Why is it called an 'Opportunity Plan'?", opts: ["Legal requirement", "It sounds nicer", "It's a chance to grow and most promoted leaders have been on one", "To avoid HR paperwork"], answer: 2 },
-  { q: "What is a leadership failure per Aaron's framework?", opts: ["Not hitting revenue", "Sticking on friendly conversations then suddenly firing someone", "Not documenting every conversation", "Allowing too many opportunity plans"], answer: 1 },
-  { q: "When having a serious discussion, what should you explicitly state?", opts: ["That you're disappointed", "That this is a serious discussion", "That they're about to be fired", "That HR is involved"], answer: 1 },
-  { q: "An opportunity plan always means termination if no improvement.", opts: ["True", "False — consequences could include promo ineligibility, bonuses, or role changes", "True — company policy", "Only for production roles"], answer: 1 },
-  { q: "Which Spark core value ties to overcoming an opportunity plan?", opts: ["Leading by example", "Conquering adversity is the recipe for success", "Do the right thing", "Be humble, crave improvement"], answer: 1 },
-],
-"AI & Technology": [
-  { q: "What Microsoft platform enables low-code automation at Spark?", opts: ["Azure DevOps", "Power Platform", "Visual Studio", "GitHub Actions"], answer: 1 },
-  { q: "What Microsoft platform enables automation at Spark?", opts: ["Azure DevOps", "Power Platform", "Visual Studio", "GitHub Actions"], answer: 1 },
-],
-
-"Sales Mastery": [
-  { q: "An objection of 'It's too expensive' most often means:", opts: ["The prospect can't afford it", "They don't yet see enough value to justify the cost", "You should immediately discount", "They want to end the call"], answer: 1 },
-  { q: "Mirroring in objection handling means:", opts: ["Copying their body language", "Repeating their last 2-3 words as a question", "Agreeing with everything they say", "Sending them a similar-style email"], answer: 1 },
-  { q: "After answering an objection, you should always:", opts: ["Move to the close", "Send a follow-up email", "Confirm whether the concern is resolved", "Lower the price"], answer: 2 },
-  { q: "When a prospect asks for a discount, the best move is to:", opts: ["Discount immediately to close fast", "Add or remove scope as a tradeoff", "Refuse to discuss price", "Walk away from the deal"], answer: 1 },
-  { q: "Anchoring early and high in negotiation:", opts: ["Scares prospects off", "Sets the gravity of the negotiation in your favor", "Is unprofessional", "Only works for senior reps"], answer: 1 },
-  { q: "Walking away from a bad deal is:", opts: ["A sign of weakness", "Only for top reps", "A negotiation power move that often brings the prospect back", "Always the wrong call"], answer: 2 },
-  { q: "The phrase that turns a feature into a benefit is:", opts: ["'And also'", "'So that'", "'In addition'", "'Furthermore'"], answer: 1 },
-  { q: "When pitching a CFO, lead with:", opts: ["Candidate quality stories", "ROI, payback period, cost-of-vacancy math", "Recruiter headcount", "Office locations"], answer: 1 },
-  { q: "The 'value gap' refers to:", opts: ["Salary compression", "Cost of inaction minus cost of action", "Fee discount room", "Market wage variance"], answer: 1 },
-  { q: "The 2-minute rule says:", opts: ["Take 2-minute breaks every hour", "If a task takes under 2 minutes, do it now", "Limit calls to 2 minutes", "Reply to every email within 2 minutes"], answer: 1 },
-  { q: "Email should be processed:", opts: ["Continuously throughout the day", "In scheduled batches", "Only at the end of the day", "Only on your phone"], answer: 1 },
-  { q: "Time blocking means:", opts: ["Blocking unwanted callers", "Reserving calendar slots for specific activity types", "Working only during business hours", "Refusing all meetings"], answer: 1 },
-  { q: "On a discovery call, top reps talk roughly:", opts: ["70% of the time", "50% of the time", "30% of the time", "90% of the time"], answer: 2 },
-  { q: "Open-ended questions start with:", opts: ["'Are' and 'Do'", "'What' and 'How'", "'Will' and 'Can'", "'Did' and 'Have'"], answer: 1 },
-  { q: "Quantifying questions exist to:", opts: ["Test the prospect", "Move pain from vague to specific dollars/hours", "Slow down the call", "Show off your knowledge"], answer: 1 },
-  { q: "Every follow-up should:", opts: ["Just check in", "Apologize for bothering them", "Give the prospect something of value", "Ask for the close"], answer: 2 },
-  { q: "The breakup email response rate vs 'just checking in':", opts: ["About the same", "Roughly 15-20x higher", "Slightly lower", "Same — both are weak"], answer: 1 },
-  { q: "Before ending a discovery call, you should:", opts: ["Promise to circle back", "Lock in the next meeting on the calendar", "Send a thank-you", "Wait for the prospect to follow up"], answer: 1 },
-  { q: "The Assumptive Close moves the conversation to:", opts: ["Whether they want to buy", "Logistics — which version, when, who", "A discount discussion", "Another meeting"], answer: 1 },
-  { q: "The Cost of Vacancy formula uses what multiplier on base salary?", opts: ["1.0x", "1.1x", "1.3x", "2.0x"], answer: 2 },
-  { q: "When a prospect says 'we're working with another firm,' the best response is:", opts: ["Walk away", "Ask to be added as a second source", "Aggressively criticize the competitor", "Offer a steep discount"], answer: 1 },
-  { q: "The five buying roles in a complex deal include:", opts: ["Boss, employee, contractor, vendor, customer", "Economic, User, Technical, Champion, Gatekeeper", "Sales, Marketing, Operations, Finance, HR", "CEO, COO, CFO, CMO, CHRO"], answer: 1 },
-  { q: "Procurement's three core KPIs are:", opts: ["Savings, risk reduction, vendor consolidation", "Speed, quality, price", "Innovation, scale, brand", "Hiring, firing, payroll"], answer: 0 },
-  { q: "When procurement says 'we need 3 bids,' the best response is:", opts: ["Drop your price", "Walk away", "Ask what criteria are weighted heaviest", "Bid lower than competitors"], answer: 2 },
-  { q: "The most common reason deals stall is:", opts: ["Price", "Status quo felt safer than change", "Competition", "Bad timing"], answer: 1 },
-  { q: "On urgency scoring, you don't have a real deal until the prospect rates urgency at:", opts: ["1+", "5+", "8+", "10"], answer: 2 },
-  { q: "A re-engagement email should lead with:", opts: ["'Just checking in'", "An apology for bothering them", "A new insight, stakeholder, or angle", "A discount offer"], answer: 2 },
-  { q: "An ideal client profile is the intersection of:", opts: ["Industry, size, geography, hiring signals, pain", "Just industry and size", "Whoever responds to email", "Companies in your CRM"], answer: 0 },
-  { q: "The Problem-Impact-Solution-CTA formula uses how many sentences?", opts: ["One", "Two", "Four", "Eight"], answer: 2 },
-  { q: "A 'give-to-get' offer means:", opts: ["Discounting your fee", "Leading with something the prospect gets whether they buy or not", "Asking for a referral", "Offering a free trial"], answer: 1 },
-  { q: "A great voicemail is under:", opts: ["10 seconds", "25 seconds", "60 seconds", "2 minutes"], answer: 1 },
-  { q: "Every voicemail should end with:", opts: ["An apology", "A specific reason to call back", "A long pitch", "Your full email signature"], answer: 1 },
-  { q: "The voicemail you should NEVER leave is:", opts: ["A cold trigger-based VM", "A reference-call follow-up", "A 'just calling to introduce myself' VM", "A rate-negotiation VM"], answer: 2 },
-  { q: "The minimum GP target on a Skilled Trades contract is:", opts: ["10%", "15%", "20%", "35%"], answer: 2 },
-  { q: "The target GP on a Technical/Engineering contract is:", opts: ["20%", "35%", "50%", "65%"], answer: 2 },
-  { q: "The single highest predictor of becoming great in sales is:", opts: ["Charisma", "Coachability", "Industry experience", "College degree"], answer: 1 }
-],
-"Value Proposition Deep Dives": [
-  { q: "RPO differs from contingent search because:", opts: ["It's cheaper", "It's a subscription/managed-volume model with embedded capacity", "It only handles executive roles", "It's only for tech companies"], answer: 1 },
-  { q: "When pitching procurement on RPO, lead with:", opts: ["Better candidates", "Vendor consolidation, variable cost, risk transfer, measurable KPIs", "Lower base fees", "Faster onboarding"], answer: 1 },
-  { q: "RPO is best pitched to:", opts: ["Front-line hiring managers", "VP HR, Director TA, VP Ops, VP Procurement, CFO (at scale)", "Only the CEO", "HR Coordinators"], answer: 1 },
-  { q: "Engaged search is the right model for:", opts: ["High-volume light industrial", "Senior IC and director-level roles where contingent isn't deep enough", "Only C-suite roles", "Only roles under $50K"], answer: 1 },
-  { q: "The cost of a senior mis-hire is approximately:", opts: ["1x salary", "1.5x salary", "3-5x first-year salary", "10x salary"], answer: 2 },
-  { q: "Contingent fails on senior roles because:", opts: ["Recruiters aren't qualified", "Recruiters work the easiest reqs first and abandon hard ones", "Contingent doesn't allow exclusivity", "Senior candidates don't respond to contingent recruiters"], answer: 1 }
-],
-"Contract Needs Talk Track": [
-  { q: "How often should top 10 accounts have their contract terms reviewed?", opts: ["Annually", "Quarterly", "Every 5 years", "Only at renewal"], answer: 1 },
-  { q: "Renewal alerts should be set at:", opts: ["7 days only", "90, 60, and 30 days before renewal", "1 day before renewal", "After renewal"], answer: 1 },
-  { q: "If a client requests a rate concession below contract minimums, you should:", opts: ["Approve it to keep the relationship", "Ignore it", "Escalate immediately to leadership", "Counter with a higher rate"], answer: 2 }
-],
-"Back Office Operations": [
-  { q: "Spark's primary payroll system for the W-2 contractor population is:", opts: ["Paycor", "Greenshades", "ADP", "Paychex"], answer: 1 },
-  { q: "Payroll runs on what day of the week?", opts: ["Monday", "Wednesday", "Friday", "Sunday"], answer: 1 },
-  { q: "The benefits enrollment window for new hires is:", opts: ["7 days", "30 days from start date", "90 days", "Open year-round"], answer: 1 },
-  { q: "Federal law requires I-9 Section 2 to be completed within how many business days of start?", opts: ["Same day", "3 business days", "10 business days", "30 days"], answer: 1 },
-  { q: "Pay rate changes require:", opts: ["A verbal commitment", "A Pay Change Authorization Form via Conga", "A text message", "Just an email"], answer: 1 },
-  { q: "When should TMX be notified after a workplace injury?", opts: ["Within 4 hours", "Within a week", "Only if it's serious", "Only after the contractor returns to work"], answer: 0 },
-  { q: "When advising a contractor on I-9 documents, you should:", opts: ["Tell them which documents to bring", "Let them choose from the acceptable list", "Require a passport only", "Accept photocopies"], answer: 1 }
-],
-"KPI Performance Standards": [
-  { q: "A Recruiter's weekly submission target is:", opts: ["5", "10", "20", "30"], answer: 1 },
-  { q: "An ARM's weekly net-new meeting target is:", opts: ["1", "5", "10", "20"], answer: 0 },
-  { q: "A Sales rep's weekly client meeting target is:", opts: ["3", "5", "10", "20"], answer: 2 },
-  { q: "Three consecutive weeks below KPI standard triggers:", opts: ["Termination", "A bonus", "A structured improvement plan", "Nothing"], answer: 2 }
-],
-"Salesforce & ATS Training": [
-  { q: "An ATS Applicant is best described as:", opts: ["A new client", "The link between a Candidate and a Job, with a status", "A placement", "A signed offer letter"], answer: 1 },
-  { q: "The Asymbl namespace prefix in Salesforce is:", opts: ["sf__", "asymbl_", "bpats__", "spark_"], answer: 2 },
-  { q: "When an email arrives from a person NOT yet in Salesforce, you should:", opts: ["Ignore it", "Reply and create the record later", "Use the Outlook plugin to create the Lead/Contact immediately", "Add it manually next week"], answer: 2 },
-  { q: "When a client contact leaves their job, you should:", opts: ["Delete the record", "Mark 'No Longer With Company' and update with their new info", "Move them to a 'do not contact' list", "Email their replacement immediately"], answer: 1 },
-  { q: "When a candidate's status changes, you should update the Kanban:", opts: ["At the end of the week", "Same day", "Whenever you remember", "Only at month-end"], answer: 1 },
-  { q: "Before posting a job externally, you should first:", opts: ["Email the client for approval", "Source your existing Salesforce candidate database", "Run a credit check", "Update your LinkedIn"], answer: 1 },
-  { q: "The Fill Ratio report should be built using which report type?", opts: ["Applicant", "Job", "Account", "Opportunity"], answer: 1 },
-  { q: "When a candidate accepts an offer, the FIRST system step is:", opts: ["Email the recruiter team", "Move the ATS Applicant to 'Offer Accepted' and create the Placement record", "Start the background check", "Send a thank-you email"], answer: 1 }
-],
-"Industry Knowledge — Plastics": [
-  { q: "RJG and Master Molder certifications indicate:", opts: ["Entry-level training", "Premium process tech credentials in short supply", "Safety certifications", "Forklift operation"], answer: 1 },
-  { q: "Sepro is a brand of:", opts: ["Injection press", "Robot for plastics manufacturing", "Mold material", "Conveyor system"], answer: 1 },
-  { q: "Plastics talent is sensitive to:", opts: ["Pay rate only", "Commute distance — typically 30-mile max", "Job title only", "Company logo"], answer: 1 }
-],
-"Industry Knowledge — Automation": [
-  { q: "Allen-Bradley's primary PLC programming software is:", opts: ["TIA Portal", "Studio 5000", "Sysmac Studio", "GX Works"], answer: 1 },
-  { q: "EtherNet/IP is most associated with:", opts: ["Siemens", "Allen-Bradley/Rockwell", "Mitsubishi", "Omron"], answer: 1 },
-  { q: "Which robot brand uses the KRL programming language?", opts: ["Fanuc", "ABB", "KUKA", "Yaskawa"], answer: 2 },
-  { q: "A Field Service Engineer role is best suited for someone who:", opts: ["Wants a desk job", "Tolerates 50-75% travel and is customer-facing", "Only wants to write code", "Doesn't like troubleshooting"], answer: 1 },
-  { q: "The dividing line between mid-level and senior automation engineers is typically:", opts: ["College degree", "Years of experience only", "Commissioning experience on the customer floor", "Knowing AutoCAD"], answer: 2 },
-  { q: "If a candidate says they 'program robots' you should ALWAYS ask:", opts: ["Their salary expectation first", "Which brand, application, and how many cells", "Whether they have a passport", "Their college GPA"], answer: 1 }
-],
-};
-
-const TEAM_ROSTER = [
-{ name: "Aaron Opalewski", role: "CEO", div: "Spark Companies", isManager: true, manager: null },
-{ name: "Dave Veres", role: "EVP / CSO", div: "Spark Companies", isManager: true, manager: "Aaron Opalewski" },
-{ name: "Allie Spegel", role: "VP Operations", div: "Spark Companies", isManager: true, manager: "Aaron Opalewski" },
-{ name: "Mary Patrico", role: "Dir. of Operations", div: "Spark Companies", isManager: true, manager: "Allie Spegel" },
-{ name: "Priyanka Malani", role: "Payroll Manager", div: "Spark Companies", isManager: true, manager: "Allie Spegel" },
-{ name: "Tamika Coleman", role: "HR Lead", div: "Spark Companies", isManager: true, manager: "Allie Spegel" },
-{ name: "Aidan Juengel", role: "Recruiter", div: "Spark Talent", manager: "Jamie Platt" },
-{ name: "Alec Czartoryski", role: "Recruiter", div: "Spark Talent", manager: "Jamie Platt" },
-{ name: "Jamie Platt", role: "Team Lead", div: "Spark Talent", isManager: true, manager: "Dave Veres" },
-{ name: "Kristin Scarth", role: "Team Lead", div: "Ignite Search", isManager: true, manager: "Dave Veres" },
-{ name: "Jamie Bell", role: "Recruiter", div: "Spark Talent", manager: "Jamie Platt" },
-{ name: "Chad Opalewski", role: "Operations", div: "Spark Companies", manager: "Mary Patrico" },
-{ name: "Julie Rinaldi", role: "Sr. Recruiter", div: "Spark Talent", manager: "Jamie Platt" },
-{ name: "Carlin McCrimmon", role: "Recruiter", div: "Spark Talent", manager: "Jamie Platt" },
-{ name: "Maven Namma", role: "IT / Systems", div: "Spark Companies", manager: "Allie Spegel" },
-{ name: "Bedros Namma", role: "Finance", div: "Spark Companies", manager: "Aaron Opalewski" },
-{ name: "Erica Urisitti", role: "Operations", div: "Spark Companies", manager: "Mary Patrico" },
-{ name: "Sam Ban", role: "BPO Services", div: "Spark Companies", manager: "Mary Patrico" },
-];
-
-const SOP_SECTIONS = [
-{ cat: "Payroll", icon: "dollar", items: ["Weekly payroll processing (every Friday)", "Timesheet submission & verification", "Rapid! PayCard enrollment", "Direct deposit setup / changes", "PTO accrual tracking", "W-2 distribution", "Multi-entity payroll", "Tax filing & compliance", "Garnishment processing"] },
-{ cat: "HR & Onboarding", icon: "users", items: ["New hire onboarding checklist", "Background check initiation (FCRA)", "I-9 verification & E-Verify", "Benefits enrollment (30-day window)", "Employee handbook acknowledgment", "Drug screening coordination", "Workers' comp injury reporting", "Termination processing", "Exit interview procedure"] },
-{ cat: "Recruiting Operations", icon: "search", items: ["Job order creation & posting", "Candidate screening workflow", "Submittal process to clients", "Interview scheduling", "Offer letter generation", "Commission calculation & tracking", "Fill ratio reporting", "Client VMS management", "Referral program processing ($100/$50)"] },
-{ cat: "Systems & IT", icon: "settings", items: ["M365 account provisioning", "Salesforce user setup", "GreenEmployee enrollment", "VPN / remote access setup", "Laptop provisioning & imaging", "Software license management", "SharePoint site administration", "Data backup & recovery", "Security incident response"] },
-];
-
-const CORE_VALUES = [
-{ num: 1, title: "Leading by Example Isn't Just a Way, It's the Only Way", standard: "Every Spark team member sets the tone through their own actions.", behaviors: ["Arrive prepared for meetings with data, insights, and action steps","Demonstrate punctuality and professionalism","Actively collaborate across units"], tactics: ["Stick to your Blueprint","Show up office-ready for client meetings","Have call sheets ready with 25 names","Show up to plug-ins 20–30 min early","Understand what others are working on"] },
-{ num: 2, title: "Do the Right Thing", standard: "Decisions reflect integrity, transparency, and respect — always.", behaviors: ["Follow through on commitments","Communicate openly about mistakes","Safeguard trust","Make the right decision for the team"], tactics: ["Stay within pricing/conversion framework","When we take a req it is a commitment to deliver","If submitting a candidate, commit to finding a job for them"] },
-{ num: 3, title: "Conquering Adversity is the Recipe to Success", standard: "Adversity is inevitable — our response defines us.", behaviors: ["Approach obstacles solutions-first","Share lessons from setbacks","Rally together when facing challenges","Learn from failure"], tactics: ["Share successes and struggles openly","Share talk-tracks through role-plays"] },
-{ num: 4, title: "Be Humble, Crave Improvement", standard: "We are lifelong learners who seek feedback without ego.", behaviors: ["To be humble you first must be good","No matter how good, there's another level","Engage in coaching and development","Ask for and apply feedback","Celebrate team before personal"], tactics: ["Be maniacal learning about our staffing industry","Be maniacal about our customers' industries"] },
-{ num: 5, title: "People Driven; Service Focused", standard: "People are at the heart of our service.", behaviors: ["Proactive, consistent communication","Treat every candidate with respect","Same professionalism to colleagues as clients"], tactics: ["Listen and DIG before offering solutions","Listen through THEIR eyes","We cannot get clarity without asking questions","World class service at every level","White glove Ritz Carlton experience"] },
-{ num: 6, title: "Dominate the Day, Don't Let the Day Dominate You", standard: "We bring energy, focus, and discipline daily.", behaviors: ["Start with clear priorities, execute with urgency","Set and achieve measurable goals","Inspire through consistent energy"], tactics: ["Show up prepared!","Commit to improving yourself and others","Create certainty through a repeatable blueprint","Positive attitude is contagious"] },
-{ num: 7, title: "Find a Way to Deliver Value", standard: "We innovate, adapt, and go beyond expectations.", behaviors: ["Fully understand needs before proposing solutions","Anticipate challenges proactively","Share market insights as a trusted advisor"], tactics: ["Value is relative — understand what's valuable","Deliver on what you say","Don't just contact when you need something","Help even if it doesn't directly help us"] },
-{ num: 8, title: "Mindset is the Foundation of Excellence", standard: "A positive, growth-oriented mindset drives excellence.", behaviors: ["Begin with solution-focused energy","Maintain composure under stress","Approach with optimism","How you look at things affects results"], tactics: ["Be solution oriented","Seek to understand before being understood","Be the listener you'd want others to be"] },
-];
-
-const SPARK_NUMBERS = {
-daily: { recruiter: ["25 names on call sheet aligned with reqs","Contact candidates set to interview today","Contact candidates set to start","Contact starts at end of first day"], sales: ["25 names on call sheet aligned with reqs"] },
-weekly: { recruiter: ["150 contacts per week","25 pre-screens","10 submittals","REFERENCES ON EVERY CANDIDATE","Push candidates to sales rep for skill marketing","Contact active contract employees not working 40 hours","Track real-time labor market analytics"], sales: ["150 contacts per week","10 meetings per week (2 new)","15 market skill submittals","Re-qualify reqs with no submittal in 7 days","Schedule manager feedback within 2 hours of interview","Track hiring trends by client industries","Track competitive analytics"] },
-monthly: { recruiter: ["$17,000 cumulative raw total charge (baseline)","Target Low: $29,000 ($348K annually)","Target High: $40,000 ($480K annually)","$1,000 monthly net growth in contract charge"], sales: ["$17,000 cumulative raw total charge (baseline)","Target Low: $29,000","Target High: $40,000","$1,000 monthly net growth","Track monthly performance + trend","Track quarterly goal attainment","Ensure team focus is inline with Blueprint"] },
-annual: { recruiter: ["15% Y-O-Y growth","Minimum: $180K raw total","Target Low: $348K raw total","Target High: $480K raw total","Charge should be 3x your Gross Income","Stay cutting edge on recruiting tactics","Identify new and emerging skills"], sales: ["$180K minimum after Year 1","Once contest crossed, grow past next minimum","15% Y-O-Y growth","Target Low: $348K","Target High: $480K","Charge should be 3x Gross Income","Stay cutting edge on tactics","Identify new and emerging skills"] },
-};
-
-const TOOL_LINKS = [
-{ cat: "Core Systems", items: [
-{ name: "Salesforce", desc: "ATS, CRM, job orders, candidate management, pipeline", url: "https://spark-companies.my.salesforce.com/", icon: "search", color: "#00A1E0" },
-{ name: "SparkV7 Commissions", desc: "Commission tracker, statements, DH pipeline", url: "https://nice-beach-07b54f71e4.azurestaticapps.net", icon: "trending", color: "#FFD200" },
-{ name: "Microsoft 365 Portal", desc: "Email, Teams, SharePoint, OneDrive, Word, Excel", url: "https://www.office.com", icon: "grid", color: "#0078D4" },
-{ name: "Microsoft Teams", desc: "Chat, meetings, collaboration", url: "https://teams.microsoft.com", icon: "mail", color: "#6264A7" },
-{ name: "SharePoint", desc: "Shared documents, company resources", url: "https://sparktalent.sharepoint.com/sites/SparkCompanies", icon: "file", color: "#036C70" },
-]},
-{ cat: "Recruiter Tools", items: [
-{ name: "Indeed", desc: "Job postings, candidate sourcing, sponsored jobs", url: "https://employers.indeed.com", icon: "search", color: "#2164f3" },
-{ name: "ZipRecruiter", desc: "Job distribution, candidate matching, AI sourcing", url: "https://www.ziprecruiter.com/employer", icon: "target", color: "#5ba23b" },
-{ name: "LinkedIn Recruiter", desc: "Talent search, InMail, pipeline management", url: "https://www.linkedin.com/talent/hire", icon: "users", color: "#0A66C2" },
-{ name: "Compliance Training", desc: "50-state interactive maps — Ban the Box, FCRA, salary transparency", url: "https://sparkcompanies.github.io/compliance-training", icon: "shield", color: "#FF6B35" },
-]},
-{ cat: "Sales & Business Development", items: [
-{ name: "LinkedIn Sales Navigator", desc: "Lead search, account mapping, InMail outreach", url: "https://www.linkedin.com/sales", icon: "trending", color: "#0A66C2" },
-{ name: "ZoomInfo", desc: "Contact data, company intel, intent signals", url: "https://app.zoominfo.com", icon: "globe", color: "#6D2ED1" },
-{ name: "Apollo.io", desc: "Prospecting, sequences, engagement tracking", url: "https://app.apollo.io", icon: "send", color: "#5B5FC7" },
-]},
-{ cat: "Payroll & Benefits", items: [
-{ name: "Greenshades Online", desc: "Payroll processing, tax filing, W-2 generation (admin)", url: "https://www.greenshadesonline.com", icon: "dollar", color: "#2ecc71" },
-{ name: "GreenEmployee", desc: "Paystubs, direct deposit, PTO, tax docs — Code: sparkportfolio", url: "https://www.greenemployee.com", icon: "file", color: "#27ae60" },
-{ name: "Paycor (2025 W-2 Only)", desc: "Your 2025 W-2 is here ONLY. 2026+ in GreenEmployee", url: "https://hcm.paycor.com/authentication/signin", icon: "file", color: "#FF6B35" },
-{ name: "Rapid! PayCard", desc: "FREE prepaid Visa debit — no bank account needed", url: "mailto:Timecards@sparktalentinc.com?subject=Rapid%20PayCard%20Inquiry", icon: "dollar", color: "#e74c3c" },
-{ name: "The American Worker", desc: "Benefits enrollment — medical, dental, vision, disability", url: "https://www.theamericanworker.com", icon: "heart", color: "#FF3366" },
-]},
-{ cat: "Employee Resources", items: [
-{ name: "Team Member Portal", desc: "Employee resources, W-2 info, safety, referrals", url: "https://sparkcompanies.github.io/spark-hub", icon: "home", color: "#FFD200" },
-{ name: "Submit a Referral ($100)", desc: "Refer someone → 520 hours → you earn $100, they earn $50", url: "https://wkf.ms/3IydKBx", icon: "send", color: "#2ecc71" },
-{ name: "Teladoc", desc: "24/7 virtual doctor — free consultations, no appointment needed", url: "https://www.teladoc.com", icon: "heart", color: "#00BFA5" },
-{ name: "Timecards Email", desc: "Timesheet questions, PayCard requests, pay inquiries", url: "mailto:Timecards@sparktalentinc.com", icon: "mail", color: "#3498db" },
-{ name: "Sterling TMX Email", desc: "General operations and support requests", url: "mailto:sterlingtmx@sparktalentinc.com", icon: "mail", color: "#e67e22" },
-]},
-];
-
-/* ────── COMPONENTS ────── */
-
-const tabs = [
-{ id: "home", label: "Home", icon: "home" },
-{ id: "training", label: "Training", icon: "book" },
-{ id: "standard", label: "Spark Standard", icon: "star" },
-{ id: "careers", label: "Career Paths", icon: "rocket" },
-{ id: "team", label: "People", icon: "users" },
-{ id: "tools", label: "Software & Tools", icon: "link" },
-{ id: "docs", label: "Documents", icon: "file" },
-{ id: "sops", label: "SOPs", icon: "clipboard" },
-{ id: "performance", label: "Performance", icon: "target" },
-];
-
-function Navbar({ tab, setTab, w }) {
-const { dark, toggle } = useTheme();
-const [mobileOpen, setMobileOpen] = useState(false);
-const mob = w < 900;
-return (
-<>
-<style>{`@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap'); body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; margin: 0; } *, *::before, *::after { box-sizing: border-box; } button, input, textarea, a { outline: none; -webkit-tap-highlight-color: transparent; font-family: inherit; } button:focus-visible, a:focus-visible { outline: 2px solid rgba(245,158,11,0.3); outline-offset: 2px; border-radius: 6px; } ::selection { background: rgba(255,210,0,0.15); } ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 99px; } @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } } @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } } @keyframes slideIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:translateX(0); } } @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }`}</style>
-{!mob && (
-<div style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: 240, background: "linear-gradient(180deg, #fff 0%, #fefcf8 100%)", borderRight: "1px solid #eee", zIndex: 40, display: "flex", flexDirection: "column" }}>
-<div style={{ padding: "24px 24px 20px", borderBottom: "1px solid #eee" }}>
-<svg width={120} height={28} viewBox="0 0 180 32" fill="none"><path d="M14.5 2L8 16h7l-3.5 14L22 14h-7.5L18.5 2h-4z" fill="#FFC629" stroke="#E5AD00" strokeWidth="0.5"/><text x="30" y="20" fontFamily="Plus Jakarta Sans,sans-serif" fontSize="15" fontWeight="800" fill="#1a1a2e" letterSpacing="2.5">SPARK</text><text x="30" y="29" fontFamily="Plus Jakarta Sans,sans-serif" fontSize="6.5" fontWeight="500" fill="#999" letterSpacing="3">COMPANIES</text></svg>
-</div>
-<div style={{ padding: "12px 12px", flex: 1, overflowY: "auto" }}>
-{tabs.map(t => { const active = tab === t.id; return (
-<div key={t.id}><button onClick={() => setTab(t.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: active ? "linear-gradient(90deg, #FFF8E1, #fff)" : "transparent", color: active ? "#D97706" : "#64748b", fontSize: 14, fontWeight: active ? 600 : 500, textAlign: "left", transition: "all 0.15s", marginBottom: 2 }} onMouseOver={e => { if (!active) e.currentTarget.style.background = "#fafafa"; }} onMouseOut={e => { if (!active) e.currentTarget.style.background = "transparent"; }}><I name={t.icon} size={18} color={active ? "#D97706" : "#94a3b8"} sw={active ? 2 : 1.5} />{t.label}</button></div>
-); })}
-</div>
-<div style={{ padding: "12px 16px", borderTop: "1px solid #eee" }}><button onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: "#94a3b8", fontSize: 13, fontWeight: 500 }}><I name={dark ? "sun" : "moon"} size={16} color="#94a3b8" />{dark ? "Light mode" : "Dark mode"}</button></div>
-</div>
-)}
-<div style={{ position: "fixed", top: 0, left: mob ? 0 : 240, right: 0, height: 56, background: "#fff", borderBottom: "1px solid #eee", boxShadow: "0 1px 4px rgba(0,0,0,0.04)", zIndex: 45, display: "flex", alignItems: "center", padding: "0 24px", gap: 16 }}>
-{mob && <button onClick={() => setMobileOpen(!mobileOpen)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}><I name={mobileOpen ? "x" : "menu"} size={22} color="#64748b" /></button>}
-{mob && <svg width={90} height={22} viewBox="0 0 180 32" fill="none"><path d="M14.5 2L8 16h7l-3.5 14L22 14h-7.5L18.5 2h-4z" fill="#FFC629" stroke="#E5AD00" strokeWidth="0.5"/><text x="30" y="20" fontFamily="Plus Jakarta Sans,sans-serif" fontSize="15" fontWeight="800" fill="#1a1a2e" letterSpacing="2.5">SPARK</text></svg>}
-<div style={{ flex: 1, maxWidth: 480 }}><div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8f8f8", borderRadius: 10, padding: "8px 14px", border: "1px solid #eee" }}><I name="search" size={16} color="#94a3b8" /><input placeholder="Search or ask a question" style={{ background: "none", border: "none", color: "#1a1a2e", fontSize: 14, flex: 1, outline: "none", fontFamily: "inherit" }} /></div></div>
-<div style={{ flex: 1 }} />
-<button style={{ background: "none", border: "none", cursor: "pointer", padding: 6, position: "relative" }}><I name="info" size={18} color="#94a3b8" /></button>
-<button style={{ background: "none", border: "none", cursor: "pointer", padding: 6, position: "relative" }}><I name="mail" size={18} color="#94a3b8" /><div style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: "50%", background: "#ef4444", border: "2px solid #fff" }} /></button>
-<div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>{!mob && <div style={{ textAlign: "right" }}><div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e", lineHeight: 1.2 }}>Allie Spegel</div><div style={{ fontSize: 9, fontWeight: 600, color: "#D97706", lineHeight: 1.2 }}>VP of Operations</div></div>}<div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #fbbf24, #f59e0b)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", border: "2px solid #fff", boxShadow: "0 0 0 2px #fbbf24" }}>AS</div></div>
-</div>
-{mob && mobileOpen && (
-<div style={{ position: "fixed", top: 56, left: 0, right: 0, bottom: 0, background: "#fff", zIndex: 44, padding: 12, overflowY: "auto" }}>
-{tabs.map((t, i) => { const active = tab === t.id; return (
-<button key={t.id} onClick={() => { setTab(t.id); setMobileOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: active ? "linear-gradient(90deg, #FFF8E1, #fff)" : "transparent", color: active ? "#D97706" : "#64748b", fontSize: 15, fontWeight: active ? 600 : 500, textAlign: "left", animation: `slideIn 0.2s ease ${i * 0.03}s both` }}><I name={t.icon} size={20} color={active ? "#D97706" : "#94a3b8"} />{t.label}</button>
-); })}
-</div>
-)}
-</>
-);
-}
-
-function Card({ children, style = {}, glow = false }) {
-return (<div style={{ background: "#fff", border: "1px solid #e8e8e8", borderRadius: 10, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)", ...style }}>{children}</div>);
-}
-
-function SectionHeader({ icon, title, subtitle }) {
-return (<Reveal><div style={{ marginBottom: 20 }}><div style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 4, height: 24, borderRadius: 2, background: "linear-gradient(180deg, #fbbf24, #f59e0b)" }} /><h2 style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.3, margin: 0 }}>{title}</h2></div>{subtitle && <p style={{ fontSize: 14, color: "#047857", lineHeight: 1.5, margin: "6px 0 0" }}>{subtitle}</p>}</div></Reveal>);
-}
-
-function HomePage({ setTab, w }) {
-const { dark } = useTheme();
-const mob = w < 768;
-const [hovCard, setHovCard] = useState(null);
-const [quoteIdx, setQuoteIdx] = useState(0);
-const [searchFocused, setSearchFocused] = useState(false);
-const [searchVal, setSearchVal] = useState("");
-const [hovDock, setHovDock] = useState(null);
-const [announcements, setAnnouncements] = useState([]);
-const [recognition, setRecognition] = useState([]);
-const [events, setEvents] = useState([]);
-const [homeAdmin, setHomeAdmin] = useState(false);
-const [homePinInput, setHomePinInput] = useState("");
-const [showHomePin, setShowHomePin] = useState(false);
-const [newAnnouncement, setNewAnnouncement] = useState({ title: "", body: "", pinned: false });
-const [newShoutout, setNewShoutout] = useState({ from: "", to: "", message: "" });
-const [newEvent, setNewEvent] = useState({ title: "", date: "", desc: "" });
-const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
-const [showShoutoutForm, setShowShoutoutForm] = useState(false);
-const [showEventForm, setShowEventForm] = useState(false);
-useEffect(() => { const t = setInterval(() => setQuoteIdx(i => (i + 1) % 7), 7000); return () => clearInterval(t); }, []);
-useEffect(() => { const load = async () => { try {
-const a = await window.storage.get("spark-hq-announcements", true); if (a?.value) setAnnouncements(JSON.parse(a.value));
-const r = await window.storage.get("spark-hq-recognition", true); if (r?.value) setRecognition(JSON.parse(r.value));
-const e = await window.storage.get("spark-hq-events", true); if (e?.value) setEvents(JSON.parse(e.value));
-} catch(e){} }; if (window.storage) load(); }, []);
-const saveAnn = async (a) => { setAnnouncements(a); try { if(window.storage) await window.storage.set("spark-hq-announcements", JSON.stringify(a), true); } catch(e){} };
-const saveRec = async (r) => { setRecognition(r); try { if(window.storage) await window.storage.set("spark-hq-recognition", JSON.stringify(r), true); } catch(e){} };
-const saveEvt = async (e) => { setEvents(e); try { if(window.storage) await window.storage.set("spark-hq-events", JSON.stringify(e), true); } catch(e){} };
-const postAnnouncement = () => { if (!newAnnouncement.title) return; saveAnn([{ ...newAnnouncement, id: Date.now(), date: new Date().toLocaleDateString(), author: "Admin" }, ...announcements]); setNewAnnouncement({ title: "", body: "", pinned: false }); setShowAnnouncementForm(false); };
-const postShoutout = () => { if (!newShoutout.to || !newShoutout.message) return; saveRec([{ ...newShoutout, id: Date.now(), date: new Date().toLocaleDateString() }, ...recognition]); setNewShoutout({ from: "", to: "", message: "" }); setShowShoutoutForm(false); };
-const postEvent = () => { if (!newEvent.title) return; saveEvt([...events, { ...newEvent, id: Date.now() }].sort((a,b) => new Date(a.date) - new Date(b.date))); setNewEvent({ title: "", date: "", desc: "" }); setShowEventForm(false); };
-const hour = new Date().getHours();
-const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const now = new Date();
-const dateStr = dayNames[now.getDay()] + ", " + monthNames[now.getMonth()] + " " + now.getDate();
-const quotes = [
-{ text: "Leading by example isn't just a way — it's the only way.", val: 1, color: "#FFD200" },
-{ text: "Do the right thing — even when no one is watching.", val: 2, color: "#4ECDC4" },
-{ text: "Conquering adversity is the recipe to success.", val: 3, color: "#FF6B35" },
-{ text: "Be humble, crave improvement.", val: 4, color: "#7C5CFC" },
-{ text: "People driven; service focused — always.", val: 5, color: "#FF3366" },
-{ text: "Dominate the day. Don't let the day dominate you.", val: 6, color: "#E84393" },
-{ text: "Find a way to deliver value — every time.", val: 7, color: "#2ecc71" },
-];
-const q = quotes[quoteIdx];
-const dock = [
-{ name: "Salesforce", icon: "search", color: "#00A1E0", url: "https://spark-companies.my.salesforce.com/", sub: "ATS" },
-{ name: "GreenEmployee", icon: "dollar", color: "#27ae60", url: "https://www.greenemployee.com", sub: "Pay" },
-{ name: "Teams", icon: "mail", color: "#6264A7", url: "https://teams.microsoft.com", sub: "Chat" },
-{ name: "SharePoint", icon: "file", color: "#036C70", url: "https://sparktalent.sharepoint.com/sites/SparkCompanies", sub: "Docs" },
-{ name: "M365", icon: "grid", color: "#0078D4", url: "https://www.office.com", sub: "Office" },
-{ name: "Greenshades", icon: "shield", color: "#2ecc71", url: "https://www.greenshadesonline.com", sub: "Payroll" },
-{ name: "Commissions", icon: "trending", color: "#FFD200", url: "https://nice-beach-07b54f71e4.azurestaticapps.net", sub: "SparkV7" },
-];
-const searchables = [
-{ label: "Spark Standard", desc: "Core values & daily behaviors", tab: "standard", icon: "star", color: "#FFD200" },
-{ label: "Career Paths", desc: "2026 comp plans & promotion tracks", tab: "careers", icon: "rocket", color: "#4ECDC4" },
-{ label: "Training Hub", desc: "Onboarding, compliance & development", tab: "training", icon: "book", color: "#FF6B35" },
-{ label: "Tools & Systems", desc: "All system logins & links", tab: "tools", icon: "link", color: "#7C5CFC" },
-{ label: "Team Directory", desc: "Org chart, contacts & divisions", tab: "team", icon: "users", color: "#FF3366" },
-{ label: "Salesforce", desc: "ATS, CRM, job orders, pipeline", icon: "search", color: "#00A1E0", url: "https://spark-companies.my.salesforce.com/" },
-{ label: "GreenEmployee", desc: "Paystubs, direct deposit, W-2, PTO", icon: "dollar", color: "#27ae60", url: "https://www.greenemployee.com" },
-{ label: "Compliance Training", desc: "50-state interactive maps & guides", icon: "shield", color: "#FF6B35", url: "https://sparkcompanies.github.io/compliance-training" },
-];
-const searchHits = searchVal.length > 0 ? searchables.filter(s => s.label.toLowerCase().includes(searchVal.toLowerCase()) || s.desc.toLowerCase().includes(searchVal.toLowerCase())) : [];
-const actions = [
-{ label: "Check My Pay", desc: "Paystubs & tax docs", icon: "dollar", color: "#2ecc71", url: "https://www.greenemployee.com" },
-{ label: "My Commissions", desc: "SparkV7 tracker", icon: "trending", color: "#FFD200", url: "https://nice-beach-07b54f71e4.azurestaticapps.net" },
-{ label: "Submit a Referral", desc: "Earn $100", icon: "send", color: "#FFD200", url: "https://wkf.ms/3IydKBx" },
-{ label: "Find Someone", desc: "Team directory", icon: "users", color: "#7C5CFC", tab: "team" },
-{ label: "Compliance Training", desc: "50-state laws", icon: "shield", color: "#FF6B35", url: "https://sparkcompanies.github.io/compliance-training" },
-{ label: "Timecard Help", desc: "Email timecards team", icon: "clock", color: "#3498db", url: "mailto:Timecards@sparktalentinc.com" },
-{ label: "My Career Path", desc: "2026 comp tracks", icon: "trending", color: "#E84393", tab: "careers" },
-{ label: "Employee Portal", desc: "W-2 & resources", icon: "home", color: "#4ECDC4", url: "https://sparkcompanies.github.io/spark-hub" },
-];
-const hub = [
-{ tab: "standard", icon: "star", title: "The Spark Standard", desc: "8 core values and activity expectations.", color: "#FFD200", tag: "CULTURE" },
-{ tab: "careers", icon: "rocket", title: "Career Paths", desc: "Production + back office tracks with salary bands.", color: "#4ECDC4", tag: "2026 COMP" },
-{ tab: "training", icon: "book", title: "Training", desc: "LMS courses, quizzes, progress tracking.", color: "#FF6B35", tag: "LEARNING" },
-{ tab: "tools", icon: "link", title: "Tools & Systems", desc: "Every login and quick action.", color: "#7C5CFC", tag: "SYSTEMS" },
-{ tab: "team", icon: "users", title: "Team Directory", desc: "Org chart with search and filters.", color: "#FF3366", tag: "ORG CHART" },
-{ tab: "sops", icon: "clipboard", title: "SOPs & Playbooks", desc: "Operating procedures by department.", color: "#E84393", tag: "PROCEDURES" },
-{ tab: "performance", icon: "target", title: "Performance", desc: "Blueprint templates, KPI frameworks.", color: "#2ecc71", tag: "KPIS" },
-];
-const contacts = [
-{ name: "Aaron Opalewski", role: "CEO", email: "aopalewski@sparkcompanies.com", phone: "(586) 864-3746", color: "#FFD200" },
-{ name: "Dave Veres", role: "EVP / CSO", email: "dveres@sparkcompanies.com", phone: "(773) 398-5074", color: "#FF6B35" },
-{ name: "Allie Spegel", role: "VP Operations", email: "aspegel@sparkcompanies.com", phone: "(248) 632-3560", color: "#4ECDC4" },
-{ name: "Mary Patrico", role: "Dir. of Operations", email: "mpatrico@sparkcompanies.com", phone: "(586) 202-7211", color: "#E84393" },
-{ name: "Priyanka Malani", role: "Payroll Manager", email: "pmalani@sparkcompanies.com", color: "#2ecc71" },
-{ name: "Tamika Coleman", role: "HR Lead", email: "tcoleman@sparkcompanies.com", color: "#FF3366" },
-];
-const ActionBtn = ({ a }) => {
-const inner = (<div style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 34, height: 34, borderRadius: 10, background: a.color + "14", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><I name={a.icon} size={15} color={a.color} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 700 }}>{a.label}</div><div style={{ fontSize: 9, color: "#b0b8c4", marginTop: 1 }}>{a.desc}</div></div><I name="chevRight" size={10} color="#e2e8f0" /></div>);
-const s = { background: GLASS, border: "1px solid " + BORDER, borderRadius: 12, padding: mob ? "11px" : "12px 14px", cursor: "pointer", transition: "all 0.25s", width: "100%", textAlign: "left", color: "#1a1a2e", textDecoration: "none", display: "block" };
-return a.url ? <a href={a.url} target={a.url.startsWith("mailto") ? undefined : "_blank"} rel="noopener noreferrer" style={s}>{inner}</a> : <button onClick={() => setTab(a.tab)} style={s}>{inner}</button>;
-};
-return (
-<div>
-<div style={{ position: "relative", overflow: "hidden", padding: mob ? "32px 20px 28px" : "40px 40px 36px", background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 25%, #fbbf24 50%, #f59e0b 75%, #d97706 100%)", borderRadius: "0 0 12px 12px" }}>
-<div style={{ position: "absolute", inset: 0, opacity: 1, backgroundImage: "radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.15) 0%, transparent 60%)", pointerEvents: "none" }} />
-<div style={{ position: "relative", margin: "0 auto" }}>
-<Reveal><div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 18 }}><div style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", animation: "pulse 2s ease infinite" }} /><span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1.5, textTransform: "uppercase" }}>Spark Companies{"™"} Internal</span><div style={{ width: 1, height: 12, background: "rgba(255,255,255,0.3)" }} /><span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>{dateStr}</span></div></Reveal>
-<Reveal delay={0.05}><h1 style={{ fontSize: mob ? 26 : 34, fontWeight: 700, lineHeight: 1.2, marginBottom: 10 }}><span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 400 }}>{greeting}, Allie.</span><br /><span style={{ color: "#fff" }}>Welcome to </span><span style={{ color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>Spark HQ</span></h1></Reveal>
-<Reveal delay={0.1}><p style={{ fontSize: mob ? 14 : 16, color: "rgba(255,255,255,0.85)", maxWidth: 540, lineHeight: 1.6, marginBottom: 20 }}>Everything our team needs — one place.</p></Reveal>
-<Reveal delay={0.15}><div style={{ position: "relative", maxWidth: 520, zIndex: 10 }}><div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: searchHits.length > 0 ? "14px 14px 0 0" : 14, padding: "14px 18px" }}><I name="search" size={17} color="rgba(255,255,255,0.6)" /><input value={searchVal} onChange={e => setSearchVal(e.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setTimeout(() => setSearchFocused(false), 200)} placeholder="Search sections, tools, resources..." style={{ background: "none", border: "none", color: "#fff", fontSize: 14, flex: 1, outline: "none", fontFamily: "inherit" }} />{searchVal && <button onClick={() => setSearchVal("")} style={{ background: "#f0f0f0", border: "none", color: "#94a3b8", cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600 }}>Clear</button>}</div>
-{searchHits.length > 0 && (<div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #eee", borderTop: "none", borderRadius: "0 0 14px 14px", maxHeight: 300, overflow: "auto", boxShadow: "0 20px 48px rgba(0,0,0,0.3)" }}>{searchHits.map((h, i) => (<button key={i} onMouseDown={e => e.preventDefault()} onClick={() => { if (h.tab) setTab(h.tab); else if (h.url) window.open(h.url, "_blank"); setSearchVal(""); }} style={{ width: "100%", background: "transparent", border: "none", borderBottom: "1px solid #f8f8f8", color: "#1a1a2e", padding: "11px 16px", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }} onMouseOver={e => e.currentTarget.style.background = "#f5f5f5"} onMouseOut={e => e.currentTarget.style.background = "transparent"}><div style={{ width: 30, height: 30, borderRadius: 9, background: h.color + "15", display: "flex", alignItems: "center", justifyContent: "center" }}><I name={h.icon} size={14} color={h.color} /></div><div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700 }}>{h.label}</div><div style={{ fontSize: 10, color: "#b0b8c4" }}>{h.desc}</div></div><I name={h.tab ? "chevRight" : "ext"} size={10} color="#e2e8f0" /></button>))}</div>)}
-</div></Reveal>
-</div></div>
-<div style={{ padding: mob ? "0 14px 48px" : "0 40px 56px", margin: "0 auto" }}>
-{/* Dock */}
-<div style={{ transform: "translateY(-26px)", marginBottom: -10 }}><div style={{ display: "flex", justifyContent: "center", gap: mob ? 6 : 10, flexWrap: "wrap", background: "#fff", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 12, padding: mob ? "14px 12px" : "18px 28px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>{dock.map((d, i) => (<a key={i} href={d.url} target="_blank" rel="noopener noreferrer" onMouseOver={() => setHovDock(i)} onMouseOut={() => setHovDock(null)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: mob ? "8px 10px" : "10px 16px", borderRadius: 10, textDecoration: "none", color: "#1a1a2e", transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)", transform: hovDock === i ? "translateY(-6px) scale(1.05)" : "none" }}><div style={{ width: mob ? 40 : 46, height: mob ? 40 : 46, borderRadius: 10, background: d.color + "22", display: "flex", alignItems: "center", justifyContent: "center" }}><I name={d.icon} size={mob ? 18 : 20} color={d.color} /></div><div style={{ textAlign: "center" }}><div style={{ fontSize: mob ? 10 : 11, fontWeight: 700 }}>{d.name}</div>{!mob && <div style={{ fontSize: 8, color: "#cbd5e1", marginTop: 1 }}>{d.sub}</div>}</div></a>))}</div></div>
-{/* Quote */}
-<Reveal><div onClick={() => setTab("standard")} style={{ background: q.color + "08", border: "1px solid " + q.color + "15", borderRadius: 10, padding: mob ? "12px 14px" : "14px 20px", marginBottom: 32, display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}><div style={{ width: 38, height: 38, borderRadius: 11, background: q.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 15, fontWeight: 900, color: q.color }}>{q.val}</span></div><div style={{ flex: 1 }}><div style={{ fontSize: 9, fontWeight: 800, color: q.color, opacity: 0.7, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>Spark Standard</div><div style={{ fontSize: mob ? 12 : 13, color: "#64748b", fontStyle: "italic", lineHeight: 1.4 }}>"{q.text}"</div></div><I name="chevRight" size={14} color={q.color + "50"} /></div></Reveal>
-{/* Quick Actions */}
-<div style={{ marginBottom: 36 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><I name="zap" size={14} color={Y} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: Y, textTransform: "uppercase" }}>Quick Actions</span><div style={{ flex: 1, height: 1, background: BORDER }} /></div><div style={{ display: "grid", gridTemplateColumns: mob ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 10 }}>{actions.map((a, i) => <Reveal key={i} delay={Math.min(i * 0.03, 0.2)}><ActionBtn a={a} /></Reveal>)}</div></div>
-{/* Announcements */}
-<div style={{ marginBottom: 36 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><I name="mail" size={14} color={Y} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: Y, textTransform: "uppercase" }}>Announcements</span><div style={{ flex: 1, height: 1, background: BORDER }} />{homeAdmin && <button onClick={() => setShowAnnouncementForm(!showAnnouncementForm)} style={{ background: Y + "10", border: "1px solid " + Y + "25", color: Y, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>+ Post</button>}</div>
-{showAnnouncementForm && homeAdmin && (<div style={{ background: GLASS, border: "1px solid " + BORDER, borderRadius: 12, padding: 16, marginBottom: 10 }}><input value={newAnnouncement.title} onChange={e => setNewAnnouncement(p => ({...p, title: e.target.value}))} placeholder="Title" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #eee", background: "#f8f8f8", color: "#1a1a2e", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: "inherit", marginBottom: 8 }} /><textarea value={newAnnouncement.body} onChange={e => setNewAnnouncement(p => ({...p, body: e.target.value}))} placeholder="Details..." rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #eee", background: "#f8f8f8", color: "#1a1a2e", fontSize: 12, outline: "none", fontFamily: "inherit", resize: "vertical", marginBottom: 8 }} /><div style={{ display: "flex", gap: 8 }}><label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#94a3b8" }}><input type="checkbox" checked={newAnnouncement.pinned} onChange={e => setNewAnnouncement(p => ({...p, pinned: e.target.checked}))} /> Pin</label><div style={{ flex: 1 }} /><button onClick={() => setShowAnnouncementForm(false)} style={{ background: "#f5f5f5", border: "1px solid #eee", color: "#94a3b8", padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>Cancel</button><button onClick={postAnnouncement} style={{ background: Y + "15", border: "1px solid " + Y + "25", color: Y, padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Post</button></div></div>)}
-{announcements.length === 0 && <div style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", padding: "12px 0" }}>No announcements yet</div>}
-{[...announcements].sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0)).slice(0, 4).map((ann, i) => (<Reveal key={ann.id} delay={i * 0.04}><div style={{ background: ann.pinned ? "rgba(255,210,0,0.04)" : GLASS, border: "1px solid " + (ann.pinned ? "rgba(255,210,0,0.15)" : BORDER), borderRadius: 12, padding: "14px 16px", marginBottom: 6, position: "relative" }}>{ann.pinned && <div style={{ position: "absolute", top: 8, right: 10, fontSize: 8, fontWeight: 800, color: Y, background: Y + "12", padding: "2px 6px", borderRadius: 4 }}>PINNED</div>}<div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", marginBottom: 4 }}>{ann.title}</div>{ann.body && <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, marginBottom: 6 }}>{ann.body}</div>}<div style={{ display: "flex", gap: 8, fontSize: 10, color: "#cbd5e1" }}><span>{ann.date}</span><span>·</span><span>{ann.author}</span>{homeAdmin && <button onClick={() => saveAnn(announcements.filter(a => a.id !== ann.id))} style={{ marginLeft: "auto", background: "none", border: "none", color: "#cbd5e1", cursor: "pointer", fontSize: 9 }}>Remove</button>}</div></div></Reveal>))}
-</div>
-{/* Hub Cards */}
-<div style={{ marginBottom: 36 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><I name="layers" size={14} color={Y} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: Y, textTransform: "uppercase" }}>The Hub</span><div style={{ flex: 1, height: 1, background: BORDER }} /></div><div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr", gap: 14 }}>{hub.map((s, i) => (<Reveal key={i} delay={Math.min(i * 0.04, 0.25)}><button onClick={() => setTab(s.tab)} onMouseOver={() => setHovCard(s.tab)} onMouseOut={() => setHovCard(null)} style={{ width: "100%", textAlign: "left", cursor: "pointer", color: "#1a1a2e", background: hovCard === s.tab ? s.color + "0a" : GLASS, border: "1px solid " + (hovCard === s.tab ? s.color + "28" : BORDER), borderRadius: 12, padding: mob ? 18 : 24, transition: "all 0.2s", transform: hovCard === s.tab ? "translateY(-3px)" : "none", position: "relative", overflow: "hidden" }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: s.color + "20", display: "flex", alignItems: "center", justifyContent: "center" }}><I name={s.icon} size={20} color={s.color} /></div><span style={{ fontSize: 8, fontWeight: 800, color: s.color, opacity: 0.5, letterSpacing: 1.5, textTransform: "uppercase" }}>{s.tag}</span></div><div style={{ fontSize: mob ? 15 : 17, fontWeight: 700, marginBottom: 5 }}>{s.title}</div><div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5, marginBottom: 10 }}>{s.desc}</div><div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: s.color }}>Open <I name="chevRight" size={13} color={s.color} /></div></button></Reveal>))}</div></div>
-{/* Recognition */}
-<div style={{ marginBottom: 36 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><I name="award" size={14} color={Y} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: Y, textTransform: "uppercase" }}>Shout-Outs</span><div style={{ flex: 1, height: 1, background: BORDER }} /><button onClick={() => setShowShoutoutForm(!showShoutoutForm)} style={{ background: "#E8439310", border: "1px solid #E8439325", color: "#E84393", padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>+ Give Props</button></div>
-{showShoutoutForm && (<div style={{ background: GLASS, border: "1px solid " + BORDER, borderRadius: 12, padding: 16, marginBottom: 10 }}><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}><input value={newShoutout.from} onChange={e => setNewShoutout(p => ({...p, from: e.target.value}))} placeholder="Your name" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #eee", background: "#f8f8f8", color: "#1a1a2e", fontSize: 12, outline: "none", fontFamily: "inherit" }} /><input value={newShoutout.to} onChange={e => setNewShoutout(p => ({...p, to: e.target.value}))} placeholder="Who?" style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #eee", background: "#f8f8f8", color: "#1a1a2e", fontSize: 12, outline: "none", fontFamily: "inherit" }} /></div><textarea value={newShoutout.message} onChange={e => setNewShoutout(p => ({...p, message: e.target.value}))} placeholder="What did they do?" rows={2} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #eee", background: "#f8f8f8", color: "#1a1a2e", fontSize: 12, outline: "none", fontFamily: "inherit", resize: "vertical", marginBottom: 8 }} /><div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><button onClick={() => setShowShoutoutForm(false)} style={{ background: "#f5f5f5", border: "1px solid #eee", color: "#94a3b8", padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>Cancel</button><button onClick={postShoutout} style={{ background: "#E8439315", border: "1px solid #E8439325", color: "#E84393", padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Post</button></div></div>)}
-{recognition.length === 0 && <div style={{ fontSize: 12, color: "#cbd5e1", fontStyle: "italic", padding: "12px 0" }}>Be the first to recognize a teammate!</div>}
-<div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr", gap: 8 }}>{recognition.slice(0, 6).map((r, i) => (<Reveal key={r.id} delay={i * 0.04}><div style={{ background: GLASS, border: "1px solid " + BORDER, borderRadius: 12, padding: "14px 16px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><div style={{ width: 30, height: 30, borderRadius: 10, background: "#E8439322", display: "flex", alignItems: "center", justifyContent: "center" }}><I name="award" size={14} color="#E84393" /></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#E84393" }}>{r.to}</div><div style={{ fontSize: 9, color: "#cbd5e1" }}>by {r.from || "Anonymous"} · {r.date}</div></div></div><div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5, fontStyle: "italic" }}>"{r.message}"</div></div></Reveal>))}</div></div>
-{/* Contacts */}
-<div style={{ marginBottom: 36 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><I name="phone" size={14} color={Y} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: Y, textTransform: "uppercase" }}>Key Contacts</span><div style={{ flex: 1, height: 1, background: BORDER }} /></div><div style={{ display: "grid", gridTemplateColumns: mob ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>{contacts.map((c, i) => (<Reveal key={i} delay={i * 0.03}><div style={{ background: GLASS, border: "1px solid " + BORDER, borderRadius: 10, padding: mob ? 14 : 16 }}><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}><div style={{ width: 34, height: 34, borderRadius: 10, background: c.color + "22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: c.color }}>{c.name.split(" ").map(n => n[0]).join("")}</div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e" }}>{c.name}</div><div style={{ fontSize: 9, color: c.color, fontWeight: 700 }}>{c.role}</div></div></div><div style={{ display: "flex", gap: 5 }}><a href={"mailto:" + c.email} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, background: c.color + "0c", border: "1px solid " + c.color + "12", borderRadius: 7, padding: "5px 0", textDecoration: "none", fontSize: 10, fontWeight: 600, color: c.color }}><I name="mail" size={10} color={c.color} /> Email</a>{c.phone && <a href={"tel:" + c.phone} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 3, background: "#f8f8f8", border: "1px solid #f0f0f0", borderRadius: 7, padding: "5px 0", textDecoration: "none", fontSize: 10, fontWeight: 600, color: "#94a3b8" }}><I name="phone" size={10} /> Call</a>}</div></div></Reveal>))}</div></div>
-{/* Portfolio */}
-<div><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}><I name="globe" size={14} color={Y} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: Y, textTransform: "uppercase" }}>Our Portfolio</span><div style={{ flex: 1, height: 1, background: BORDER }} /></div><div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>{DIVISIONS.map((d, i) => (<Reveal key={i} delay={i * 0.04}><a href={d.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: GLASS, border: "1px solid " + BORDER, borderRadius: 10, padding: 16, textDecoration: "none", color: "#1a1a2e", position: "relative", overflow: "hidden" }}><div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 3, background: d.color, opacity: 0.7 }} /><div style={{ display: "flex", gap: 12 }}><div style={{ width: 36, height: 36, borderRadius: 10, background: d.color + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: d.color }}>{d.abbr}</div><div><div style={{ fontSize: 12, fontWeight: 700, marginBottom: 3 }}>{d.name}</div><div style={{ fontSize: 10, color: "#b0b8c4", lineHeight: 1.5, marginBottom: 6 }}>{d.desc}</div><div style={{ display: "flex", gap: 8, fontSize: 9 }}><span style={{ color: "#cbd5e1" }}>Est. {d.founded}</span><span style={{ color: d.color, fontWeight: 700 }}>Visit <I name="ext" size={8} color={d.color} /></span></div></div></div></a></Reveal>))}</div></div>
-</div></div>);
-}
-
-function CareerPage({ w }) {
-const mob = w < 768;
-const [expandedTrack, setExpandedTrack] = useState(0);
-const [showBonus, setShowBonus] = useState(false);
-const [filter, setFilter] = useState("ALL");
-const fmt = n => "$" + n.toLocaleString();
-const filteredTracks = filter === "ALL" ? CAREER_TRACKS : CAREER_TRACKS.filter(t => t.tag === filter);
-return (
-<div style={{ padding: mob ? "30px 16px 40px" : "40px 40px 50px", margin: "0 auto" }}>
-<SectionHeader icon="rocket" title="Career Paths" subtitle="2026 production and back office career progression" />
-<Reveal><Card glow style={{ marginBottom: 20, background: "rgba(255,210,0,0.04)", border: "1px solid rgba(255,210,0,0.15)" }}>
-<div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><I name="zap" size={18} color={Y} /><span style={{ fontSize: 14, fontWeight: 700, color: Y }}>Global Rules</span></div>
-<div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
-{[{t:"COMMISSION FLOOR",c:"#e74c3c",d:"$25K quarterly minimum. Below = $0 payout."},{t:"PRESIDENTS CLUB",c:"#2ecc71",d:"PC roles exempt from floor."},{t:"DEMOTION RULE",c:"#f39c12",d:"Miss contest 2 years → transition back."}].map((r,i)=>(<div key={i} style={{ background: "#f8f8f8", borderRadius: 8, padding: 12 }}><div style={{ fontSize: 11, fontWeight: 700, color: r.c, marginBottom: 4 }}>{r.t}</div><div style={{ fontSize: 13, color: "#334155" }}>{r.d}</div></div>))}
-</div></Card></Reveal>
-<div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-{["ALL","PRODUCTION","BACK OFFICE"].map(f=>(<button key={f} onClick={()=>{setFilter(f);setExpandedTrack(0);}} style={{ background: filter===f?Y+"12":GLASS, border:"1px solid "+(filter===f?Y+"25":BORDER), color:filter===f?Y:"#64748b", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:700 }}>{f==="ALL"?"All":f==="PRODUCTION"?"Production":"Back Office"}</button>))}
-<button onClick={()=>setShowBonus(!showBonus)} style={{ background:showBonus?"#4ECDC412":GLASS, border:"1px solid "+(showBonus?"#4ECDC425":BORDER), color:showBonus?"#4ECDC4":"#64748b", padding:"6px 14px", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:700, marginLeft:"auto" }}>{showBonus?"Hide":"Show"} Bonus Schedule</button>
-</div>
-{showBonus && <Reveal><Card style={{ marginBottom: 20, overflow: "auto" }}><div style={{ fontSize: 14, fontWeight: 700, color: "#4ECDC4", marginBottom: 14 }}>Contest & Bonus Schedule</div><div style={{ display: "grid", gridTemplateColumns: mob?"1fr":"1fr 1fr", gap: 16 }}><div><div style={{ fontSize: 11, fontWeight: 700, color: Y, marginBottom: 8 }}>QUARTERLY</div>{BONUS_SCHEDULE.quarterly.map((r,i)=>(<div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid #f5f5f5", fontSize:12 }}><span style={{color:"#64748b"}}>L{r.level}</span><span style={{color:"#475569",fontFamily:"monospace"}}>{fmt(r.charge)}</span><span style={{color:"#2ecc71",fontWeight:600}}>{fmt(r.bonus)}</span></div>))}</div><div><div style={{ fontSize: 11, fontWeight: 700, color: Y, marginBottom: 8 }}>ANNUAL</div>{BONUS_SCHEDULE.annual.map((r,i)=>(<div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid #f5f5f5", fontSize:12, gap:8 }}><span style={{color:"#64748b"}}>L{r.level}</span><span style={{fontFamily:"monospace",color:"#475569"}}>{fmt(r.charge)}</span><span style={{color:"#2ecc71",fontWeight:600}}>{fmt(r.bonus)}</span><span style={{color:"#7C5CFC",fontSize:10}}>+{fmt(r.uars)}</span></div>))}</div></div></Card></Reveal>}
-{filteredTracks.map((track, ti) => (<Reveal key={track.name} delay={ti * 0.06}><div style={{ marginBottom: 16 }}><button onClick={() => setExpandedTrack(expandedTrack === ti ? -1 : ti)} style={{ width: "100%", background: expandedTrack === ti ? track.color + "10" : GLASS, border: "1px solid " + (expandedTrack === ti ? track.color + "30" : BORDER), borderRadius: expandedTrack === ti ? "14px 14px 0 0" : 14, padding: "16px 18px", cursor: "pointer", color: "#1a1a2e", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between" }}><div style={{ display: "flex", alignItems: "center", gap: 14 }}><div style={{ width: 42, height: 42, borderRadius: 12, background: track.color + "18", display: "flex", alignItems: "center", justifyContent: "center" }}><I name={track.icon} size={20} color={track.color} /></div><div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 15, fontWeight: 700 }}>{track.name}</span><span style={{ fontSize: 9, fontWeight: 700, color: track.tag==="PRODUCTION"?Y:"#64748b", background: track.tag==="PRODUCTION"?Y+"15":"#f0f0f0", padding: "2px 7px", borderRadius: 4 }}>{track.tag}</span></div><div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{track.desc}</div></div></div><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 11, color: track.color, fontWeight: 600, background: track.color + "15", padding: "3px 10px", borderRadius: 12 }}>{track.levels.length} levels</span><I name={expandedTrack === ti ? "chevUp" : "chevDown"} size={16} color="#b0b8c4" /></div></button>
-{expandedTrack === ti && (<div style={{ border: "1px solid " + track.color + "30", borderTop: "none", borderRadius: "0 0 14px 14px", background: "#f2f1ee", padding: mob ? 14 : 22, animation: "fadeUp 0.3s ease" }}>{track.keyMetrics && <div style={{ marginBottom: 16, padding: "8px 12px", background: track.color + "08", borderRadius: 8, border: "1px solid " + track.color + "12", fontSize: 11, color: track.color, fontWeight: 600 }}>{track.keyMetrics}</div>}<div style={{ position: "relative", paddingLeft: mob ? 20 : 36 }}><div style={{ position: "absolute", left: mob ? 8 : 16, top: 10, bottom: 10, width: 2, background: track.color + "44" }} />{track.levels.map((level, li) => (<div key={li} style={{ position: "relative", marginBottom: li < track.levels.length - 1 ? 20 : 0 }}><div style={{ position: "absolute", left: mob ? -16 : -24, top: 6, width: 12, height: 12, borderRadius: "50%", background: li === track.levels.length - 1 ? track.color : track.color + "60", border: "2px solid #f7f7f5" }} /><div style={{ background: "#f8f8f8", borderRadius: 10, padding: mob ? 12 : 16, border: "1px solid #f0f0f0" }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}><div style={{ fontSize: 14, fontWeight: 700 }}>{level.title}</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}><span style={{ fontSize: 11, fontWeight: 700, color: "#2ecc71", background: "rgba(46,204,113,0.1)", padding: "2px 8px", borderRadius: 6 }}>{level.salary}</span>{level.floor ? <span style={{ fontSize: 9, fontWeight: 700, color: "#e74c3c", background: "rgba(231,76,60,0.1)", padding: "2px 7px", borderRadius: 4 }}>$25K FLOOR</span> : <span style={{ fontSize: 9, fontWeight: 700, color: "#2ecc71", background: "rgba(46,204,113,0.1)", padding: "2px 7px", borderRadius: 4 }}>NO FLOOR</span>}</div></div>{level.rates && level.rates.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>{level.rates.map((r, ri) => (<div key={ri} style={{ fontSize: 11, color: "#475569", background: "#f5f5f5", padding: "4px 8px", borderRadius: 6 }}><span style={{ fontWeight: 700, color: track.color }}>{r.label}:</span> {r.val}</div>))}</div>}<div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.5, marginBottom: 8 }}>{level.criteria}</div><div style={{ fontSize: 11, color: track.color, fontWeight: 600, display: "flex", alignItems: "flex-start", gap: 5, padding: "6px 10px", background: track.color + "08", borderRadius: 6, lineHeight: 1.4 }}><I name="arrowUp" size={12} color={track.color} /> {level.promo}</div></div></div>))}</div></div>)}</div></Reveal>))}
-</div>);
-}
-
-function SOPsPage({ w }) {
-const mob = w < 768;
-const [expanded, setExpanded] = useState(0);
-const deptColors = ["#FFD200", "#FF3366", "#4ECDC4", "#7C5CFC"];
-return (<div style={{ padding: mob?"30px 16px 40px":"40px 40px 50px", margin: "0 auto" }}><SectionHeader icon="clipboard" title="SOPs & Playbooks" subtitle="Standard operating procedures by department" />{SOP_SECTIONS.map((section, si) => { const c = deptColors[si]; return (<Reveal key={si} delay={si * 0.06}><div style={{ marginBottom: 14 }}><button onClick={() => setExpanded(expanded === si ? -1 : si)} style={{ width: "100%", background: expanded===si?c+"08":GLASS, border:"1px solid "+(expanded===si?c+"25":BORDER), borderRadius:expanded===si?"12px 12px 0 0":12, padding:"16px 18px", cursor:"pointer", color:"#1a1a2e", textAlign:"left", display:"flex", alignItems:"center", justifyContent:"space-between" }}><div style={{ display:"flex", alignItems:"center", gap:12 }}><div style={{ width:36, height:36, borderRadius:10, background:c+"15", display:"flex", alignItems:"center", justifyContent:"center" }}><I name={section.icon} size={18} color={c} /></div><div><span style={{ fontSize:14, fontWeight:700 }}>{section.cat}</span><span style={{ fontSize:11, color:"#b0b8c4", marginLeft:10 }}>{section.items.length} procedures</span></div></div><I name={expanded===si?"chevUp":"chevDown"} size={16} color="#b0b8c4" /></button>{expanded === si && (<div style={{ border:"1px solid "+c+"25", borderTop:"none", borderRadius:"0 0 12px 12px", background:"#f5f4f1", padding:mob?14:20, animation:"fadeUp 0.25s ease" }}>{section.items.map((item, ii) => (<div key={ii} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0", borderBottom:ii<section.items.length-1?"1px solid #f5f5f5":"none" }}><div style={{ width:24, height:24, borderRadius:6, background:c+"10", display:"flex", alignItems:"center", justifyContent:"center" }}><I name="check" size={12} color={c} /></div><div style={{ fontSize:13, color:"#334155" }}>{item}</div></div>))}</div>)}</div></Reveal>); })}</div>);
-}
-
-function ToolsPage({ w }) {
-const mob = w < 768;
-return (<div style={{ padding: mob?"30px 16px 40px":"40px 40px 50px", margin: "0 auto" }}><SectionHeader icon="link" title="Tools & Systems" subtitle="Your launchpad to every system and resource" />{TOOL_LINKS.map((section, si) => (<Reveal key={si} delay={si * 0.06}><div style={{ marginBottom: 24 }}><div style={{ fontSize:12, fontWeight:700, color:Y, letterSpacing:1.5, textTransform:"uppercase", marginBottom:12 }}>{section.cat}</div><div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"1fr 1fr", gap:10 }}>{section.items.map((tool, ti) => (<a key={ti} href={tool.url} target="_blank" rel="noopener noreferrer" style={{ background:GLASS, border:"1px solid "+BORDER, borderRadius:12, padding:16, textDecoration:"none", color:"#1a1a2e", display:"flex", gap:14, alignItems:"center" }}><div style={{ width:42, height:42, borderRadius:10, background:tool.color+"15", display:"flex", alignItems:"center", justifyContent:"center" }}><I name={tool.icon} size={20} color={tool.color} /></div><div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:700, marginBottom:3 }}>{tool.name}</div><div style={{ fontSize:11, color:"#94a3b8" }}>{tool.desc}</div></div><I name="ext" size={14} color="#cbd5e1" /></a>))}</div></div></Reveal>))}<SectionHeader icon="phone" title="Key Contacts" /><div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"1fr 1fr 1fr", gap:10 }}>{[{name:"Payroll",contact:"Priyanka Malani",email:"pmalani@sparkcompanies.com",color:"#2ecc71"},{name:"HR",contact:"Tamika Coleman",email:"tcoleman@sparkcompanies.com",color:"#FF3366"},{name:"Operations",contact:"Allie Spegel",email:"aspegel@sparkcompanies.com",phone:"(248) 632-3560",color:"#4ECDC4"},{name:"Timecards",contact:"Timecards Inbox",email:"Timecards@sparktalentinc.com",color:"#FF6B35"},{name:"General",contact:"Sterling TMX",email:"sterlingtmx@sparktalentinc.com",phone:"(586) 930-5000",color:Y},{name:"CEO",contact:"Aaron Opalewski",email:"aopalewski@sparkcompanies.com",phone:"(586) 864-3746",color:"#7C5CFC"}].map((c, i) => (<Reveal key={i} delay={i*0.04}><Card style={{ borderTop:"3px solid "+c.color, padding:16 }}><div style={{ fontSize:11, fontWeight:700, color:c.color, marginBottom:6 }}>{c.name}</div><div style={{ fontSize:13, fontWeight:600, color:"#1a1a2e", marginBottom:4 }}>{c.contact}</div><a href={"mailto:"+c.email} style={{ fontSize:11, color:"#94a3b8", textDecoration:"none", display:"block", marginBottom:2 }}>{c.email}</a>{c.phone && <div style={{ fontSize:11, color:"#94a3b8" }}>{c.phone}</div>}</Card></Reveal>))}</div></div>);
-}
-
-function SparkStandardPage({ w }) {
-const mob = w < 768;
-const [expandedValue, setExpandedValue] = useState(0);
-const [numTab, setNumTab] = useState("daily");
-const valColors = ["#FFD200","#4ECDC4","#FF6B35","#7C5CFC","#FF3366","#2ecc71","#E84393","#3498db"];
-return (<div style={{ padding:mob?"30px 16px 40px":"40px 40px 50px", maxWidth:1000, margin:"0 auto" }}><Reveal><Card glow style={{ marginBottom:28, background:"linear-gradient(135deg, rgba(255,210,0,0.06), rgba(255,210,0,0.02))", border:"1px solid rgba(255,210,0,0.15)", textAlign:"center", padding:mob?24:36 }}><div style={{ fontSize:11, fontWeight:700, color:Y, letterSpacing:3, textTransform:"uppercase", marginBottom:16 }}>The Spark Standard</div><div style={{ fontSize:mob?15:18, fontStyle:"italic", color:"#334155", lineHeight:1.6, maxWidth:600, margin:"0 auto 16px" }}>"Championship teams don't chase the scoreboard. They chase the standard."</div><div style={{ fontSize:12, color:"#94a3b8" }}>— Nick Saban</div></Card></Reveal>
-<SectionHeader icon="star" title="8 Core Values" subtitle="Our cultural manifesto" />
-{CORE_VALUES.map((cv, i) => { const c = valColors[i]; return (<Reveal key={i} delay={i*0.04}><div style={{ marginBottom:12 }}><button onClick={()=>setExpandedValue(expandedValue===i?-1:i)} style={{ width:"100%", background:expandedValue===i?c+"10":GLASS, border:"1px solid "+(expandedValue===i?c+"30":BORDER), borderRadius:expandedValue===i?"12px 12px 0 0":12, padding:"14px 16px", cursor:"pointer", color:"#1a1a2e", textAlign:"left", display:"flex", alignItems:"center", justifyContent:"space-between" }}><div style={{ display:"flex", alignItems:"center", gap:12 }}><div style={{ width:36, height:36, borderRadius:10, background:c+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:800, color:c }}>{cv.num}</div><div style={{ fontSize:14, fontWeight:700, flex:1 }}>{cv.title}</div></div><I name={expandedValue===i?"chevUp":"chevDown"} size={16} color="#b0b8c4" /></button>{expandedValue === i && (<div style={{ border:"1px solid "+c+"30", borderTop:"none", borderRadius:"0 0 12px 12px", background:"#f5f4f1", padding:mob?14:20, animation:"fadeUp 0.25s ease" }}><div style={{ fontSize:13, color:"#334155", lineHeight:1.6, marginBottom:16, padding:"10px 14px", background:c+"08", borderRadius:8, borderLeft:"3px solid "+c }}><span style={{fontWeight:700,color:c}}>Standard: </span>{cv.standard}</div><div style={{ marginBottom:14 }}><div style={{ fontSize:11, fontWeight:700, color:c, marginBottom:8 }}>BEHAVIORS</div>{cv.behaviors.map((b,bi)=>(<div key={bi} style={{ display:"flex", gap:8, padding:"5px 0" }}><I name="check" size={12} color={c} sw={2.5} /><span style={{ fontSize:12, color:"#475569" }}>{b}</span></div>))}</div><div><div style={{ fontSize:11, fontWeight:700, color:Y, marginBottom:8 }}>TACTICS</div>{cv.tactics.map((t,ti)=>(<div key={ti} style={{ display:"flex", gap:8, padding:"5px 0" }}><I name="zap" size={11} color={Y} /><span style={{ fontSize:12, color:"#64748b" }}>{t}</span></div>))}</div></div>)}</div></Reveal>); })}
-<div style={{ marginTop:36 }}><SectionHeader icon="trending" title="Spark By The Numbers" /><div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>{["daily","weekly","monthly","annual"].map(p=>(<button key={p} onClick={()=>setNumTab(p)} style={{ background:numTab===p?Y+"12":GLASS, border:"1px solid "+(numTab===p?Y+"25":BORDER), color:numTab===p?Y:"#64748b", padding:"8px 16px", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:700, textTransform:"capitalize" }}>{p}</button>))}</div><div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"1fr 1fr", gap:14 }}>{[{label:"Recruiter",data:SPARK_NUMBERS[numTab].recruiter,color:"#4ECDC4"},{label:"Sales",data:SPARK_NUMBERS[numTab].sales,color:"#FF6B35"}].map((r,ri)=>(<Card key={ri} style={{ borderTop:"3px solid "+r.color }}><div style={{ fontSize:13, fontWeight:700, color:r.color, marginBottom:12 }}>{r.label}</div>{r.data.map((item,i)=>(<div key={i} style={{ display:"flex", gap:8, padding:"5px 0", borderBottom:i<r.data.length-1?"1px solid #f5f5f5":"none" }}><div style={{ width:5, height:5, borderRadius:"50%", background:r.color, marginTop:6 }} /><span style={{ fontSize:12, color:"#475569" }}>{item}</span></div>))}</Card>))}</div></div></div>);
-}
-
-function PerformancePage({ w }) {
-const mob = w < 768;
-const bps = [{title:"Daily Igniters",icon:"zap",color:"#FFD200",items:["Morning planning (15 min)","Priority task ID","Key igniter activities","End-of-day review"]},{title:"Time Blocking",icon:"clock",color:"#4ECDC4",items:["Focus blocks","Meeting windows","Admin blocks","Learning time"]},{title:"Weekly Planning",icon:"map",color:"#FF6B35",items:["Monday priorities","Mid-week check","Friday wrap","KPI tracking"]},{title:"Growth",icon:"trending",color:"#7C5CFC",items:["Quarterly assessment","Career tracking","Coach check-ins","Cross-training"]}];
-const reviews = [{period:"30 Days",focus:"Onboarding, systems, culture",who:"Manager + VP"},{period:"60 Days",focus:"Role execution, initiative, team",who:"Manager + VP"},{period:"90 Days",focus:"Full review, goals, career path",who:"Manager + VP + CEO"},{period:"Annual",focus:"Comp review, development plan",who:"Manager + VP + CEO"}];
-return (<div style={{ padding:mob?"30px 16px 40px":"40px 40px 50px", maxWidth:1000, margin:"0 auto" }}><SectionHeader icon="target" title="Performance & Goals" subtitle="Blueprint framework, reviews, KPIs" /><div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"1fr 1fr", gap:12, marginBottom:40 }}>{bps.map((s,i)=>(<Reveal key={i} delay={i*0.06}><Card style={{ borderTop:"3px solid "+s.color }}><div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}><I name={s.icon} size={20} color={s.color} /><div style={{ fontSize:14, fontWeight:700 }}>{s.title}</div></div>{s.items.map((item,ii)=>(<div key={ii} style={{ display:"flex", gap:8, padding:"6px 0" }}><div style={{ width:5, height:5, borderRadius:"50%", background:s.color, marginTop:6 }} /><div style={{ fontSize:12, color:"#475569" }}>{item}</div></div>))}</Card></Reveal>))}</div><SectionHeader icon="award" title="Review Cadence" /><div style={{ display:"flex", flexDirection:"column", gap:10 }}>{reviews.map((r,i)=>{ const colors=["#4ECDC4","#FFD200","#FF6B35","#FF3366"]; const c=colors[i]; return (<Reveal key={i} delay={i*0.06}><Card style={{ display:"flex", gap:16, alignItems:mob?"flex-start":"center", flexDirection:mob?"column":"row" }}><div style={{ width:60, height:60, borderRadius:12, background:c+"12", display:"flex", alignItems:"center", justifyContent:"center" }}><div style={{textAlign:"center"}}><div style={{ fontSize:18, fontWeight:800, color:c }}>{r.period.split(" ")[0]}</div><div style={{ fontSize:9, fontWeight:600, color:c, opacity:0.7 }}>{r.period.split(" ")[1]||""}</div></div></div><div style={{flex:1}}><div style={{ fontSize:13, fontWeight:600, color:"#1a1a2e", marginBottom:4 }}>{r.focus}</div><div style={{ fontSize:11, color:"#94a3b8" }}>By: {r.who}</div></div></Card></Reveal>); })}</div></div>);
-}
-
-function DocumentsPage({ w }) {
-const mob = w < 768;
-const [activeCat, setActiveCat] = useState(0);
-const docCategories = [
-{ cat: "Performance", icon: "trending", items: [{ name: "Opportunity Plan Template", desc: "Formal improvement plan", format: "DOCX", color: "#4ECDC4" },{ name: "Blueprint Template", desc: "KPI goal-setting", format: "DOCX", color: "#FFD200" }] },
-{ cat: "Onboarding", icon: "users", items: [{ name: "New Hire Checklist", desc: "Complete onboarding checklist", format: "DOCX", color: "#7C5CFC" },{ name: "Employee Handbook", desc: "86-page handbook, 13 states", format: "PDF", color: "#FF6B35", url: "https://sparktalent.sharepoint.com/sites/SparkCompanies" }] },
-{ cat: "Benefits", icon: "heart", items: [{ name: "Benefits Guide", desc: "Full package — medical, dental, vision", format: "PDF", color: "#FF3366", url: "https://www.theamericanworker.com" }] },
-{ cat: "Compliance", icon: "shield", items: [{ name: "I-9 Form", desc: "Employment Eligibility", format: "PDF", color: "#7C5CFC", url: "https://www.uscis.gov/i-9" }] },
-{ cat: "Operations", icon: "dollar", items: [{ name: "Direct Deposit Form", desc: "Update banking", format: "PDF", color: "#2ecc71", url: "https://www.greenemployee.com" },{ name: "Rapid! PayCard", desc: "Prepaid Visa", format: "PDF", color: "#e74c3c", url: "mailto:Timecards@sparktalentinc.com?subject=Rapid%20PayCard" }] },
-{ cat: "Recruiting", icon: "search", items: [{ name: "Referral Flyer", desc: "$100/$50 referral program", format: "PDF", color: "#FFD200", url: "https://wkf.ms/3IydKBx" }] },
-];
-return (<div style={{ padding:mob?"30px 16px 40px":"40px 40px 50px", maxWidth:1000, margin:"0 auto" }}><SectionHeader icon="file" title="Documents & Templates" /><div style={{ display:"flex", gap:6, marginBottom:24, flexWrap:"wrap" }}>{docCategories.map((c,i)=>(<button key={i} onClick={()=>setActiveCat(i)} style={{ background:activeCat===i?Y+"12":GLASS, border:"1px solid "+(activeCat===i?Y+"25":BORDER), color:activeCat===i?Y:"#64748b", padding:"8px 14px", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:6 }}><I name={c.icon} size={14} color={activeCat===i?Y:"#b0b8c4"} />{c.cat}</button>))}</div><div style={{ display:"flex", flexDirection:"column", gap:8 }}>{docCategories[activeCat].items.map((doc,i)=>{ const Wrap = doc.url ? "a" : "div"; const wp = doc.url ? { href:doc.url, target:"_blank", rel:"noopener noreferrer", style:{textDecoration:"none",color:"#1a1a2e",display:"block"} } : {}; return (<Reveal key={i} delay={i*0.04}><Wrap {...wp}><div style={{ background:GLASS, border:"1px solid "+BORDER, borderRadius:12, padding:mob?14:18, display:"flex", alignItems:"center", gap:14 }}><div style={{ width:42, height:42, borderRadius:11, background:doc.color+"14", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column" }}><I name="file" size={16} color={doc.color} /><span style={{ fontSize:7, fontWeight:800, color:doc.color }}>{doc.format}</span></div><div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:700, marginBottom:3 }}>{doc.name}</div><div style={{ fontSize:11, color:"#94a3b8" }}>{doc.desc}</div></div>{doc.url ? <div style={{ background:doc.color+"12", color:doc.color, padding:"6px 12px", borderRadius:7, fontSize:10, fontWeight:700, display:"flex", alignItems:"center", gap:4 }}>Open <I name="ext" size={9} color={doc.color} /></div> : <div style={{ fontSize:9, color:"#e2e8f0", padding:"6px 10px", border:"1px solid #f0f0f0", borderRadius:6 }}>Soon</div>}</div></Wrap></Reveal>); })}</div></div>);
-}
-
-function TrainingPage({ w, setTab }) {
-const mob = w < 768;
-const ADMIN_PIN = "9999";
-const ROLE_GROUPS = ["All Employees", "New Hires", "Production", "Back Office"];
-const secColors = ["#FFD200","#E84393","#FF3366","#4ECDC4","#7C5CFC","#FF6B35","#2ecc71","#636e72","#00b894","#fd79a8","#3498db"];
-const iconOptions = ["book","rocket","star","shield","heart","zap","layers","settings","users","target","award","compass","briefcase","globe","trending","clipboard"];
-const [activeCourse, setActiveCourse] = useState(null);
-const [activeStep, setActiveStep] = useState(0);
-const [stepCompletions, setStepCompletions] = useState({});
-const [quizCompletions, setQuizCompletions] = useState({});
-const [quizState, setQuizState] = useState({ idx: 0, answers: [], score: null, active: false });
-const [sidebarOpen, setSidebarOpen] = useState(!mob);
-const [customSubjects, setCustomSubjects] = useState([]);
-const [adminMode, setAdminMode] = useState(false);
-const [pinInput, setPinInput] = useState("");
-const [pinError, setPinError] = useState(false);
-const [showPinModal, setShowPinModal] = useState(false);
-const [editorOpen, setEditorOpen] = useState(false);
-const [editingSubject, setEditingSubject] = useState(null);
-const [userGroup, setUserGroup] = useState("All Employees");
-const [filterGroup, setFilterGroup] = useState("all");
-const [deleteConfirm, setDeleteConfirm] = useState(null);
-const [stepRatings, setStepRatings] = useState({});
-const [stepFlags, setStepFlags] = useState([]);
-const [moduleComments, setModuleComments] = useState({});
-const [showFlagModal, setShowFlagModal] = useState(false);
-const [flagReason, setFlagReason] = useState("");
-const [commentDraft, setCommentDraft] = useState("");
-const [showHealthPanel, setShowHealthPanel] = useState(false);
-const [showTeamPanel, setShowTeamPanel] = useState(false);
-const [activityLog, setActivityLog] = useState([]);
-const [userName, setUserName] = useState("Team Member");
-const [showNamePrompt, setShowNamePrompt] = useState(false);
-const [nameInput, setNameInput] = useState("");
-
-useEffect(() => { const load = async () => { try {
-const r = await window.storage.get("spark-hq-step-completions"); if (r?.value) setStepCompletions(JSON.parse(r.value));
-const q = await window.storage.get("spark-hq-completions"); if (q?.value) setQuizCompletions(JSON.parse(q.value));
-const g = await window.storage.get("spark-hq-user-group"); if (g?.value) setUserGroup(g.value);
-const n = await window.storage.get("spark-hq-user-name"); if (n?.value) { setUserName(n.value); } else { setShowNamePrompt(true); }
-} catch(e){} try { const c = await window.storage.get("spark-hq-custom-subjects", true); if (c?.value) setCustomSubjects(JSON.parse(c.value)); } catch(e){} try {
-const fr = await window.storage.get("spark-hq-step-ratings", true); if (fr?.value) setStepRatings(JSON.parse(fr.value));
-const ff = await window.storage.get("spark-hq-step-flags", true); if (ff?.value) setStepFlags(JSON.parse(ff.value));
-const fc = await window.storage.get("spark-hq-module-comments", true); if (fc?.value) setModuleComments(JSON.parse(fc.value));
-const al = await window.storage.get("spark-hq-activity-log", true); if (al?.value) setActivityLog(JSON.parse(al.value));
-} catch(e){} }; if (window.storage) load(); }, []);
-
-const saveSteps = async (s) => { setStepCompletions(s); try { if(window.storage) await window.storage.set("spark-hq-step-completions", JSON.stringify(s)); } catch(e){} };
-const saveQuiz = async (cat) => { const c = { ...quizCompletions, [cat]: true }; setQuizCompletions(c); try { if(window.storage) await window.storage.set("spark-hq-completions", JSON.stringify(c)); } catch(e){} logActivity({ type: "quiz_passed", cat }); };
-const saveCustom = async (subs) => { setCustomSubjects(subs); try { if(window.storage) await window.storage.set("spark-hq-custom-subjects", JSON.stringify(subs), true); } catch(e){} };
-const saveGroup = async (g) => { setUserGroup(g); try { if(window.storage) await window.storage.set("spark-hq-user-group", g); } catch(e){} };
-const saveName = async (n) => { setUserName(n); try { if(window.storage) await window.storage.set("spark-hq-user-name", n); } catch(e){} };
-const saveRatings = async (r) => { setStepRatings(r); try { if(window.storage) await window.storage.set("spark-hq-step-ratings", JSON.stringify(r), true); } catch(e){} };
-const saveFlags = async (f) => { setStepFlags(f); try { if(window.storage) await window.storage.set("spark-hq-step-flags", JSON.stringify(f), true); } catch(e){} };
-const saveComments = async (c) => { setModuleComments(c); try { if(window.storage) await window.storage.set("spark-hq-module-comments", JSON.stringify(c), true); } catch(e){} };
-const logActivity = async (event) => { if (!userName || userName === "Team Member") return; try { if (!window.storage) return; const r = await window.storage.get("spark-hq-activity-log", true); const log = r?.value ? JSON.parse(r.value) : []; log.push({ ...event, by: userName, at: new Date().toISOString() }); const trimmed = log.slice(-2000); await window.storage.set("spark-hq-activity-log", JSON.stringify(trimmed), true); } catch(e){} };
-const rateStep = (si, ii, idx, rating) => { const k = `${si}-${ii}-${idx}`; const r = { ...stepRatings }; if (!r[k]) r[k] = { up: 0, down: 0, voters: {} }; const prev = r[k].voters[userName]; if (prev === rating) { r[k][rating]--; delete r[k].voters[userName]; } else { if (prev) r[k][prev]--; r[k][rating]++; r[k].voters[userName] = rating; } saveRatings(r); };
-const flagStep = (si, ii, idx, sectionCat, itemName, stepHeading, reason) => { const f = [...stepFlags, { id: Date.now(), si, ii, idx, sectionCat, itemName, stepHeading, reason, by: userName, at: new Date().toISOString(), resolved: false }]; saveFlags(f); };
-const resolveFlag = (id) => saveFlags(stepFlags.map(f => f.id === id ? {...f, resolved: true, resolvedAt: new Date().toISOString()} : f));
-const addComment = (moduleKey, text) => { const c = { ...moduleComments, [moduleKey]: [...(moduleComments[moduleKey] || []), { id: Date.now(), text, by: userName, at: new Date().toISOString() }] }; saveComments(c); };
-const deleteComment = (moduleKey, id) => { const c = { ...moduleComments, [moduleKey]: (moduleComments[moduleKey] || []).filter(x => x.id !== id) }; saveComments(c); };
-const markStepDone = (si, ii, idx) => { const k = `${si}-${ii}-${idx}`; if (!stepCompletions[k]) { saveSteps({ ...stepCompletions, [k]: true }); const sec = allSections.find(s => s._idx === si); const it = sec?.items?.[ii]; const stp = it && getSteps(it)[idx]; if (sec && it && stp) logActivity({ type: "step_done", cat: sec.cat, item: it.name, step: stp.heading, sectionIdx: si, itemIdx: ii, stepIdx: idx }); } };
-const isStepDone = (si, ii, idx) => stepCompletions[`${si}-${ii}-${idx}`] === true;
-
-const allSections = [
-...TRAINING_SECTIONS.map((s, i) => ({ ...s, _type: "builtin", _idx: i, assignedGroups: s.assignedGroups || ["All Employees"] })),
-...customSubjects.filter(s => s.published).map((s, i) => ({ cat: s.name, icon: s.icon, _type: "custom", _idx: TRAINING_SECTIONS.length + i, _customId: s.id, assignedGroups: s.assignedGroups || ["All Employees"], items: [{ name: s.name, desc: s.description, type: "doc", location: "Custom", content: s.steps.filter(st => st.type === "content").map(st => ({ heading: st.heading, body: st.body })), video: s.steps.find(st => st.type === "video")?.video || null, quiz: s.quiz && s.quiz.length > 0, _customQuiz: s.quiz || [] }] })),
-];
-const filteredSections = filterGroup === "all" ? allSections : allSections.filter(s => s.assignedGroups?.includes(filterGroup));
-const getSteps = (item) => { const steps = []; if (item.video) steps.push({ type: "video", heading: "Watch: " + item.name, video: item.video }); if (item.content) item.content.forEach(c => steps.push({ type: "content", ...c })); if (item.url && !item.video) steps.push({ type: "link", heading: "Open Resource", url: item.url, name: item.name }); return steps; };
-const getQuizForSection = (section, item) => { if (item._customQuiz && item._customQuiz.length > 0) return { cat: section._customId || section.cat, quiz: item._customQuiz }; if (QUIZZES[section.cat]) return { cat: section.cat, quiz: QUIZZES[section.cat] }; return null; };
-const getSubjectProgress = (section) => { const si = section._idx; let total = 0, done = 0; section.items.forEach((item, ii) => { getSteps(item).forEach((_, idx) => { total++; if (isStepDone(si, ii, idx)) done++; }); }); const qInfo = section.items[0] ? getQuizForSection(section, section.items[0]) : null; if (qInfo && section.items[0]?.quiz) { total++; if (quizCompletions[qInfo.cat]) done++; } return { total, done, pct: total > 0 ? Math.round(done / total * 100) : 0 }; };
-
-const PinModal = () => showPinModal ? (<div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} onClick={() => { setShowPinModal(false); setPinInput(""); setPinError(false); }}><div onClick={e => e.stopPropagation()} style={{ background: "#f7f7f5", border: "1px solid " + BORDER, borderRadius: 12, padding: 32, width: 340, textAlign: "center" }}><div style={{ width: 52, height: 52, borderRadius: 10, background: Y + "10", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><I name="shield" size={24} color={Y} /></div><div style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", marginBottom: 6 }}>Admin Access</div><input type="password" inputMode="numeric" maxLength={4} value={pinInput} onChange={e => { setPinInput(e.target.value.replace(/\D/g,"")); setPinError(false); }} placeholder="PIN" style={{ width: "100%", padding: "14px 18px", borderRadius: 12, border: "1px solid " + (pinError ? "#e74c3c" : "#eee"), background: "#f8f8f8", color: "#1a1a2e", fontSize: 20, fontWeight: 700, textAlign: "center", letterSpacing: 8, outline: "none", fontFamily: "inherit" }} autoFocus />{pinError && <div style={{ fontSize: 11, color: "#e74c3c", marginTop: 8 }}>Incorrect PIN</div>}<button onClick={() => { if (pinInput === ADMIN_PIN) { setAdminMode(true); setShowPinModal(false); setPinInput(""); } else setPinError(true); }} style={{ width: "100%", marginTop: 16, background: Y + "15", border: "1px solid " + Y + "25", color: Y, padding: 12, borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>Unlock</button></div></div>) : null;
-
-const FlagModal = () => showFlagModal ? (<div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }} onClick={() => { setShowFlagModal(false); setFlagReason(""); }}><div onClick={e => e.stopPropagation()} style={{ background: "#f7f7f5", border: "1px solid " + BORDER, borderRadius: 12, padding: 28, width: 420 }}><div style={{ display:"flex", alignItems:"center", gap:10, marginBottom: 14 }}><div style={{ width: 40, height: 40, borderRadius: 10, background: "#fef3c7", display: "flex", alignItems: "center", justifyContent: "center" }}><I name="info" size={18} color="#d97706" /></div><div><div style={{ fontSize: 15, fontWeight: 800, color: "#1a1a2e" }}>Flag for review</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Help us keep training accurate.</div></div></div><div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 12 }}><div style={{ color: "#94a3b8", marginBottom: 2, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{showFlagModal.sectionCat} · {showFlagModal.itemName}</div><div style={{ color: "#1a1a2e", fontWeight: 600 }}>{showFlagModal.stepHeading}</div></div><textarea value={flagReason} onChange={e => setFlagReason(e.target.value)} placeholder="What's wrong? (e.g., 'pay range is outdated', 'wrong contact name', 'policy changed in Q3')" rows={4} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #eee", background: "#fff", color: "#1a1a2e", fontSize: 13, outline: "none", fontFamily: "inherit", resize: "vertical", marginBottom: 14 }} autoFocus /><div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}><button onClick={() => { setShowFlagModal(false); setFlagReason(""); }} style={{ background: "#f5f5f5", border: "1px solid #eee", color: "#64748b", padding: "9px 18px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Cancel</button><button onClick={() => { if (flagReason.trim()) { flagStep(showFlagModal.si, showFlagModal.ii, showFlagModal.idx, showFlagModal.sectionCat, showFlagModal.itemName, showFlagModal.stepHeading, flagReason.trim()); setShowFlagModal(false); setFlagReason(""); } }} disabled={!flagReason.trim()} style={{ background: flagReason.trim() ? "#fef3c7" : "#f5f5f5", border: "1px solid " + (flagReason.trim() ? "#fde68a" : "#eee"), color: flagReason.trim() ? "#92400e" : "#cbd5e1", padding: "9px 18px", borderRadius: 8, cursor: flagReason.trim() ? "pointer" : "default", fontSize: 12, fontWeight: 700 }}>Submit flag</button></div></div></div>) : null;
-
-const NamePrompt = () => showNamePrompt ? (<div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}><div style={{ background: "#f7f7f5", border: "1px solid " + BORDER, borderRadius: 12, padding: 32, width: 380 }}><div style={{ display:"flex", alignItems:"center", gap:12, marginBottom: 16 }}><div style={{ width: 44, height: 44, borderRadius: 10, background: Y + "12", display: "flex", alignItems: "center", justifyContent: "center" }}><I name="users" size={20} color={Y} /></div><div><div style={{ fontSize: 17, fontWeight: 800, color: "#1a1a2e" }}>Welcome to Spark HQ</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Quick — who are you?</div></div></div><div style={{ fontSize: 12, color: "#475569", marginBottom: 14, lineHeight: 1.5 }}>Pick your name so completions and feedback get credited to you. Managers can see their team's progress.</div><select value={nameInput} onChange={e => setNameInput(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #eee", background: "#fff", color: "#1a1a2e", fontSize: 14, fontWeight: 600, outline: "none", fontFamily: "inherit", marginBottom: 14 }} autoFocus><option value="">Select your name…</option>{TEAM_ROSTER.map(p => (<option key={p.name} value={p.name}>{p.name} — {p.role}</option>))}</select><button onClick={() => { if (nameInput) { saveName(nameInput); setShowNamePrompt(false); } }} disabled={!nameInput} style={{ width: "100%", background: nameInput ? Y + "15" : "#f5f5f5", border: "1px solid " + (nameInput ? Y + "25" : "#eee"), color: nameInput ? Y : "#cbd5e1", padding: 12, borderRadius: 10, cursor: nameInput ? "pointer" : "default", fontSize: 13, fontWeight: 700 }}>Continue</button><div style={{ fontSize: 10, color: "#cbd5e1", textAlign: "center", marginTop: 12 }}>You can change this anytime in Settings.</div></div></div>) : null;
-
-const submitAnswer = (ansIdx) => { if (!activeCourse) return; const section = allSections.find(s => s._idx === activeCourse.sectionIdx); const item = section?.items?.[activeCourse.itemIdx]; const qInfo = item ? getQuizForSection(section, item) : null; if (!qInfo) return; const quiz = qInfo.quiz; const newA = [...quizState.answers, ansIdx]; if (quizState.idx + 1 >= quiz.length) { const score = newA.reduce((s, a, i) => s + (a === quiz[i].answer ? 1 : 0), 0); const passed = score / quiz.length >= 0.8; setQuizState({ idx: quizState.idx, answers: newA, score, passed, active: true }); if (passed) saveQuiz(qInfo.cat); } else setQuizState({ idx: quizState.idx + 1, answers: newA, score: null, active: true }); };
-
-if (activeCourse) {
-const si = activeCourse.sectionIdx; const ii = activeCourse.itemIdx;
-const section = allSections.find(s => s._idx === si); const item = section?.items?.[ii];
-if (!item) { setActiveCourse(null); return null; }
-const steps = getSteps(item); const qInfo = item.quiz ? getQuizForSection(section, item) : null;
-const hasQuiz = qInfo && qInfo.quiz && qInfo.quiz.length > 0;
-const totalSteps = steps.length + (hasQuiz ? 1 : 0); const isOnQuiz = activeStep >= steps.length && hasQuiz;
-const completedSteps = steps.filter((_, idx) => isStepDone(si, ii, idx)).length + (hasQuiz && quizCompletions[qInfo?.cat] ? 1 : 0);
-const progressPct = totalSteps > 0 ? Math.round(completedSteps / totalSteps * 100) : 0;
-const c = secColors[si % secColors.length];
-const goNext = () => { markStepDone(si, ii, activeStep); if (activeStep < totalSteps - 1) { setActiveStep(activeStep + 1); setQuizState({ idx:0,answers:[],score:null,active:false }); } else { setActiveCourse(null); setActiveStep(0); } };
-const goPrev = () => { if (activeStep > 0) { setActiveStep(activeStep - 1); setQuizState({ idx:0,answers:[],score:null,active:false }); } };
-
-const Sidebar = () => (<div style={{ width: mob ? "100%" : 280, flexShrink: 0, borderRight: mob ? "none" : "1px solid " + BORDER, background: "#f8f8f6", padding: "16px 0", overflowY: "auto", maxHeight: mob ? 300 : "calc(100vh - 180px)" }}><div style={{ padding: "0 16px 12px", borderBottom: "1px solid #f0f0f0" }}><button onClick={() => { setActiveCourse(null); setActiveStep(0); }} style={{ background: "none", border: "none", color: c, cursor: "pointer", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}><I name="chevLeft" size={12} color={c} /> All Subjects</button><div style={{ fontSize: 9, fontWeight: 800, color: c, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>{section.cat}</div><div style={{ fontSize: 14, fontWeight: 800, color: "#1a1a2e" }}>{item.name}</div><div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}><div style={{ flex: 1, height: 4, background: "#f0f0f0", borderRadius: 2, overflow: "hidden" }}><div style={{ height: "100%", width: progressPct + "%", background: c, borderRadius: 2, transition: "width 0.3s" }} /></div><span style={{ fontSize: 10, fontWeight: 700, color: progressPct === 100 ? "#2ecc71" : c }}>{progressPct}%</span></div></div><div style={{ padding: "8px 0" }}>{steps.map((step, idx) => { const done = isStepDone(si, ii, idx); const isCur = activeStep === idx && !isOnQuiz; return (<button key={idx} onClick={() => { setActiveStep(idx); setQuizState({idx:0,answers:[],score:null,active:false}); if(mob) setSidebarOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 16px", cursor: "pointer", textAlign: "left", color: "#1a1a2e", background: isCur ? c + "12" : "transparent", border: "none", borderLeft: isCur ? `3px solid ${c}` : "3px solid transparent" }}><div style={{ width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: done ? "#2ecc71" : isCur ? c + "20" : "#f0f0f0" }}>{done ? <I name="check" size={12} color="#fff" sw={2.5} /> : <span style={{ fontSize: 9, fontWeight: 700, color: isCur ? c : "#b0b8c4" }}>{idx + 1}</span>}</div><div><div style={{ fontSize: 12, fontWeight: isCur ? 700 : 500, color: isCur ? "#1a1a2e" : "#475569" }}>{step.heading}</div><div style={{ fontSize: 9, color: done ? "#2ecc71" : "#cbd5e1", fontWeight: 600, marginTop: 2 }}>{done ? "Done" : step.type}</div></div></button>); })}{hasQuiz && (<button onClick={() => { setActiveStep(steps.length); setQuizState({idx:0,answers:[],score:null,active:false}); if(mob) setSidebarOpen(false); }} style={{ width: "100%", display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 16px", cursor: "pointer", textAlign: "left", color: "#1a1a2e", background: isOnQuiz ? "#4ECDC412" : "transparent", border: "none", borderLeft: isOnQuiz ? "3px solid #4ECDC4" : "3px solid transparent", borderTop: "1px solid #f0f0f0", marginTop: 4, paddingTop: 14 }}><div style={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: quizCompletions[qInfo.cat] ? "#2ecc71" : "#f0f0f0" }}>{quizCompletions[qInfo.cat] ? <I name="check" size={12} color="#fff" sw={2.5} /> : <I name="target" size={11} color="#4ECDC4" />}</div><div><div style={{ fontSize: 12, fontWeight: isOnQuiz ? 700 : 500 }}>Knowledge Check</div><div style={{ fontSize: 9, color: quizCompletions[qInfo.cat] ? "#2ecc71" : "#4ECDC4", fontWeight: 600, marginTop: 2 }}>{quizCompletions[qInfo.cat] ? "Passed" : qInfo.quiz.length + " questions"}</div></div></button>)}</div></div>);
-
-const MainContent = () => {
-if (isOnQuiz && hasQuiz) {
-const quiz = qInfo.quiz; const isDone = quizCompletions[qInfo.cat]; const isFinished = quizState.score !== null;
-if (isDone && !quizState.active) return (<div style={{ flex:1, padding:mob?20:40, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center" }}><div style={{ width:72, height:72, borderRadius:"50%", background:"#2ecc7120", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16 }}><I name="check" size={32} color="#2ecc71" /></div><div style={{fontSize:22,fontWeight:800,marginBottom:20}}>Quiz Passed!</div><div style={{display:"flex",gap:10}}><button onClick={()=>setQuizState({idx:0,answers:[],score:null,active:true})} style={{background:"#f5f5f5",border:"1px solid #eee",color:"#64748b",padding:"10px 20px",borderRadius:10,cursor:"pointer",fontSize:12}}>Retake</button><button onClick={goNext} style={{background:c+"15",border:"1px solid "+c+"30",color:c,padding:"10px 20px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>Continue</button></div></div>);
-if (!quizState.active) return (<div style={{ flex:1, padding:mob?20:40, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center" }}><div style={{ width:72, height:72, borderRadius:"50%", background:"#4ECDC420", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16 }}><I name="target" size={32} color="#4ECDC4" /></div><div style={{fontSize:22,fontWeight:800,marginBottom:20}}>Knowledge Check</div><div style={{fontSize:13,color:"#94a3b8",marginBottom:20}}>{quiz.length} questions · 80% to pass</div><button onClick={()=>setQuizState({idx:0,answers:[],score:null,active:true})} style={{background:"#4ECDC420",border:"1px solid #4ECDC430",color:"#4ECDC4",padding:"12px 28px",borderRadius:10,cursor:"pointer",fontSize:14,fontWeight:700}}>Start Quiz</button></div>);
-if (isFinished) return (<div style={{ flex:1, padding:mob?20:40, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center" }}><div style={{ width:72, height:72, borderRadius:"50%", background:quizState.passed?"#2ecc7120":"#FF6B3520", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16 }}><I name={quizState.passed?"check":"x"} size={32} color={quizState.passed?"#2ecc71":"#FF6B35"} /></div><div style={{fontSize:24,fontWeight:800,marginBottom:6}}>{quizState.passed?"Passed!":"Not Quite"}</div><div style={{fontSize:14,color:"#94a3b8",marginBottom:24}}>{quizState.score}/{quiz.length} ({Math.round(quizState.score/quiz.length*100)}%)</div><div style={{display:"flex",gap:10}}>{!quizState.passed&&<button onClick={()=>setQuizState({idx:0,answers:[],score:null,active:true})} style={{background:"#4ECDC415",border:"1px solid #4ECDC430",color:"#4ECDC4",padding:"10px 20px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>Retry</button>}<button onClick={goNext} style={{background:"#f5f5f5",border:"1px solid #eee",color:"#64748b",padding:"10px 20px",borderRadius:10,cursor:"pointer",fontSize:12}}>Back</button></div></div>);
-return (<div style={{ flex:1, padding:mob?20:40, maxWidth:640, margin:"0 auto" }}><div style={{ display:"flex", gap:4, marginBottom:28 }}>{quiz.map((_,i)=>(<div key={i} style={{ flex:1, height:5, borderRadius:3, background:i<quizState.idx?"#2ecc71":i===quizState.idx?"#4ECDC4":"#f0f0f0" }} />))}</div><div style={{ fontSize:10, color:"#4ECDC4", fontWeight:700, marginBottom:8 }}>QUESTION {quizState.idx+1} OF {quiz.length}</div><div style={{ fontSize:18, fontWeight:700, color:"#1a1a2e", lineHeight:1.5, marginBottom:28 }}>{quiz[quizState.idx].q}</div><div style={{ display:"flex", flexDirection:"column", gap:10 }}>{quiz[quizState.idx].opts.map((opt,oi)=>(<button key={oi} onClick={()=>submitAnswer(oi)} style={{ background:"#fafafa", border:"1px solid #eee", borderRadius:12, padding:"16px 20px", cursor:"pointer", color:"#1a1a2e", fontSize:14, textAlign:"left", display:"flex", alignItems:"center", gap:14 }}><div style={{ width:32, height:32, borderRadius:10, border:"1px solid #e2e8f0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"#94a3b8" }}>{String.fromCharCode(65+oi)}</div>{opt}</button>))}</div></div>);
-}
-const step = steps[activeStep]; if (!step) return null;
-return (<div style={{ flex:1, padding:mob?"20px 18px":"32px 48px", overflowY:"auto" }}><div style={{ maxWidth:700 }}><div style={{ fontSize:10, fontWeight:800, color:c, letterSpacing:1.5, textTransform:"uppercase", marginBottom:8 }}>Step {activeStep+1} of {totalSteps}</div><h3 style={{ fontSize:mob?20:26, fontWeight:800, color:"#1a1a2e", marginBottom:20 }}>{step.heading}</h3>{step.type==="video"&&(()=>{const vidId=step.video?.split("/embed/")[1]?.split("?")[0]||step.video?.split("v=")[1]?.split("&")[0]||"";return vidId?(<a href={"https://www.youtube.com/watch?v="+vidId} target="_blank" rel="noopener noreferrer" style={{ display:"block", marginBottom:24, borderRadius:14, overflow:"hidden", border:"1px solid #eee", position:"relative", maxWidth:700, aspectRatio:"16/9", background:"#000", textDecoration:"none" }}><img src={"https://img.youtube.com/vi/"+vidId+"/hqdefault.jpg"} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", opacity:0.7 }} /><div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}><div style={{ width:64, height:64, borderRadius:"50%", background:"rgba(255,0,0,0.9)", display:"flex", alignItems:"center", justifyContent:"center" }}><div style={{ width:0, height:0, borderTop:"12px solid transparent", borderBottom:"12px solid transparent", borderLeft:"22px solid #fff", marginLeft:5 }} /></div></div></a>):null;})()}{step.type==="link"&&(<a href={step.url} target="_blank" rel="noopener noreferrer" style={{ display:"inline-flex", alignItems:"center", gap:8, fontSize:14, fontWeight:700, color:c, textDecoration:"none", padding:"14px 24px", background:c+"10", border:"1px solid "+c+"25", borderRadius:12, marginBottom:20 }}><I name="ext" size={16} color={c} /> Open {step.name||"Resource"}</a>)}{step.type==="content"&&(<div style={{ fontSize:14, color:"#334155", lineHeight:1.8, whiteSpace:"pre-line" }}>{step.body}</div>)}
-{/* === FEEDBACK BAR === */}
-{(() => { const fk=`${si}-${ii}-${activeStep}`; const r=stepRatings[fk]||{up:0,down:0,voters:{}}; const myVote=r.voters[userName]; return (
-  <div style={{ marginTop:24, padding:"14px 16px", background:"#fafafa", border:"1px solid #f0f0f0", borderRadius:10, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-    <div style={{ fontSize:11, fontWeight:700, color:"#94a3b8", letterSpacing:0.5, textTransform:"uppercase", marginRight:4 }}>Was this helpful?</div>
-    <button onClick={()=>rateStep(si,ii,activeStep,"up")} style={{ background:myVote==="up"?"#ecfdf5":"#fff", border:"1px solid "+(myVote==="up"?"#86efac":"#eee"), color:myVote==="up"?"#059669":"#64748b", padding:"6px 12px", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>👍 {r.up>0?r.up:""}</button>
-    <button onClick={()=>rateStep(si,ii,activeStep,"down")} style={{ background:myVote==="down"?"#fef2f2":"#fff", border:"1px solid "+(myVote==="down"?"#fca5a5":"#eee"), color:myVote==="down"?"#dc2626":"#64748b", padding:"6px 12px", borderRadius:8, cursor:"pointer", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>👎 {r.down>0?r.down:""}</button>
-    <div style={{ flex:1 }} />
-    <button onClick={()=>{ setShowFlagModal({si,ii,idx:activeStep,sectionCat:section.cat,itemName:item.name,stepHeading:step.heading}); setFlagReason(""); }} style={{ background:"transparent", border:"1px solid #eee", color:"#94a3b8", padding:"6px 12px", borderRadius:8, cursor:"pointer", fontSize:11, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}><I name="info" size={11} color="#94a3b8" /> Flag for review</button>
-  </div>
-);})()}
-{/* === COMMENT THREAD (only on last step) === */}
-{activeStep===steps.length-1 && (() => { const mk=`${section._idx}-${ii}`; const cms=moduleComments[mk]||[]; return (
-  <div style={{ marginTop:20, padding:"16px 18px", background:"#fff", border:"1px solid #eee", borderRadius:10 }}>
-    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-      <I name="users" size={14} color="#64748b" />
-      <div style={{ fontSize:12, fontWeight:700, color:"#1a1a2e" }}>Module Discussion</div>
-      <div style={{ fontSize:11, color:"#cbd5e1" }}>{cms.length} comment{cms.length!==1?"s":""}</div>
-    </div>
-    {cms.length>0 && <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:12 }}>{cms.map(cm=>(<div key={cm.id} style={{ background:"#fafafa", borderRadius:8, padding:"10px 12px" }}><div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}><div style={{ fontSize:11, fontWeight:700, color:"#1a1a2e" }}>{cm.by}</div><div style={{ fontSize:10, color:"#cbd5e1" }}>{new Date(cm.at).toLocaleDateString()}</div>{(cm.by===userName||adminMode) && <button onClick={()=>deleteComment(mk,cm.id)} style={{ marginLeft:"auto", background:"none", border:"none", color:"#cbd5e1", cursor:"pointer", fontSize:10 }}>Delete</button>}</div><div style={{ fontSize:13, color:"#334155", lineHeight:1.5 }}>{cm.text}</div></div>))}</div>}
-    <div style={{ display:"flex", gap:8 }}>
-      <input value={commentDraft} onChange={e=>setCommentDraft(e.target.value)} placeholder="Add a comment, question, or correction..." style={{ flex:1, padding:"9px 12px", borderRadius:8, border:"1px solid #eee", background:"#fafafa", fontSize:12, outline:"none", fontFamily:"inherit" }} />
-      <button onClick={()=>{ if(commentDraft.trim()){ addComment(mk,commentDraft.trim()); setCommentDraft(""); } }} disabled={!commentDraft.trim()} style={{ background:commentDraft.trim()?Y+"15":"#f5f5f5", border:"1px solid "+(commentDraft.trim()?Y+"25":"#eee"), color:commentDraft.trim()?Y:"#cbd5e1", padding:"9px 16px", borderRadius:8, cursor:commentDraft.trim()?"pointer":"default", fontSize:12, fontWeight:700 }}>Post</button>
-    </div>
-  </div>
-);})()}
-<div style={{ display:"flex", justifyContent:"space-between", marginTop:36, paddingTop:20, borderTop:"1px solid #f0f0f0" }}><button onClick={goPrev} disabled={activeStep===0} style={{ background:"#f0f0f0", border:"1px solid #eee", color:activeStep===0?"#e2e8f0":"#64748b", padding:"10px 20px", borderRadius:10, cursor:activeStep===0?"default":"pointer", fontSize:12, fontWeight:600, display:"flex", alignItems:"center", gap:5, opacity:activeStep===0?0.5:1 }}><I name="chevLeft" size={14} /> Previous</button><button onClick={goNext} style={{ background:c+"20", border:"1px solid "+c+"30", color:c, padding:"10px 20px", borderRadius:10, cursor:"pointer", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", gap:5 }}>{activeStep<totalSteps-1?"Mark Complete & Next":"Complete"} <I name="chevRight" size={14} color={c} /></button></div></div></div>);
-};
-
-return (<div style={{ display:"flex", flexDirection:mob?"column":"row", minHeight:"calc(100vh - 120px)" }}>{mob&&(<button onClick={()=>setSidebarOpen(!sidebarOpen)} style={{ display:"flex", alignItems:"center", gap:6, padding:"12px 18px", background:"#f8f8f6", border:"none", borderBottom:"1px solid "+BORDER, color:c, cursor:"pointer", fontSize:12, fontWeight:700, width:"100%" }}><I name={sidebarOpen?"chevUp":"menu"} size={14} color={c} /> {sidebarOpen?"Hide Steps":"Step "+(activeStep+1)+"/"+totalSteps}</button>)}{(sidebarOpen||!mob)&&<Sidebar />}<MainContent /></div>);
-}
-
-// CATALOG VIEW
-return (<div style={{ padding: mob ? "24px 16px 40px" : "32px 40px 50px", margin: "0 auto" }}>
-<PinModal />
-<FlagModal />
-<NamePrompt />
-{/* Training Portal Header */}
-<div style={{ background: "linear-gradient(135deg, #ecfdf5, #d1fae5, #a7f3d0)", borderRadius: 12, border: "1px solid #bbf7d0", padding: mob ? "28px 20px" : "36px 40px", marginBottom: 28, position: "relative", overflow: "hidden" }}>
-<div style={{ display: "flex", alignItems: mob ? "flex-start" : "center", gap: mob ? 16 : 32, flexDirection: mob ? "column" : "row" }}>
-<div style={{ flex: 1 }}><div style={{ fontSize: 10, fontWeight: 700, color: "#059669", letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Spark Learning</div><div style={{ fontSize: mob ? 22 : 28, fontWeight: 700, color: "#065f46", marginBottom: 8 }}>Training Portal</div><div style={{ fontSize: 14, color: "#94a3b8" }}>Courses, quizzes, and certifications.</div></div>
-{(() => { const allProgs = filteredSections.map(s => getSubjectProgress(s)); const totalDone = allProgs.reduce((s,p) => s + p.done, 0); const totalAll = allProgs.reduce((s,p) => s + p.total, 0); const overallPct = totalAll > 0 ? Math.round(totalDone / totalAll * 100) : 0; const completedSubjects = allProgs.filter(p => p.pct === 100).length; const r = 44; const circ = 2 * Math.PI * r; const offset = circ - (overallPct / 100) * circ; return (<div style={{ display: "flex", alignItems: "center", gap: 20 }}><div style={{ position: "relative", width: 100, height: 100 }}><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r={r} fill="none" stroke="rgba(5,150,105,0.15)" strokeWidth="8" /><circle cx="50" cy="50" r={r} fill="none" stroke="#059669" strokeWidth="8" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} transform="rotate(-90 50 50)" style={{ transition: "stroke-dashoffset 0.8s ease" }} /></svg><div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#065f46" }}>{overallPct}%</div><div style={{ fontSize: 8, fontWeight: 600, color: "#059669" }}>COMPLETE</div></div></div><div><div style={{ fontSize: 13, color: "#065f46", fontWeight: 700 }}>{completedSubjects}/{filteredSections.length} subjects</div><div style={{ fontSize: 11, color: "#047857", marginTop: 4 }}>{totalDone}/{totalAll} steps</div></div></div>); })()}
-</div></div>
-<div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}><SectionHeader icon="book" title="Subjects" subtitle="Click into a subject to start learning" /><button onClick={() => adminMode ? setAdminMode(false) : setShowPinModal(true)} style={{ background: adminMode ? Y + "12" : "#f5f5f5", border: "1px solid " + (adminMode ? Y + "25" : "#eee"), color: adminMode ? Y : "#94a3b8", padding: "8px 16px", borderRadius: 10, cursor: "pointer", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 5, marginBottom: 32 }}><I name={adminMode ? "x" : "shield"} size={13} /> {adminMode ? "Exit Admin" : "Admin"}</button></div>
-{/* Role Filter */}
-<div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}><span style={{ fontSize: 10, fontWeight: 700, color: "#b0b8c4", marginRight: 4 }}>MY ROLE:</span>{ROLE_GROUPS.map(g => (<button key={g} onClick={() => { saveGroup(g); setFilterGroup(g === userGroup && filterGroup === g ? "all" : g); }} style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid " + (userGroup === g ? "#2ecc7130" : "#f0f0f0"), background: userGroup === g ? "#2ecc7110" : "#fafafa", color: userGroup === g ? "#2ecc71" : "#94a3b8", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{g}</button>))}<div style={{ flex: 1 }} /><button onClick={() => setFilterGroup(filterGroup === "all" ? userGroup : "all")} style={{ fontSize: 10, fontWeight: 600, color: filterGroup !== "all" ? Y : "#b0b8c4", background: filterGroup !== "all" ? Y + "10" : "#f8f8f8", border: "1px solid " + (filterGroup !== "all" ? Y + "20" : "#f0f0f0"), padding: "5px 12px", borderRadius: 8, cursor: "pointer" }}>{filterGroup !== "all" ? "Showing: " + filterGroup : "Show: All"}</button></div>
-{/* Admin bar */}
-{adminMode && (<Reveal><div style={{ marginBottom: 20, padding: 18, background: Y + "06", border: "1px dashed " + Y + "25", borderRadius: 10 }}><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div><div style={{ fontSize: 13, fontWeight: 700, color: Y }}>Admin Mode Active</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Custom subjects sync to all team members.</div></div><div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>{(() => { const pending = stepFlags.filter(f => !f.resolved).length; return (<button onClick={() => { setShowHealthPanel(!showHealthPanel); setShowTeamPanel(false); }} style={{ background: pending > 0 ? "#fef3c7" : "#fff", border: "1px solid " + (pending > 0 ? "#fde68a" : "#eee"), color: pending > 0 ? "#92400e" : "#64748b", padding: "10px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><I name="info" size={14} color={pending > 0 ? "#92400e" : "#64748b"} /> Content Health{pending > 0 && <span style={{ background: "#dc2626", color: "#fff", padding: "1px 7px", borderRadius: 10, fontSize: 10 }}>{pending}</span>}</button>); })()}<button onClick={() => { setShowTeamPanel(!showTeamPanel); setShowHealthPanel(false); }} style={{ background: "#fff", border: "1px solid #eee", color: "#64748b", padding: "10px 16px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><I name="users" size={14} color="#64748b" /> Team Progress</button><button onClick={() => { setEditingSubject(null); setEditorOpen(true); }} style={{ background: Y + "15", border: "1px solid " + Y + "25", color: Y, padding: "10px 20px", borderRadius: 10, cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}><I name="zap" size={14} color={Y} /> New Subject</button></div></div>{showHealthPanel && (<div style={{ marginTop: 16, padding: 16, background: "#fff", borderRadius: 10, border: "1px solid #f0f0f0" }}>
-{/* Pending flags */}
-<div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}><I name="info" size={13} color="#d97706" /> Pending flags ({stepFlags.filter(f => !f.resolved).length})</div>
-{stepFlags.filter(f => !f.resolved).length === 0 ? (<div style={{ fontSize: 12, color: "#94a3b8", padding: "12px 0" }}>No flags pending. Content looks healthy.</div>) : (<div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>{stepFlags.filter(f => !f.resolved).map(f => (<div key={f.id} style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: "10px 12px" }}><div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 2 }}>{f.sectionCat} · {f.itemName}</div><div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e", marginBottom: 4 }}>{f.stepHeading}</div><div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>{f.reason}</div><div style={{ fontSize: 10, color: "#94a3b8" }}>Flagged by {f.by} · {new Date(f.at).toLocaleDateString()}</div></div><button onClick={() => resolveFlag(f.id)} style={{ background: "#ecfdf5", border: "1px solid #86efac", color: "#059669", padding: "5px 10px", borderRadius: 6, cursor: "pointer", fontSize: 10, fontWeight: 700 }}>Resolve</button></div></div>))}</div>)}
-{/* Low-rated steps */}
-{(() => { const lowRated = Object.entries(stepRatings).filter(([k,v]) => v.down > v.up && v.down >= 1); return lowRated.length > 0 && (<><div style={{ fontSize: 12, fontWeight: 700, color: "#1a1a2e", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>👎 Low-rated steps ({lowRated.length})</div><div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>{lowRated.map(([k,v]) => { const [si, ii, idx] = k.split("-").map(Number); const sec = allSections.find(s => s._idx === si); const it = sec?.items?.[ii]; const stp = it && getSteps(it)[idx]; return sec && it && stp ? (<div key={k} style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", display:"flex", alignItems:"center", gap:8 }}><div style={{ flex: 1 }}><div style={{ fontSize: 10, color: "#991b1b", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>{sec.cat} · {it.name}</div><div style={{ fontSize: 12, fontWeight: 600, color: "#1a1a2e" }}>{stp.heading}</div></div><div style={{ fontSize: 11, color: "#dc2626", fontWeight: 700 }}>👍 {v.up} / 👎 {v.down}</div></div>) : null; })}</div></>); })()}
-{/* Resolved flags collapsed summary */}
-{stepFlags.filter(f => f.resolved).length > 0 && (<div style={{ fontSize: 11, color: "#94a3b8", paddingTop: 8, borderTop: "1px solid #f0f0f0" }}>{stepFlags.filter(f => f.resolved).length} resolved flag{stepFlags.filter(f => f.resolved).length !== 1 ? "s" : ""} in history</div>)}
-</div>)}
-{/* === TEAM PROGRESS DASHBOARD === */}
-{showTeamPanel && (() => {
-  // Compute progress per person from activity log
-  const totalRequiredSteps = filteredSections.reduce((sum, s) => sum + s.items.reduce((sum2, it) => sum2 + getSteps(it).length, 0), 0);
-  const totalRequiredQuizzes = filteredSections.reduce((sum, s) => sum + s.items.filter(it => it.quiz).length, 0);
-  // Build per-user stats from log
-  const byUser = {};
-  activityLog.forEach(ev => {
-    if (!byUser[ev.by]) byUser[ev.by] = { stepsDone: new Set(), quizzesPassed: new Set(), lastActivity: ev.at };
-    if (ev.type === "step_done") byUser[ev.by].stepsDone.add(`${ev.sectionIdx}-${ev.itemIdx}-${ev.stepIdx}`);
-    if (ev.type === "quiz_passed") byUser[ev.by].quizzesPassed.add(ev.cat);
-    if (ev.at > byUser[ev.by].lastActivity) byUser[ev.by].lastActivity = ev.at;
+// ── Storage ────────────────────────────────────────────────────
+var SK={members:"sc7-m",dh:"sc7-d",weeks:"sc7-w",locked:"sc7-lk",audit:"sc7-au",qsnap:"sc7-qs",dhsync:"sc7-ds",config:"sc7-cfg",overrides:"sc7-ov"};
+// Storage functions replaced by API layer in production
+// sav/ld are now no-ops locally — actual persistence handled by onSave prop
+var _pendingSave=null;
+async function sav(k,v){/* no-op — save handled by auto-save effect */}
+async function ld(k){return null;/* load handled by initialData prop */}
+// ═══════════════════════════════════════════════════════════════
+export default function App({ initialData, userInfo, onSave, onReload, onLogout, loadError, conflictInfo, onDismissConflict }){
+  // Auth from MSAL — no PINs needed
+  var userRole = userInfo ? userInfo.role : "rep";
+  var userEmail = userInfo ? userInfo.email : "";
+  var userName = userInfo ? userInfo.name : "";
+  var [members,setMembers]=useState(function(){
+    if(initialData&&initialData.members&&initialData.members.length){
+      var loaded=initialData.members.map(function(m){if(!m.email&&EMAIL_MAP[m.name])m=Object.assign({},m,{email:EMAIL_MAP[m.name]});return m;});
+      loaded.forEach(function(m,i){if(!m.pin){loaded[i]=Object.assign({},m,{pin:genPin(loaded)});}});
+      return loaded;
+    }
+    var list=[];_T.forEach(function(t){list.push(initM(t,list));});return list;
   });
-  // Build manager-direct-report tree
-  const myReports = TEAM_ROSTER.filter(p => p.manager === userName);
-  // Ensure even people with no activity still show up
-  const allShownPeople = TEAM_ROSTER.map(p => ({ ...p, stats: byUser[p.name] || { stepsDone: new Set(), quizzesPassed: new Set(), lastActivity: null } }));
-  return (<div style={{ marginTop: 16, padding: 16, background: "#fff", borderRadius: 10, border: "1px solid #f0f0f0" }}>
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#1a1a2e", display: "flex", alignItems: "center", gap: 6 }}><I name="users" size={14} color="#1a1a2e" /> Team Progress</div>
-        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Live data from {activityLog.length} activity records · viewing as {userName}</div>
+  var [dhData,setDhData]=useState(initialData&&initialData.dhData&&initialData.dhData.length?initialData.dhData:_DH);
+  // chargeWeeks: [{id, weekEnding, importedAt, rows:[{name, matchedId, ytdRaw, splitRec, splitAM, fullDesk, rawCharge}]}]
+  var [chargeWeeks,setChargeWeeks]=useState(initialData&&initialData.chargeWeeks?initialData.chargeWeeks:[]);
+  var [lockedWeeks,setLockedWeeks]=useState(initialData&&initialData.lockedWeeks?initialData.lockedWeeks:[]);
+  var [auditLog,setAuditLog]=useState(initialData&&initialData.auditLog?initialData.auditLog:[]);
+  // Quarter snapshots: [{qKey:"Q1-2026", members:[{id,name,ytdRaw}]}]
+  var [qSnapshots,setQSnapshots]=useState(initialData&&initialData.qSnapshots?initialData.qSnapshots:[]);
+  var [view,setView]=useState("command");
+  var [cmdDrill,setCmdDrill]=useState(null); // null, "ytd", "floor", "dh", "guarantee"
+  var [repMode,setRepMode]=useState(userRole === "rep");
+  var [repId,setRepId]=useState(null);
+  // MSAL handles auth — no login route or PIN needed
+  var adminAuthenticated = userRole === "admin";
+  var [selectedWeek,setSelectedWeek]=useState(null);
+  var [editMemberId,setEditMemberId]=useState(null);
+  var [dhFilter,setDhFilter]=useState("");var [dhSt,setDhSt]=useState("ALL");var [dhUnit,setDhUnit]=useState("ALL");var [dhAM,setDhAM]=useState("ALL");var [dhRec,setDhRec]=useState("ALL");
+  var [teamUnit,setTeamUnit]=useState("ALL");var [teamEntity,setTeamEntity]=useState("ALL");var [teamSearch,setTeamSearch]=useState("");var [showInactive,setShowInactive]=useState(false);
+  var [teamSortKey,setTeamSortKey]=useState("ytd");var [teamSortDir,setTeamSortDir]=useState("desc");
+  var [showDHForm,setShowDHForm]=useState(false);var [dhFormatOpen,setDhFormatOpen]=useState(true);
+  var [payrollOverrides,setPayrollOverrides]=useState(initialData&&initialData.payrollOverrides?initialData.payrollOverrides:{});var [editingPayout,setEditingPayout]=useState(null);var [editPayoutVal,setEditPayoutVal]=useState("");
+  var [dhEditIdx,setDhEditIdx]=useState(null);var [dhLastSync,setDhLastSync]=useState(initialData&&initialData.dhLastSync?initialData.dhLastSync:null);
+  var [dismissedRecon,setDismissedRecon]=useState([]);
+  var [toast,setToast]=useState(null);
+  var [importText,setImportText]=useState("");
+  var [importWE,setImportWE]=useState("");
+  var [importPreview,setImportPreview]=useState(null);
+  var [loaded,setLoaded]=useState(!!initialData);
+  var [config,setConfig]=useState(initialData&&initialData.config?Object.assign({},DEFAULT_CFG,initialData.config):DEFAULT_CFG);
+  var [adminTab,setAdminTab]=useState("floors");
+  var [applyPath,setApplyPath]=useState("");
+  var [applyMember,setApplyMember]=useState("");
+  // Dynamic floor values from config
+  var FLOOR=config.floors.quarterly;var FLOOR_ANNUAL=config.floors.annual;var FLOOR_WEEKLY_DEDUCT=config.floors.weekly;
+  var ENTITIES=config.entities;
+  var UNITS=config.units.map(function(u){return u.name;});
+  var UB={};config.units.forEach(function(u){UB[u.name]=u.color;});
+  var [confirmDlg,setConfirm]=useState(null);
+  var [exportModal,setExportModal]=useState(null); // {title, content, type:"text"|"html"}
+  var showExport=function(title,content){setExportModal({title:title,content:content});};
+  var [expandedRow,setExpandedRow]=useState(null);
+  var [editingCharge,setEditingCharge]=useState(null); // {weekId, rowIdx}
+  var log=useCallback(function(a,d){setAuditLog(function(p){return[{ts:new Date().toISOString(),action:a,detail:d}].concat(p).slice(0,500);});},[]);
+  var showToast=function(m,t){setToast({msg:m,type:t||"ok"});setTimeout(function(){setToast(null);},3500);};
+  // Data loaded from props (via Azure Function). Auto-detect rep if in rep mode.
+  useEffect(function(){
+    if(!loaded) { setLoaded(true); }
+    // Auto-match rep by email on first load
+    if(userRole==="rep"&&userEmail&&!repId){
+      var match=members.find(function(m){return m.email&&m.email.toLowerCase()===userEmail.toLowerCase();});
+      if(match){setRepId(match.id);setRepMode(true);}
+    }
+  },[]);
+  // Auto-save
+  var saveRef=useRef(null);
+  var [saveStatus,setSaveStatus]=useState("saved"); // "saved","saving","unsaved"
+  var prevCfgRef=useRef(null);
+  var doSave=function(){
+    if(userRole!=="admin"||!onSave)return;
+    setSaveStatus("saving");
+    var payload={members:members,dhData:dhData,chargeWeeks:chargeWeeks,lockedWeeks:lockedWeeks,auditLog:auditLog,qSnapshots:qSnapshots,config:config,payrollOverrides:payrollOverrides,dhLastSync:dhLastSync,lastSavedBy:userEmail,lastSavedAt:new Date().toISOString()};
+    onSave(payload).then(function(r){setSaveStatus(r&&r.success?"saved":"error");if(!r||!r.success){if(r&&r.conflict){showToast("Conflict — another admin saved. Reload?","err");}else{showToast("Save failed","err");}}}).catch(function(){setSaveStatus("error");showToast("Save failed","err");});
+  };
+  useEffect(function(){
+    if(!loaded)return;
+    if(prevCfgRef.current){
+      var prev=prevCfgRef.current;
+      if(prev.floors.weekly!==config.floors.weekly)log("CONFIG_CHANGE","Weekly minimum: $"+prev.floors.weekly+" → $"+config.floors.weekly);
+      if(prev.floors.quarterly!==config.floors.quarterly)log("CONFIG_CHANGE","Quarterly floor: $"+prev.floors.quarterly+" → $"+config.floors.quarterly);
+      if(prev.floors.annual!==config.floors.annual)log("CONFIG_CHANGE","Annual unlock: $"+prev.floors.annual+" → $"+config.floors.annual);
+      if(prev.careerPaths.length!==config.careerPaths.length)log("CONFIG_CHANGE","Career paths: "+prev.careerPaths.length+" → "+config.careerPaths.length);
+      if(prev.entities.length!==config.entities.length)log("CONFIG_CHANGE","Entities: "+prev.entities.length+" → "+config.entities.length);
+      if(prev.units.length!==config.units.length)log("CONFIG_CHANGE","Units: "+prev.units.length+" → "+config.units.length);
+    }
+    prevCfgRef.current=JSON.parse(JSON.stringify(config));
+  },[config,loaded]);
+  useEffect(function(){if(!loaded||userRole!=="admin")return;
+    setSaveStatus("unsaved");if(saveRef.current)clearTimeout(saveRef.current);saveRef.current=setTimeout(function(){
+      setSaveStatus("saving");
+      var payload={members:members,dhData:dhData,chargeWeeks:chargeWeeks,lockedWeeks:lockedWeeks,auditLog:auditLog,qSnapshots:qSnapshots,config:config,payrollOverrides:payrollOverrides,dhLastSync:dhLastSync,lastSavedBy:userEmail,lastSavedAt:new Date().toISOString()};
+      if(onSave){onSave(payload).then(function(r){setSaveStatus(r&&r.success?"saved":"error");}).catch(function(){setSaveStatus("error");});}
+      else{setSaveStatus("saved");}
+    },1200);
+  },[members,dhData,chargeWeeks,lockedWeeks,auditLog,qSnapshots,dhLastSync,loaded,config,payrollOverrides]);
+  // ── CSV PARSER — matches exact charge format ────────────
+  var parseChargeCSV=useCallback(function(text){
+    var rows_raw=parseCSV(text.trim());
+    if(!rows_raw||rows_raw.length<2){showToast("No data found","err");return;}
+    var hdr=rows_raw[0].map(function(h){return(h||"").toLowerCase().trim();});
+    // Auto-detect columns
+    var col=function(names){for(var j=0;j<names.length;j++){for(var i=0;i<hdr.length;i++){if(hdr[i]===names[j])return i;}}for(var j=0;j<names.length;j++){for(var i=0;i<hdr.length;i++){var re=new RegExp("(^|[^a-z])"+names[j].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|[^a-z])");if(re.test(hdr[i]))return i;}}return-1;};
+    var iWE=col(["week ending","week end","we","weekending"]);
+    var iName=col(["name","member","employee","rep"]);if(iName<0)iName=0;
+    var iYTD=col(["ytd raw","ytd","year to date"]);
+    var iRec=col(["split rec","split recruiting","recruiting","rec"]);
+    var iAM=col(["split am","split sales","split sale","am/sales","am sales","am/sale","sales","sale am","account manager","acct mgr","sale","am"]);
+    var iFD=col(["full desk","fulldesk","fd"]);
+    var iRaw=col(["raw charge","raw","total charge","weekly raw"]);
+    // Fallback to positional if no headers detected
+    if(iYTD<0)iYTD=iName+1;if(iRec<0)iRec=iName+2;if(iAM<0)iAM=iName+3;if(iFD<0)iFD=iName+4;if(iRaw<0)iRaw=iName+5;
+    var isBulk=iWE>=0;
+    var detectedCols={WE:iWE>=0?hdr[iWE]:"—",Name:hdr[iName]||"—",YTD:iYTD>=0?hdr[iYTD]:"—",Rec:iRec>=0?hdr[iRec]:"(pos "+iRec+")",AM:iAM>=0?hdr[iAM]:"(pos "+iAM+")",FD:iFD>=0?hdr[iFD]:"(pos "+iFD+")",Raw:iRaw>=0?hdr[iRaw]:"(pos "+iRaw+")"};
+    console.log("SparkV7 Column Detection:",detectedCols,"Headers:",hdr);
+    var rows=[];
+    for(var i=1;i<rows_raw.length;i++){
+      var row=rows_raw[i];
+      var name=(row[iName]||"").trim();
+      if(!name)continue;
+      var ytdRaw=parseCurrency(row[iYTD]);
+      var splitRec=parseCurrency(row[iRec]);
+      var splitAM=parseCurrency(row[iAM]);
+      var fullDesk=parseCurrency(row[iFD]);
+      var rawCharge=parseCurrency(row[iRaw]);
+      if(ytdRaw===0&&splitRec===0&&splitAM===0&&fullDesk===0&&rawCharge===0)continue;
+      var matched=matchMember(name,members);
+      var we=isBulk?(row[iWE]||"").trim():"";
+      rows.push({we:we,name:name,matchedId:matched?matched.id:null,matchedName:matched?matched.name:"UNMATCHED",ytdRaw:ytdRaw,splitRec:splitRec,splitAM:splitAM,fullDesk:fullDesk,rawCharge:rawCharge});
+    }
+    if(!rows.length){showToast("No valid rows","err");return;}
+    if(isBulk){
+      // Group by week ending
+      var weekMap={};rows.forEach(function(r){if(!r.we)return;if(!weekMap[r.we])weekMap[r.we]=[];weekMap[r.we].push(r);});
+      var weekKeys=Object.keys(weekMap).sort(function(a,b){
+        var pa=a.split(/[-\/]/);var pb=b.split(/[-\/]/);
+        var da=new Date(2000+(+pa[2]||0),+(pa[0]||1)-1,+(pa[1]||1));
+        var db=new Date(2000+(+pb[2]||0),+(pb[0]||1)-1,+(pb[1]||1));
+        return da-db;
+      });
+      if(weekKeys.length>1){
+        setImportPreview({rows:rows,unmatchedCount:rows.filter(function(r){return!r.matchedId;}).length,bulk:true,weekMap:weekMap,weekKeys:weekKeys,detectedCols:detectedCols});
+        return;
+      }
+    }
+    setImportPreview({rows:rows,unmatchedCount:rows.filter(function(r){return!r.matchedId;}).length,bulk:false,detectedCols:detectedCols});
+  },[members]);
+  var commitBulkImport=function(){
+    if(!importPreview||!importPreview.bulk)return;
+    var weekMap=importPreview.weekMap;var weekKeys=importPreview.weekKeys;
+    var added=0;var skipped=0;var totalMatched=0;var totalUnmatched=0;
+    var newWeeks=chargeWeeks.slice();
+    weekKeys.forEach(function(we){
+      if(lockedWeeks.includes(we)){skipped++;return;}
+      var allRows=weekMap[we];var rows=allRows.filter(function(r){return!!r.matchedId;});
+      totalMatched+=rows.length;totalUnmatched+=(allRows.length-rows.length);
+      if(!rows.length){skipped++;return;}
+      var week={id:Date.now()+Math.random(),weekEnding:we,importedAt:new Date().toISOString(),rows:rows};
+      var existIdx=newWeeks.findIndex(function(w){return w.weekEnding===we;});
+      if(existIdx>=0){newWeeks[existIdx]=week;}else{newWeeks.push(week);}
+      added++;
+    });
+    // Sort newest first
+    newWeeks.sort(function(a,b){
+      var pa=a.weekEnding.split(/[-\/]/);var pb=b.weekEnding.split(/[-\/]/);
+      var da=new Date(2000+(+pa[2]||0),+(pa[0]||1)-1,+(pa[1]||1));
+      var db=new Date(2000+(+pb[2]||0),+(pb[0]||1)-1,+(pb[1]||1));
+      return db-da;
+    });
+    setChargeWeeks(newWeeks);
+    setImportPreview(null);setImportText("");
+    log("BULK_IMPORT",added+" weeks, "+totalMatched+" matched"+(totalUnmatched?", "+totalUnmatched+" unmatched skipped":""));
+    showToast(added+" weeks imported, "+totalMatched+" rows"+(totalUnmatched?", "+totalUnmatched+" skipped":""));
+    rebuildSnapshots(newWeeks);
+    setView("charges");
+  };
+  var commitChargeImport=function(){
+    if(!importPreview||!importWE){showToast("Set week ending date","err");return;}
+    if(lockedWeeks.includes(importWE)){showToast("Week "+importWE+" is locked","err");return;}
+    var existing=chargeWeeks.find(function(w){return w.weekEnding===importWE;});
+    if(existing){setConfirm({msg:"Week ending "+importWE+" already exists with "+existing.rows.length+" rows. Overwrite with new import?",fn:function(){doCommitWeek(importWE,existing);}});return;}
+    doCommitWeek(importWE,null);
+  };
+  var doCommitWeek=function(we,existing){
+    var matched=importPreview.rows.filter(function(r){return!!r.matchedId;});
+    var skipped=importPreview.rows.length-matched.length;
+    if(!matched.length){showToast("No matched rows to import","err");return;}
+    var week={id:Date.now(),weekEnding:we,importedAt:new Date().toISOString(),rows:matched};
+    var newWeeks=existing?chargeWeeks.map(function(w){return w.weekEnding===we?week:w;}):[week].concat(chargeWeeks);
+    setChargeWeeks(newWeeks);setSelectedWeek(week.id);
+    setImportPreview(null);setImportText("");setConfirm(null);
+    log("IMPORT_WEEK","WE "+we+" \u2014 "+matched.length+" matched"+(skipped?", "+skipped+" skipped: "+importPreview.rows.filter(function(r){return!r.matchedId;}).map(function(r){return r.name;}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(", "):""));
+    showToast(matched.length+" rows imported"+(skipped?", "+skipped+" skipped":""));
+    setView("charges");rebuildSnapshots(newWeeks);
+  };
+  // Rebuild quarter snapshots from all imported weeks
+  // For each quarter, find the LATEST week and snapshot each member's YTD
+  var rebuildSnapshots=function(weeks){
+    var qMap={};
+    (weeks||chargeWeeks).forEach(function(w){
+      var we=w.weekEnding;var d=new Date(we);var q=getQ(we);var yr=d.getFullYear();
+      var qKey="Q"+q+"-"+yr;
+      if(!qMap[qKey]||new Date(w.weekEnding)>new Date(qMap[qKey].weekEnding)){
+        qMap[qKey]={qKey:qKey,quarter:q,year:yr,weekEnding:w.weekEnding,members:w.rows.map(function(r){return{id:r.matchedId,name:r.matchedName||r.name,ytdRaw:r.ytdRaw};})};
+      }
+    });
+    setQSnapshots(Object.values(qMap));
+  };
+  // ── Computed Data ────────────────────────────────────────────
+  var readyDH=useMemo(function(){return dhData.map(function(d,i){return Object.assign({},d,{idx:i});}).filter(function(d){return isReady(d)&&!d.paidOut;});},[dhData]);
+  var anomalies=useMemo(function(){var all=detectAnomalies(dhData,members);return all.filter(function(a){return!dismissedRecon.includes(a.msg);});},[dhData,members,dismissedRecon]);
+  var activeWeek=useMemo(function(){return chargeWeeks.find(function(w){return w.id===selectedWeek;})||null;},[chargeWeeks,selectedWeek]);
+  // ── FLOOR-AWARE COMMISSION ENGINE ─────────────────────────────
+  // Floor rules:
+  // - $25K QTD tier cumulative to unlock (resets each quarter)
+  // - Below floor: deduct $2,500 from raw charge before splitting
+  // - Cross $25K QTD tier mid-week: recalc from $0 (no deduction) that same week
+  // - $100K YTD: floor permanently off rest of year
+  // - DH commission only eligible after crossing $25K QTD tier
+  // - Flat-rate members (managers) exempt from floor
+  // Compute QTD for a member in a given week + when they crossed $25K
+  var getFloorInfo=useCallback(function(row,week){
+    if(!row.matchedId)return{qtd:0,ytd:0,belowFloor:false,deduction:0,reason:"unmatched",dhEligible:false,crossDate:null};
+    var m=members.find(function(x){return x.id===row.matchedId;});
+    if(!m)return{qtd:0,ytd:row.ytdRaw,belowFloor:false,deduction:0,reason:"no member",dhEligible:false,crossDate:null};
+    // Flat-rate members exempt from floor
+    if(m.rates.flat>0)return{qtd:row.ytdRaw,ytd:row.ytdRaw,belowFloor:false,deduction:0,reason:"Flat rate (exempt)",dhEligible:true,crossDate:null};
+    var ytd=row.ytdRaw;
+    // Annual unlock: $100K YTD
+    if(ytd>=FLOOR_ANNUAL)return{qtd:ytd,ytd:ytd,belowFloor:false,deduction:0,reason:"$100K annual unlock",dhEligible:true,crossDate:null};
+    // Compute QTD
+    var we=week.weekEnding;var q=getQ(we);var yr=new Date(we).getFullYear();
+    var qtd;
+    if(q===1){
+      qtd=ytd;
+    }else{
+      var priorQKey="Q"+(q-1)+"-"+yr;
+      var snap=qSnapshots.find(function(s){return s.qKey===priorQKey;});
+      var priorYtd=null;
+      if(snap){var sm=snap.members.find(function(x){return x.id===row.matchedId;});if(sm)priorYtd=sm.ytdRaw;}
+      if(priorYtd===null){
+        var priorQEnd=null;
+        chargeWeeks.forEach(function(w){
+          if(w.id===week.id)return;
+          var wq=getQ(w.weekEnding);var wy=new Date(w.weekEnding).getFullYear();
+          if(wy===yr&&wq===q-1){
+            var mrow=w.rows.find(function(r){return r.matchedId===row.matchedId;});
+            if(mrow&&(!priorQEnd||new Date(w.weekEnding)>new Date(priorQEnd.we)))priorQEnd={we:w.weekEnding,ytd:mrow.ytdRaw};
+          }
+        });
+        if(priorQEnd)priorYtd=priorQEnd.ytd;
+      }
+      if(priorYtd!==null){qtd=ytd-priorYtd;}else{
+        qtd=0;
+        chargeWeeks.forEach(function(w){
+          var wq=getQ(w.weekEnding);var wy=new Date(w.weekEnding).getFullYear();
+          if(wy===yr&&wq===q&&new Date(w.weekEnding)<=new Date(we)){
+            var mrow=w.rows.find(function(r){return r.matchedId===row.matchedId;});
+            if(mrow)qtd+=mrow.rawCharge;
+          }
+        });
+      }
+    }
+    // Find when they crossed $25K QTD tier (for DH eligibility dating)
+    var crossDate=null;
+    if(qtd>=FLOOR){
+      var sortedWeeks=chargeWeeks.slice().sort(function(a,b){return new Date(a.weekEnding)-new Date(b.weekEnding);});
+      var running=0;
+      for(var wi=0;wi<sortedWeeks.length;wi++){
+        var w=sortedWeeks[wi];var wq=getQ(w.weekEnding);var wy=new Date(w.weekEnding).getFullYear();
+        if(wy!==yr||wq!==q)continue;
+        var mrow=w.rows.find(function(r){return r.matchedId===row.matchedId;});
+        if(mrow){running+=mrow.rawCharge;if(running>=FLOOR){crossDate=w.weekEnding;break;}}
+      }
+    }
+    // Floor check — detect mid-week crossing
+    var priorQTD=qtd-row.rawCharge;
+    var crossing=priorQTD<FLOOR&&qtd>=FLOOR;
+    if(crossing){
+      var belowPortion=FLOOR-priorQTD;
+      var abovePortion=row.rawCharge-belowPortion;
+      return{qtd:qtd,ytd:ytd,belowFloor:false,deduction:0,reason:"CROSSING $25K this week ("+fmtD(belowPortion)+" below + "+fmtD(abovePortion)+" above)",dhEligible:true,crossDate:crossDate,crossing:true,belowPortion:belowPortion,abovePortion:abovePortion,priorQTD:priorQTD};
+    }
+    if(qtd>=FLOOR)return{qtd:qtd,ytd:ytd,belowFloor:false,deduction:0,reason:"Above $25K QTD tier ("+fmt(qtd)+")",dhEligible:true,crossDate:crossDate,crossing:false,belowPortion:0,abovePortion:0,priorQTD:priorQTD};
+    // Below floor: if raw < $2,500 => $0; if raw >= $2,500 => deduct $2,500
+    var rawTotal=row.rawCharge;
+    if(rawTotal<FLOOR_WEEKLY_DEDUCT){
+      return{qtd:qtd,ytd:ytd,belowFloor:true,deduction:rawTotal,reason:fmt(qtd)+" QTD · raw "+fmtD(rawTotal)+" < $2,500 = $0",dhEligible:false,crossDate:null,crossing:false,belowPortion:0,abovePortion:0,priorQTD:priorQTD};
+    }
+    return{qtd:qtd,ytd:ytd,belowFloor:true,deduction:FLOOR_WEEKLY_DEDUCT,reason:fmt(qtd)+" QTD · "+fmtD(rawTotal)+" - $2,500 = "+fmtD(rawTotal-FLOOR_WEEKLY_DEDUCT)+" commissionable",dhEligible:false,crossDate:null,crossing:false,belowPortion:0,abovePortion:0,priorQTD:priorQTD};
+  },[members,chargeWeeks,qSnapshots]);
+  // Commission calc: pro-rata $2,500 deduction when below $25K QTD tier, full raw when above
+  var calcRowComm=useCallback(function(row,floorInfo,week){
+    var empty={splitRecComm:0,splitAMComm:0,fdComm:0,totalComm:0,deduction:0,trueUp:0,rate:"—",steps:[],floorInfo:null};
+    if(!row.matchedId)return empty;
+    var m=members.find(function(x){return x.id===row.matchedId;});
+    if(!m)return empty;
+    // Exception: HOLD members get $0 commission
+    if(m.notes&&m.notes.toLowerCase().indexOf("hold")>=0){
+      return{splitRecComm:0,splitAMComm:0,fdComm:0,totalComm:0,deduction:0,trueUp:0,rate:"HOLD",steps:[{t:"Commission Hold",d:m.notes,a:0}],floorInfo:floorInfo};
+    }
+    // Guaranteed weekly commission (fixed amount regardless of charges)
+    if(m.guarantee&&m.guarantee.active&&m.guarantee.amount>0){
+      var expired=m.guarantee.endDate&&week&&week.weekEnding>m.guarantee.endDate;
+      if(!expired){
+        return{splitRecComm:0,splitAMComm:0,fdComm:0,totalComm:m.guarantee.amount,deduction:0,trueUp:0,rate:"Floor",steps:[{t:"Weekly Floor",d:"Fixed "+fmtD(m.guarantee.amount)+"/week"+(m.guarantee.endDate?" through "+m.guarantee.endDate:""),a:m.guarantee.amount}],floorInfo:floorInfo};
+      }
+    }
+    var r=m.rates,steps=[];
+    var fi=floorInfo||{belowFloor:false,deduction:0};
+    var rawTotal=row.rawCharge;
+    // FD is embedded INSIDE Split AM — extract pure AM portion
+    var pureSR=row.splitRec;
+    var pureAM=Math.max(0,row.splitAM-row.fullDesk); // AM-only (subtract FD overlap)
+    var pureFD=row.fullDesk;
+    // Flat rate (managers) — exempt from floor, paid quarterly
+    if(r.flat>0){
+      var total=rawTotal*r.flat; // raw = splitRec + splitAM (FD already inside AM)
+      steps.push({t:"Flat Rate (Quarterly)",d:"Paid quarterly, not weekly",a:0});
+      if(pureSR)steps.push({t:"Split Rec (Flat)",d:fmtD(pureSR)+" × "+(r.flat*100)+"%",a:pureSR*r.flat});
+      if(pureAM)steps.push({t:"Split AM (Flat)",d:fmtD(pureAM)+" × "+(r.flat*100)+"%",a:pureAM*r.flat});
+      if(pureFD)steps.push({t:"Full Desk (Flat)",d:fmtD(pureFD)+" × "+(r.flat*100)+"%",a:pureFD*r.flat});
+      return{splitRecComm:pureSR*r.flat,splitAMComm:pureAM*r.flat,fdComm:pureFD*r.flat,totalComm:total,deduction:0,trueUp:0,rate:(r.flat*100)+"%F",steps:steps,floorInfo:fi};
+    }
+    // Below $25K QTD tier floor logic
+    if(fi.belowFloor){
+      // Under $2,500 weekly raw = $0 commission, gone forever
+      if(rawTotal<FLOOR_WEEKLY_DEDUCT){
+        steps.push({t:"Below Weekly Minimum",d:fmtD(rawTotal)+" raw < $2,500 minimum — $0 commission",a:0});
+        return{splitRecComm:0,splitAMComm:0,fdComm:0,totalComm:0,deduction:rawTotal,trueUp:0,rate:"$0",steps:steps,floorInfo:fi};
+      }
+      // At or above $2,500: commission on (raw - $2,500), pro-rata across buckets
+      var commissionable=rawTotal-FLOOR_WEEKLY_DEDUCT;
+      var ratio=rawTotal>0?commissionable/rawTotal:0;
+      var adjSR=pureSR*ratio;var adjAM=pureAM*ratio;var adjFD=pureFD*ratio;
+      steps.push({t:"Tier Deduction",d:fmtD(rawTotal)+" raw - $2,500 = "+fmtD(commissionable)+" commissionable (pro-rata)",a:0});
+      var src=adjSR*r.sA;var sac=adjAM*r.sA;var fdc=adjFD*r.fdA;
+      if(adjSR>0)steps.push({t:"Split Recruiter",d:fmtD(adjSR)+" (adj) × "+(r.sA*100)+"%",a:src});
+      if(adjAM>0)steps.push({t:"Split AM/Sales",d:fmtD(adjAM)+" (adj from "+fmtD(row.splitAM)+" - "+fmtD(pureFD)+" FD) × "+(r.sA*100)+"%",a:sac});
+      if(adjFD>0)steps.push({t:"Full Desk",d:fmtD(adjFD)+" (adj) × "+(r.fdA*100)+"%",a:fdc});
+      return{splitRecComm:src,splitAMComm:sac,fdComm:fdc,totalComm:src+sac+fdc,deduction:FLOOR_WEEKLY_DEDUCT,trueUp:0,rate:(r.fdA*100)+"/"+(r.sA*100)+"%",steps:steps,floorInfo:fi};
+    }
+    // CROSSING WEEK: split charge into below and above portions
+    if(fi.crossing){
+      var belowP=fi.belowPortion;var aboveP=fi.abovePortion;
+      var belowRatio=rawTotal>0?belowP/rawTotal:0;
+      var aboveRatio=rawTotal>0?aboveP/rawTotal:0;
+      steps.push({t:"Crossing $25K",d:"Prior QTD "+fmtD(fi.priorQTD)+" + "+fmtD(rawTotal)+" this week = "+fmtD(fi.qtd)+" QTD",a:0});
+      // Below portion
+      var belowComm=0;
+      if(belowP<FLOOR_WEEKLY_DEDUCT){
+        steps.push({t:"Below Portion",d:fmtD(belowP)+" (gap to $25K) < $2,500 → $0",a:0});
+      }else{
+        var belowCommissionable=belowP-FLOOR_WEEKLY_DEDUCT;
+        var bRatio=belowP>0?belowCommissionable/belowP:0;
+        var bSR=pureSR*belowRatio*bRatio;var bAM=pureAM*belowRatio*bRatio;var bFD=pureFD*belowRatio*bRatio;
+        belowComm=bSR*r.sA+bAM*r.sA+bFD*r.fdA;
+        steps.push({t:"Below Portion",d:fmtD(belowP)+" - $2,500 = "+fmtD(belowCommissionable)+" commissionable → "+fmtD(belowComm),a:belowComm});
+      }
+      // Above portion: full rate
+      var aSR=pureSR*aboveRatio;var aAM=pureAM*aboveRatio;var aFD=pureFD*aboveRatio;
+      var aboveComm=aSR*r.sA+aAM*r.sA+aFD*r.fdA;
+      steps.push({t:"Above Portion",d:fmtD(aboveP)+" at full rate → "+fmtD(aboveComm),a:aboveComm});
+      var totalC=belowComm+aboveComm;
+      return{splitRecComm:(pureSR*belowRatio*(belowP>=FLOOR_WEEKLY_DEDUCT?(belowP-FLOOR_WEEKLY_DEDUCT)/belowP:0)+pureSR*aboveRatio)*r.sA,splitAMComm:(pureAM*belowRatio*(belowP>=FLOOR_WEEKLY_DEDUCT?(belowP-FLOOR_WEEKLY_DEDUCT)/belowP:0)+pureAM*aboveRatio)*r.sA,fdComm:(pureFD*belowRatio*(belowP>=FLOOR_WEEKLY_DEDUCT?(belowP-FLOOR_WEEKLY_DEDUCT)/belowP:0)+pureFD*aboveRatio)*r.fdA,totalComm:totalC,deduction:belowP<FLOOR_WEEKLY_DEDUCT?belowP:FLOOR_WEEKLY_DEDUCT,trueUp:0,rate:(r.fdA*100)+"/"+(r.sA*100)+"%",steps:steps,floorInfo:fi};
+    }
+    // Above $25K QTD tier (or $100K annual): full raw, no deduction
+    var src2=pureSR*r.sA;var sac2=pureAM*r.sA;var fdc2=pureFD*r.fdA;
+    if(pureSR>0)steps.push({t:"Split Recruiter",d:fmtD(pureSR)+" × "+(r.sA*100)+"%",a:src2});
+    if(pureAM>0)steps.push({t:"Split AM/Sales",d:fmtD(pureAM)+" ("+fmtD(row.splitAM)+" - "+fmtD(pureFD)+" FD) × "+(r.sA*100)+"%",a:sac2});
+    if(pureFD>0)steps.push({t:"Full Desk",d:fmtD(pureFD)+" × "+(r.fdA*100)+"%",a:fdc2});
+    if(!fi.belowFloor&&fi.qtd>=FLOOR)steps.push({t:"Tier Status",d:"Above $25K QTD tier — no deduction, full raw commission",a:0});
+    return{splitRecComm:src2,splitAMComm:sac2,fdComm:fdc2,totalComm:src2+sac2+fdc2,deduction:0,trueUp:0,rate:(r.fdA*100)+"/"+(r.sA*100)+"%",steps:steps,floorInfo:fi};
+  },[members,chargeWeeks,getFloorInfo]);
+  // Enriched week data with commissions + floor status
+  var weekData=useMemo(function(){
+    if(!activeWeek)return[];
+    return activeWeek.rows.map(function(row,idx){
+      var fi=getFloorInfo(row,activeWeek);
+      var comm=calcRowComm(row,fi,activeWeek);
+      var m=row.matchedId?members.find(function(x){return x.id===row.matchedId;}):null;
+      return Object.assign({},row,comm,{member:m,aboveFloor:!fi.belowFloor,floorInfo:fi,origIdx:idx});
+    }).sort(function(a,b){return b.rawCharge-a.rawCharge;});
+  },[activeWeek,calcRowComm,getFloorInfo,members]);
+  var weekTotals=useMemo(function(){
+    var t={splitRec:0,splitAM:0,fullDesk:0,rawCharge:0,totalComm:0,trueUp:0,deductions:0};
+    weekData.forEach(function(r){t.splitRec+=r.splitRec;t.splitAM+=r.splitAM;t.fullDesk+=r.fullDesk;t.rawCharge+=r.rawCharge;t.totalComm+=r.totalComm;t.trueUp+=(r.trueUp||0);t.deductions+=(r.deduction||0);});
+    return t;
+  },[weekData]);
+  // YTD standings from latest week
+  var ytdStandings=useMemo(function(){
+    var latest=chargeWeeks.length?chargeWeeks[0]:null;
+    if(!latest)return[];
+    return latest.rows.map(function(r){
+      var m=r.matchedId?members.find(function(x){return x.id===r.matchedId;}):null;
+      var fi=getFloorInfo(r,latest);
+      // Sparkline: weekly raw charges across all loaded weeks (chronological)
+      var weeklyRaw=chargeWeeks.slice().reverse().map(function(w){
+        var row=w.rows.find(function(x){return x.matchedId===r.matchedId;});
+        return row?row.rawCharge:0;
+      });
+      // Floor forecast: weeks to $25K at avg weekly raw
+      var avgWeekly=weeklyRaw.length?weeklyRaw.reduce(function(a,v){return a+v;},0)/weeklyRaw.length:0;
+      var weeksTo25K=fi.qtd>=FLOOR?0:avgWeekly>0?Math.ceil((FLOOR-fi.qtd)/avgWeekly):null;
+      return{name:r.matchedName||r.name,ytdRaw:r.ytdRaw,qtd:fi.qtd,aboveFloor:!fi.belowFloor,dhEligible:fi.dhEligible,unit:m?m.unit:"",member:m,floorInfo:fi,weeklyRaw:weeklyRaw,avgWeekly:avgWeekly,weeksTo25K:weeksTo25K};
+    }).sort(function(a,b){return b.ytdRaw-a.ytdRaw;});
+  },[chargeWeeks,members,getFloorInfo]);
+  // DH filtered
+  var dhF=useMemo(function(){var d=dhData.slice();if(dhSt==="r")d=d.filter(function(x){return isReady(x)&&!x.paidOut;});else if(dhSt!=="ALL")d=d.filter(function(x){return x.st===dhSt;});if(dhUnit!=="ALL")d=d.filter(function(x){return x.unit===dhUnit;});if(dhAM!=="ALL")d=d.filter(function(x){return x.am===dhAM;});if(dhRec!=="ALL")d=d.filter(function(x){return x.rec===dhRec;});if(dhFilter){var f=dhFilter.toLowerCase();d=d.filter(function(x){return(x.cl+x.can+x.rec+x.am+x.pos).toLowerCase().includes(f);});}return d;},[dhData,dhSt,dhFilter,dhUnit,dhAM,dhRec]);
+  var dhUnits=useMemo(function(){var s=new Set();dhData.forEach(function(d){if(d.unit)s.add(d.unit);});return Array.from(s).sort();},[dhData]);
+  var dhAMs=useMemo(function(){var s=new Set();dhData.forEach(function(d){if(d.am)s.add(d.am);});return Array.from(s).sort();},[dhData]);
+  var dhRecs=useMemo(function(){var s=new Set();dhData.forEach(function(d){if(d.rec)s.add(d.rec);});return Array.from(s).sort();},[dhData]);
+  var eM=editMemberId?members.find(function(x){return x.id===editMemberId;}):null;
+  var goEdit=function(id){setEditMemberId(id);setView("edit");};
+  var upM=function(id,fn){setMembers(function(p){return p.map(function(e){return e.id===id?fn(Object.assign({},e)):e;});});};
+  var addMember=function(){var m=initM(["New Member","Talent","","MI Metro","Recruiter",0.15,0.05,0.15,0.05,0,0,""],members);setMembers(function(p){return p.concat(m);});goEdit(m.id);log("ADD_MEMBER","New Member (PIN: "+m.pin+")");showToast("New member added — 6-digit PIN auto-assigned");};
+  // DH operations
+  var blankDH={cl:"",am:"",rec:"",amId:null,recId:null,can:"",pos:"",inv:0,chg:0,typ:"S",raw:0,unit:"MI Metro",sd:"",gd:90,cd:"",st:"p",invPaid:"",payrollWE:"",paidDate:"",paidOut:false,notes:""};
+  var saveDH=function(d){setDhData(function(p){if(dhEditIdx!==null&&dhEditIdx>=0){var n=p.slice();n[dhEditIdx]=d;return n;}return p.concat(d);});setDhEditIdx(null);log("DH_SAVE",d.can+" @ "+d.cl);showToast("DH saved");};
+  var deleteDH=function(idx){setConfirm({msg:"Delete this DH placement?",fn:function(){setDhData(function(p){return p.filter(function(_,i){return i!==idx;});});setDhEditIdx(null);setConfirm(null);log("DH_DELETE","Index "+idx);showToast("DH deleted");}});};
+  var markPaid=function(idx){var we=payrollWeek?payrollWeek.weekEnding:"";setDhData(function(p){var n=p.slice();n[idx]=Object.assign({},n[idx],{paidOut:true,paidDate:new Date().toISOString().slice(0,10),payrollWE:we});return n;});log("DH_PAID",dhData[idx].can+" WE "+we);showToast("Marked paid for WE "+we);};
+  // DH Upload parser (like charge import)
+  var [dhImportPreview,setDhImportPreview]=useState(null);
+  var parseDHFile=useCallback(function(text){
+    var rows_raw=parseCSV(text.trim());
+    if(!rows_raw||rows_raw.length<2){showToast("No DH data found","err");return;}
+    var hdr=rows_raw[0].map(function(h){return(h||"").toLowerCase().trim();});
+    var col=function(names){for(var j=0;j<names.length;j++){for(var i=0;i<hdr.length;i++){if(hdr[i]===names[j])return i;}}for(var j=0;j<names.length;j++){for(var i=0;i<hdr.length;i++){var re=new RegExp("(^|[^a-z])"+names[j].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|[^a-z])");if(re.test(hdr[i]))return i;}}return-1;};
+    var iCl=col(["client"]);var iAm=col(["am","account manager","account mgr","sales"]);
+    var iRec=col(["rec","recruiter"]);var iCan=col(["candidate","cand"]);
+    var iPos=col(["position","pos","title","job"]);var iRaw=col(["raw","charge","fee"]);
+    var iTyp=col(["type","typ"]);var iUnit=col(["unit","bu","business"]);
+    var iSd=col(["start","sd","start date"]);var iGd=col(["guarantee","gd","days"]);
+    var iInv=col(["invoice total","invoice","inv total"]);var iInvPaid=col(["invoice paid","inv paid","invpaid"]);
+    var iSt=col(["status","st"]);var iNotes=col(["notes","note"]);
+    if(iCan<0&&iCl<0){showToast("Could not detect Client/Candidate columns","err");return;}
+    var deals=[];
+    for(var i=1;i<rows_raw.length;i++){
+      var row=rows_raw[i];
+      var can=(row[iCan>=0?iCan:0]||"").trim();
+      var cl=(row[iCl>=0?iCl:1]||"").trim();
+      if(!can&&!cl)continue;
+      var raw=parseCurrency(row[iRaw>=0?iRaw:0]);
+      if(raw<=0)continue;
+      var am=(row[iAm>=0?iAm:0]||"").trim();
+      var rec=(row[iRec>=0?iRec:0]||"").trim();
+      var amMatch=matchMember(am,members);var recMatch=matchMember(rec,members);
+      var typRaw=(row[iTyp>=0?iTyp:0]||"").toUpperCase().trim();
+      var typ=typRaw.includes("FULL")||typRaw==="FD"||typRaw==="F"?"FD":"S";
+      var sd=(row[iSd>=0?iSd:0]||"").trim();
+      var gd=parseInt(row[iGd>=0?iGd:0])||90;
+      var inv=parseCurrency(row[iInv>=0?iInv:0]);
+      var invPaid=(row[iInvPaid>=0?iInvPaid:0]||"").trim();
+      var stRaw=(row[iSt>=0?iSt:0]||"").toLowerCase().trim();
+      var st=stRaw.includes("term")?"t":stRaw.includes("done")||stRaw.includes("paid out")?"d":stRaw.includes("clear")?"c":stRaw.includes("open")||stRaw.includes("active")?"o":"p";
+      var notes=(row[iNotes>=0?iNotes:0]||"").trim();
+      // Store fuzzy-matched IDs (user can override in assignment step)
+      deals.push({cl:cl,am:amMatch?amMatch.name:am,rec:recMatch?recMatch.name:rec,amId:amMatch?amMatch.id:null,recId:recMatch?recMatch.id:null,can:can,pos:(row[iPos>=0?iPos:0]||"").trim(),inv:inv,chg:0,typ:typ,raw:raw,unit:(row[iUnit>=0?iUnit:0]||"").trim()||"MI Metro",sd:sd,gd:gd,cd:"",st:st,invPaid:invPaid,payrollWE:"",paidDate:"",paidOut:st==="d",notes:notes,_amRaw:am,_recRaw:rec,_idx:i-1});
+    }
+    if(!deals.length){showToast("No valid DH deals found","err");return;}
+    setDhImportPreview({deals:deals,step:"assign"});setConfirm(null);
+  },[members]);
+  var updateDHPreview=function(idx,field,value){
+    setDhImportPreview(function(prev){
+      if(!prev)return prev;
+      var deals=prev.deals.slice();deals[idx]=Object.assign({},deals[idx]);
+      if(field==="amId"){
+        var m=members.find(function(x){return String(x.id)===String(value);});
+        deals[idx].amId=m?m.id:null;deals[idx].am=m?m.name:deals[idx]._amRaw;
+      }else if(field==="recId"){
+        var m=members.find(function(x){return String(x.id)===String(value);});
+        deals[idx].recId=m?m.id:null;deals[idx].rec=m?m.name:deals[idx]._recRaw;
+      }else{deals[idx][field]=value;}
+      return Object.assign({},prev,{deals:deals});
+    });
+  };
+  var doCommitDH=function(){
+    if(!dhImportPreview||!dhImportPreview.deals||!dhImportPreview.deals.length){showToast("No DH deals to import","err");return;}
+    var batchId="B"+Date.now();
+    var clean=dhImportPreview.deals.map(function(d){var c=Object.assign({},d);delete c._amRaw;delete c._recRaw;delete c._idx;return c;});
+    var dhKey=function(x){return(x.can+"|"+x.cl).toLowerCase().trim();};
+    var added=0;var updated=0;
+    setDhData(function(prev){
+      var existing={};prev.forEach(function(d){existing[dhKey(d)]=d;});
+      var merged=[];var seen={};
+      clean.forEach(function(d){
+        var k=dhKey(d);seen[k]=true;var old=existing[k];
+        if(old){merged.push(Object.assign({},old,{am:d.am,rec:d.rec,amId:d.amId||old.amId,recId:d.recId||old.recId,pos:d.pos,inv:d.inv,typ:d.typ,raw:d.raw,unit:d.unit,sd:d.sd||old.sd,gd:d.gd,st:old.paidOut?"d":(d.st||old.st),invPaid:d.invPaid||old.invPaid,paidOut:old.paidOut||d.paidOut,paidDate:old.paidDate||d.paidDate,notes:d.notes||old.notes,lastSync:new Date().toISOString().slice(0,10)}));updated++;}
+        else{merged.push(Object.assign({},d,{firstSeen:d.sd||new Date().toISOString().slice(0,10),lastSync:new Date().toISOString().slice(0,10),batchId:batchId}));added++;}
+      });
+      prev.forEach(function(d){var k=dhKey(d);if(!seen[k])merged.push(d);});
+      return merged;
+    });
+    log("DH_IMPORT",batchId+" - "+clean.length+" deals");
+    showToast(clean.length+" DH deals imported");
+    setDhImportPreview(null);setDhLastSync(new Date().toISOString());setConfirm(null);
+  };
+  var commitDHImport=function(){
+    if(!dhImportPreview)return;
+    var unassigned=dhImportPreview.deals.filter(function(d){return!d.amId&&!d.recId;});
+    if(unassigned.length>0){setConfirm({msg:unassigned.length+" deal"+(unassigned.length>1?"s have":" has")+" no AM or Recruiter assigned. Import anyway?",fn:function(){doCommitDH();}});return;}
+    doCommitDH();
+  };
+  // Auto-promote DH statuses + auto-calc clearance dates
+  useEffect(function(){
+    if(!loaded||!dhData.length)return;
+    var changed=false;
+    var updated=dhData.map(function(d){
+      if(d.paidOut||d.st==="t"||d.st==="d")return d;
+      var cd=d.cd;
+      if(!cd&&d.sd&&d.gd){var sdDate=new Date(d.sd);if(!isNaN(sdDate)){sdDate.setDate(sdDate.getDate()+d.gd);cd=sdDate.toISOString().slice(0,10);}}
+      var newSt=d.st;
+      if(cd&&new Date(cd)<=NOW&&(d.st==="o"||d.st==="p")){newSt="c";changed=true;}
+      if((cd||"")!==(d.cd||"")||newSt!==d.st){changed=true;return Object.assign({},d,{cd:cd||d.cd,st:newSt});}
+      return d;
+    });
+    if(changed)setDhData(updated);
+  },[loaded]);
+  // Mark invoice paid on a DH deal
+  var markInvPaid=function(idx){setDhData(function(p){var n=p.slice();n[idx]=Object.assign({},n[idx],{invPaid:new Date().toISOString().slice(0,10)});return n;});log("DH_INV_PAID",dhData[idx].can);showToast("Invoice marked paid");};
+  var deleteWeek=function(wid){var w=chargeWeeks.find(function(x){return x.id===wid;});if(w&&lockedWeeks.includes(w.weekEnding)){showToast("Cannot delete locked week "+w.weekEnding,"err");return;}setConfirm({msg:"Delete charge week WE "+w.weekEnding+"? ("+w.rows.length+" members)\n\nThis removes all charge data and commission calculations for this week. Cannot be undone.",fn:function(){setChargeWeeks(function(p){return p.filter(function(w){return w.id!==wid;});});if(selectedWeek===wid)setSelectedWeek(null);setConfirm(null);log("DELETE_WEEK","WE "+w.weekEnding+" — "+w.rows.length+" rows removed");showToast("Week "+w.weekEnding+" deleted");}});};
+  var updateChargeRow=function(weekId,rowIdx,field,value){
+    setChargeWeeks(function(prev){return prev.map(function(w){
+      if(w.id!==weekId)return w;
+      var rows=w.rows.slice();rows[rowIdx]=Object.assign({},rows[rowIdx]);
+      rows[rowIdx][field]=+value||0;
+      // Recalc rawCharge: Raw = Split Rec + Split AM (FD is INSIDE Split AM, not additive)
+      if(field==="splitRec"||field==="splitAM"||field==="fullDesk"){
+        rows[rowIdx].rawCharge=rows[rowIdx].splitRec+rows[rowIdx].splitAM;
+      }
+      return Object.assign({},w,{rows:rows});
+    });});
+  };
+  // Payroll: combine contract commissions + DH payouts for a selected week
+  var [payrollWeekId,setPayrollWeekId]=useState(null);
+  var [payrollDHSelected,setPayrollDHSelected]=useState({});
+  var [manualPayoutOpen,setManualPayoutOpen]=useState(false);
+  var [manualPayoutMember,setManualPayoutMember]=useState("");
+  var [manualPayoutAmount,setManualPayoutAmount]=useState("");
+  var [manualPayoutReason,setManualPayoutReason]=useState("");
+  var [stmtMember,setStmtMember]=useState(null);
+  var payrollWeek=useMemo(function(){return chargeWeeks.find(function(w){return w.id===payrollWeekId;})||null;},[chargeWeeks,payrollWeekId]);
+  var payrollData=useMemo(function(){
+    var map={};
+    // Contract commissions from selected charge week (with floor logic)
+    if(payrollWeek){payrollWeek.rows.forEach(function(row){
+      var fi=getFloorInfo(row,payrollWeek);
+      var comm=calcRowComm(row,fi,payrollWeek);var m=row.matchedId?members.find(function(x){return x.id===row.matchedId;}):null;
+      var key=row.matchedName||row.name;
+      map[key]={name:key,unit:m?m.unit:"",contractComm:comm.totalComm,splitRecComm:comm.splitRecComm,splitAMComm:comm.splitAMComm,fdComm:comm.fdComm,deduction:comm.deduction,trueUp:0,dhPayouts:[],dhTotal:0,total:comm.totalComm,steps:comm.steps,rate:comm.rate,floorInfo:fi,dhEligible:fi.dhEligible,crossDate:fi.crossDate};
+    });}
+    // DH payouts — include SELECTED ready deals + deals already paid for this week
+    var we=payrollWeek?payrollWeek.weekEnding:"";
+    var selectedDH=readyDH.filter(function(d){return payrollDHSelected[d.idx];});
+    // Also include DHs already paid out for this specific week
+    var paidForWeek=dhData.filter(function(d){return d.paidOut&&d.payrollWE===we;}).map(function(d,i){return Object.assign({},d,{idx:"paid_"+i});});
+    // Merge without duplicates (by candidate+client key)
+    var dhKey=function(d){return(d.can+"|"+d.cl).toLowerCase();};
+    var seen={};selectedDH.forEach(function(d){seen[dhKey(d)]=true;});
+    paidForWeek.forEach(function(d){if(!seen[dhKey(d)]){selectedDH.push(d);seen[dhKey(d)]=true;}});
+    selectedDH.forEach(function(d){
+      var amM=d.amId?members.find(function(m){return m.id===d.amId;}):findM(d.am,members);
+      var recM=d.recId?members.find(function(m){return m.id===d.recId;}):findM(d.rec,members);
+      var amKey=amM?amM.name:d.am;var recKey=recM?recM.name:d.rec;
+      var isFullDesk=d.typ==="FD";
+      var dealStart=d.sd||"";
+      // Check DH eligibility: must have crossed floor AND deal start date must be after crossing date
+      var amEntry=map[amKey];var recEntry=map[recKey];
+      var amCross=amEntry?amEntry.crossDate:null;var recCross=recEntry?recEntry.crossDate:null;
+      var amEligible=amEntry&&amEntry.dhEligible&&(!amCross||!dealStart||dealStart>=amCross);
+      var recEligible=recEntry&&recEntry.dhEligible&&(!recCross||!dealStart||dealStart>=recCross);
+      if(isFullDesk){
+        var r=amM?amM.rates.fdDH:0.15;var payout=amEligible?d.raw*r:0;
+        if(!map[amKey])map[amKey]={name:amKey,unit:amM?amM.unit:"",contractComm:0,splitRecComm:0,splitAMComm:0,fdComm:0,deduction:0,dhPayouts:[],dhTotal:0,total:0,steps:[],rate:"",floorInfo:null,dhEligible:false,crossDate:null};
+        map[amKey].dhPayouts.push({can:d.can,cl:d.cl,raw:d.raw,rate:r,payout:payout,typ:"FD",eligible:amEligible,reason:!amEligible?(amEntry&&amEntry.dhEligible?"Start date before crossing $25K":"Below $25K QTD tier"):""});
+        map[amKey].dhTotal+=payout;map[amKey].total+=payout;
+      }else{
+        var amR=amM?amM.rates.sDH:0.06;var recR=recM?recM.rates.sDH:0.06;
+        [[amKey,amM,amR,amEligible,amEntry],[recKey,recM,recR,recEligible,recEntry]].forEach(function(x){
+          var k=x[0],m=x[1],rate=x[2],elig=x[3],entry=x[4];var payout=elig?d.raw*rate:0;
+          if(!map[k])map[k]={name:k,unit:m?m.unit:"",contractComm:0,splitRecComm:0,splitAMComm:0,fdComm:0,deduction:0,dhPayouts:[],dhTotal:0,total:0,steps:[],rate:"",floorInfo:null,dhEligible:false,crossDate:null};
+          map[k].dhPayouts.push({can:d.can,cl:d.cl,raw:d.raw,rate:rate,payout:payout,typ:k===amKey?"AM":"REC",eligible:elig,reason:!elig?(entry&&entry.dhEligible?"Start date before crossing $25K":"Below $25K QTD tier"):""});
+          map[k].dhTotal+=payout;map[k].total+=payout;
+        });
+      }
+    });
+    // Inject guarantee members who may not have charge rows
+    members.forEach(function(m){
+      if(!m.guarantee||!m.guarantee.active||!m.guarantee.amount)return;
+      if(map[m.name])return; // already has a charge row
+      var expired=m.guarantee.endDate&&payrollWeek&&payrollWeek.weekEnding>m.guarantee.endDate;
+      if(expired)return;
+      map[m.name]={name:m.name,unit:m.unit||"",contractComm:m.guarantee.amount,splitRecComm:0,splitAMComm:0,fdComm:0,deduction:0,dhPayouts:[],dhTotal:0,total:m.guarantee.amount,steps:[{t:"Weekly Floor",d:"Fixed "+fmtD(m.guarantee.amount)+"/week"+(m.guarantee.endDate?" through "+m.guarantee.endDate:""),a:m.guarantee.amount}],rate:"Floor",floorInfo:null,dhEligible:false,crossDate:null};
+    });
+    return Object.values(map).sort(function(a,b){return b.total-a.total;});
+  },[payrollWeek,readyDH,members,calcRowComm,getFloorInfo,payrollDHSelected]);
+  // ── Executive Summary ────────────────────────────────────────
+  var [execWeekId,setExecWeekId]=useState(null);
+  var execWeek=useMemo(function(){return chargeWeeks.find(function(w){return w.id===execWeekId;})||null;},[chargeWeeks,execWeekId]);
+  var execData=useMemo(function(){
+    if(!execWeek)return null;
+    var rows=execWeek.rows;var tContract=0,tDH=0,tFloor=0;
+    var earners=0,floorCount=0,floorNames=[],belowFloorNames=[];
+    var topEarner={name:"",total:0,contract:0,dh:0};
+    var perMember={};
+    // Contract commissions (floor-aware)
+    rows.forEach(function(row){
+      var fi=getFloorInfo(row,execWeek);
+      var comm=calcRowComm(row,fi,execWeek);var m=row.matchedId?members.find(function(x){return x.id===row.matchedId;}):null;
+      var key=row.matchedName||row.name;
+      perMember[key]={name:key,unit:m?m.unit:"",contract:comm.totalComm,dh:0,floor:0,total:comm.totalComm,ytdRaw:row.ytdRaw,qtd:fi.qtd,aboveFloor:!fi.belowFloor,dhEligible:fi.dhEligible,rates:m?m.rates:null,splitRec:row.splitRec,splitAM:row.splitAM,fullDesk:row.fullDesk,rawCharge:row.rawCharge,deduction:comm.deduction,floorInfo:fi};
+      tContract+=comm.totalComm;
+      if(comm.totalComm>0)earners++;
+      if(!fi.belowFloor){floorCount++;floorNames.push(key);}
+      else{belowFloorNames.push(key);}
+    });
+    // DH payouts (eligibility-aware) — include ready + already paid for this week
+    var dhPaidThisWeek=[];
+    var execWE=execWeek?execWeek.weekEnding:"";
+    var execDHList=readyDH.slice();
+    var execDHSeen={};execDHList.forEach(function(d){execDHSeen[(d.can+"|"+d.cl).toLowerCase()]=true;});
+    dhData.filter(function(d){return d.paidOut&&d.payrollWE===execWE;}).forEach(function(d){var k=(d.can+"|"+d.cl).toLowerCase();if(!execDHSeen[k]){execDHList.push(Object.assign({},d,{idx:"ep"}));execDHSeen[k]=true;}});
+    execDHList.forEach(function(d){
+      var amM=d.amId?members.find(function(m){return m.id===d.amId;}):findM(d.am,members);
+      var recM=d.recId?members.find(function(m){return m.id===d.recId;}):findM(d.rec,members);
+      var amName=amM?amM.name:d.am;var recName=recM?recM.name:d.rec;
+      var amElig=perMember[amName]?perMember[amName].dhEligible:false;
+      var recElig=perMember[recName]?perMember[recName].dhEligible:false;
+      if(d.typ==="FD"){
+        var r=amM?amM.rates.fdDH:0.15;var payout=amElig?d.raw*r:0;
+        if(!perMember[amName])perMember[amName]={name:amName,unit:amM?amM.unit:"",contract:0,dh:0,floor:0,total:0,ytdRaw:0,qtd:0,aboveFloor:false,dhEligible:false,rates:null,splitRec:0,splitAM:0,fullDesk:0,rawCharge:0,deduction:0,floorInfo:null};
+        perMember[amName].dh+=payout;perMember[amName].total+=payout;tDH+=payout;
+        dhPaidThisWeek.push({can:d.can,cl:d.cl,raw:d.raw,payout:payout,am:amName,rec:recName,typ:"FD",eligible:amElig});
+      }else{
+        var amR=amM?amM.rates.sDH:0.06;var recR=recM?recM.rates.sDH:0.06;
+        [[amName,amR,amM,amElig],[recName,recR,recM,recElig]].forEach(function(x){
+          var k=x[0],rate=x[1],m=x[2],elig=x[3];var payout=elig?d.raw*rate:0;
+          if(!perMember[k])perMember[k]={name:k,unit:m?m.unit:"",contract:0,dh:0,floor:0,total:0,ytdRaw:0,qtd:0,aboveFloor:false,dhEligible:false,rates:null,splitRec:0,splitAM:0,fullDesk:0,rawCharge:0,deduction:0,floorInfo:null};
+          perMember[k].dh+=payout;perMember[k].total+=payout;tDH+=payout;
+        });
+        dhPaidThisWeek.push({can:d.can,cl:d.cl,raw:d.raw,payout:d.raw*(amR||0.06),am:amName,rec:recName,typ:"S",eligible:amElig&&recElig});
+      }
+    });
+    var grandTotal=tContract+tDH+tFloor;
+    // Add guarantee members who may not have charge rows
+    var tGuarantee=0;
+    var gMembers=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0&&(!m.guarantee.endDate||!execWeek||m.guarantee.endDate>=execWeek.weekEnding);});
+    gMembers.forEach(function(m){
+      if(!perMember[m.name]){
+        perMember[m.name]={name:m.name,unit:m.unit||"",contract:m.guarantee.amount,dh:0,floor:0,total:m.guarantee.amount,ytdRaw:0,qtd:0,aboveFloor:false,dhEligible:false,rates:null,splitRec:0,splitAM:0,fullDesk:0,rawCharge:0,deduction:0,floorInfo:null};
+        grandTotal+=m.guarantee.amount;earners++;
+      }
+      tGuarantee+=m.guarantee.amount;
+    });
+    var sorted=Object.values(perMember).sort(function(a,b){return b.total-a.total;});
+    if(sorted.length)topEarner={name:sorted[0].name,total:sorted[0].total,contract:sorted[0].contract,dh:sorted[0].dh};
+    var keyItems=[];
+    if(readyDH.length>0)keyItems.push({icon:"check",color:C.green,title:readyDH.length+" DH Payout"+(readyDH.length>1?"s":"")+" Processing",desc:readyDH.map(function(d){return d.can+" ("+fmt(d.raw)+")";}).slice(0,4).join(", ")+(readyDH.length>4?" + "+(readyDH.length-4)+" more":"")});
+    if(topEarner.total>0)keyItems.push({icon:"dollar",color:C.accent,title:"Top Earner: "+topEarner.name,desc:fmtD(topEarner.total)+" total ("+fmtD(topEarner.contract)+" contract"+(topEarner.dh>0?" + "+fmtD(topEarner.dh)+" DH":"")+")"});
+    if(anomalies.length>0)keyItems.push({icon:"alert",color:C.red,title:anomalies.length+" Anomal"+(anomalies.length>1?"ies":"y")+" Flagged",desc:anomalies.slice(0,2).map(function(a){return a.msg;}).join(". ")});
+    if(floorCount>0)keyItems.push({icon:"bar",color:C.green,title:floorCount+" Above $25K QTD tier Tier",desc:floorNames.slice(0,5).join(", ")+(floorNames.length>5?" + "+(floorNames.length-5)+" more":"")});
+    if(belowFloorNames.length>0)keyItems.push({icon:"alert",color:C.orange,title:belowFloorNames.length+" Below Tier ($2,500 weekly deduction)",desc:belowFloorNames.slice(0,4).join(", ")+(belowFloorNames.length>4?" + "+(belowFloorNames.length-4)+" more":"")});
+    var noEarners=rows.filter(function(r){return(r.splitRec+r.splitAM+r.fullDesk)===0;}).length;
+    if(noEarners>0)keyItems.push({icon:"users",color:C.textDim,title:noEarners+" Member"+(noEarners>1?"s":"")+" at $0 This Week",desc:"No contract charges recorded for WE "+execWeek.weekEnding});
+    if(gMembers.length>0)keyItems.push({icon:"dollar",color:C.accent,title:gMembers.length+" Weekly Floor"+(gMembers.length>1?"s":"")+" — "+fmtD(tGuarantee)+"/week",desc:gMembers.map(function(m){return m.name.split(" ")[0]+" ("+fmtD(m.guarantee.amount)+(m.guarantee.endDate?" → "+m.guarantee.endDate:"")+")";}).join(", ")});
+    // Guarantee expiration warnings
+    var today60=new Date(Date.now()+60*24*60*60*1000).toISOString().slice(0,10);var todayStr=new Date().toISOString().slice(0,10);
+    var expiring=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.endDate&&m.guarantee.endDate>todayStr&&m.guarantee.endDate<=today60;});
+    var expired=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.endDate&&m.guarantee.endDate<todayStr;});
+    if(expiring.length>0)keyItems.push({icon:"alert",color:C.orange,title:expiring.length+" Guarantee"+(expiring.length>1?"s":"")+" Expiring Within 60 Days",desc:expiring.map(function(m){var dl=Math.ceil((new Date(m.guarantee.endDate)-Date.now())/(1000*60*60*24));return m.name.split(" ")[0]+" — "+dl+"d ("+m.guarantee.endDate+")";}).join(", ")});
+    if(expired.length>0)keyItems.push({icon:"alert",color:C.red,title:expired.length+" Guarantee"+(expired.length>1?"s":"")+" EXPIRED — Still Active",desc:expired.map(function(m){return m.name.split(" ")[0]+" expired "+m.guarantee.endDate;}).join(", ")});
+    var priorTotal=0;
+    var execIdx=chargeWeeks.findIndex(function(w){return w.id===execWeekId;});
+    if(execIdx>=0&&execIdx<chargeWeeks.length-1){
+      var priorWeek=chargeWeeks[execIdx+1];
+      priorWeek.rows.forEach(function(row){var fi=getFloorInfo(row,priorWeek);var c=calcRowComm(row,fi,priorWeek);priorTotal+=c.totalComm;});
+    }
+    var topContract=sorted.filter(function(s){return s.contract>0;}).slice(0,5);
+    // Apply payroll overrides to sorted totals
+    var we=execWeek?execWeek.weekEnding:"";
+    sorted.forEach(function(s){var key=s.name+"|"+we;if(payrollOverrides[key]!==undefined){s.overrideTotal=payrollOverrides[key];s.hasOverride=true;}});
+    var adjustedGrandTotal=sorted.reduce(function(a,s){return a+(s.hasOverride?s.overrideTotal:s.total);},0);
+    var adjustedContract=sorted.reduce(function(a,s){if(s.hasOverride)return a+(s.overrideTotal-s.dh);return a+s.contract;},0);
+    return{tContract:adjustedContract,tDH:tDH,tFloor:tFloor,tGuarantee:tGuarantee,gMembers:gMembers,grandTotal:adjustedGrandTotal,earners:earners,total:rows.length,floorCount:floorCount,belowFloorCount:belowFloorNames.length,topEarner:topEarner,keyItems:keyItems,sorted:sorted,topContract:topContract,dhPaidThisWeek:dhPaidThisWeek,perMember:perMember,priorWeekTotal:priorTotal,wow:adjustedGrandTotal-priorTotal,wowPct:priorTotal>0?Math.round((adjustedGrandTotal-priorTotal)/priorTotal*1000)/10:0};
+  },[execWeek,readyDH,members,calcRowComm,getFloorInfo,anomalies,chargeWeeks,execWeekId,payrollOverrides]);
+  // CSV export helper (no external dependency)
+  var toCSV=function(rows){return rows.map(function(r){return r.map(function(c){var s=String(c==null?"":c);return s.indexOf(",")>=0||s.indexOf('"')>=0?'"'+s.replace(/"/g,'""')+'"':s;}).join(",");}).join("\n");};
+  // Download helper — creates a real file download
+  var dlFile=function(data,filename,type){
+    try{var blob=new Blob([data],{type:type||"application/octet-stream"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);return true;}catch(e){return false;}
+  };
+  var dlCSV=function(name,headers,data){
+    // Try real Excel download first, fall back to CSV text export
+    try{
+      var ws=XLSX.utils.aoa_to_sheet([headers].concat(data));
+      var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Data");
+      var xlsName=name.replace(/\.csv$/i,"")+".xlsx";
+      var buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+      if(dlFile(buf,xlsName,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")){
+        showToast(xlsName+" downloaded");return;
+      }
+    }catch(e){}
+    // Fallback: show in modal
+    var csv=toCSV([headers].concat(data));
+    showExport(name,csv);
+  };
+  var doExport=useCallback(function(){
+    if(!activeWeek)return;
+    var headers=["Name","Entity","Unit","Career Path","YTD Raw","QTD","Tier Status","DH Eligible","Rate","Split Rec","Split AM","Full Desk","Raw Charge","Deduction","Split Rec Comm","Split AM Comm","FD Comm","Total Comm"];
+    var data=weekData.map(function(r){var fi=r.floorInfo||{};return[r.matchedName,r.member?r.member.entity:"",r.member?r.member.unit:"",r.member?r.member.careerPath:"",r.ytdRaw.toFixed(2),(fi.qtd||0).toFixed(2),fi.crossing?"Crossing $25K":r.aboveFloor?"Above Tier":"Below Tier",fi.dhEligible?"Yes":"No",r.rate||"",r.splitRec.toFixed(2),r.splitAM.toFixed(2),r.fullDesk.toFixed(2),r.rawCharge.toFixed(2),(r.deduction||0).toFixed(2),(r.splitRecComm||0).toFixed(2),(r.splitAMComm||0).toFixed(2),(r.fdComm||0).toFixed(2),(r.totalComm||0).toFixed(2)];});
+    dlCSV("Charges_WE_"+activeWeek.weekEnding+".csv",headers,data);
+    log("EXPORT","WE "+activeWeek.weekEnding+" — "+data.length+" rows");showToast("Full detail CSV exported");
+  },[activeWeek,weekData]);
+  // ── Styles ───────────────────────────────────────────────────
+  var th={padding:"10px 14px",fontSize:12,fontWeight:600,color:C.textDim,borderBottom:"1px solid "+C.border,background:C.bg,position:"sticky",top:0,zIndex:1,textAlign:"left",letterSpacing:".5px",fontFamily:FM};
+  var td={padding:"10px 14px",fontSize:14,borderBottom:"1px solid "+C.border,color:C.textMuted,fontFamily:FM};
+  var card={background:C.bgCard,border:"1px solid "+C.border,borderRadius:10};
+  var inp={width:"100%",borderRadius:6,padding:"10px 14px",fontSize:14,fontFamily:FM,boxSizing:"border-box",color:"#1a1a2e",fontWeight:500};
+  // ════════ REP SELF-SERVICE PORTAL ════════
+  var [repTab,setRepTab]=useState("overview");
+  var [repExpandWeek,setRepExpandWeek]=useState(null);
+  var [whatIfRaw,setWhatIfRaw]=useState("");
+  var [repAuth,setRepAuth]=useState(true);var [repPinInput,setRepPinInput]=useState("");var [repPinError,setRepPinError]=useState(false);
+  if(repMode){
+    var repMember=repId?members.find(function(m){return m.id===repId;}):null;
+    var repWeeks=repMember?chargeWeeks.map(function(w){var row=w.rows.find(function(r){return r.matchedId===repId;});if(!row)return null;var fi=getFloorInfo(row,w);var comm=calcRowComm(row,fi,w);return{weekEnding:w.weekEnding,rawCharge:row.rawCharge,splitRec:row.splitRec,splitAM:row.splitAM,fullDesk:row.fullDesk,ytdRaw:row.ytdRaw,qtd:fi.qtd,belowFloor:fi.belowFloor,deduction:comm.deduction,totalComm:comm.totalComm,steps:comm.steps,rate:comm.rate,crossDate:fi.crossDate,dhEligible:fi.dhEligible,crossing:fi.crossing};}).filter(Boolean):[];
+    var repLatest=repWeeks.length?repWeeks[0]:null;
+    var repYTD=repLatest?repLatest.ytdRaw:0;var repQTD=repLatest?repLatest.qtd:0;var repFloorOk=repLatest?!repLatest.belowFloor:false;
+    var repTotalComm=repWeeks.reduce(function(a,w){return a+w.totalComm;},0);
+    var repDH=repMember?dhData.filter(function(d){return d.amId===repId||d.recId===repId;}):[];
+    var repQtdPct=Math.min(100,Math.round(repQTD/FLOOR*100));
+    var repAvgWeekly=repWeeks.length?repWeeks.reduce(function(a,w){return a+w.rawCharge;},0)/repWeeks.length:0;
+    var repWeeksTo25K=repFloorOk?0:(repAvgWeekly>0?Math.ceil((FLOOR-repQTD)/repAvgWeekly):null);
+    var repBestWeek=repWeeks.length?repWeeks.slice().sort(function(a,b){return b.totalComm-a.totalComm;})[0]:null;
+    // What-if calc
+    var whatIfVal=parseFloat(whatIfRaw)||0;
+    var whatIfNewQTD=repQTD+whatIfVal;
+    var whatIfCrossing=!repFloorOk&&whatIfNewQTD>=FLOOR;
+    var whatIfComm=0;
+    if(whatIfVal>0&&repMember){
+      var r=repMember.rates;
+      if(repFloorOk||whatIfNewQTD>=FLOOR){whatIfComm=whatIfVal*(r.fdA||r.sA||0.1);}
+      else if(whatIfVal>=FLOOR_WEEKLY_DEDUCT){whatIfComm=(whatIfVal-FLOOR_WEEKLY_DEDUCT)*(r.fdA||r.sA||0.1);}
+    }
+    // Greeting
+    var hour=new Date().getHours();
+    var greeting=hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+    return(
+    <div style={{minHeight:"100vh",fontFamily:FU,background:"#0F1219",color:C.text}}>
+      <style dangerouslySetInnerHTML={{__html:CSS}}/>
+      {toast&&<div style={{position:"fixed",top:12,right:12,zIndex:9999,padding:"6px 14px",borderRadius:6,fontSize:14,fontWeight:600,fontFamily:FM,background:toast.type==="err"?C.redDim:C.greenDim,color:toast.type==="err"?C.red:C.green,border:"1px solid "+(toast.type==="err"?C.red:C.green)+"33",animation:"fadeIn .2s ease"}}>{toast.msg}</div>}
+      <div style={{height:3,background:"linear-gradient(90deg,#FFD700,#FFE033,#FFD700)"}}/>
+      {/* Header */}
+      <div style={{padding:"14px 24px",background:"#0B0E14",borderBottom:"1px solid "+C.border,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z" fill="#FFD700"/></svg>
+          <div><h1 style={{fontSize:18,fontWeight:800,margin:0,color:C.accent,fontFamily:FM,letterSpacing:"2px"}}>SPARK</h1><p style={{fontSize:10,color:C.textDim,margin:0,fontFamily:FM,letterSpacing:"1px"}}>MY COMMISSIONS</p></div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {userRole==="admin"?<select value={repId||""} onChange={function(e){setRepId(e.target.value?+e.target.value||e.target.value:null);setRepTab("overview");setRepExpandWeek(null);}} style={{padding:"6px 12px",fontSize:14,borderRadius:6,fontFamily:FM,background:"#1A1F2E",color:C.text,border:"1px solid "+C.border}}>
+            <option value="">Select your name...</option>
+            {members.filter(function(m){return!m.inactive;}).sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(m){return <option key={m.id} value={m.id}>{m.name}</option>;})}
+          </select>:<span style={{fontSize:14,fontWeight:600,fontFamily:FM,color:C.text,padding:"6px 12px"}}>{repMember?repMember.name:"Loading..."}</span>}
+          <div style={{display:"flex",borderRadius:6,overflow:"hidden",border:"1px solid "+C.border}}>
+            {adminAuthenticated&&<div onClick={function(){setRepMode(false);}} style={{padding:"6px 14px",fontSize:12,fontWeight:600,fontFamily:FM,cursor:"pointer",background:"transparent",color:C.textDim,transition:"all .15s",letterSpacing:".5px"}}>Admin</div>}
+            <div style={{padding:"6px 14px",fontSize:12,fontWeight:700,fontFamily:FM,cursor:"default",background:C.accent+"15",color:C.accent,letterSpacing:".5px"}}>Rep View</div>
+            <div onClick={function(){if(onLogout)onLogout();}} style={{padding:"6px 14px",fontSize:12,fontWeight:600,fontFamily:FM,cursor:"pointer",background:"transparent",color:C.red,transition:"all .15s",letterSpacing:".5px"}}>Sign Out</div>
+          </div>
+        </div>
       </div>
-      {myReports.length > 0 && <div style={{ background: Y+"12", border: "1px solid "+Y+"25", color: Y, padding: "5px 12px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{myReports.length} direct report{myReports.length !== 1 ? "s" : ""}</div>}
+      {/* Auth handled by MSAL — no PIN modals needed */}
+      {!repMember&&<div style={{maxWidth:500,margin:"80px auto",textAlign:"center",padding:"0 20px"}}>
+        <svg viewBox="0 0 24 24" width="48" height="48" style={{margin:"0 auto 16px"}}><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z" fill="#FFD700"/></svg>
+        <h2 style={{fontSize:24,fontWeight:800,color:C.text,margin:"0 0 8px",fontFamily:FU}}>{userRole==="admin"?"Rep View Preview":"Welcome to Spark Commissions"}</h2>
+        <p style={{fontSize:15,color:C.textMuted,fontFamily:FM}}>{userRole==="admin"?"Select a team member above to preview their dashboard.":"Your account ("+userEmail+") hasn't been matched to a team member yet. Contact your admin to ensure your email is set up in the system."}</p>
+      </div>}
+      {/* MSAL handles auth — reps go straight to dashboard */}
+      {repMember&&<div style={{maxWidth:860,margin:"0 auto",padding:"20px 24px"}}>
+        {/* Greeting + Insight */}
+        <div style={{marginBottom:20}}>
+          <h2 style={{fontSize:24,fontWeight:800,margin:"0 0 4px",fontFamily:FU,color:C.text}}>{greeting}, {repMember.name.split(" ")[0]}</h2>
+          <p style={{fontSize:14,color:C.textMuted,margin:0,fontFamily:FM}}>{
+            repFloorOk&&repYTD>=FLOOR_ANNUAL?"You\'re in the $100K Club — floor is off for the year. Keep building.":
+            repFloorOk?"You\'re above the $25K tier — earning full commission on every dollar.":
+            repWeeksTo25K!==null&&repWeeksTo25K<=3?"At your current pace, you\'ll cross $25K in ~"+repWeeksTo25K+" week"+(repWeeksTo25K!==1?"s":"")+". Keep pushing.":
+            repWeeksTo25K!==null?"You need "+fmtD(FLOOR-repQTD)+" more to cross $25K. That\'s about "+repWeeksTo25K+" weeks at your average.":
+            repWeeks.length===0?"No charge data loaded yet. Your numbers will appear once payroll imports are processed.":
+            "You need "+fmtD(FLOOR-repQTD)+" more this quarter to unlock full commission."
+          }</p>
+        </div>
+        {/* Tab Nav */}
+        <div style={{display:"flex",gap:2,marginBottom:16,borderBottom:"2px solid "+C.border,paddingBottom:0}}>
+          {[["overview","Overview"],["history","Week History"],["dh","Direct Hires"+(repDH.length?" ("+repDH.length+")":"")],["plan","My Plan"]].map(function(t){var ac=repTab===t[0];return <button key={t[0]} onClick={function(){setRepTab(t[0]);}} style={{padding:"8px 16px",fontSize:14,fontWeight:ac?700:400,color:ac?C.accent:C.textMuted,background:"transparent",border:"none",borderBottom:ac?"2px solid "+C.accent:"2px solid transparent",cursor:"pointer",fontFamily:FM,marginBottom:-2}}>{t[1]}</button>;})}
+        </div>
+        {/* ── OVERVIEW TAB ── */}
+        {repTab==="overview"&&<div style={{animation:"fadeIn .2s ease"}}>
+          {/* KPI Row */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+            <Stat l="YTD Raw" v={fmtD(repYTD)} c={repYTD>=FLOOR_ANNUAL?C.green:C.accent}/>
+            <Stat l="QTD Raw" v={fmtD(repQTD)} c={repFloorOk?C.green:C.orange} s={repFloorOk?"Above tier":repQtdPct+"% to $25K"}/>
+            <Stat l="Commission Earned" v={fmtD(repTotalComm)} c={C.green} s={repWeeks.length+" week"+(repWeeks.length!==1?"s":"")}/>
+            <Stat l="Avg Weekly Raw" v={fmtD(repAvgWeekly)} c={C.blue} s={repWeeks.length?repWeeks.length+" wk avg":""}/>
+          </div>
+          {/* Tier Progress — interactive */}
+          <div style={Object.assign({},card,{padding:20,marginBottom:16})}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <h3 style={{fontSize:14,fontWeight:700,margin:0,color:C.text,fontFamily:FU}}>Tier Progress</h3>
+              <span style={{fontSize:14,fontWeight:700,color:repFloorOk?C.green:C.orange,fontFamily:FM}}>{repFloorOk?"\u2713 Tier Unlocked":"· "+fmtD(Math.max(0,FLOOR-repQTD))+" to go"}</span>
+            </div>
+            <div style={{position:"relative",height:14,background:C.bg,borderRadius:7,overflow:"hidden",marginBottom:8}}>
+              <div style={{height:"100%",width:repQtdPct+"%",background:repQtdPct>=100?"linear-gradient(90deg,"+C.green+","+C.teal+")":repQtdPct>=60?"linear-gradient(90deg,"+C.orange+","+C.accent+")":"linear-gradient(90deg,"+C.red+","+C.orange+")",borderRadius:7,transition:"width .5s ease"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:C.textDim,fontFamily:FM}}>
+              <span>{fmtD(repQTD)}</span>
+              <span style={{color:C.accent,fontWeight:600}}>${(FLOOR/1000).toFixed(0)}K Floor</span>
+              {repYTD<FLOOR_ANNUAL&&<span style={{color:C.textDim}}>${(FLOOR_ANNUAL/1000).toFixed(0)}K Club</span>}
+            </div>
+            {/* What the floor means right now */}
+            <div style={{marginTop:12,padding:"10px 14px",background:repFloorOk?C.greenDim:C.orangeDim,borderRadius:6,border:"1px solid "+(repFloorOk?C.green:C.orange)+"33"}}>
+              <p style={{fontSize:13,fontWeight:600,color:repFloorOk?C.green:C.orange,margin:0,fontFamily:FM}}>{repFloorOk?"No weekly deduction — every dollar you charge earns commission.":"Each week, the first $"+FLOOR_WEEKLY_DEDUCT.toLocaleString()+" of your raw charge is deducted before commission is calculated."}</p>
+              {!repFloorOk&&<p style={{fontSize:12,color:C.textMuted,margin:"4px 0 0",fontFamily:FM}}>Weeks under ${FLOOR_WEEKLY_DEDUCT.toLocaleString()} total raw = $0 commission that week.</p>}
+            </div>
+          </div>
+          {/* What-If Calculator */}
+          <div style={Object.assign({},card,{padding:20,marginBottom:16})}>
+            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",color:C.text,fontFamily:FU}}>What-If Calculator</h3>
+            <p style={{fontSize:13,color:C.textMuted,margin:"0 0 10px",fontFamily:FM}}>See how additional charges would affect your commission this week.</p>
+            <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:150}}>
+                <label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM,display:"block",marginBottom:4}}>ADDITIONAL RAW CHARGE</label>
+                <div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:16,color:C.textDim}}>$</span><input type="number" value={whatIfRaw} onChange={function(e){setWhatIfRaw(e.target.value);}} placeholder="5000" style={{width:"100%",padding:"8px 12px",fontSize:16,borderRadius:6,fontFamily:FM,background:C.bgInput,border:"1px solid "+C.border,color:C.text}} step="500"/></div>
+              </div>
+              {whatIfVal>0&&<div style={{display:"flex",gap:12,flex:2,flexWrap:"wrap"}}>
+                <div style={{padding:"10px 16px",background:C.bgSurface,borderRadius:6,border:"1px solid "+C.border,minWidth:120}}>
+                  <p style={{fontSize:11,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>NEW QTD</p>
+                  <p style={{fontSize:20,fontWeight:800,color:whatIfCrossing?C.green:C.accent,margin:0,fontFamily:FM}}>{fmtD(whatIfNewQTD)}</p>
+                  {whatIfCrossing&&<p style={{fontSize:11,color:C.green,margin:"2px 0 0",fontFamily:FM}}>Crosses $25K!</p>}
+                </div>
+                <div style={{padding:"10px 16px",background:C.bgSurface,borderRadius:6,border:"1px solid "+C.border,minWidth:120}}>
+                  <p style={{fontSize:11,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>EST. COMMISSION</p>
+                  <p style={{fontSize:20,fontWeight:800,color:C.green,margin:0,fontFamily:FM}}>{fmtD(whatIfComm)}</p>
+                  <p style={{fontSize:11,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>{repFloorOk?"Full rate":"After $2.5K deduction"}</p>
+                </div>
+                {whatIfCrossing&&<div style={{padding:"10px 16px",background:C.greenDim,borderRadius:6,border:"1px solid "+C.green+"33",minWidth:150}}>
+                  <p style={{fontSize:11,color:C.green,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>TIER UNLOCK</p>
+                  <p style={{fontSize:13,fontWeight:600,color:C.green,margin:0,fontFamily:FM}}>DH eligibility opens + no more weekly deductions!</p>
+                </div>}
+              </div>}
+            </div>
+          </div>
+          {/* Earnings Trend */}
+          {repWeeks.length>=2&&<div style={Object.assign({},card,{padding:20,marginBottom:16})}>
+            <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",color:C.text,fontFamily:FU}}>Earnings Trend</h3>
+            <ResponsiveContainer width="100%" height={140}>
+              <AreaChart data={repWeeks.slice().reverse().map(function(w){return{we:w.weekEnding,raw:Math.round(w.rawCharge),comm:Math.round(w.totalComm*100)/100};})}>
+                <defs><linearGradient id="repGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.green} stopOpacity={0.3}/><stop offset="100%" stopColor={C.green} stopOpacity={0.02}/></linearGradient></defs>
+                <XAxis dataKey="we" fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false}/>
+                <YAxis fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={function(v){return"$"+Math.round(v/1000)+"K";}}/>
+                <Tooltip content={function(p){if(!p.active||!p.payload||!p.payload[0])return null;var d=p.payload[0].payload;return <div style={{background:C.bg,border:"1px solid "+C.border,borderRadius:6,padding:"8px 12px",fontFamily:FM,fontSize:13}}><p style={{margin:0,color:C.textDim}}>WE {d.we}</p><p style={{margin:"2px 0 0",fontWeight:700,color:C.accent}}>Raw: {fmtD(d.raw)}</p><p style={{margin:"2px 0 0",fontWeight:700,color:C.green}}>Comm: {fmtD(d.comm)}</p></div>;}}/>
+                <Area type="monotone" dataKey="raw" stroke={C.accent} strokeWidth={2} fill="none" dot={{r:3,fill:C.accent}}/>
+                <Area type="monotone" dataKey="comm" stroke={C.green} strokeWidth={2} fill="url(#repGrad)" dot={{r:3,fill:C.green}}/>
+              </AreaChart>
+            </ResponsiveContainer>
+            <div style={{display:"flex",justifyContent:"center",gap:16,marginTop:6}}>
+              <span style={{fontSize:12,color:C.accent,fontFamily:FM}}>\u25CF Raw Charge</span>
+              <span style={{fontSize:12,color:C.green,fontFamily:FM}}>\u25CF Commission</span>
+            </div>
+          </div>}
+          {/* Best Week + DH Summary */}
+          <div style={{display:"grid",gridTemplateColumns:repDH.length?"1fr 1fr":"1fr",gap:12,marginBottom:16}}>
+            {repBestWeek&&<div style={Object.assign({},card,{padding:16})}>
+              <h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.textDim,fontFamily:FM,letterSpacing:"1px"}}>BEST WEEK</h3>
+              <p style={{fontSize:20,fontWeight:800,color:C.green,margin:"0 0 2px",fontFamily:FM}}>{fmtD(repBestWeek.totalComm)}</p>
+              <p style={{fontSize:12,color:C.textMuted,margin:0,fontFamily:FM}}>WE {repBestWeek.weekEnding} · {fmtD(repBestWeek.rawCharge)} raw</p>
+            </div>}
+            {repDH.length>0&&<div style={Object.assign({},card,{padding:16,cursor:"pointer",border:"1px solid "+C.teal+"33"})} onClick={function(){setRepTab("dh");}}>
+              <h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.teal,fontFamily:FM,letterSpacing:"1px"}}>DH PIPELINE →</h3>
+              <p style={{fontSize:20,fontWeight:800,color:C.teal,margin:"0 0 2px",fontFamily:FM}}>{repDH.length} deal{repDH.length>1?"s":""}</p>
+              <p style={{fontSize:12,color:C.textMuted,margin:0,fontFamily:FM}}>{fmtD(repDH.reduce(function(a,d){return a+d.raw;},0))} raw · {repDH.filter(function(d){return isReady(d)&&!d.paidOut;}).length} ready</p>
+            </div>}
+          </div>
+          {/* Guarantee */}
+          {repMember.guarantee&&repMember.guarantee.active&&<div style={Object.assign({},card,{padding:16,marginBottom:16,borderColor:C.accent+"33"})}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><h3 style={{fontSize:12,fontWeight:700,margin:"0 0 4px",color:C.accent,fontFamily:FM,letterSpacing:"1px"}}>WEEKLY FLOOR</h3><p style={{fontSize:12,color:C.textMuted,margin:0,fontFamily:FM}}>{repMember.guarantee.endDate?"Through "+repMember.guarantee.endDate:"No end date"}</p></div><span style={{fontSize:26,fontWeight:800,color:C.accent,fontFamily:FM}}>{fmtD(repMember.guarantee.amount)}<span style={{fontSize:13,fontWeight:400,color:C.textDim}}>/wk</span></span></div>
+          </div>}
+        </div>}
+        {/* ── HISTORY TAB ── */}
+        {repTab==="history"&&<div style={{animation:"fadeIn .2s ease"}}>
+          {repWeeks.length===0&&<div style={Object.assign({},card,{padding:24,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM}}>No weeks loaded yet.</p></div>}
+          {repWeeks.map(function(w,wi){var isOpen=repExpandWeek===wi;return <div key={w.weekEnding} style={Object.assign({},card,{marginBottom:8,overflow:"hidden"})}>
+            <div onClick={function(){setRepExpandWeek(isOpen?null:wi);}} style={{padding:"12px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",background:isOpen?C.bgSurface:"transparent"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:14,color:isOpen?C.accent:C.textDim,fontFamily:FM}}>{isOpen?"\u25BC":"\u25B6"}</span>
+                <div><p style={{fontSize:15,fontWeight:700,color:C.text,margin:0,fontFamily:FM}}>WE {w.weekEnding}</p><p style={{fontSize:12,color:C.textMuted,margin:"2px 0 0",fontFamily:FM}}>Raw: {fmtD(w.rawCharge)}{w.deduction>0?" · Deduction: -"+fmtD(w.deduction):""}</p></div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <p style={{fontSize:18,fontWeight:800,color:w.totalComm>0?C.green:C.textDim,margin:0,fontFamily:FM}}>{w.totalComm>0?fmtD(w.totalComm):"$0"}</p>
+                <p style={{fontSize:11,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>{w.belowFloor?"Below floor":"Above tier"}{w.crossing?" (crossing week)":""}</p>
+              </div>
+            </div>
+            {isOpen&&<div style={{padding:"0 16px 14px",borderTop:"1px solid "+C.border+"66"}}>
+              {/* Charge breakdown */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,margin:"12px 0"}}>
+                <div style={{padding:"8px 10px",background:C.bg,borderRadius:4}}><p style={{fontSize:10,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>SPLIT REC</p><p style={{fontSize:16,fontWeight:700,color:C.blue,margin:0,fontFamily:FM}}>{fmtD(w.splitRec)}</p></div>
+                <div style={{padding:"8px 10px",background:C.bg,borderRadius:4}}><p style={{fontSize:10,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>SPLIT AM</p><p style={{fontSize:16,fontWeight:700,color:C.purple,margin:0,fontFamily:FM}}>{fmtD(w.splitAM)}</p></div>
+                <div style={{padding:"8px 10px",background:C.bg,borderRadius:4}}><p style={{fontSize:10,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>FULL DESK</p><p style={{fontSize:16,fontWeight:700,color:C.accent,margin:0,fontFamily:FM}}>{fmtD(w.fullDesk)}</p></div>
+              </div>
+              {/* Commission steps */}
+              {(w.steps||[]).map(function(s,si){return <div key={si} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:si<(w.steps||[]).length-1?"1px solid "+C.border+"44":"none"}}>
+                <div><span style={{fontSize:13,fontWeight:600,color:s.t.includes("Rec")?C.blue:s.t.includes("AM")?C.purple:s.t.includes("Full")?C.accent:s.t.includes("Floor")?C.orange:C.textMuted,fontFamily:FM}}>{s.t}</span><span style={{fontSize:12,color:C.textDim,marginLeft:8,fontFamily:FM}}>{s.d}</span></div>
+                {s.a>0&&<span style={{fontSize:14,fontWeight:700,color:C.green,fontFamily:FM}}>{fmtD(s.a)}</span>}
+              </div>;})}
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:8,paddingTop:8,borderTop:"1px solid "+C.accent+"33"}}><span style={{fontSize:16,fontWeight:800,color:C.accent,fontFamily:FM}}>TOTAL: {fmtD(w.totalComm)}</span></div>
+            </div>}
+          </div>;})}
+        </div>}
+        {/* ── DH TAB ── */}
+        {repTab==="dh"&&<div style={{animation:"fadeIn .2s ease"}}>
+          {repDH.length===0&&<div style={Object.assign({},card,{padding:24,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM}}>No direct hire deals linked to your profile.</p></div>}
+          {repDH.length>0&&<div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+              <Stat l="Active Deals" v={repDH.filter(function(d){return!d.paidOut&&d.st!=="t"&&d.st!=="d";}).length} c={C.orange}/>
+              <Stat l="Ready to Pay" v={repDH.filter(function(d){return isReady(d)&&!d.paidOut;}).length} c={C.green}/>
+              <Stat l="Pipeline Value" v={fmtD(repDH.filter(function(d){return!d.paidOut&&d.st!=="t";}).reduce(function(a,d){return a+d.raw;},0))} c={C.accent}/>
+            </div>
+            {repDH.sort(function(a,b){if(isReady(a)&&!a.paidOut)return -1;if(isReady(b)&&!b.paidOut)return 1;return b.raw-a.raw;}).map(function(d,i){
+              var rdy=isReady(d)&&!d.paidOut;var dt=d.cd?daysTo(d.cd):null;
+              var stColor=rdy?C.green:d.paidOut?C.purple:d.st==="t"?C.red:(d.st==="o"||d.st==="p")?C.orange:C.teal;
+              var stLabel=rdy?"Ready to Pay":d.paidOut?"Paid Out":d.st==="t"?"Terminated":d.st==="o"?"On Guarantee":d.st==="p"?"Pending":d.st==="c"?"Cleared":"Done";
+              var rate=repMember.rates[d.typ==="FD"?"fdDH":"sDH"]||0;
+              var estPay=d.raw*rate;
+              return <div key={i} style={Object.assign({},card,{marginBottom:8,borderLeft:"3px solid "+stColor,overflow:"hidden"})}>
+                <div style={{padding:"14px 16px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                    <div>
+                      <p style={{fontSize:16,fontWeight:700,color:C.text,margin:"0 0 2px",fontFamily:FU}}>{d.can}</p>
+                      <p style={{fontSize:13,color:C.textMuted,margin:"0 0 6px",fontFamily:FM}}>{d.cl}{d.pos?" · "+d.pos:""}</p>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                        <Badge v={d.typ==="FD"?"gold":"muted"}>{d.typ==="FD"?"Full Desk":"Split"}</Badge>
+                        <span style={{fontSize:13,color:stColor,fontWeight:700,fontFamily:FM}}>{stLabel}</span>
+                        {dt!==null&&dt>0&&<span style={{fontSize:12,padding:"2px 8px",background:C.bg,borderRadius:4,color:dt<=7?C.green:dt<=30?C.orange:C.textDim,fontFamily:FM,fontWeight:600}}>{dt} days to clear</span>}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right",minWidth:100}}>
+                      <p style={{fontSize:18,fontWeight:800,color:C.text,margin:"0 0 2px",fontFamily:FM}}>{fmtD(d.raw)}</p>
+                      {rate>0&&<p style={{fontSize:12,fontWeight:600,color:C.green,margin:0,fontFamily:FM}}>{(rate*100)+"% = "+fmtD(estPay)}</p>}
+                    </div>
+                  </div>
+                  {dt!==null&&dt>0&&d.gd>0&&<div style={{height:4,background:C.bg,borderRadius:2,overflow:"hidden",marginTop:10}}><div style={{height:"100%",width:Math.max(0,Math.round((1-dt/d.gd)*100))+"%",background:dt<=7?"linear-gradient(90deg,"+C.green+","+C.teal+")":dt<=30?C.orange:C.blue,borderRadius:2}}/></div>}
+                  {d.sd&&<p style={{fontSize:11,color:C.textDim,margin:"6px 0 0",fontFamily:FM}}>Started: {d.sd}{d.cd?" · Clears: "+d.cd:""}{d.gd?" · "+d.gd+" day guarantee":""}</p>}
+                </div>
+              </div>;
+            })}
+          </div>}
+        </div>}
+        {/* ── MY PLAN TAB ── */}
+        {repTab==="plan"&&repMember&&<div style={{animation:"fadeIn .2s ease"}}>
+          {function(){
+            var r=repMember.rates;
+            var isFlat=r.flat>0;
+            var path=repMember.careerPath||"Standard";
+            var pureAMRate=r.sA||0;var fdRate=r.fdA||0;var recRate=r.sA||0;
+            var dhFDRate=r.fdDH||0;var dhSplitRate=r.sDH||0;
+            // Phases
+            var phases=[
+              {phase:"1",title:"Building Your Quarter",subtitle:"Under $"+Math.round(FLOOR/1000)+"K QTD",color:C.orange,bg:C.orangeDim,items:[
+                {label:"Weekly Minimum",desc:"Your total weekly raw charge must hit $"+FLOOR_WEEKLY_DEDUCT.toLocaleString()+" to earn commission. Weeks below this = $0."},
+                {label:"Deduction",desc:"When you hit the minimum, the first $"+FLOOR_WEEKLY_DEDUCT.toLocaleString()+" is deducted. Commission is calculated on the remainder."},
+                {label:"DH Deals",desc:"Not eligible for direct hire payouts while under $"+Math.round(FLOOR/1000)+"K QTD."}
+              ]},
+              {phase:"2",title:"Performing",subtitle:"Above $"+Math.round(FLOOR/1000)+"K QTD",color:C.green,bg:C.greenDim,items:[
+                {label:"Full Commission",desc:"No weekly deduction. You earn on every dollar from the week you cross $"+Math.round(FLOOR/1000)+"K."},
+                {label:"DH Eligible",desc:"Direct hire deals with a start date after you crossed $"+Math.round(FLOOR/1000)+"K qualify for DH commission."},
+                {label:"Quarterly Reset",desc:"The $"+Math.round(FLOOR/1000)+"K floor resets at the start of each quarter."}
+              ]},
+              {phase:"3",title:"$100K Club",subtitle:"Above $"+Math.round(FLOOR_ANNUAL/1000)+"K YTD",color:C.accent,bg:C.accentDim,items:[
+                {label:"Tier Off",desc:"No deductions for the rest of the year. Full commission on everything."},
+                {label:"DH Tier Unlocked",desc:"All DH deals with start dates after crossing $"+Math.round(FLOOR_ANNUAL/1000)+"K are eligible."}
+              ]}
+            ];
+            return <div>
+              {/* Career Path + Status */}
+              <div style={Object.assign({},card,{padding:20,marginBottom:16})}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+                  <div>
+                    <h3 style={{fontSize:16,fontWeight:700,margin:"0 0 4px",color:C.text,fontFamily:FU}}>{path}</h3>
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      <Badge v={UB[repMember.unit]||"muted"}>{repMember.unit}</Badge>
+                      <Badge v="muted">{repMember.entity}</Badge>
+                      {isFlat&&<Badge v="gold">Flat Rate — Quarterly</Badge>}
+                      {repMember.guarantee&&repMember.guarantee.active&&<Badge v="gold">Weekly Floor</Badge>}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <p style={{fontSize:11,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM}}>CURRENT PHASE</p>
+                    <Badge v={repFloorOk?(repYTD>=FLOOR_ANNUAL?"gold":"green"):"orange"}>{repYTD>=FLOOR_ANNUAL?"$100K Club":repFloorOk?"Phase 2 — Performing":"Phase 1 — Building"}</Badge>
+                  </div>
+                </div>
+              </div>
+              {/* My Rates */}
+              <div style={Object.assign({},card,{padding:20,marginBottom:16})}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 14px",color:C.text,fontFamily:FU}}>My Commission Rates</h3>
+                {isFlat?<div>
+                  <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.accentDim,borderRadius:6,border:"1px solid "+C.accent+"33"}}>
+                    <div style={{flex:1}}>
+                      <p style={{fontSize:13,fontWeight:600,color:C.textMuted,margin:0,fontFamily:FM}}>Flat Rate (All Charge Types)</p>
+                      <p style={{fontSize:12,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>Applied to total raw charge · Paid quarterly</p>
+                    </div>
+                    <span style={{fontSize:28,fontWeight:800,color:C.accent,fontFamily:FM}}>{(r.flat*100)+"%"}</span>
+                  </div>
+                </div>
+                :<div>
+                  <p style={{fontSize:12,color:C.textMuted,margin:"0 0 10px",fontFamily:FM}}>Contract commission is calculated by splitting your raw charge into buckets. Full Desk charge is inside your Split AM total — it's not added separately.</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+                    <div style={{padding:"12px 14px",background:C.bg,borderRadius:6,borderTop:"2px solid "+C.blue}}>
+                      <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>SPLIT RECRUITING</p>
+                      <p style={{fontSize:12,color:C.textMuted,margin:"0 0 6px",fontFamily:FM}}>You sourced the candidate</p>
+                      <p style={{fontSize:26,fontWeight:800,color:C.blue,margin:0,fontFamily:FM}}>{(recRate*100)+"%"}</p>
+                    </div>
+                    <div style={{padding:"12px 14px",background:C.bg,borderRadius:6,borderTop:"2px solid "+C.purple}}>
+                      <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>SPLIT AM / SALES</p>
+                      <p style={{fontSize:12,color:C.textMuted,margin:"0 0 6px",fontFamily:FM}}>You sold the job order</p>
+                      <p style={{fontSize:26,fontWeight:800,color:C.purple,margin:0,fontFamily:FM}}>{(pureAMRate*100)+"%"}</p>
+                    </div>
+                    <div style={{padding:"12px 14px",background:C.bg,borderRadius:6,borderTop:"2px solid "+C.accent}}>
+                      <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>FULL DESK</p>
+                      <p style={{fontSize:12,color:C.textMuted,margin:"0 0 6px",fontFamily:FM}}>You sourced AND sold</p>
+                      <p style={{fontSize:26,fontWeight:800,color:C.accent,margin:0,fontFamily:FM}}>{(fdRate*100)+"%"}</p>
+                    </div>
+                  </div>
+                  {(dhFDRate>0||dhSplitRate>0)&&<div>
+                    <p style={{fontSize:12,fontWeight:700,color:C.teal,margin:"0 0 8px",fontFamily:FM,letterSpacing:".5px"}}>DIRECT HIRE RATES</p>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                      <div style={{padding:"10px 14px",background:C.bg,borderRadius:6,borderLeft:"3px solid "+C.teal}}>
+                        <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>DH FULL DESK</p>
+                        <p style={{fontSize:22,fontWeight:800,color:C.teal,margin:0,fontFamily:FM}}>{(dhFDRate*100)+"%"}</p>
+                      </div>
+                      <div style={{padding:"10px 14px",background:C.bg,borderRadius:6,borderLeft:"3px solid "+C.teal+"88"}}>
+                        <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>DH SPLIT</p>
+                        <p style={{fontSize:22,fontWeight:800,color:C.teal,margin:0,fontFamily:FM}}>{(dhSplitRate*100)+"%"}</p>
+                      </div>
+                    </div>
+                  </div>}
+                </div>}
+              </div>
+              {/* How It Works — Phase Cards */}
+              {!isFlat&&<div style={{marginBottom:16}}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",color:C.text,fontFamily:FU}}>How the Tier System Works</h3>
+                {phases.map(function(p,pi){var isCurrent=(p.phase==="1"&&!repFloorOk)||(p.phase==="2"&&repFloorOk&&repYTD<FLOOR_ANNUAL)||(p.phase==="3"&&repYTD>=FLOOR_ANNUAL);return <div key={pi} style={Object.assign({},card,{marginBottom:8,overflow:"hidden",border:isCurrent?"1px solid "+p.color+"55":"1px solid "+C.border,opacity:isCurrent?1:0.7})}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",background:isCurrent?p.bg:"transparent",borderBottom:"1px solid "+C.border+"44"}}>
+                    <span style={{fontSize:18,fontWeight:800,color:p.color,fontFamily:FM}}>PHASE {p.phase}</span>
+                    <div><p style={{fontSize:14,fontWeight:700,color:C.text,margin:0,fontFamily:FU}}>{p.title}</p><p style={{fontSize:12,color:C.textMuted,margin:0,fontFamily:FM}}>{p.subtitle}</p></div>
+                    {isCurrent&&<Badge v={p.phase==="1"?"orange":p.phase==="2"?"green":"gold"}>YOU ARE HERE</Badge>}
+                  </div>
+                  <div style={{padding:"10px 16px"}}>
+                    {p.items.map(function(item,ii){return <div key={ii} style={{display:"flex",gap:10,padding:"6px 0",borderBottom:ii<p.items.length-1?"1px solid "+C.border+"33":"none"}}>
+                      <span style={{fontSize:12,color:p.color,fontWeight:700,fontFamily:FM,minWidth:16}}>•</span>
+                      <div><p style={{fontSize:13,fontWeight:600,color:C.text,margin:0,fontFamily:FM}}>{item.label}</p><p style={{fontSize:12,color:C.textMuted,margin:"2px 0 0",fontFamily:FM}}>{item.desc}</p></div>
+                    </div>;})}
+                  </div>
+                </div>;})}
+              </div>}
+              {/* DH Eligibility Rules */}
+              <div style={Object.assign({},card,{padding:20,marginBottom:16})}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px",color:C.text,fontFamily:FU}}>Direct Hire Payout Rules</h3>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 12px",fontFamily:FM}}>Three things must be true for a DH deal to pay out:</p>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {[
+                    {num:"1",title:"You must be DH eligible",desc:"QTD raw above $"+Math.round(FLOOR/1000)+"K (or $"+Math.round(FLOOR_ANNUAL/1000)+"K YTD). The deal's start date must be after you crossed.",check:repFloorOk},
+                    {num:"2",title:"Guarantee must clear",desc:"The candidate completes the guarantee period (typically 90 days) without termination.",check:null},
+                    {num:"3",title:"Invoice must be paid",desc:"The client pays the placement invoice before commission is released.",check:null}
+                  ].map(function(rule){return <div key={rule.num} style={{display:"flex",gap:10,padding:"10px 14px",background:C.bg,borderRadius:6,border:"1px solid "+C.border,alignItems:"flex-start"}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:rule.check===true?C.greenDim:rule.check===false?C.redDim:C.bgSurface,border:"2px solid "+(rule.check===true?C.green:rule.check===false?C.red:C.border),display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:14,fontWeight:800,color:rule.check===true?C.green:rule.check===false?C.red:C.textDim,fontFamily:FM}}>{rule.check===true?"\u2713":rule.num}</span></div>
+                    <div><p style={{fontSize:13,fontWeight:700,color:C.text,margin:0,fontFamily:FM}}>{rule.title}</p><p style={{fontSize:12,color:C.textMuted,margin:"2px 0 0",fontFamily:FM}}>{rule.desc}</p></div>
+                  </div>;})}
+                </div>
+                <div style={{marginTop:12,padding:"10px 14px",background:repFloorOk?C.greenDim:C.orangeDim,borderRadius:6,border:"1px solid "+(repFloorOk?C.green:C.orange)+"33"}}>
+                  <p style={{fontSize:13,fontWeight:600,color:repFloorOk?C.green:C.orange,margin:0,fontFamily:FM}}>{repFloorOk?"You're DH eligible. Deals that started after you crossed $"+Math.round(FLOOR/1000)+"K qualify.":"You're not yet DH eligible. Cross $"+Math.round(FLOOR/1000)+"K QTD to unlock."}</p>
+                </div>
+              </div>
+              {/* Guarantee */}
+              {repMember.guarantee&&repMember.guarantee.active&&<div style={Object.assign({},card,{padding:20,marginBottom:16,borderColor:C.accent+"33"})}>
+                <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 8px",color:C.accent,fontFamily:FU}}>Weekly Floor</h3>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>You're receiving a fixed weekly commission amount regardless of charges.</p>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",background:C.accentDim,borderRadius:6}}>
+                  <span style={{fontSize:14,fontWeight:600,color:C.text,fontFamily:FM}}>Floor Amount</span>
+                  <span style={{fontSize:26,fontWeight:800,color:C.accent,fontFamily:FM}}>{fmtD(repMember.guarantee.amount)}<span style={{fontSize:13,fontWeight:400,color:C.textDim}}>/week</span></span>
+                </div>
+                {repMember.guarantee.endDate&&<p style={{fontSize:12,color:C.textDim,margin:"8px 0 0",fontFamily:FM}}>This guarantee runs through {repMember.guarantee.endDate}. After that date, weekly floor payment ends and commission is calculated based on your standard rates above.</p>}
+              </div>}
+            </div>;
+          }()}
+        </div>}
+      </div>}
+    </div>);
+  }
+  // ════════ ADMIN VIEW ════════
+  // === AUTH HANDLED BY MSAL — NO LOGIN GATE NEEDED ===
+  // Show load error if data couldn't be fetched
+  if(loadError&&!appDataLoaded){return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:C.bg,fontFamily:FU}}>
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+      <style dangerouslySetInnerHTML={{__html:CSS}}/>
+      <svg viewBox="0 0 24 24" width="48" height="48" style={{marginBottom:16}}><path d="M12 9v4M12 17h.01M10.29 3.86l-8.6 14.86A2 2 0 0 0 3.4 22h17.2a2 2 0 0 0 1.71-2.98l-8.6-14.86a2 2 0 0 0-3.42 0z" fill="none" stroke={C.orange} strokeWidth="2"/></svg>
+      <h2 style={{fontSize:22,fontWeight:700,color:C.text,margin:"0 0 8px",fontFamily:FU}}>Data Load Error</h2>
+      <p style={{fontSize:14,color:C.textMuted,margin:"0 0 20px",textAlign:"center",maxWidth:400,fontFamily:FM}}>{loadError}</p>
+      <p style={{fontSize:12,color:C.textDim,fontFamily:FM}}>Using default roster data. Changes won't persist until the connection is restored.</p>
     </div>
-    {/* My direct reports first if any */}
-    {myReports.length > 0 && (<>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>My direct reports</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
-        {myReports.map(p => { const s = byUser[p.name] || { stepsDone: new Set(), quizzesPassed: new Set(), lastActivity: null }; const stepsPct = totalRequiredSteps > 0 ? Math.round(s.stepsDone.size / totalRequiredSteps * 100) : 0; const quizPct = totalRequiredQuizzes > 0 ? Math.round(s.quizzesPassed.size / totalRequiredQuizzes * 100) : 0; const stale = s.lastActivity && (Date.now() - new Date(s.lastActivity).getTime()) > 7*24*60*60*1000; return (<div key={p.name} style={{ background: "#fafafa", border: "1px solid #f0f0f0", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}><div style={{ flex: "1 1 200px", minWidth: 180 }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>{p.name}</div><div style={{ fontSize: 10, color: "#94a3b8" }}>{p.role} · {p.div}</div></div><div style={{ flex: "0 0 auto", display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}><div style={{ minWidth: 100 }}><div style={{ fontSize: 9, color: "#94a3b8", letterSpacing: 0.5, fontWeight: 700, marginBottom: 2 }}>STEPS</div><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ flex: 1, height: 5, background: "#f0f0f0", borderRadius: 3, overflow: "hidden", minWidth: 60 }}><div style={{ height: "100%", width: stepsPct+"%", background: stepsPct === 100 ? "#059669" : Y, borderRadius: 3 }} /></div><span style={{ fontSize: 11, fontWeight: 700, color: stepsPct === 100 ? "#059669" : "#1a1a2e", minWidth: 30 }}>{stepsPct}%</span></div></div><div style={{ minWidth: 100 }}><div style={{ fontSize: 9, color: "#94a3b8", letterSpacing: 0.5, fontWeight: 700, marginBottom: 2 }}>QUIZZES</div><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ flex: 1, height: 5, background: "#f0f0f0", borderRadius: 3, overflow: "hidden", minWidth: 60 }}><div style={{ height: "100%", width: quizPct+"%", background: quizPct === 100 ? "#059669" : "#4ECDC4", borderRadius: 3 }} /></div><span style={{ fontSize: 11, fontWeight: 700, color: quizPct === 100 ? "#059669" : "#1a1a2e", minWidth: 30 }}>{quizPct}%</span></div></div><div style={{ fontSize: 10, color: stale ? "#dc2626" : "#94a3b8", fontWeight: stale ? 700 : 500 }}>{s.lastActivity ? (stale ? "⚠ Stale: " : "") + new Date(s.lastActivity).toLocaleDateString() : "No activity yet"}</div></div></div>); })}
+  );}
+  var appDataLoaded=!!initialData;
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100vh",fontFamily:FU,background:C.bg,color:C.text}}>
+      <div style={{height:2,background:"linear-gradient(90deg,transparent,#FFD700,transparent)",flexShrink:0}}/>
+      <div style={{display:"flex",flex:1}}>
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Code+Pro:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+      <style dangerouslySetInnerHTML={{__html:CSS}}/>
+      <div className="scanlines"/><div className="vignette"/>
+      {toast&&<div style={{position:"fixed",top:12,right:12,zIndex:9999,padding:"5px 12px",borderRadius:4,fontSize:14,fontWeight:600,fontFamily:FM,background:toast.type==="err"?C.redDim:C.greenDim,color:toast.type==="err"?C.red:C.green,border:"1px solid "+(toast.type==="err"?C.red:C.green)+"33",animation:"fadeIn .2s ease"}}>{toast.msg}</div>}
+      {conflictInfo&&<div style={{position:"fixed",top:0,left:0,right:0,zIndex:9998,padding:"10px 20px",background:"linear-gradient(135deg,#7c2d12,#92400e)",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 12px rgba(0,0,0,.4)"}}><div style={{display:"flex",alignItems:"center",gap:8}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.6 14.86A2 2 0 0 0 3.4 22h17.2a2 2 0 0 0 1.71-2.98l-8.6-14.86a2 2 0 0 0-3.42 0z"/></svg><span style={{fontSize:13,fontWeight:600,color:"#fef3c7",fontFamily:FM}}>Data updated by {conflictInfo.savedBy||"another admin"} — your view may be out of date</span></div><div style={{display:"flex",gap:8}}><button onClick={function(){if(onReload)onReload().then(function(d){if(d){setMembers(d.members||[]);setDhData(d.dhData||[]);setChargeWeeks(d.chargeWeeks||[]);setLockedWeeks(d.lockedWeeks||[]);setAuditLog(d.auditLog||[]);setQSnapshots(d.qSnapshots||[]);if(d.config)setConfig(Object.assign({},DEFAULT_CFG,d.config));if(d.payrollOverrides)setPayrollOverrides(d.payrollOverrides);if(d.dhLastSync)setDhLastSync(d.dhLastSync);showToast("Reloaded latest data");}});}} style={{padding:"4px 12px",borderRadius:4,fontSize:12,fontWeight:700,background:"#fbbf24",color:"#0B0E14",border:"none",cursor:"pointer",fontFamily:FM}}>RELOAD</button><button onClick={onDismissConflict} style={{padding:"4px 12px",borderRadius:4,fontSize:12,fontWeight:600,background:"transparent",color:"#fef3c7",border:"1px solid rgba(254,243,199,.3)",cursor:"pointer",fontFamily:FM}}>DISMISS</button></div></div>}
+      {confirmDlg&&<Overlay onClose={function(){setConfirm(null);}}><div className="panel" style={{maxWidth:360,width:"90%"}}><div className="panel-hdr"><h3>Confirm</h3></div><div className="panel-body"><p style={{margin:"0 0 12px",fontSize:15,color:C.text,fontFamily:FU,whiteSpace:"pre-wrap"}}>{confirmDlg.msg}</p><div style={{display:"flex",gap:6,justifyContent:"flex-end"}}><button onClick={function(){setConfirm(null);}} className="btn-ghost" style={{padding:"5px 12px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>Cancel</button><button onClick={confirmDlg.fn} className="btn-primary" style={{padding:"5px 12px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>Confirm</button></div></div></div></Overlay>}
+      {exportModal&&<Overlay onClose={function(){setExportModal(null);}}><div className="panel" style={{maxWidth:exportModal.isHTML?760:700,width:"95%",maxHeight:"90vh",display:"flex",flexDirection:"column"}}><div className="panel-hdr"><h3>{exportModal.title}</h3><div style={{display:"flex",gap:6}}>
+        {!exportModal.isHTML&&<button onClick={function(){try{var ta=document.getElementById("exportTA");ta.select();document.execCommand("copy");showToast("Copied to clipboard");}catch(e){showToast("Select all and copy manually","err");}}} className="btn-primary" style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:700}}>COPY ALL</button>}
+        {exportModal.isHTML&&<button onClick={function(){try{var el=document.getElementById("stmtFrame");var win=el.contentWindow;win.focus();win.print();}catch(e){showToast("Use Ctrl+P to print","err");}}} className="btn-primary" style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:700}}>PRINT</button>}
+        {exportModal.isHTML&&<button onClick={function(){try{dlFile(exportModal.content,(exportModal.title||"export").replace(/[^a-zA-Z0-9 ]/g,"").replace(/ +/g,"_")+".html","text/html");showToast("Downloaded — open in browser then Print → Save as PDF");}catch(e){showToast("Download failed","err");}}} className="btn-ghost" style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:700}}>DOWNLOAD</button>}
+        <button onClick={function(){setExportModal(null);}} style={{background:"none",border:"none",color:C.textDim,fontSize:16,cursor:"pointer"}}>×</button>
+      </div></div><div className="panel-body" style={{flex:1,overflow:"hidden",padding:10}}>
+        {exportModal.isHTML?<iframe id="stmtFrame" srcDoc={exportModal.content} style={{width:"100%",height:"65vh",border:"1px solid "+C.border,borderRadius:6,background:"#fff"}}/>
+        :<textarea id="exportTA" readOnly value={exportModal.content} style={{width:"100%",height:"60vh",background:C.bgInput,color:C.text,border:"1px solid "+C.border,borderRadius:6,padding:12,fontSize:12,fontFamily:"monospace",resize:"none"}} onClick={function(e){e.target.select();}}/>}
+      </div></div></Overlay>}
+      {/* ── SIDEBAR ── */}
+      <div style={{width:180,background:"#0B0E12",padding:"10px 0",display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto",borderRight:"1px solid "+C.border,zIndex:10}}>
+        <div style={{padding:"0 12px 10px",borderBottom:"1px solid "+C.border}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}><div style={{width:5,height:5,borderRadius:"50%",background:C.green,boxShadow:"0 0 6px "+C.greenGlow,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:11,fontFamily:FM,color:C.green,fontWeight:600,letterSpacing:"1px"}}>ONLINE</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:4}}>
+            <svg viewBox="0 0 24 24" width="16" height="16" style={{flexShrink:0}}><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z" fill="#FFD700"/></svg>
+            <div>
+              <h1 style={{fontSize:16,fontWeight:800,margin:0,color:"#FFD700",fontFamily:FM,letterSpacing:"2px"}}>SPARK</h1>
+              <p style={{fontSize:11,fontWeight:500,margin:0,color:C.textDim,fontFamily:FM,letterSpacing:"2px"}}>COMMISSIONS</p>
+            </div>
+          </div>
+          <div style={{marginTop:8,padding:"5px 0",borderTop:"1px solid "+C.border}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>TEAM</span><span style={{fontSize:12,color:"#FFD700",fontFamily:FM,fontWeight:600}}>{members.length}</span></div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>WEEKS</span><span style={{fontSize:12,color:C.blue,fontFamily:FM,fontWeight:600}}>{chargeWeeks.length}</span></div>
+            <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>DH READY</span><span style={{fontSize:12,color:readyDH.length?C.green:C.textDim,fontFamily:FM,fontWeight:600}}>{readyDH.length}</span></div>
+          </div>
+          <div style={{marginTop:6,paddingTop:6,borderTop:"1px solid "+C.border}}>
+            <button onClick={doSave} style={{width:"100%",padding:"5px 0",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600,border:"none",transition:"all .15s",background:saveStatus==="saved"?C.greenDim:saveStatus==="saving"?C.accentDim:C.orangeDim,color:saveStatus==="saved"?C.green:saveStatus==="saving"?C.accent:C.orange}}>
+              {saveStatus==="saved"?"✓ Saved":saveStatus==="saving"?"Saving...":"● Unsaved"}
+            </button>
+          </div>
+          {/* Mode Toggle */}
+          <div style={{padding:"8px 12px",borderBottom:"1px solid "+C.border}}>
+            <div style={{display:"flex",borderRadius:6,overflow:"hidden",border:"1px solid "+C.border}}>
+              <div style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:12,fontWeight:700,fontFamily:FM,cursor:"default",background:C.accent+"15",color:C.accent,letterSpacing:".5px"}}>Admin</div>
+              <div onClick={function(){setRepMode(true);setRepId(null);}} style={{flex:1,padding:"6px 0",textAlign:"center",fontSize:12,fontWeight:600,fontFamily:FM,cursor:"pointer",background:"transparent",color:C.textDim,letterSpacing:".5px",transition:"all .15s"}}>Rep View</div>
+            </div>
+            <div style={{padding:"4px 0",textAlign:"center",fontSize:10,color:C.textDim,fontFamily:FM,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{userName||userEmail}</div>
+            <button onClick={function(){if(onLogout)onLogout();}} style={{width:"100%",marginTop:4,padding:"5px 0",borderRadius:4,fontSize:11,fontFamily:FM,fontWeight:600,border:"1px solid "+C.red+"33",color:C.red,background:"transparent",cursor:"pointer"}}>Sign Out</button>
+          </div>
+        </div>
+        <div style={{padding:"6px 0",flex:1}}>{NAV.map(function(n){var ac=view===n.id||(view==="edit"&&n.id==="team");return <div key={n.id} onClick={function(){setView(n.id);if(n.id!=="edit")setEditMemberId(null);}} className={"nav-item"+(ac?" active":"")} style={{padding:"8px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,color:ac?C.accent:C.textMuted,fontSize:14,fontWeight:ac?600:400,fontFamily:FM,letterSpacing:".3px"}}><Icon name={n.icon} sz={13} cl={ac?C.accent:C.textDim}/><span>{n.label}</span>
+          {n.id==="charges"&&chargeWeeks.length>0&&<span style={{marginLeft:"auto",fontSize:11,color:C.blue,fontFamily:FM}}>{chargeWeeks.length}</span>}
+          {n.id==="dh"&&readyDH.length>0&&<span style={{marginLeft:"auto",background:C.green,color:C.bg,borderRadius:2,padding:"0px 4px",fontSize:11,fontWeight:700}}>{readyDH.length}</span>}
+          {n.id==="recon"&&anomalies.length>0&&<span style={{marginLeft:"auto",background:C.red,color:"#fff",borderRadius:2,padding:"0px 4px",fontSize:11,fontWeight:700}}>{anomalies.length}</span>}
+          {n.id==="floor"&&members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0;}).length>0&&<span style={{marginLeft:"auto",background:C.orange,color:"#fff",borderRadius:2,padding:"0px 4px",fontSize:11,fontWeight:700}}>{members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0;}).length}</span>}
+        </div>;})}</div>
+        <div style={{padding:"8px 12px",borderTop:"1px solid "+C.border,display:"flex",flexDirection:"column",gap:3}}>
+          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>Q SNAPSHOTS</span><span style={{fontSize:11,color:qSnapshots.length?C.purple:C.textDim,fontFamily:FM}}>{qSnapshots.length||"—"}</span></div>
+          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>STORAGE</span><span style={{fontSize:11,color:C.green,fontFamily:FM}}>{loaded?"OK":"..."}</span></div>
+          <p style={{fontSize:11,color:C.textDim,margin:"2px 0 0",fontFamily:FM,borderTop:"1px solid "+C.border,paddingTop:4}}><span style={{color:"#FFD700"}}>⚡</span> v7.0</p>
+        </div>
       </div>
-    </>)}
-    {/* Everyone else */}
-    <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>All team members</div>
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {allShownPeople.filter(p => !myReports.find(r => r.name === p.name)).map(p => { const s = p.stats; const stepsPct = totalRequiredSteps > 0 ? Math.round(s.stepsDone.size / totalRequiredSteps * 100) : 0; const quizPct = totalRequiredQuizzes > 0 ? Math.round(s.quizzesPassed.size / totalRequiredQuizzes * 100) : 0; return (<div key={p.name} style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: "#475569", flexWrap: "wrap" }}><div style={{ flex: "1 1 180px", minWidth: 140 }}><span style={{ fontWeight: 600, color: "#1a1a2e" }}>{p.name}</span><span style={{ color: "#94a3b8", marginLeft: 6, fontSize: 10 }}>{p.role}</span></div><div style={{ display: "flex", gap: 14 }}><span>Steps: <b style={{ color: stepsPct === 100 ? "#059669" : "#1a1a2e" }}>{stepsPct}%</b></span><span>Quizzes: <b style={{ color: quizPct === 100 ? "#059669" : "#1a1a2e" }}>{quizPct}%</b></span></div></div>); })}
+      {/* ── MAIN ── */}
+      <div style={{flex:1,padding:"16px 20px",overflowY:"auto",maxHeight:"100vh",background:C.bg2}}>
+        {/* ════════ COMMAND CENTER ════════ */}
+        {view==="command"&&<div style={{animation:"fadeIn .2s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}><svg viewBox="0 0 24 24" width="18" height="18"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z" fill="#FFD700"/></svg><h2 style={{fontSize:20,fontWeight:800,margin:0,fontFamily:FU,color:C.text}}>Spark Commission Tracker</h2><span style={{fontSize:13,color:C.textDim,fontFamily:FM,marginLeft:"auto"}}>{chargeWeeks.length?("Latest: WE "+chargeWeeks[0].weekEnding):new Date().toLocaleDateString()}</span></div>
+          {/* ── TICKER BANNER ── */}
+          {ytdStandings.length>0&&function(){
+            var items=[];
+            // Top 5 earners
+            ytdStandings.slice(0,5).forEach(function(s,i){
+              var arrow=i===0?"👑 ":"";
+              items.push({text:arrow+s.name,value:fmtD(s.ytdRaw),color:i===0?C.accent:i<3?C.green:C.text,sub:"#"+(i+1)+" YTD"});
+            });
+            // Floor alerts
+            var onFloor=ytdStandings.filter(function(s){return!s.aboveFloor;});
+            if(onFloor.length>0)items.push({text:"⚠ "+onFloor.length+" ON FLOOR",value:"",color:C.red,sub:"below $25K QTD tier"});
+            // DH ready
+            if(readyDH.length>0)items.push({text:"✓ "+readyDH.length+" DH READY",value:fmtD(readyDH.reduce(function(a,d){return a+d.raw;},0)),color:C.green,sub:"to process"});
+            // $100K club
+            var club100=ytdStandings.filter(function(s){return s.ytdRaw>=FLOOR_ANNUAL;});
+            if(club100.length>0)items.push({text:"💎 $100K CLUB",value:club100.length+" member"+(club100.length>1?"s":""),color:C.accent,sub:club100.map(function(s){return s.name.split(" ")[0];}).join(", ")});
+            // Top weekly charge
+            if(chargeWeeks.length>0){var topWeek=chargeWeeks[0].rows.slice().sort(function(a,b){return b.rawCharge-a.rawCharge;})[0];if(topWeek)items.push({text:"🔥 TOP WEEK",value:fmtD(topWeek.rawCharge),color:C.orange,sub:topWeek.matchedName||topWeek.name});}
+            // Guarantees
+            var gM=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0&&(!m.guarantee.endDate||m.guarantee.endDate>=new Date().toISOString().slice(0,10));});
+            if(gM.length>0){var gTotal=gM.reduce(function(a,m){return a+m.guarantee.amount;},0);items.push({text:"💰 GUARANTEES",value:fmtD(gTotal)+"/wk",color:C.accent,sub:gM.length+" member"+(gM.length>1?"s":"")});}
+            // Crossing alerts (members who just crossed $25K in latest week)
+            if(chargeWeeks.length>=2){
+              var latest=chargeWeeks[0],prior=chargeWeeks[1];
+              latest.rows.forEach(function(r){if(!r.matchedId)return;var pRow=prior.rows.find(function(p){return p.matchedId===r.matchedId;});if(pRow&&pRow.ytdRaw<FLOOR&&r.ytdRaw>=FLOOR)items.push({text:"📈 CROSSED $25K",value:r.matchedName||r.name,color:C.green,sub:fmtD(pRow.ytdRaw)+" → "+fmtD(r.ytdRaw)});});
+            }
+            var tickerContent=items.concat(items);
+            return <div style={{overflow:"hidden",background:"linear-gradient(90deg,"+C.bgCard+" 0%,"+C.bgSurface+" 50%,"+C.bgCard+" 100%)",borderRadius:6,border:"1px solid "+C.border,marginBottom:10,position:"relative",height:40}}>
+              <div style={{position:"absolute",left:0,top:0,right:0,bottom:0,pointerEvents:"none",background:"linear-gradient(90deg,"+C.bgCard+" 0%,transparent 5%,transparent 95%,"+C.bgCard+" 100%)",zIndex:2}}/>
+              <div style={{display:"flex",alignItems:"center",gap:0,whiteSpace:"nowrap",animation:"tickerScroll "+(items.length*4)+"s linear infinite",height:"100%"}}>
+                {tickerContent.map(function(item,i){return <div key={i} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"0 20px",borderRight:"1px solid "+C.border+"44",height:"100%"}}>
+                  <span style={{fontSize:13,fontWeight:700,color:item.color,fontFamily:FM}}>{item.text}</span>
+                  {item.value&&<span style={{fontSize:14,fontWeight:800,color:item.color,fontFamily:FM}}>{item.value}</span>}
+                  {item.sub&&<span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>{item.sub}</span>}
+                </div>;})}
+              </div>
+            </div>;
+          }()}
+          {/* ── Hero KPIs ── */}
+          {function(){
+            var totalYTD=ytdStandings.reduce(function(a,s){return a+s.ytdRaw;},0);
+            var aboveFloor=ytdStandings.filter(function(s){return s.aboveFloor;}).length;
+            var onFloor=ytdStandings.length-aboveFloor;
+            var pendDH=dhData.filter(function(d){return!d.paidOut&&d.st!=="t"&&d.st!=="d";});
+            var pendRaw=pendDH.reduce(function(a,d){return a+d.raw;},0);
+            var paidDH=dhData.filter(function(d){return d.paidOut||d.st==="d";});
+            var paidRaw=paidDH.reduce(function(a,d){return a+d.raw;},0);
+            // Weekly floor detail: who is above/below $2,500 this week
+            var latestWeek=chargeWeeks.length?chargeWeeks[0]:null;
+            var weeklyAbove=[],weeklyBelow=[],weeklyZero=[];
+            if(latestWeek){latestWeek.rows.forEach(function(r){
+              if(!r.matchedId)return;
+              var m=members.find(function(x){return x.id===r.matchedId;});
+              if(!m)return;
+              var fi=getFloorInfo(r,latestWeek);
+              if(r.rawCharge>=FLOOR_WEEKLY_DEDUCT)weeklyAbove.push({name:m.name,raw:r.rawCharge,qtd:fi.qtd,aboveFloor:!fi.belowFloor,id:m.id});
+              else if(r.rawCharge>0)weeklyBelow.push({name:m.name,raw:r.rawCharge,qtd:fi.qtd,aboveFloor:!fi.belowFloor,id:m.id});
+              else weeklyZero.push({name:m.name,raw:0,qtd:fi.qtd,aboveFloor:!fi.belowFloor,id:m.id});
+            });}
+            weeklyAbove.sort(function(a,b){return b.raw-a.raw;});weeklyBelow.sort(function(a,b){return b.raw-a.raw;});
+            var tileStyle=function(color,active){return{background:C.bgCard,border:"1px solid "+(active?color+"55":C.border),borderRadius:10,padding:"20px 22px",borderTop:"3px solid "+color,cursor:"pointer",transition:"all .15s",boxShadow:active?"0 0 12px "+color+"15":"none"};};
+            return <div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:cmdDrill?0:16}}>
+              <div style={tileStyle(C.accent,cmdDrill==="ytd")} onClick={function(){if(chargeWeeks.length)setCmdDrill(cmdDrill==="ytd"?null:"ytd");}}>
+                <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,letterSpacing:".6px",fontFamily:FM}}>Total YTD Raw Charge</p>
+                {chargeWeeks.length>0?<div>
+                  <p style={{fontSize:30,fontWeight:800,margin:0,color:C.accent,fontFamily:FU}}>{fmtD(totalYTD)}</p>
+                  <p style={{fontSize:12,color:C.textMuted,margin:"4px 0 0",fontFamily:FM}}>{ytdStandings.length} members · {chargeWeeks.length} week{chargeWeeks.length!==1?"s":""} · click to drill down</p>
+                </div>
+                :<div>
+                  <p style={{fontSize:22,fontWeight:800,margin:0,color:C.textDim,fontFamily:FU}}>—</p>
+                  <p style={{fontSize:12,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>No charge data loaded</p>
+                </div>}
+              </div>
+              <div style={tileStyle(C.green,cmdDrill==="floor")} onClick={function(){if(chargeWeeks.length)setCmdDrill(cmdDrill==="floor"?null:"floor");}}>
+                <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,letterSpacing:".6px",fontFamily:FM}}>Tier Status</p>
+                {chargeWeeks.length>0?<div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:10}}>
+                    <p style={{fontSize:30,fontWeight:800,margin:0,color:C.green,fontFamily:FU}}>{aboveFloor}</p>
+                    <span style={{fontSize:14,color:C.textMuted,fontFamily:FM}}>above</span>
+                    {onFloor>0&&<><p style={{fontSize:30,fontWeight:800,margin:0,color:C.red,fontFamily:FU}}>{onFloor}</p><span style={{fontSize:14,color:C.textMuted,fontFamily:FM}}>below tier</span></>}
+                  </div>
+                  <div style={{height:6,background:C.bg,borderRadius:3,overflow:"hidden",marginTop:8}}><div style={{height:"100%",width:Math.round(aboveFloor/Math.max(1,ytdStandings.length)*100)+"%",background:"linear-gradient(90deg,"+C.green+","+C.teal+")",borderRadius:3}}/></div>
+                </div>
+                :<div>
+                  <p style={{fontSize:22,fontWeight:800,margin:0,color:C.textDim,fontFamily:FU}}>—</p>
+                  <p style={{fontSize:12,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>No charge data loaded</p>
+                </div>}
+              </div>
+              <div style={tileStyle(C.teal,cmdDrill==="dh")} onClick={function(){if(dhData.length)setCmdDrill(cmdDrill==="dh"?null:"dh");}}>
+                <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:700,letterSpacing:".6px",fontFamily:FM}}>DH Pipeline</p>
+                {dhData.length>0?<div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+                    <p style={{fontSize:30,fontWeight:800,margin:0,color:C.teal,fontFamily:FU}}>{pendDH.length}</p>
+                    <span style={{fontSize:14,color:C.textMuted,fontFamily:FM}}>pending · {fmtD(pendRaw)}</span>
+                  </div>
+                  <p style={{fontSize:12,color:C.textMuted,margin:"4px 0 0",fontFamily:FM}}>{readyDH.length>0?<span style={{color:C.green,fontWeight:700}}>{readyDH.length+" ready to pay"}</span>:paidDH.length+" completed"}</p>
+                </div>
+                :<div>
+                  <p style={{fontSize:22,fontWeight:800,margin:0,color:C.textDim,fontFamily:FU}}>—</p>
+                  <p style={{fontSize:12,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>No DH deals loaded</p>
+                </div>}
+              </div>
+            </div>
+            {/* ── DRILL DOWN PANELS ── */}
+            {cmdDrill==="ytd"&&chargeWeeks.length>0&&<div style={Object.assign({},card,{marginBottom:16,overflow:"hidden",animation:"fadeIn .2s ease"})}>
+              <div style={{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <h3 style={{fontSize:13,fontWeight:700,color:C.accent,margin:0,fontFamily:FM}}>YTD Raw Charge — All Members</h3>
+                <button onClick={function(){setCmdDrill(null);}} style={{background:"none",border:"none",color:C.textDim,fontSize:16,cursor:"pointer"}}>×</button>
+              </div>
+              <div style={{maxHeight:"35vh",overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr><th style={Object.assign({},th,{width:30})}>#</th><th style={th}>Name</th><th style={th}>Unit</th><th style={Object.assign({},th,{textAlign:"right"})}>YTD Raw</th><th style={Object.assign({},th,{textAlign:"right"})}>QTD</th><th style={Object.assign({},th,{textAlign:"right"})}>Avg/Wk</th><th style={Object.assign({},th,{textAlign:"center"})}>Tier</th></tr></thead>
+                <tbody>{ytdStandings.map(function(s,i){return <tr key={i} className="trow" onClick={function(){if(s.member)goEdit(s.member.id);}} style={{cursor:"pointer"}}>
+                  <td style={Object.assign({},td,{textAlign:"center",color:i<3?C.accent:C.textDim,fontWeight:i<3?700:400})}>{i+1}</td>
+                  <td style={Object.assign({},td,{fontWeight:600,color:C.text})}>{s.name}</td>
+                  <td style={td}><Badge v={UB[s.unit]||"muted"}>{s.unit}</Badge></td>
+                  <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.text})}>{fmtD(s.ytdRaw)}</td>
+                  <td style={Object.assign({},td,{textAlign:"right",color:s.aboveFloor?C.green:C.orange})}>{fmtD(s.qtd||0)}</td>
+                  <td style={Object.assign({},td,{textAlign:"right",color:C.textMuted})}>{s.avgWeekly>0?fmtD(s.avgWeekly):"—"}</td>
+                  <td style={Object.assign({},td,{textAlign:"center"})}>{s.aboveFloor?<Badge v="green">{s.ytdRaw>=FLOOR_ANNUAL?"$100K":"OK"}</Badge>:<Badge v="red">{Math.round((s.qtd||0)/FLOOR*100)+"%"}</Badge>}</td>
+                </tr>;})}</tbody>
+              </table></div>
+            </div>}
+            {cmdDrill==="floor"&&chargeWeeks.length>0&&<div style={Object.assign({},card,{marginBottom:16,overflow:"hidden",animation:"fadeIn .2s ease"})}>
+              <div style={{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <h3 style={{fontSize:13,fontWeight:700,color:C.green,margin:0,fontFamily:FM}}>Tier Detail — WE {latestWeek?latestWeek.weekEnding:"(no data)"}</h3>
+                <button onClick={function(){setCmdDrill(null);}} style={{background:"none",border:"none",color:C.textDim,fontSize:16,cursor:"pointer"}}>×</button>
+              </div>
+              <div style={{padding:16}}>
+                {/* Weekly $2,500 breakdown */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+                  <Stat l="Above $2,500/wk" v={weeklyAbove.length} c={C.green} s={weeklyAbove.length?fmtD(weeklyAbove.reduce(function(a,r){return a+r.raw;},0))+" total raw":""}/>
+                  <Stat l="Below $2,500/wk" v={weeklyBelow.length} c={C.red} s={weeklyBelow.length?fmtD(weeklyBelow.reduce(function(a,r){return a+r.raw;},0))+" total — $0 comm":""}/>
+                  <Stat l="$0 Charge This Wk" v={weeklyZero.length} c={C.textDim}/>
+                </div>
+                {/* Below $2,500 list — these people are earning $0 */}
+                {weeklyBelow.length>0&&<div style={{marginBottom:12}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.red,margin:"0 0 6px",fontFamily:FM}}>Below $2,500 weekly minimum — earning $0 commission this week:</p>
+                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {weeklyBelow.map(function(r){return <div key={r.id} onClick={function(){goEdit(r.id);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 12px",background:C.redDim,borderRadius:6,border:"1px solid "+C.red+"22",cursor:"pointer"}}>
+                      <span style={{fontSize:14,fontWeight:600,color:C.text,fontFamily:FM}}>{r.name}</span>
+                      <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                        <span style={{fontSize:14,fontWeight:700,color:C.red,fontFamily:FM}}>{fmtD(r.raw)}</span>
+                        <span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>need {fmtD(FLOOR_WEEKLY_DEDUCT-r.raw)} more</span>
+                        {r.aboveFloor&&<Badge v="green">QTD OK</Badge>}
+                      </div>
+                    </div>;})}
+                  </div>
+                </div>}
+                {weeklyZero.length>0&&<div style={{marginBottom:12}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM}}>$0 charge this week:</p>
+                  <p style={{fontSize:13,color:C.textMuted,margin:0,fontFamily:FM}}>{weeklyZero.map(function(r){return r.name;}).join(", ")}</p>
+                </div>}
+                {/* QTD Floor breakdown */}
+                <div style={{borderTop:"1px solid "+C.border,paddingTop:12,marginTop:4}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.green,margin:"0 0 6px",fontFamily:FM}}>Above $25K QTD tier — full commission, no deductions:</p>
+                  <div style={{maxHeight:"20vh",overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th style={th}>Name</th><th style={Object.assign({},th,{textAlign:"right"})}>This Week</th><th style={Object.assign({},th,{textAlign:"right"})}>QTD</th><th style={Object.assign({},th,{textAlign:"center"})}>DH</th></tr></thead>
+                    <tbody>{ytdStandings.filter(function(s){return s.aboveFloor;}).map(function(s,i){
+                      var weekRow=latestWeek?latestWeek.rows.find(function(r){return r.matchedId===(s.member&&s.member.id);}):{rawCharge:0};
+                      return <tr key={i} className="trow" onClick={function(){if(s.member)goEdit(s.member.id);}} style={{cursor:"pointer"}}>
+                        <td style={Object.assign({},td,{fontWeight:600,color:C.text})}>{s.name}</td>
+                        <td style={Object.assign({},td,{textAlign:"right"})}>{weekRow?fmtD(weekRow.rawCharge):"—"}</td>
+                        <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.green})}>{fmtD(s.qtd||0)}</td>
+                        <td style={Object.assign({},td,{textAlign:"center"})}><Badge v="green">Yes</Badge></td>
+                      </tr>;
+                    })}</tbody>
+                  </table></div>
+                </div>
+                <div style={{borderTop:"1px solid "+C.border,paddingTop:12,marginTop:12}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.orange,margin:"0 0 6px",fontFamily:FM}}>Below $25K QTD tier — $2,500 weekly deduction applies:</p>
+                  <div style={{maxHeight:"20vh",overflowY:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th style={th}>Name</th><th style={Object.assign({},th,{textAlign:"right"})}>This Week</th><th style={Object.assign({},th,{textAlign:"right"})}>QTD</th><th style={Object.assign({},th,{textAlign:"right"})}>To $25K</th><th style={Object.assign({},th,{textAlign:"center"})}>Weekly OK</th></tr></thead>
+                    <tbody>{ytdStandings.filter(function(s){return!s.aboveFloor;}).map(function(s,i){
+                      var weekRow=latestWeek?latestWeek.rows.find(function(r){return r.matchedId===(s.member&&s.member.id);}):{rawCharge:0};
+                      var wkRaw=weekRow?weekRow.rawCharge:0;
+                      return <tr key={i} className="trow" onClick={function(){if(s.member)goEdit(s.member.id);}} style={{cursor:"pointer"}}>
+                        <td style={Object.assign({},td,{fontWeight:600,color:C.text})}>{s.name}</td>
+                        <td style={Object.assign({},td,{textAlign:"right",color:wkRaw>=FLOOR_WEEKLY_DEDUCT?C.green:wkRaw>0?C.red:C.textDim})}>{wkRaw>0?fmtD(wkRaw):"$0"}</td>
+                        <td style={Object.assign({},td,{textAlign:"right",color:C.orange})}>{fmtD(s.qtd||0)}</td>
+                        <td style={Object.assign({},td,{textAlign:"right",color:C.textMuted})}>{fmtD(Math.max(0,FLOOR-(s.qtd||0)))}</td>
+                        <td style={Object.assign({},td,{textAlign:"center"})}>{wkRaw>=FLOOR_WEEKLY_DEDUCT?<Badge v="green">Yes</Badge>:wkRaw>0?<Badge v="red">No — $0</Badge>:<Badge v="muted">—</Badge>}</td>
+                      </tr>;
+                    })}</tbody>
+                  </table></div>
+                </div>
+              </div>
+            </div>}
+            {cmdDrill==="dh"&&dhData.length>0&&<div style={Object.assign({},card,{marginBottom:16,overflow:"hidden",animation:"fadeIn .2s ease"})}>
+              <div style={{padding:"10px 16px",background:C.bg,borderBottom:"1px solid "+C.border,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <h3 style={{fontSize:13,fontWeight:700,color:C.teal,margin:0,fontFamily:FM}}>DH Pipeline — All Deals</h3>
+                <button onClick={function(){setCmdDrill(null);}} style={{background:"none",border:"none",color:C.textDim,fontSize:16,cursor:"pointer"}}>×</button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,padding:14}}>
+                <Stat l="Pending" v={pendDH.length} c={C.orange} s={fmtD(pendRaw)}/>
+                <Stat l="Ready to Pay" v={readyDH.length} c={C.green} s={readyDH.length?fmtD(readyDH.reduce(function(a,d){return a+d.raw;},0)):""}/>
+                <Stat l="Completed" v={paidDH.length} c={C.purple} s={fmtD(paidRaw)}/>
+                <Stat l="Terminated" v={dhData.filter(function(d){return d.st==="t";}).length} c={C.red}/>
+              </div>
+              <div style={{maxHeight:"30vh",overflowY:"auto",padding:"0 14px 14px"}}><table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr><th style={th}>Candidate</th><th style={th}>Client</th><th style={th}>AM</th><th style={th}>Rec</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th><th style={Object.assign({},th,{textAlign:"center"})}>Status</th></tr></thead>
+                <tbody>{dhData.slice().sort(function(a,b){if(isReady(a)&&!a.paidOut)return -1;if(isReady(b)&&!b.paidOut)return 1;return b.raw-a.raw;}).map(function(d,i){
+                  var rdy=isReady(d)&&!d.paidOut;var stColor=rdy?C.green:d.paidOut?C.purple:d.st==="t"?C.red:C.orange;
+                  var stLabel=rdy?"Ready":d.paidOut?"Paid":d.st==="t"?"Term":d.st==="c"?"Clear":d.st==="o"?"Guar":"Pend";
+                  return <tr key={i} className="trow" style={{opacity:d.st==="t"||d.paidOut?.5:1}}>
+                    <td style={Object.assign({},td,{fontWeight:600})}>{d.can}</td>
+                    <td style={td}>{d.cl}</td>
+                    <td style={Object.assign({},td,{fontSize:12})}>{d.am}</td>
+                    <td style={Object.assign({},td,{fontSize:12})}>{d.rec}</td>
+                    <td style={Object.assign({},td,{textAlign:"right",fontWeight:700})}>{fmtD(d.raw)}</td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><Badge v={rdy?"green":d.paidOut?"purple":d.st==="t"?"red":"orange"}>{stLabel}</Badge></td>
+                  </tr>;
+                })}</tbody>
+              </table></div>
+            </div>}
+            </div>;
+          }()}
+          {/* ── Weekly Floors Callout ── */}
+          {function(){
+            var gMembers=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0&&(!m.guarantee.endDate||m.guarantee.endDate>=new Date().toISOString().slice(0,10));});
+            if(!gMembers.length)return null;
+            var totalGuarantee=gMembers.reduce(function(a,m){return a+m.guarantee.amount;},0);
+            var expiringSoon=gMembers.filter(function(m){if(!m.guarantee.endDate)return false;var d=new Date(m.guarantee.endDate);var diff=Math.ceil((d-NOW)/(1000*60*60*24));return diff<=30;});
+            return <div style={{display:"flex",gap:8,marginBottom:14,padding:"10px 14px",background:C.accentDim,border:"1px solid "+C.accent+"33",borderRadius:6,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:16}}>💰</span>
+                <span style={{fontSize:13,fontWeight:700,color:C.accent,fontFamily:FM}}>WEEKLY FLOORS</span>
+              </div>
+              <span style={{fontSize:14,fontWeight:800,color:C.accent,fontFamily:FM}}>{fmtD(totalGuarantee)}/week</span>
+              <span style={{fontSize:12,color:C.textMuted,fontFamily:FM}}>across {gMembers.length} member{gMembers.length>1?"s":""}</span>
+              <span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>—</span>
+              {gMembers.map(function(m){return <span key={m.id} style={{fontSize:12,fontFamily:FM,padding:"2px 8px",background:C.bgCard,borderRadius:3,border:"1px solid "+C.border,color:C.text}}>{m.name.split(" ")[0]} <span style={{fontWeight:700,color:C.accent}}>{fmtD(m.guarantee.amount)}</span>{m.guarantee.endDate?<span style={{color:C.textDim,marginLeft:4}}>→ {m.guarantee.endDate}</span>:""}</span>;})}
+              {expiringSoon.length>0&&<span style={{fontSize:12,color:C.orange,fontFamily:FM,fontWeight:600}}>⚠ {expiringSoon.length} expiring within 30 days</span>}
+            </div>;
+          }()}
+          {/* ── YTD Raw by Business Unit + Pending DH side by side ── */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+            {/* Unit Breakdown */}
+            <div className="panel"><div className="panel-hdr"><h3>YTD RAW BY BUSINESS UNIT</h3></div><div className="panel-body" style={{padding:10}}>
+              {function(){
+                var unitMap={};ytdStandings.forEach(function(s){var u=s.unit||"Other";unitMap[u]=(unitMap[u]||0)+s.ytdRaw;});
+                var unitData=Object.keys(unitMap).map(function(u){return{name:u,raw:unitMap[u]};}).sort(function(a,b){return b.raw-a.raw;});
+                var unitColors={"MI Metro":"#3B9EFF","Light Industrial":"#A78BFA","Automation":"#2DD4BF","Enterprise":"#3B9EFF","Spark Sales":"#FFD700","Ignite":"#60A5FA","JJP":"#E09F3E","Fulfillment":"#27C93F","South East":"#E09F3E","Central":"#E09F3E"};
+                var maxRaw=unitData.length?unitData[0].raw:1;
+                var totalRaw=unitData.reduce(function(a,u){return a+u.raw;},0);
+                return <div>{unitData.map(function(u,i){var pct=Math.round(u.raw/totalRaw*100);return <div key={u.name} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <span style={{fontSize:12,fontFamily:FM,color:C.textMuted,minWidth:90,textAlign:"right"}}>{u.name}</span>
+                  <div style={{flex:1,height:22,background:C.bg,borderRadius:4,overflow:"hidden",position:"relative"}}>
+                    <div style={{height:"100%",width:Math.round(u.raw/maxRaw*100)+"%",background:"linear-gradient(90deg,"+(unitColors[u.name]||C.accent)+"cc,"+(unitColors[u.name]||C.accent)+"66)",borderRadius:4,transition:"width .5s ease"}}/>
+                    <span style={{position:"absolute",left:8,top:3,fontSize:11,fontWeight:700,fontFamily:FM,color:"#fff",textShadow:"0 1px 3px rgba(0,0,0,.5)"}}>{fmtD(u.raw)}</span>
+                  </div>
+                  <span style={{fontSize:11,fontFamily:FM,color:C.textDim,minWidth:32}}>{pct}%</span>
+                </div>})}</div>;
+              }()}
+            </div></div>
+            {/* Pending DH Payouts */}
+            <div className="panel"><div className="panel-hdr"><h3>UPCOMING DH PAYOUTS</h3><span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>{dhData.filter(function(d){return!d.paidOut&&d.st!=="t"&&d.st!=="d";}).length} pending</span></div><div className="panel-body" style={{padding:8,maxHeight:"30vh",overflowY:"auto"}}>
+              {function(){
+                var pending=dhData.filter(function(d){return!d.paidOut&&d.st!=="t"&&d.st!=="d";}).map(function(d){
+                  var dt=d.cd?Math.ceil((new Date(d.cd)-NOW)/864e5):null;
+                  return Object.assign({},d,{daysLeft:dt});
+                }).sort(function(a,b){
+                  if(a.daysLeft===null&&b.daysLeft===null)return b.raw-a.raw;
+                  if(a.daysLeft===null)return 1;if(b.daysLeft===null)return -1;
+                  return a.daysLeft-b.daysLeft;
+                });
+                if(!pending.length)return <p style={{color:C.textDim,fontSize:13,fontFamily:FM,textAlign:"center",padding:12,margin:0}}>No pending DH deals</p>;
+                return pending.slice(0,10).map(function(d,i){
+                  var urgent=d.daysLeft!==null&&d.daysLeft<=0;
+                  var soon=d.daysLeft!==null&&d.daysLeft>0&&d.daysLeft<=14;
+                  var needsInv=urgent&&!d.invPaid;
+                  return <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 4px",borderBottom:i<9?"1px solid "+C.border+"66":"none",background:urgent?C.greenDim:"transparent"}}>
+                    <div style={{width:4,height:28,borderRadius:2,background:urgent?C.green:soon?C.orange:d.cd?C.blue:C.textDim}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:13,fontFamily:FU,fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.can}</span>
+                        <span style={{fontSize:13,fontFamily:FM,fontWeight:700,color:urgent?C.green:C.text}}>{fmtD(d.raw)}</span>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:1}}>
+                        <span style={{fontSize:11,color:C.textMuted,fontFamily:FM}}>{d.cl} · {d.rec.split(" ").pop()}</span>
+                        <span style={{fontSize:11,fontFamily:FM,fontWeight:600,color:urgent?C.green:soon?C.orange:C.textDim}}>{d.daysLeft===null?"No clearance date":urgent?(needsInv?"CLEAR — need invoice":"CLEAR — ready"):(d.daysLeft+"d to clear")}</span>
+                      </div>
+                    </div>
+                  </div>;
+                });
+              }()}
+            </div></div>
+          </div>
+          {/* ── DATA INSIGHTS ── */}
+          {chargeWeeks.length>0&&<div style={{display:"grid",gridTemplateColumns:chargeWeeks.length>=2?"2fr 1fr":"1fr",gap:8,marginBottom:16}}>
+            {/* Team Velocity Chart */}
+            {chargeWeeks.length>=2&&<div className="panel"><div className="panel-hdr"><h3>TEAM VELOCITY</h3><span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>{chargeWeeks.length} weeks</span></div><div className="panel-body" style={{padding:"8px 4px 2px 0"}}>
+              <ResponsiveContainer width="100%" height={120}>
+                <AreaChart data={chargeWeeks.slice().reverse().map(function(w){var tRaw=w.rows.reduce(function(a,r){return a+r.rawCharge;},0);var tYTD=w.rows.reduce(function(a,r){return a+r.ytdRaw;},0);return{we:w.weekEnding,raw:Math.round(tRaw),ytd:Math.round(tYTD)};})}>
+                  <defs><linearGradient id="velGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.accent} stopOpacity={0.3}/><stop offset="100%" stopColor={C.accent} stopOpacity={0.02}/></linearGradient></defs>
+                  <XAxis dataKey="we" fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false}/>
+                  <YAxis fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={function(v){return"$"+Math.round(v/1000)+"K";}}/>
+                  <Tooltip content={function(p){if(!p.active||!p.payload||!p.payload[0])return null;var d=p.payload[0].payload;return <div style={{background:C.bg,border:"1px solid "+C.border,borderRadius:4,padding:"6px 10px",fontFamily:FM,fontSize:12}}><p style={{margin:0,color:C.textDim}}>WE {d.we}</p><p style={{margin:"2px 0 0",fontWeight:700,color:C.accent}}>Raw: {fmtD(d.raw)}</p></div>;}}/>
+                  <Area type="monotone" dataKey="raw" stroke={C.accent} strokeWidth={2} fill="url(#velGrad)" dot={{r:3,fill:C.accent}}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div></div>}
+            {/* Quick Insights */}
+            <div className="panel"><div className="panel-hdr"><h3>INSIGHTS</h3></div><div className="panel-body" style={{padding:10}}>
+              {function(){
+                var onFloor=ytdStandings.filter(function(s){return!s.aboveFloor;});
+                var approaching=onFloor.filter(function(s){return s.weeksTo25K!==null&&s.weeksTo25K<=4;});
+                var club100=ytdStandings.filter(function(s){return s.ytdRaw>=FLOOR_ANNUAL;});
+                var topAvg=ytdStandings.slice().sort(function(a,b){return b.avgWeekly-a.avgWeekly;})[0];
+                var totalWeekly=ytdStandings.reduce(function(a,s){return a+s.avgWeekly;},0);
+                var items=[];
+                if(approaching.length>0)items.push({icon:"📈",color:C.green,text:approaching.map(function(s){return s.name.split(" ")[0];}).join(", ")+" approaching $25K tier",sub:approaching.map(function(s){return"~"+s.weeksTo25K+"w";}).join(", ")});
+                if(onFloor.length>0)items.push({icon:"⚠",color:C.orange,text:onFloor.length+" member"+(onFloor.length>1?"s":"")+" below $25K QTD tier",sub:"No DH eligibility until crossed"});
+                if(club100.length>0)items.push({icon:"💎",color:C.accent,text:club100.length+" in the $100K Club",sub:club100.map(function(s){return s.name.split(" ")[0];}).join(", ")});
+                if(topAvg)items.push({icon:"🔥",color:C.accent,text:topAvg.name.split(" ")[0]+" leads weekly avg",sub:fmt(topAvg.avgWeekly)+"/week"});
+                items.push({icon:"📊",color:C.blue,text:"Team avg weekly velocity",sub:fmtD(totalWeekly)+" combined"});
+                var gMi=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0&&(!m.guarantee.endDate||m.guarantee.endDate>=new Date().toISOString().slice(0,10));});
+                if(gMi.length>0){var gTi=gMi.reduce(function(a,m){return a+m.guarantee.amount;},0);items.push({icon:"💰",color:C.accent,text:gMi.length+" guarantee"+(gMi.length>1?"s":"")+": "+fmtD(gTi)+"/week",sub:gMi.map(function(m){return m.name.split(" ")[0];}).join(", ")});}
+                if(chargeWeeks.length>=2){var w1=chargeWeeks[0].rows.reduce(function(a,r){return a+r.rawCharge;},0);var w2=chargeWeeks[1].rows.reduce(function(a,r){return a+r.rawCharge;},0);var delta=w1-w2;items.push({icon:delta>=0?"▲":"▼",color:delta>=0?C.green:C.red,text:"Week-over-week: "+(delta>=0?"+":"")+fmtD(delta),sub:fmtD(w2)+" → "+fmtD(w1)});}
+                return <div style={{display:"flex",flexDirection:"column",gap:6}}>{items.slice(0,6).map(function(item,i){return <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 6px",borderRadius:4,background:i===0?item.color+"11":"transparent"}}><span style={{fontSize:14,lineHeight:"18px",flexShrink:0}}>{item.icon}</span><div><p style={{fontSize:13,fontWeight:600,color:C.text,margin:0,fontFamily:FM}}>{item.text}</p><p style={{fontSize:11,color:C.textMuted,margin:"1px 0 0",fontFamily:FM}}>{item.sub}</p></div></div>;})}</div>;
+              }()}
+            </div></div>
+          </div>}
+          {/* ── YTD Standings ── */}
+          {ytdStandings.length>0&&<Panel title="YTD RAW STANDINGS" icon="bar" right={<span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>Latest Import</span>}>
+          <div style={{overflow:"auto",maxHeight:"40vh"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={Object.assign({},th,{width:24})}>#</th><th style={th}>Member</th><th style={th}>Unit</th><th style={Object.assign({},th,{textAlign:"right"})}>YTD Raw</th><th style={Object.assign({},th,{textAlign:"right"})}>QTD</th><th style={Object.assign({},th,{textAlign:"right"})}>Avg/Wk</th><th style={Object.assign({},th,{width:60,textAlign:"center"})}>Trend</th><th style={Object.assign({},th,{textAlign:"center"})}>Tier</th><th style={Object.assign({},th,{width:"14%"})}>Progress</th></tr></thead>
+          <tbody>{ytdStandings.map(function(s,i){var pct=Math.min(100,Math.round((s.qtd||0)/FLOOR*100));return <tr key={i} className="trow" onClick={function(){if(s.member)goEdit(s.member.id);}} style={{cursor:s.member?"pointer":"default"}}><td style={Object.assign({},td,{color:i<3?C.accent:C.textDim,fontWeight:i<3?800:400,textAlign:"center",fontSize:i<3?15:13})}>{i===0?"👑":i+1}</td><td style={Object.assign({},td,{fontWeight:600,color:C.text,borderLeft:"3px solid "+(s.aboveFloor?C.green:C.red)+"55",paddingLeft:8})}>{s.name}</td><td style={td}>{s.unit&&<Badge v={UB[s.unit]||"muted"}>{s.unit}</Badge>}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.text})}>{fmt(s.ytdRaw)}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:s.aboveFloor?C.green:C.orange})}>{fmt(s.qtd||0)}</td><td style={Object.assign({},td,{textAlign:"right",fontSize:12,color:s.avgWeekly>0?C.textMuted:C.textDim})}>{s.avgWeekly>0?fmt(s.avgWeekly):"--"}</td><td style={Object.assign({},td,{textAlign:"center"})}><Spark data={s.weeklyRaw} w={50} h={18}/></td><td style={Object.assign({},td,{textAlign:"center"})}>{s.aboveFloor?<Badge v="green">{s.ytdRaw>=FLOOR_ANNUAL?"$100K":"OK"}</Badge>:s.weeksTo25K!==null&&s.weeksTo25K<=4?<Badge v="orange">{"~"+s.weeksTo25K+"w"}</Badge>:<Badge v="red">{pct+"%"}</Badge>}</td><td style={td}><div style={{height:6,background:C.bg,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:pct>=100?"linear-gradient(90deg,"+C.green+","+C.teal+")":pct>=60?C.orange:C.red,borderRadius:3,transition:"width .5s ease"}}/></div></td></tr>;})}</tbody></table></div></Panel>}
+          {ytdStandings.length===0&&<div className="panel"><div className="panel-hdr"><h3>YTD RAW STANDINGS</h3></div><div className="panel-body" style={{textAlign:"center",padding:24}}><p style={{color:C.textDim,fontSize:14,fontFamily:FM,margin:0}}>No charge weeks imported · Go to Weekly Charges to start</p></div></div>}
+        </div>}
+        {/* ════════ WEEKLY CHARGES ════════ */}
+        {view==="charges"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:4}}>
+            <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Weekly Charges</h2>
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              {chargeWeeks.length>0&&<select value={selectedWeek||""} onChange={function(e){setSelectedWeek(+e.target.value||null);setExpandedRow(null);}} style={{padding:"3px 6px",fontSize:13,borderRadius:3,fontFamily:FM}}><option value="">Select week...</option>{chargeWeeks.map(function(w){return <option key={w.id} value={w.id}>{lockedWeeks.includes(w.weekEnding)?"🔒 ":""}{"WE "+w.weekEnding}</option>;})}</select>}
+              {activeWeek&&<button onClick={doExport} className="btn-ghost" style={{padding:"3px 8px",borderRadius:3,fontSize:13,cursor:"pointer",fontFamily:FM}}>EXPORT FULL CSV</button>}
+              {activeWeek&&!lockedWeeks.includes(activeWeek.weekEnding)&&<button onClick={function(){deleteWeek(activeWeek.id);}} style={{padding:"3px 8px",borderRadius:3,fontSize:13,cursor:"pointer",fontFamily:FM,background:"transparent",border:"1px solid "+C.red+"66",color:C.red}}>DELETE WEEK</button>}
+              {activeWeek&&lockedWeeks.includes(activeWeek.weekEnding)&&<span style={{fontSize:12,fontWeight:700,color:C.green,fontFamily:FM}}>🔒 Locked</span>}
+            </div>
+          </div>
+          {/* Import Section */}
+          <div style={Object.assign({},card,{padding:14,marginBottom:14})}>
+            <h3 style={{fontSize:13,fontWeight:700,margin:"0 0 8px",fontFamily:FM,color:C.accent,letterSpacing:"1px"}}>IMPORT CHARGE CSV</h3>
+            <p style={{fontSize:13,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Format: Team Member | YTD Raw | Split-Rec Charge | Split-Sales Charge | Full Desk Charge | Raw Charge</p>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <div style={{flex:1}}><textarea rows={3} value={importText} onChange={function(e){setImportText(e.target.value);}} placeholder="Paste CSV data here..." style={Object.assign({},inp,{resize:"vertical"})}/></div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:140}}>
+                <label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>WEEK ENDING</label>
+                <input type="date" value={importWE} onChange={function(e){setImportWE(e.target.value);}} style={Object.assign({},inp,{colorScheme:"dark",cursor:"pointer",fontSize:15,fontFamily:FM,padding:"8px 10px"})}/>
+                <input type="file" accept=".csv,.xlsx,.xls" onChange={function(e){var f=e.target.files&&e.target.files[0];if(!f)return;if(f.name.match(/\.xlsx?$/i)){var r=new FileReader();r.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];var csv=XLSX.utils.sheet_to_csv(ws);setImportText(csv);parseChargeCSV(csv);}catch(err){showToast("XLSX parse error: "+err.message,"err");}};r.readAsArrayBuffer(f);}else{var r=new FileReader();r.onload=function(ev){setImportText(ev.target.result);parseChargeCSV(ev.target.result);};r.readAsText(f);}}} style={{display:"none"}} id="chargeFileInput"/>
+                <button onClick={function(){document.getElementById("chargeFileInput").click();}} style={{padding:"6px 12px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,background:C.bgCard,border:"1px solid "+C.border,color:C.text}}>UPLOAD FILE (.csv / .xlsx)</button>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={function(){if(importText.trim())parseChargeCSV(importText);}} className="btn-primary" style={{padding:"5px 14px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>PARSE</button>
+              {importPreview&&importPreview.bulk&&<button onClick={commitBulkImport} className="btn-primary" style={{padding:"5px 14px",borderRadius:6,fontSize:14,cursor:"pointer",fontFamily:FM}}>IMPORT ALL {importPreview.weekKeys.length} WEEKS ({importPreview.rows.filter(function(r){return!!r.matchedId;}).length} matched rows)</button>}
+              {importPreview&&!importPreview.bulk&&<button onClick={commitChargeImport} className="btn-primary" style={{padding:"5px 14px",borderRadius:6,fontSize:14,cursor:"pointer",fontFamily:FM}}>IMPORT {importPreview.rows.filter(function(r){return!!r.matchedId;}).length} MATCHED ROWS</button>}
+              {importPreview&&importPreview.unmatchedCount>0&&<span style={{fontSize:13,color:C.orange,fontFamily:FM,alignSelf:"center"}}>{importPreview.unmatchedCount} unmatched (will be skipped)</span>}
+            </div>
+          </div>
+          {/* Import Preview */}
+          {importPreview&&importPreview.bulk&&function(){
+            var wk=importPreview.weekKeys;var wm=importPreview.weekMap;var locked=wk.filter(function(w){return lockedWeeks.includes(w);}).length;
+            var totalRaw=importPreview.rows.reduce(function(a,r){return a+r.rawCharge;},0);
+            return <div style={Object.assign({},card,{padding:16,marginBottom:16,borderColor:C.accent+"44"})}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+                <div>
+                  <p style={{fontSize:16,fontWeight:700,color:C.accent,margin:0,fontFamily:FU}}>BULK IMPORT — {wk.length} WEEKS</p>
+                  <p style={{fontSize:13,color:C.textMuted,margin:"4px 0 0",fontFamily:FM}}>{importPreview.rows.length} rows · {fmtD(totalRaw)} total raw{importPreview.unmatchedCount>0?" · "+importPreview.unmatchedCount+" unmatched will be skipped":""}{locked>0?<span style={{color:C.orange}}> · {locked} locked (skip)</span>:""}</p>
+                  {importPreview.detectedCols&&<div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:6}}>
+                    <span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>Columns:</span>
+                    {Object.keys(importPreview.detectedCols).map(function(k){var v=importPreview.detectedCols[k];var miss=v.startsWith("(pos")||v==="—";return <span key={k} style={{fontSize:11,padding:"1px 6px",borderRadius:3,fontFamily:FM,background:miss?C.redDim:C.greenDim,color:miss?C.red:C.green,border:"1px solid "+(miss?C.red:C.green)+"22"}}>{k}→{v}</span>;})}
+                  </div>}
+                  {importPreview.unmatchedCount>0&&function(){
+                    var unmatched=importPreview.rows.filter(function(r){return!r.matchedId;});
+                    var uniqueNames=[];var seen={};unmatched.forEach(function(r){if(!seen[r.name]){seen[r.name]=true;uniqueNames.push(r.name);}});
+                    return <div style={{marginTop:8,padding:"10px 14px",background:C.redDim,borderRadius:6,border:"1px solid "+C.red+"33"}}>
+                      <p style={{fontSize:13,fontWeight:700,color:C.red,margin:"0 0 6px",fontFamily:FM}}>Skipping {unmatched.length} row{unmatched.length>1?"s":""} — {uniqueNames.length} name{uniqueNames.length>1?"s":""} not found on roster:</p>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                        {uniqueNames.map(function(name){return <span key={name} style={{padding:"3px 10px",background:C.bgCard,borderRadius:5,border:"1px solid "+C.red+"33",fontSize:13,fontFamily:FM,color:C.text}}>{name}</span>;})}
+                      </div>
+                      <p style={{fontSize:12,color:C.textMuted,margin:"6px 0 0",fontFamily:FM}}>Fix the names in your source file to match the roster, or add these members in the Team tab first.</p>
+                    </div>;
+                  }()}
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={commitBulkImport} className="btn-primary" style={{padding:"8px 18px",borderRadius:6,fontSize:15,cursor:"pointer",fontFamily:FM,fontWeight:700}}>IMPORT {wk.length-locked} WEEKS</button>
+                  <button onClick={function(){setImportPreview(null);}} className="btn-ghost" style={{padding:"8px 14px",borderRadius:6,fontSize:14,cursor:"pointer",fontFamily:FM}}>CANCEL</button>
+                </div>
+              </div>
+              <div style={{overflow:"auto",maxHeight:"30vh"}}>
+                {wk.map(function(we){var rows=wm[we];var isLocked=lockedWeeks.includes(we);var weekRaw=rows.reduce(function(a,r){return a+r.rawCharge;},0);var existing=chargeWeeks.find(function(w){return w.weekEnding===we;});
+                  return <div key={we} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",borderBottom:"1px solid "+C.border,opacity:isLocked?.5:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:14,fontWeight:700,color:C.text,fontFamily:FM,minWidth:80}}>WE {we}</span>
+                      <span style={{fontSize:13,color:C.textMuted,fontFamily:FM}}>{rows.length} members</span>
+                      {isLocked&&<Badge v="orange">LOCKED</Badge>}
+                      {existing&&!isLocked&&<Badge v="blue">OVERWRITE</Badge>}
+                    </div>
+                    <span style={{fontSize:14,fontWeight:700,color:C.accent,fontFamily:FM}}>{fmtD(weekRaw)}</span>
+                  </div>;
+                })}
+              </div>
+            </div>;
+          }()}
+          {importPreview&&!importPreview.bulk&&function(){
+            var tYTD=0,tRec=0,tAM=0,tFD=0,tRaw=0;
+            importPreview.rows.forEach(function(r){tYTD+=r.ytdRaw;tRec+=r.splitRec;tAM+=r.splitAM;tFD+=r.fullDesk;tRaw+=r.rawCharge;});
+            return <div className="glow-card" style={Object.assign({},card,{padding:14,marginBottom:14,borderColor:C.accent+"55"})}><p style={{fontSize:13,fontWeight:700,color:C.accent,margin:"0 0 8px",fontFamily:FM}}>PREVIEW ({importPreview.rows.length} members)</p>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:14}}>
+              <div style={{background:C.bg,borderRadius:4,padding:"6px 10px",textAlign:"center"}}><p style={{fontSize:11,color:C.textDim,margin:0,fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>YTD RAW TOTAL</p><p style={{fontSize:16,fontWeight:800,margin:"2px 0 0",color:C.text,fontFamily:FM}}>{fmtD(tYTD)}</p></div>
+              <div style={{background:C.bg,borderRadius:4,padding:"6px 10px",textAlign:"center"}}><p style={{fontSize:11,color:C.textDim,margin:0,fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>SPLIT REC</p><p style={{fontSize:16,fontWeight:800,margin:"2px 0 0",color:C.blue,fontFamily:FM}}>{fmtD(tRec)}</p></div>
+              <div style={{background:C.bg,borderRadius:4,padding:"6px 10px",textAlign:"center"}}><p style={{fontSize:11,color:C.textDim,margin:0,fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>SPLIT AM</p><p style={{fontSize:16,fontWeight:800,margin:"2px 0 0",color:C.purple,fontFamily:FM}}>{fmtD(tAM)}</p></div>
+              <div style={{background:C.bg,borderRadius:4,padding:"6px 10px",textAlign:"center"}}><p style={{fontSize:11,color:C.textDim,margin:0,fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>FULL DESK</p><p style={{fontSize:16,fontWeight:800,margin:"2px 0 0",color:C.accent,fontFamily:FM}}>{fmtD(tFD)}</p></div>
+              <div style={{background:C.bg,borderRadius:4,padding:"6px 10px",textAlign:"center",border:"1px solid "+C.accent+"33"}}><p style={{fontSize:11,color:C.textDim,margin:0,fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>RAW CHARGE</p><p style={{fontSize:16,fontWeight:800,margin:"2px 0 0",color:C.green,fontFamily:FM}}>{fmtD(tRaw)}</p></div>
+            </div>
+            <div style={{overflow:"auto",maxHeight:"30vh"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th}>CSV Name</th><th style={th}>Matched To</th><th style={Object.assign({},th,{textAlign:"right"})}>YTD Raw</th><th style={Object.assign({},th,{textAlign:"right"})}>Split Rec</th><th style={Object.assign({},th,{textAlign:"right"})}>Split AM</th><th style={Object.assign({},th,{textAlign:"right"})}>Full Desk</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th></tr></thead>
+            <tbody>{importPreview.rows.map(function(r,i){var skip=!r.matchedId;return <tr key={i} className="trow" style={{opacity:skip?.4:1}}><td style={Object.assign({},td,{fontFamily:FU,textDecoration:skip?"line-through":"none"})}>{r.name}</td><td style={td}>{r.matchedId?<Badge v="green">{r.matchedName}</Badge>:<Badge v="red">SKIP</Badge>}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700})}>{fmt(r.ytdRaw)}</td><td style={Object.assign({},td,{textAlign:"right",color:r.splitRec?C.blue:C.textDim})}>{fmtD(r.splitRec)}</td><td style={Object.assign({},td,{textAlign:"right",color:r.splitAM?C.purple:C.textDim})}>{fmtD(r.splitAM)}</td><td style={Object.assign({},td,{textAlign:"right",color:r.fullDesk?C.accent:C.textDim})}>{fmtD(r.fullDesk)}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700})}>{fmtD(r.rawCharge)}</td></tr>;})}</tbody>
+            <tfoot><tr style={{borderTop:"2px solid "+C.accent+"44",background:C.bg2}}><td style={Object.assign({},td,{fontWeight:800,color:C.accent,fontFamily:FU})} colSpan={2}>TOTALS ({importPreview.rows.length} rows)</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:800,color:C.text})}>{fmtD(tYTD)}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:800,color:C.blue})}>{fmtD(tRec)}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:800,color:C.purple})}>{fmtD(tAM)}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:800,color:C.accent})}>{fmtD(tFD)}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:800,color:C.green})}>{fmtD(tRaw)}</td></tr></tfoot></table></div></div>;
+          }()}
+          {/* Active Week View */}
+          {activeWeek&&<div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:8}}>
+              <Stat l="Split Rec" v={fmtD(weekTotals.splitRec)} c={C.blue} glow/><Stat l="Split AM" v={fmtD(weekTotals.splitAM)} c={C.purple} glow/><Stat l="Full Desk" v={fmtD(weekTotals.fullDesk)} c={C.accent} glow/><Stat l="Raw" v={fmtD(weekTotals.rawCharge)} c={C.green} glow/><Stat l="Deductions" v={weekTotals.deductions>0?"-"+fmtD(weekTotals.deductions):"--"} c={weekTotals.deductions>0?C.red:C.textDim}/><Stat l="Commission" v={fmtD(weekTotals.totalComm)} c={C.accent} s={"WE "+activeWeek.weekEnding} glow/>
+            </div>
+            {activeWeek&&lockedWeeks.includes(activeWeek.weekEnding)&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,padding:"6px 12px",background:C.greenDim,border:"1px solid "+C.green+"33",borderRadius:4}}><span style={{fontSize:13,fontWeight:700,color:C.green,fontFamily:FM}}>🔒 WE {activeWeek.weekEnding} is locked — data is read-only</span></div>}
+            <p style={{fontSize:12,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>CLICK ROW FOR COMMISSION BREAKDOWN</p>
+            <div style={Object.assign({},card,{overflow:"auto",maxHeight:"50vh"})}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>
+                <th style={th}>Member</th><th style={th}>Unit</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.blue})}>Split Rec</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.purple})}>Split AM</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.accent})}>Full Desk</th>
+                <th style={Object.assign({},th,{textAlign:"right"})}>Raw</th>
+                <th style={Object.assign({},th,{textAlign:"right"})}>YTD Raw</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.green})}>Commission</th>
+                <th style={Object.assign({},th,{textAlign:"center"})}>Tier</th>
+              </tr></thead>
+              <tbody>{weekData.map(function(r,i){return[<tr key={i} className="trow" onClick={function(){setExpandedRow(expandedRow===i?null:i);}} style={{cursor:"pointer"}}>
+                <td style={Object.assign({},td,{fontWeight:600,fontFamily:FU,borderLeft:"2px solid "+(r.matchedId?r.aboveFloor?C.green:C.red:C.orange)+"66",paddingLeft:10})}>{expandedRow===i?"\u25BC ":""}{r.matchedName||r.name}</td>
+                <td style={td}>{r.member&&<Badge v={UB[r.member.unit]||"muted"}>{r.member.unit}</Badge>}</td>
+                <td style={Object.assign({},td,{textAlign:"right",color:r.splitRec?C.blue:C.textDim})}>{r.splitRec?fmtD(r.splitRec):"\u2014"}</td>
+                <td style={Object.assign({},td,{textAlign:"right",color:r.splitAM?C.purple:C.textDim})}>{r.splitAM?fmtD(r.splitAM):"\u2014"}</td>
+                <td style={Object.assign({},td,{textAlign:"right",color:r.fullDesk?C.accent:C.textDim})}>{r.fullDesk?fmtD(r.fullDesk):"\u2014"}</td>
+                <td style={Object.assign({},td,{textAlign:"right",fontWeight:700})}>{fmtD(r.rawCharge)}</td>
+                <td style={Object.assign({},td,{textAlign:"right",color:r.aboveFloor?C.green:C.text})}>{fmt(r.ytdRaw)}</td>
+                <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:r.totalComm>0?C.green:C.textDim})}>{function(){var we2=activeWeek?activeWeek.weekEnding:"";var oKey=r.matchedName+"|"+we2;var ov=payrollOverrides[oKey];return ov!==undefined?<span style={{color:C.orange}}>{fmtD(ov)} <span style={{fontSize:9,verticalAlign:"super"}}>✎</span></span>:r.totalComm>0?fmtD(r.totalComm):"\u2014";}()}</td>
+                <td style={Object.assign({},td,{textAlign:"center"})}>{r.floorInfo?r.aboveFloor?<Badge v="green">{r.floorInfo.ytd>=FLOOR_ANNUAL?"$100K":fmt(r.floorInfo.qtd)+" QTD"}</Badge>:<span style={{fontSize:13,color:C.orange,fontFamily:FM}}>{fmt(r.floorInfo.qtd||0)+" QTD"}<br/><span style={{color:C.red,fontSize:12}}>{"-"+fmt(r.deduction||0)}</span></span>:<Badge v="muted">?</Badge>}</td>
+              </tr>,
+              expandedRow===i&&<tr key={i+"_x"}><td colSpan={9} style={{padding:0,background:"linear-gradient(135deg,"+C.bgSurface+" 0%,"+C.bg2+" 100%)",borderBottom:"2px solid "+C.accent}}><div style={{padding:"10px 14px"}}>
+                {r.floorInfo&&<p style={{fontSize:13,color:r.aboveFloor?C.green:C.orange,margin:"0 0 8px",fontFamily:FM,padding:"3px 8px",background:r.aboveFloor?C.greenDim:C.orangeDim,borderRadius:4,display:"inline-block"}}>{r.floorInfo.reason}</p>}
+                {/* EDITABLE FIELDS */}
+                {activeWeek&&!lockedWeeks.includes(activeWeek.weekEnding)&&<div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:10,padding:"8px 10px",background:C.bg,borderRadius:4,border:"1px solid "+C.border}}>
+                  <div><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM,display:"block",marginBottom:2}}>YTD RAW</label><input type="number" value={r.ytdRaw} onChange={function(e){updateChargeRow(activeWeek.id,r.origIdx,"ytdRaw",e.target.value);}} style={{width:"100%",padding:"4px 6px",fontSize:14,fontFamily:FM,borderRadius:3,fontWeight:600}} step="0.01"/></div>
+                  <div><label style={{fontSize:11,color:C.blue,fontWeight:700,fontFamily:FM,display:"block",marginBottom:2}}>SPLIT REC</label><input type="number" value={r.splitRec} onChange={function(e){updateChargeRow(activeWeek.id,r.origIdx,"splitRec",e.target.value);}} style={{width:"100%",padding:"4px 6px",fontSize:14,fontFamily:FM,borderRadius:3,color:"#3B9EFF"}} step="0.01"/></div>
+                  <div><label style={{fontSize:11,color:C.purple,fontWeight:700,fontFamily:FM,display:"block",marginBottom:2}}>SPLIT AM</label><input type="number" value={r.splitAM} onChange={function(e){updateChargeRow(activeWeek.id,r.origIdx,"splitAM",e.target.value);}} style={{width:"100%",padding:"4px 6px",fontSize:14,fontFamily:FM,borderRadius:3,color:"#A78BFA"}} step="0.01"/></div>
+                  <div><label style={{fontSize:11,color:C.accent,fontWeight:700,fontFamily:FM,display:"block",marginBottom:2}}>FULL DESK</label><input type="number" value={r.fullDesk} onChange={function(e){updateChargeRow(activeWeek.id,r.origIdx,"fullDesk",e.target.value);}} style={{width:"100%",padding:"4px 6px",fontSize:14,fontFamily:FM,borderRadius:3,color:"#FFD700"}} step="0.01"/></div>
+                  <div><label style={{fontSize:11,color:C.textMuted,fontWeight:700,fontFamily:FM,display:"block",marginBottom:2}}>RAW (Rec+AM)</label><div style={{padding:"4px 6px",fontSize:14,fontFamily:FM,fontWeight:700,color:C.text}}>{fmtD(r.rawCharge)}</div></div>
+                </div>}
+                {activeWeek&&lockedWeeks.includes(activeWeek.weekEnding)&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10,padding:"6px 10px",background:C.greenDim,borderRadius:4,border:"1px solid "+C.green+"33"}}><span style={{fontSize:12,fontWeight:700,color:C.green,fontFamily:FM}}>🔒 This week is locked — editing disabled</span></div>}
+                <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:"1px"}}>COMMISSION BREAKDOWN · {r.matchedName} · Rate: {r.rate}</p>
+                {(r.steps||[]).map(function(s,si){return <div key={si} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:si<r.steps.length-1?"1px solid "+C.border+"66":"none"}}><div><span style={{fontSize:14,fontWeight:700,color:s.t.includes("Rec")?C.blue:s.t.includes("AM")?C.purple:C.accent,fontFamily:FM}}>{s.t}</span><span style={{fontSize:14,color:C.textMuted,marginLeft:10,fontFamily:FM}}>{s.d}</span></div><span style={{fontSize:15,fontFamily:FM,fontWeight:700,color:C.green}}>{fmtD(s.a)}</span></div>;})}
+                <div style={{display:"flex",justifyContent:"flex-end",marginTop:6,paddingTop:6,borderTop:"1px solid "+C.border}}><span style={{fontSize:15,fontFamily:FM,fontWeight:700,color:C.accent}}>TOTAL: {function(){var we3=activeWeek?activeWeek.weekEnding:"";var oK=r.matchedName+"|"+we3;return payrollOverrides[oK]!==undefined?<span style={{color:C.orange}}>{fmtD(payrollOverrides[oK])} <span style={{fontSize:10,color:C.textDim,textDecoration:"line-through"}}>{fmtD(r.totalComm)}</span></span>:fmtD(r.totalComm);}()}</span></div>
+              </div></td></tr>];})}</tbody>
+              <tfoot><tr style={{background:C.bg2}}><td colSpan={5} style={Object.assign({},td,{fontWeight:700,textAlign:"right",color:C.textDim})}>TOTALS</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700})}>{fmtD(weekTotals.rawCharge)}</td><td/><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,fontSize:18,color:C.accent})}>{fmtD(weekTotals.totalComm)}</td><td/></tr></tfoot>
+            </table></div>
+          </div>}
+          {!activeWeek&&!importPreview&&chargeWeeks.length===0&&<div style={Object.assign({},card,{padding:30,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM,margin:0}}>Upload a charge file (.csv or .xlsx) or paste charge data above to get started. Use the bulk import template to load all weeks at once.</p></div>}
+        </div>}
+        {/* ════════ DIRECT HIRES ════════ */}
+        {view==="dh"&&<div style={{animation:"fadeIn .2s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Direct Hire Overview</h2>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={function(e){var f=e.target.files&&e.target.files[0];if(!f)return;if(f.name.match(/\.xlsx?$/i)){var r=new FileReader();r.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];var csv=XLSX.utils.sheet_to_csv(ws);parseDHFile(csv);}catch(err){showToast("File parse error: "+err.message,"err");}};r.readAsArrayBuffer(f);}else{var r=new FileReader();r.onload=function(ev){parseDHFile(ev.target.result);};r.readAsText(f);}}} style={{display:"none"}} id="dhFileInput"/>
+              <button onClick={function(){document.getElementById("dhFileInput").click();}} style={{padding:"6px 14px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM,fontWeight:700,background:"linear-gradient(135deg,"+C.accent+" 0%,#FFC000 100%)",color:"#0B0E14",border:"none"}}>UPLOAD DH FILE (.csv / .xlsx)</button>
+              <button onClick={function(){setShowDHForm(true);}} className="btn-ghost" style={{padding:"6px 14px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM,fontWeight:600}}>+ ADD DEAL</button>
+              {dhLastSync&&<span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>Last import: {new Date(dhLastSync).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>}
+            </div>
+          </div>
+          {/* DH Import Format Guide */}
+          <div style={Object.assign({},card,{padding:14,marginBottom:14,border:"1px solid "+C.accent+"44",borderLeft:"3px solid "+C.accent})}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={function(){setDhFormatOpen(!dhFormatOpen);}}>
+              <p style={{fontSize:13,fontWeight:700,color:C.accent,margin:0,fontFamily:FM,letterSpacing:".5px"}}>IMPORT FORMAT GUIDE — REQUIRED COLUMNS ▾</p>
+              <span style={{fontSize:12,color:C.accent,fontFamily:FM,fontWeight:600}}>{dhFormatOpen?"COLLAPSE":"EXPAND"}</span>
+            </div>
+            {dhFormatOpen&&<div style={{marginTop:10}}>
+              <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Upload a .csv or .xlsx with these columns (header row required, order doesn't matter):</p>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,fontFamily:FM}}>
+                <thead><tr style={{borderBottom:"1px solid "+C.border+"44"}}><th style={{textAlign:"left",padding:"4px 8px",color:C.accent,fontWeight:700}}>Column Name</th><th style={{textAlign:"left",padding:"4px 8px",color:C.textDim}}>Also Accepts</th><th style={{textAlign:"left",padding:"4px 8px",color:C.textDim}}>Example</th></tr></thead>
+                <tbody>
+                  {[["Client","client, company, cl","Autokiniton"],["Candidate","candidate, can, name","John Smith"],["Account Manager","am, account manager, acct mgr","Jamie Platt"],["Recruiter","rec, recruiter","Aidan Juengel"],["Position","pos, position, title","CNC Operator"],["Invoice","invoice, inv, invoice total","23750"],["Charge","charge, chg, charge total","23750"],["Raw","raw, raw charge","23750"],["Type","type, typ, FD/S","FD or Split"],["Start Date","start, start date, sd","2026-03-01"],["Guarantee Days","guarantee, gd, days","90"],["Unit","unit, bu, business unit","MI Metro"],["Status","status, st","p/o/c/d/t"]].map(function(r,i){return <tr key={i} style={{borderBottom:"1px solid "+C.border+"22"}}><td style={{padding:"3px 8px",color:C.text,fontWeight:600}}>{r[0]}</td><td style={{padding:"3px 8px",color:C.textMuted}}>{r[1]}</td><td style={{padding:"3px 8px",color:C.textDim,fontStyle:"italic"}}>{r[2]}</td></tr>;})}
+                </tbody>
+              </table>
+              <p style={{fontSize:11,color:C.textMuted,margin:"8px 0 0",fontFamily:FM}}>Status codes: p = pending, o = on guarantee, c = cleared, d = completed, t = terminated. Minimum required: Client + Candidate + Raw.</p>
+            </div>}
+          </div>
+          {/* DH Manual Entry Form */}
+          {showDHForm&&<DHEditModal dh={blankDH} onClose={function(){setShowDHForm(false);}} onSave={function(d){
+            var amMatch=matchMember(d.am,members);var recMatch=matchMember(d.rec,members);
+            var clean=Object.assign({},d,{am:amMatch?amMatch.name:d.am,rec:recMatch?recMatch.name:d.rec,amId:amMatch?amMatch.id:null,recId:recMatch?recMatch.id:null,typ:d.typ==="F"?"FD":(d.typ||"S"),firstSeen:d.sd||new Date().toISOString().slice(0,10),lastSync:new Date().toISOString().slice(0,10)});
+            setDhData(function(prev){return prev.concat([clean]);});
+            log("DH_ADD",d.can+" @ "+d.cl);showToast("DH deal added");setShowDHForm(false);
+          }}/>}
+          {dhEditIdx!==null&&dhData[dhEditIdx]&&<DHEditModal dh={dhData[dhEditIdx]} onClose={function(){setDhEditIdx(null);}} onDelete={function(){deleteDH(dhEditIdx);}} onSave={function(d){
+            var amMatch=matchMember(d.am,members);var recMatch=matchMember(d.rec,members);
+            var clean=Object.assign({},d,{am:amMatch?amMatch.name:d.am,rec:recMatch?recMatch.name:d.rec,amId:amMatch?amMatch.id:null,recId:recMatch?recMatch.id:null});
+            setDhData(function(p){var n=p.slice();n[dhEditIdx]=clean;return n;});
+            setDhEditIdx(null);log("DH_EDIT",d.can+" @ "+d.cl);showToast("DH deal updated");
+          }}/>}
+          {/* DH Import — Assignment Step */}
+          {dhImportPreview&&<div className="glow-card" style={Object.assign({},card,{padding:14,marginBottom:14,borderColor:C.accent+"55"})}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div>
+                <p style={{fontSize:15,fontWeight:700,color:C.accent,margin:0,fontFamily:FM}}>ASSIGN TEAM MEMBERS ({dhImportPreview.deals.length} deals)</p>
+                <p style={{fontSize:12,color:C.textMuted,margin:"2px 0 0",fontFamily:FM}}>Verify AM and Recruiter assignments below. Green = auto-matched. Red = needs your pick.</p>
+              </div>
+              <div style={{display:"flex",gap:4}}>
+                <button onClick={function(){try{commitDHImport();}catch(err){showToast("Import error: "+err.message,"err");}}} className="btn-primary" style={{padding:"6px 16px",borderRadius:6,fontSize:14,cursor:"pointer",fontFamily:FM,fontWeight:700}}>CONFIRM & IMPORT ({dhImportPreview.deals.length} deals)</button>
+                <button onClick={function(){setDhImportPreview(null);}} className="btn-ghost" style={{padding:"6px 12px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM}}>CANCEL</button>
+              </div>
+            </div>
+            {function(){var noAM=dhImportPreview.deals.filter(function(d){return!d.amId;}).length;var noRec=dhImportPreview.deals.filter(function(d){return!d.recId;}).length;var totalRaw=dhImportPreview.deals.reduce(function(a,d){return a+d.raw;},0);
+              return <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,margin:"8px 0 10px"}}>
+                <Stat l="Deals" v={dhImportPreview.deals.length} c={C.blue}/>
+                <Stat l="Total Raw" v={fmtD(totalRaw)} c={C.accent}/>
+                <Stat l="AM Unassigned" v={noAM} c={noAM>0?C.red:C.green} s={noAM>0?"Needs selection":"All matched"}/>
+                <Stat l="Rec Unassigned" v={noRec} c={noRec>0?C.red:C.green} s={noRec>0?"Needs selection":"All matched"}/>
+              </div>;
+            }()}
+            <div style={{overflow:"auto",maxHeight:"40vh"}}>
+              {dhImportPreview.deals.map(function(d,i){
+                var sortedMembers=members.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
+                var selStyle={padding:"4px 6px",fontSize:13,borderRadius:4,fontFamily:FM,width:"100%",border:"1px solid "+(d.amId?C.green:C.red)+"66",background:d.amId?C.greenDim:C.redDim};
+                var selStyle2=Object.assign({},selStyle,{border:"1px solid "+(d.recId?C.green:C.red)+"66",background:d.recId?C.greenDim:C.redDim});
+                return <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 2fr 3fr 3fr 1fr 1.5fr",gap:6,alignItems:"center",padding:"6px 0",borderBottom:"1px solid "+C.border+"44"}}>
+                  <div><span style={{fontSize:13,fontWeight:700,color:C.text,fontFamily:FM}}>{d.can}</span></div>
+                  <div><span style={{fontSize:13,color:C.textMuted,fontFamily:FM}}>{d.cl}</span></div>
+                  <div>
+                    <label style={{fontSize:10,color:C.textDim,fontFamily:FM,display:"block"}}>AM {d._amRaw?"("+d._amRaw+")":""}</label>
+                    <select value={d.amId||""} onChange={function(e){updateDHPreview(i,"amId",e.target.value);}} style={selStyle}>
+                      <option value="">— Select AM —</option>
+                      {sortedMembers.map(function(m){return <option key={m.id} value={m.id}>{m.name}</option>;})}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize:10,color:C.textDim,fontFamily:FM,display:"block"}}>REC {d._recRaw?"("+d._recRaw+")":""}</label>
+                    <select value={d.recId||""} onChange={function(e){updateDHPreview(i,"recId",e.target.value);}} style={selStyle2}>
+                      <option value="">— Select Recruiter —</option>
+                      {sortedMembers.map(function(m){return <option key={m.id} value={m.id}>{m.name}</option>;})}
+                    </select>
+                  </div>
+                  <div style={{textAlign:"center"}}><Badge v={d.typ==="FD"?"gold":"muted"}>{d.typ==="FD"?"FD":"Split"}</Badge></div>
+                  <div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:700,color:C.text,fontFamily:FM}}>{fmtD(d.raw)}</span></div>
+                </div>;
+              })}
+            </div>
+            <div style={{display:"flex",gap:6,justifyContent:"flex-end",paddingTop:10,borderTop:"1px solid "+C.border}}>
+              <button onClick={function(){setDhImportPreview(null);}} className="btn-ghost" style={{padding:"8px 14px",borderRadius:6,fontSize:14,cursor:"pointer",fontFamily:FM}}>Cancel</button>
+              <button onClick={function(){try{commitDHImport();}catch(err){showToast("Error: "+err.message,"err");}}} className="btn-primary" style={{padding:"8px 20px",borderRadius:6,fontSize:15,cursor:"pointer",fontFamily:FM,fontWeight:700}}>CONFIRM & IMPORT {dhImportPreview.deals.length} DEALS</button>
+            </div>
+          </div>}
+          {function(){
+            var latestWk=chargeWeeks.length?chargeWeeks[0]:null;
+            if(!latestWk&&dhData.length>0){return <div style={Object.assign({},card,{padding:20,marginBottom:14,borderColor:C.orange+"44"})}>
+              <p style={{fontSize:14,fontWeight:700,color:C.orange,margin:"0 0 6px",fontFamily:FM}}>No charge data loaded — floor eligibility cannot be calculated</p>
+              <p style={{fontSize:13,color:C.textMuted,margin:0,fontFamily:FM}}>Upload charge data on the Weekly Charges tab first. The DH eligibility checks require QTD raw charge data to determine who has crossed the $25K tier.</p>
+            </div>;}
+            if(!dhData.length)return <div style={Object.assign({},card,{padding:24,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM,margin:0}}>No DH deals loaded — upload your DH tracker (.csv or .xlsx) or add deals manually to get started</p></div>;
+            // Build eligibility for each deal
+            var dealAnalysis=dhData.map(function(d,origIdx){
+              var amM=d.amId?members.find(function(m){return m.id===d.amId;}):findM(d.am,members);
+              var recM=d.recId?members.find(function(m){return m.id===d.recId;}):findM(d.rec,members);
+              // Get floor info for AM and Rec
+              var amFloor=null,recFloor=null;
+              if(latestWk&&amM){var amRow=latestWk.rows.find(function(r){return r.matchedId===amM.id;});if(amRow)amFloor=getFloorInfo(amRow,latestWk);}
+              if(latestWk&&recM){var recRow=latestWk.rows.find(function(r){return r.matchedId===recM.id;});if(recRow)recFloor=getFloorInfo(recRow,latestWk);}
+              var amAbove=amFloor?!amFloor.belowFloor:false;
+              var recAbove=recFloor?!recFloor.belowFloor:false;
+              var amCrossDate=amFloor?amFloor.crossDate:null;
+              var recCrossDate=recFloor?recFloor.crossDate:null;
+              var dealStart=d.sd||"";
+              // Floor gate: member above $25K AND deal start after crossing
+              var amFloorOk=amAbove&&(!amCrossDate||!dealStart||dealStart>=amCrossDate);
+              var recFloorOk=recAbove&&(!recCrossDate||!dealStart||dealStart>=recCrossDate);
+              // Guarantee gate
+              var guaranteeCleared=d.cd&&new Date(d.cd)<=NOW&&d.st!=="t";
+              var daysLeft=d.cd?daysTo(d.cd):null;
+              // Invoice gate
+              var invoicePaid=!!(d.invPaid&&d.invPaid.length);
+              // Overall ready
+              var isFullDesk=d.typ==="FD";
+              var floorOk=isFullDesk?amFloorOk:(amFloorOk||recFloorOk);
+              var fullyReady=guaranteeCleared&&invoicePaid&&floorOk&&!d.paidOut&&d.st!=="t";
+              // Rates
+              var amRate=amM?amM.rates[isFullDesk?"fdDH":"sDH"]:0;
+              var recRate=recM?recM.rates.sDH:0;
+              var estPayout=isFullDesk?(amFloorOk?d.raw*amRate:0):((amFloorOk?d.raw*amRate:0)+(recFloorOk?d.raw*recRate:0));
+              // Block reasons
+              var blocks=[];
+              if(d.st==="t")blocks.push("Terminated");
+              if(d.paidOut)blocks.push("Already paid");
+              if(!guaranteeCleared&&d.st!=="t"&&!d.paidOut){blocks.push(daysLeft!==null&&daysLeft>0?"Guarantee: "+daysLeft+" days left":"No clearance date");}
+              if(!invoicePaid&&d.st!=="t"&&!d.paidOut)blocks.push("Invoice not paid");
+              if(!floorOk&&d.st!=="t"&&!d.paidOut){
+                if(isFullDesk){if(!amAbove)blocks.push("AM "+((amM?amM.name.split(" ").pop():"?"))+" below $25K QTD tier");else if(!amFloorOk)blocks.push("Deal started before AM crossed");}
+                else{if(!amAbove)blocks.push("AM "+(amM?amM.name.split(" ").pop():"?")+" below $25K");if(!recAbove)blocks.push("Rec "+(recM?recM.name.split(" ").pop():"?")+" below $25K");
+                  if(amAbove&&!amFloorOk)blocks.push("AM: deal before crossing");if(recAbove&&!recFloorOk)blocks.push("Rec: deal before crossing");
+                }
+              }
+              return{d:d,origIdx:origIdx,amM:amM,recM:recM,amAbove:amAbove,recAbove:recAbove,amFloorOk:amFloorOk,recFloorOk:recFloorOk,amCrossDate:amCrossDate,recCrossDate:recCrossDate,guaranteeCleared:guaranteeCleared,invoicePaid:invoicePaid,floorOk:floorOk,fullyReady:fullyReady,daysLeft:daysLeft,estPayout:estPayout,blocks:blocks,amRate:amRate,recRate:recRate};
+            });
+            var readyDeals=dealAnalysis.filter(function(a){return a.fullyReady;});
+            var blockedByFloor=dealAnalysis.filter(function(a){return!a.floorOk&&!a.d.paidOut&&a.d.st!=="t";});
+            var blockedByGuarantee=dealAnalysis.filter(function(a){return a.floorOk&&!a.guaranteeCleared&&!a.d.paidOut&&a.d.st!=="t";});
+            var blockedByInvoice=dealAnalysis.filter(function(a){return a.floorOk&&a.guaranteeCleared&&!a.invoicePaid&&!a.d.paidOut&&a.d.st!=="t";});
+            var paidDeals=dealAnalysis.filter(function(a){return a.d.paidOut;});
+            var termedDeals=dealAnalysis.filter(function(a){return a.d.st==="t";});
+            var totalEstPayout=readyDeals.reduce(function(a,x){return a+x.estPayout;},0);
+            var gateIcon=function(ok){return ok?<span style={{color:C.green}}>\u2713</span>:<span style={{color:C.red}}>\u2717</span>;};
+            return <div>
+              {/* KPI Row */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+                <Stat l="Ready to Pay" v={readyDeals.length} c={readyDeals.length?C.green:C.textDim} s={readyDeals.length?fmtD(totalEstPayout)+" est payout":""}/>
+                <Stat l="Blocked: Floor" v={blockedByFloor.length} c={blockedByFloor.length?C.red:C.textDim} s={blockedByFloor.length?"AM/Rec below $25K":""}/>
+                <Stat l="Blocked: Guarantee" v={blockedByGuarantee.length} c={blockedByGuarantee.length?C.orange:C.textDim} s={blockedByGuarantee.length?"Still in guarantee":""}/>
+                <Stat l="Blocked: Invoice" v={blockedByInvoice.length} c={blockedByInvoice.length?C.teal:C.textDim} s={blockedByInvoice.length?"Needs invoice payment":""}/>
+                <Stat l="Paid / Termed" v={paidDeals.length+" / "+termedDeals.length} c={C.purple} s={fmtD(paidDeals.reduce(function(a,x){return a+x.d.raw;},0))+" paid"}/>
+              </div>
+              {/* Ready to Pay Section */}
+              {readyDeals.length>0&&<div className="panel" style={{marginBottom:12}}><div className="panel-hdr"><h3 style={{color:C.green}}>READY TO PAY ({readyDeals.length}) — {fmtD(totalEstPayout)} est payout</h3></div><div className="panel-body" style={{padding:10}}>
+                <table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr><th style={th}>Candidate / Client</th><th style={th}>AM</th><th style={th}>Rec</th><th style={th}>Type</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th><th style={Object.assign({},th,{textAlign:"right"})}>Est Payout</th></tr></thead>
+                  <tbody>{readyDeals.map(function(a,i){return <tr key={i} className="trow" onClick={function(){if(a.amM)goEdit(a.amM.id);}} style={{cursor:"pointer",background:C.greenDim}}>
+                    <td style={Object.assign({},td,{fontWeight:600})}>{a.d.can} <span style={{color:C.textDim,fontWeight:400}}>@ {a.d.cl}</span></td>
+                    <td style={Object.assign({},td,{color:a.amFloorOk?C.green:C.textDim})}>{a.amM?a.amM.name.split(" ").pop():"?"} {gateIcon(a.amFloorOk)}</td>
+                    <td style={Object.assign({},td,{color:a.recFloorOk?C.green:C.textDim})}>{a.d.typ==="FD"?"—":(a.recM?a.recM.name.split(" ").pop():"?")} {a.d.typ!=="FD"&&gateIcon(a.recFloorOk)}</td>
+                    <td style={td}><Badge v={a.d.typ==="FD"?"gold":"muted"}>{a.d.typ==="FD"?"FD":"Split"}</Badge></td>
+                    <td style={Object.assign({},td,{textAlign:"right",fontWeight:600})}>{fmtD(a.d.raw)}</td>
+                    <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.green})}>{fmtD(a.estPayout)}</td>
+                  </tr>;})}</tbody>
+                </table>
+              </div></div>}
+              {/* Blocked by Floor */}
+              {blockedByFloor.length>0&&<div className="panel" style={{marginBottom:12}}><div className="panel-hdr"><h3 style={{color:C.red}}>BLOCKED BY FLOOR ({blockedByFloor.length})</h3><span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>AM or Recruiter below $25K QTD tier — no DH payout until they cross</span></div><div className="panel-body" style={{padding:10}}>
+                <table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr><th style={th}>Candidate / Client</th><th style={th}>AM</th><th style={Object.assign({},th,{textAlign:"right"})}>AM QTD</th><th style={th}>Rec</th><th style={Object.assign({},th,{textAlign:"right"})}>Rec QTD</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th><th style={th}>Block Reason</th></tr></thead>
+                  <tbody>{blockedByFloor.map(function(a,i){
+                    var amQTD=a.amM&&latestWk?function(){var r=latestWk.rows.find(function(x){return x.matchedId===a.amM.id;});return r?getFloorInfo(r,latestWk).qtd:0;}():0;
+                    var recQTD=a.recM&&latestWk?function(){var r=latestWk.rows.find(function(x){return x.matchedId===a.recM.id;});return r?getFloorInfo(r,latestWk).qtd:0;}():0;
+                    return <tr key={i} className="trow" onClick={function(){if(a.amM)goEdit(a.amM.id);}} style={{cursor:"pointer"}}>
+                      <td style={Object.assign({},td,{fontWeight:600})}>{a.d.can} <span style={{color:C.textDim,fontWeight:400}}>@ {a.d.cl}</span></td>
+                      <td style={Object.assign({},td,{color:a.amAbove?C.green:C.red})}>{a.amM?a.amM.name.split(" ").pop():"?"} {gateIcon(a.amFloorOk)}</td>
+                      <td style={Object.assign({},td,{textAlign:"right",color:a.amAbove?C.green:C.red})}>{fmtD(amQTD)}</td>
+                      <td style={Object.assign({},td,{color:a.d.typ==="FD"?C.textDim:a.recAbove?C.green:C.red})}>{a.d.typ==="FD"?"—":(a.recM?a.recM.name.split(" ").pop():"?")} {a.d.typ!=="FD"&&gateIcon(a.recFloorOk)}</td>
+                      <td style={Object.assign({},td,{textAlign:"right",color:a.d.typ==="FD"?C.textDim:a.recAbove?C.green:C.red})}>{a.d.typ==="FD"?"—":fmtD(recQTD)}</td>
+                      <td style={Object.assign({},td,{textAlign:"right",fontWeight:600})}>{fmtD(a.d.raw)}</td>
+                      <td style={Object.assign({},td,{fontSize:12,color:C.red})}>{a.blocks.filter(function(b){return b.includes("$25K")||b.includes("crossing");}).join("; ")}</td>
+                    </tr>;
+                  })}</tbody>
+                </table>
+              </div></div>}
+              {/* Blocked by Guarantee */}
+              {blockedByGuarantee.length>0&&<div className="panel" style={{marginBottom:12}}><div className="panel-hdr"><h3 style={{color:C.orange}}>IN GUARANTEE PERIOD ({blockedByGuarantee.length})</h3></div><div className="panel-body" style={{padding:10}}>
+                {blockedByGuarantee.sort(function(a,b){return(a.daysLeft||999)-(b.daysLeft||999);}).map(function(a,i){var pct=a.d.gd>0?Math.max(0,Math.round((1-(a.daysLeft||0)/a.d.gd)*100)):0;return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:i<blockedByGuarantee.length-1?"1px solid "+C.border+"44":"none"}}>
+                  <div style={{width:44,textAlign:"center"}}><span style={{fontSize:18,fontWeight:800,color:a.daysLeft<=7?C.green:a.daysLeft<=30?C.orange:C.textMuted,fontFamily:FM}}>{a.daysLeft}</span><br/><span style={{fontSize:10,color:C.textDim,fontFamily:FM}}>days</span></div>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,fontWeight:600,color:C.text,fontFamily:FM}}>{a.d.can} <span style={{color:C.textDim,fontWeight:400}}>@ {a.d.cl}</span></span><span style={{fontSize:14,fontWeight:700,color:C.text,fontFamily:FM}}>{fmtD(a.d.raw)}</span></div>
+                    <div style={{height:4,background:C.bg,borderRadius:2,overflow:"hidden",marginTop:3}}><div style={{height:"100%",width:pct+"%",background:pct>=80?"linear-gradient(90deg,"+C.green+","+C.teal+")":pct>=50?C.orange:C.blue,borderRadius:2}}/></div>
+                    <div style={{display:"flex",gap:8,marginTop:3}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>AM: {a.amM?a.amM.name.split(" ").pop():"?"} {gateIcon(a.amFloorOk)}</span><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>Rec: {a.recM?a.recM.name.split(" ").pop():"?"} {a.d.typ!=="FD"&&gateIcon(a.recFloorOk)}</span>{a.invoicePaid&&<span style={{fontSize:11,color:C.green,fontFamily:FM}}>Inv \u2713</span>}{!a.invoicePaid&&<span style={{fontSize:11,color:C.red,fontFamily:FM}}>Inv \u2717</span>}</div>
+                  </div>
+                </div>;})}
+              </div></div>}
+              {/* Blocked by Invoice */}
+              {blockedByInvoice.length>0&&<div className="panel" style={{marginBottom:12}}><div className="panel-hdr"><h3 style={{color:C.teal}}>CLEARED — NEEDS INVOICE ({blockedByInvoice.length})</h3></div><div className="panel-body" style={{padding:10}}>
+                {blockedByInvoice.map(function(a,i){var origIdx=dhData.indexOf(a.d);return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:i<blockedByInvoice.length-1?"1px solid "+C.border+"44":"none"}}>
+                  <div><span style={{fontSize:14,fontWeight:600,color:C.text,fontFamily:FM}}>{a.d.can}</span> <span style={{color:C.textDim}}>@ {a.d.cl}</span>
+                    <div style={{display:"flex",gap:8,marginTop:2}}><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>AM: {a.amM?a.amM.name.split(" ").pop():"?"} {gateIcon(a.amFloorOk)}</span><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>Floor {gateIcon(a.floorOk)}</span><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>Guarantee {gateIcon(true)}</span><span style={{fontSize:11,color:C.red,fontFamily:FM}}>Invoice {gateIcon(false)}</span></div>
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:14,fontWeight:700,color:C.text,fontFamily:FM}}>{fmtD(a.d.raw)}</span>
+                    <button onClick={function(e){e.stopPropagation();markInvPaid(origIdx);}} style={{padding:"3px 10px",fontSize:12,borderRadius:4,border:"1px solid "+C.teal,background:C.tealDim,color:C.teal,cursor:"pointer",fontFamily:FM,fontWeight:600}}>Mark Paid</button>
+                  </div>
+                </div>;})}
+              </div></div>}
+              {/* All Deals Table with 3-gate columns */}
+              {dhData.length>0&&<div className="panel"><div className="panel-hdr"><h3>ALL DEALS — ELIGIBILITY ({dhData.length})</h3><div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>Click row to edit</span>
+                <button onClick={function(){setConfirm({msg:"Delete ALL "+dhData.length+" DH deals? This cannot be undone.",fn:function(){var count=dhData.length;setDhData([]);sav(SK.dh,[]);setConfirm(null);log("DH_CLEAR_ALL",count+" deals removed");showToast(count+" DH deals deleted");}});}} style={{padding:"2px 8px",fontSize:11,borderRadius:3,border:"1px solid "+C.red+"66",color:C.red,background:"transparent",cursor:"pointer",fontFamily:FM}}>CLEAR ALL</button>
+              </div></div><div className="panel-body" style={{padding:6,maxHeight:"35vh",overflowY:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th}>Candidate</th><th style={th}>Client</th><th style={th}>AM</th><th style={th}>Rec</th><th style={Object.assign({},th,{textAlign:"center"})}>Tier</th><th style={Object.assign({},th,{textAlign:"center"})}>Guar</th><th style={Object.assign({},th,{textAlign:"center"})}>Inv</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th><th style={Object.assign({},th,{textAlign:"right"})}>Est Pay</th><th style={Object.assign({},th,{textAlign:"center"})}>Action</th></tr></thead>
+                <tbody>{dealAnalysis.sort(function(a,b){if(a.fullyReady&&!b.fullyReady)return -1;if(!a.fullyReady&&b.fullyReady)return 1;return b.d.raw-a.d.raw;}).map(function(a,i){var origIdx=dhData.indexOf(a.d);var needsInv=a.floorOk&&a.guaranteeCleared&&!a.invoicePaid&&!a.d.paidOut&&a.d.st!=="t";
+                  return <tr key={i} className="trow" style={{opacity:a.d.st==="t"||a.d.paidOut?.4:1,background:a.fullyReady?C.greenDim:"transparent",cursor:"pointer"}} onClick={function(){setDhEditIdx(origIdx);}}>
+                    <td style={Object.assign({},td,{fontWeight:600})}>{a.d.can}</td>
+                    <td style={Object.assign({},td,{color:C.textMuted,fontSize:12})}>{a.d.cl}</td>
+                    <td style={Object.assign({},td,{fontSize:12,color:a.amFloorOk?C.green:a.amAbove?C.orange:C.red})}>{a.amM?a.amM.name.split(" ").pop():"?"}</td>
+                    <td style={Object.assign({},td,{fontSize:12,color:a.d.typ==="FD"?C.textDim:a.recFloorOk?C.green:a.recAbove?C.orange:C.red})}>{a.d.typ==="FD"?"—":(a.recM?a.recM.name.split(" ").pop():"?")}</td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}>{gateIcon(a.floorOk)}</td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}>{a.d.st==="t"?<span style={{color:C.red}}>T</span>:a.daysLeft!==null&&a.daysLeft>0?<span style={{fontSize:11,color:C.orange,fontFamily:FM}}>{a.daysLeft}d</span>:gateIcon(a.guaranteeCleared)}</td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}>{gateIcon(a.invoicePaid)}</td>
+                    <td style={Object.assign({},td,{textAlign:"right",fontWeight:600})}>{fmtD(a.d.raw)}</td>
+                    <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:a.estPayout>0?C.green:C.textDim})}>{a.estPayout>0?fmtD(a.estPayout):"—"}</td>
+                    <td style={Object.assign({},td,{textAlign:"center"})} onClick={function(e){e.stopPropagation();}}>{needsInv?<button onClick={function(){markInvPaid(origIdx);}} style={{padding:"2px 6px",fontSize:11,borderRadius:3,border:"1px solid "+C.teal,background:C.tealDim,color:C.teal,cursor:"pointer",fontFamily:FM,fontWeight:600}}>Inv</button>:a.fullyReady?<span style={{fontSize:11,color:C.green,fontFamily:FM,fontWeight:600}}>Pay →</span>:""}{!a.d.paidOut&&<button onClick={function(){deleteDH(origIdx);}} style={{padding:"1px 4px",fontSize:12,border:"none",background:"transparent",color:C.red+"88",cursor:"pointer",fontWeight:700,marginLeft:2}} title="Delete">×</button>}</td>
+                  </tr>;})}</tbody>
+                </table>
+              </div></div>}
+            </div>;
+          }()}
+                  </div>}
+
+        {view==="payroll"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14,flexWrap:"wrap",gap:6}}>
+            <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Payroll Processing</h2>
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              <select value={payrollWeekId||""} onChange={function(e){setPayrollWeekId(+e.target.value||null);setExpandedRow(null);}} style={{padding:"3px 6px",fontSize:14,borderRadius:3,fontFamily:FM}}><option value="">Select charge week...</option>{chargeWeeks.map(function(w){return <option key={w.id} value={w.id}>{lockedWeeks.includes(w.weekEnding)?"🔒 ":""}{"WE "+w.weekEnding}</option>;})}</select>
+              {payrollData.length>0&&<button onClick={function(){
+                var headers=["Name","Unit","Contract Comm","DH Payouts","Total","Override"];
+                var data=payrollData.map(function(r){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;var hasOv=payrollOverrides[key]!==undefined;return[r.name,r.unit,r.contractComm.toFixed(2),r.dhTotal.toFixed(2),hasOv?payrollOverrides[key].toFixed(2):r.total.toFixed(2),hasOv?"Yes":""];});
+                dlCSV("Payroll_"+(payrollWeek?payrollWeek.weekEnding:"export")+".csv",headers,data);
+                log("PAYROLL_EXPORT","WE "+(payrollWeek?payrollWeek.weekEnding:""));showToast("Payroll exported");
+              }} className="btn-ghost" style={{padding:"3px 8px",borderRadius:3,fontSize:13,cursor:"pointer",fontFamily:FM}}>EXPORT CSV</button>}
+              {payrollData.length>0&&<button onClick={function(){setStmtMember("ALL");}} className="btn-ghost" style={{padding:"3px 8px",borderRadius:3,fontSize:13,cursor:"pointer",fontFamily:FM,background:C.accent+"22",borderColor:C.accent}}>GENERATE STATEMENTS</button>}
+            </div>
+          </div>
+          {payrollData.length>0&&<div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+              <Stat l="Members" v={payrollData.filter(function(r){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;return r.total>0||(payrollOverrides[key]!==undefined&&payrollOverrides[key]>0);}).length} glow/>
+              <Stat l="Contract Comm" v={fmtD(payrollData.reduce(function(a,r){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;if(payrollOverrides[key]!==undefined)return a+(payrollOverrides[key]-r.dhTotal);return a+r.contractComm;},0))} c={C.blue} glow/>
+              <Stat l="DH Payouts" v={fmtD(payrollData.reduce(function(a,r){return a+r.dhTotal;},0))} c={C.green} s={readyDH.filter(function(d){return payrollDHSelected[d.idx];}).length+" of "+readyDH.length+" deals"} glow/>
+              <Stat l="Total Payroll" v={fmtD(payrollData.reduce(function(a,r){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;return a+(payrollOverrides[key]!==undefined?payrollOverrides[key]:r.total);},0))} c={C.accent} glow/>
+            </div>
+            {/* DH Selection Panel */}
+            {readyDH.length>0&&<div className="panel" style={{marginBottom:14}}><div className="panel-hdr"><h3 style={{color:C.green}}>DH DEALS READY TO PAY ({readyDH.length})</h3><div style={{display:"flex",gap:4}}>
+              <button onClick={function(){var sel={};readyDH.forEach(function(d){sel[d.idx]=true;});setPayrollDHSelected(sel);}} className="btn-ghost" style={{padding:"3px 8px",borderRadius:3,fontSize:12,cursor:"pointer",fontFamily:FM}}>SELECT ALL</button>
+              <button onClick={function(){setPayrollDHSelected({});}} className="btn-ghost" style={{padding:"3px 8px",borderRadius:3,fontSize:12,cursor:"pointer",fontFamily:FM}}>CLEAR ALL</button>
+            </div></div><div className="panel-body" style={{padding:8,maxHeight:"22vh",overflowY:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={Object.assign({},th,{width:30})}></th><th style={th}>Candidate</th><th style={th}>Client</th><th style={th}>AM / Rec</th><th style={th}>Type</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th><th style={th}>Eligible</th></tr></thead>
+              <tbody>{readyDH.map(function(d){
+                var isSelected=!!payrollDHSelected[d.idx];
+                // Check DH eligibility based on floor crossing
+                var amM=d.amId?members.find(function(m){return m.id===d.amId;}):findM(d.am,members);
+                var recM=d.recId?members.find(function(m){return m.id===d.recId;}):findM(d.rec,members);
+                var amFI=null,recFI=null;
+                if(payrollWeek&&amM){var amRow=payrollWeek.rows.find(function(r){return r.matchedId===amM.id;});if(amRow)amFI=getFloorInfo(amRow,payrollWeek);}
+                if(payrollWeek&&recM){var recRow=payrollWeek.rows.find(function(r){return r.matchedId===recM.id;});if(recRow)recFI=getFloorInfo(recRow,payrollWeek);}
+                var amElig=amFI&&amFI.dhEligible&&(!amFI.crossDate||!d.sd||d.sd>=amFI.crossDate);
+                var recElig=recFI&&recFI.dhEligible&&(!recFI.crossDate||!d.sd||d.sd>=recFI.crossDate);
+                var anyElig=d.typ==="FD"?amElig:(amElig||recElig);
+                return <tr key={d.idx} className="trow" style={{opacity:isSelected?1:0.5,background:isSelected?C.greenDim:"transparent"}}>
+                  <td style={Object.assign({},td,{textAlign:"center"})}><input type="checkbox" checked={isSelected} onChange={function(){setPayrollDHSelected(function(prev){var n=Object.assign({},prev);if(n[d.idx])delete n[d.idx];else n[d.idx]=true;return n;});}} style={{cursor:"pointer",width:16,height:16}}/></td>
+                  <td style={Object.assign({},td,{fontWeight:600})}>{d.can}</td>
+                  <td style={Object.assign({},td,{color:C.textMuted})}>{d.cl}</td>
+                  <td style={Object.assign({},td,{fontSize:12,color:C.textMuted})}>{d.am}{d.typ!=="FD"?" / "+d.rec:""}</td>
+                  <td style={td}><Badge v={d.typ==="FD"?"gold":"muted"}>{d.typ==="FD"?"FD":"Split"}</Badge></td>
+                  <td style={Object.assign({},td,{textAlign:"right",fontWeight:600})}>{fmtD(d.raw)}</td>
+                  <td style={td}>{anyElig?<Badge v="green">YES</Badge>:<Badge v="red">Below floor</Badge>}</td>
+                </tr>;})}</tbody></table>
+            </div></div>}
+            {/* Process Button */}
+            {readyDH.filter(function(d){return payrollDHSelected[d.idx];}).length>0&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:10,gap:6}}>
+              <button onClick={function(){
+                var selected=readyDH.filter(function(d){return payrollDHSelected[d.idx];});
+                var we=payrollWeek?payrollWeek.weekEnding:new Date().toISOString().slice(0,10);
+                setDhData(function(prev){
+                  var n=prev.slice();
+                  selected.forEach(function(d){
+                    n[d.idx]=Object.assign({},n[d.idx],{paidOut:true,paidDate:new Date().toISOString().slice(0,10),payrollWE:we,st:"d"});
+                  });
+                  return n;
+                });
+                log("PAYROLL_DH_PROCESSED",selected.length+" DH deals marked paid for WE "+we);
+                setPayrollDHSelected({});
+                showToast(selected.length+" DH deals marked paid");
+              }} className="btn-primary" style={{padding:"8px 16px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM,fontWeight:700}}>PROCESS {readyDH.filter(function(d){return payrollDHSelected[d.idx];}).length} DH DEALS & MARK PAID</button>
+            </div>}
+            {/* Lock Payroll */}
+            {payrollWeek&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8,gap:6}}>
+              {lockedWeeks.includes(payrollWeek.weekEnding)?<div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:C.greenDim,border:"1px solid "+C.green+"33",borderRadius:4}}><span style={{fontSize:13,fontWeight:700,color:C.green,fontFamily:FM}}>🔒 PAYROLL LOCKED — WE {payrollWeek.weekEnding}</span></div>
+              :<button onClick={function(){setConfirm({msg:"Lock payroll for WE "+payrollWeek.weekEnding+"?\n\nThis prevents the charge week from being deleted or overwritten. You can unlock from Admin Settings.",fn:function(){setLockedWeeks(function(p){return p.concat([payrollWeek.weekEnding]);});setConfirm(null);log("PAYROLL_LOCKED","WE "+payrollWeek.weekEnding);showToast("Payroll locked for WE "+payrollWeek.weekEnding);}});}} className="btn-ghost" style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,fontWeight:600}}>🔒 LOCK PAYROLL</button>}
+            </div>}
+            <p style={{fontSize:12,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>CLICK ROW TO EXPAND BREAKDOWN</p>
+            <div style={Object.assign({},card,{overflow:"auto",maxHeight:"55vh"})}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>
+                <th style={th}>Member</th><th style={th}>Unit</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.blue})}>Contract</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.green})}>DH Payouts</th>
+                <th style={Object.assign({},th,{textAlign:"right",color:C.accent})}>Total</th>
+              </tr></thead>
+              <tbody>{payrollData.filter(function(r){return r.total>0||r.contractComm>0;}).map(function(r,i){return [<tr key={i} className="trow" onClick={function(){setExpandedRow(expandedRow===i?null:i);}} style={{cursor:"pointer"}}>
+                <td style={Object.assign({},td,{fontWeight:600,fontFamily:FU,borderLeft:"2px solid "+(r.dhTotal>0?C.green:r.contractComm>0?C.blue:C.border),paddingLeft:10})}>{expandedRow===i?"\u25BC ":""}{r.name}</td>
+                <td style={td}>{r.unit&&<Badge v={UB[r.unit]||"muted"}>{r.unit}</Badge>}</td>
+                <td style={Object.assign({},td,{textAlign:"right",color:r.contractComm>0?C.blue:C.textDim})}>{function(){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;if(payrollOverrides[key]!==undefined){var adj=payrollOverrides[key]-r.dhTotal;return <span style={{color:C.orange}}>{fmtD(adj)}</span>;}return r.contractComm>0?fmtD(r.contractComm):"\u2014";}()}</td>
+                <td style={Object.assign({},td,{textAlign:"right",color:r.dhTotal>0?C.green:C.textDim})}>{r.dhTotal>0?fmtD(r.dhTotal):"\u2014"}</td>
+                <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,fontSize:15,color:C.accent})} onClick={function(e){e.stopPropagation();var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;setEditingPayout(key);setEditPayoutVal(payrollOverrides[key]!==undefined?String(payrollOverrides[key]):String(Math.round(r.total*100)/100));}}>{function(){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;var hasOverride=payrollOverrides[key]!==undefined;
+                  if(editingPayout===key)return <input type="number" step="0.01" value={editPayoutVal} onChange={function(e){setEditPayoutVal(e.target.value);}} onBlur={function(){var val=parseFloat(editPayoutVal);if(!isNaN(val)){var we2=payrollWeek?payrollWeek.weekEnding:"";var k2=r.name+"|"+we2;setPayrollOverrides(function(p){var n=Object.assign({},p);n[k2]=val;return n;});log("PAYOUT_OVERRIDE",r.name+" WE "+we2+" → "+fmtD(val));}setEditingPayout(null);}} onKeyDown={function(e){if(e.key==="Enter")e.target.blur();if(e.key==="Escape"){setEditingPayout(null);}}} autoFocus style={{width:90,padding:"2px 4px",fontSize:14,textAlign:"right",borderRadius:3,fontFamily:FM,fontWeight:700,border:"2px solid "+C.accent,background:C.bgInput,color:C.accent}}/>;
+                  return <span style={{cursor:"pointer",borderBottom:"1px dashed "+(hasOverride?C.orange:C.accent)+"66"}} title="Click to override">{hasOverride?fmtD(payrollOverrides[key]):fmtD(r.total)}{hasOverride&&<span style={{fontSize:9,color:C.orange,marginLeft:3,verticalAlign:"super"}}>✎</span>}</span>;
+                }()}</td>
+              </tr>,
+              expandedRow===i&&<tr key={i+"_x"}><td colSpan={5} style={{padding:0,background:"linear-gradient(135deg,"+C.bgSurface+" 0%,"+C.bg2+" 100%)",borderBottom:"2px solid "+C.accent}}><div style={{padding:"10px 14px"}}>
+                {r.steps&&r.steps.length>0&&<div style={{marginBottom:r.dhPayouts.length?10:0}}><p style={{fontSize:12,fontWeight:700,color:C.blue,margin:"0 0 5px",fontFamily:FM,letterSpacing:"1px"}}>CONTRACT COMMISSIONS · Rate: {r.rate}</p>
+                  {r.steps.map(function(s,si){return <div key={si} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:si<r.steps.length-1?"1px solid "+C.border+"44":"none"}}><div><span style={{fontSize:14,fontWeight:700,color:s.t.includes("Rec")?C.blue:s.t.includes("AM")?C.purple:C.accent,fontFamily:FM}}>{s.t}</span><span style={{fontSize:13,color:C.textMuted,marginLeft:8,fontFamily:FM}}>{s.d}</span></div><span style={{fontSize:14,fontFamily:FM,fontWeight:700,color:C.blue}}>{fmtD(s.a)}</span></div>;})}
+                </div>}
+                {r.dhPayouts.length>0&&<div><p style={{fontSize:12,fontWeight:700,color:C.green,margin:"0 0 5px",fontFamily:FM,letterSpacing:"1px"}}>DH PAYOUTS ({r.dhPayouts.length})</p>
+                  {r.dhPayouts.map(function(d,di){return <div key={di} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:di<r.dhPayouts.length-1?"1px solid "+C.border+"44":"none"}}><div><span style={{fontSize:14,fontWeight:700,color:C.accent,fontFamily:FM}}>{d.can}</span><span style={{fontSize:13,color:C.textDim,marginLeft:6,fontFamily:FM}}>{d.cl}</span><Badge v={d.typ==="FD"?"gold":"muted"}>{d.typ}</Badge></div><div style={{textAlign:"right"}}><span style={{fontSize:13,color:C.textMuted,fontFamily:FM}}>{fmt(d.raw)+" \u00D7 "+(d.rate*100)+"%"}</span><span style={{fontSize:14,fontFamily:FM,fontWeight:700,color:C.green,marginLeft:8}}>{fmtD(d.payout)}</span></div></div>;})}
+                </div>}
+                <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",gap:8,marginTop:6,paddingTop:6,borderTop:"1px solid "+C.border}}>
+                  {function(){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;var hasOverride=payrollOverrides[key]!==undefined;
+                    return <>{hasOverride&&<button onClick={function(e){e.stopPropagation();setPayrollOverrides(function(p){var n=Object.assign({},p);delete n[key];return n;});log("PAYOUT_OVERRIDE_CLEAR",r.name+" WE "+we);showToast("Override cleared for "+r.name);}} style={{padding:"2px 6px",fontSize:10,borderRadius:3,border:"1px solid "+C.orange+"44",color:C.orange,background:"transparent",cursor:"pointer",fontFamily:FM}}>Clear Override</button>}
+                      {hasOverride&&<span style={{fontSize:12,color:C.textDim,fontFamily:FM,textDecoration:"line-through"}}>{fmtD(r.total)}</span>}
+                      <span style={{fontSize:15,fontFamily:FM,fontWeight:700,color:hasOverride?C.orange:C.accent}}>TOTAL: {hasOverride?fmtD(payrollOverrides[key]):fmtD(r.total)}</span></>;
+                  }()}
+                </div>
+              </div></td></tr>];})}</tbody>
+              <tfoot><tr style={{background:C.bg2}}><td colSpan={2} style={Object.assign({},td,{fontWeight:700,textAlign:"right",color:C.textDim})}>TOTALS</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.blue})}>{fmtD(payrollData.reduce(function(a,r){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;if(payrollOverrides[key]!==undefined)return a+(payrollOverrides[key]-r.dhTotal);return a+r.contractComm;},0))}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.green})}>{fmtD(payrollData.reduce(function(a,r){return a+r.dhTotal;},0))}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,fontSize:18,color:C.accent})}>{fmtD(payrollData.reduce(function(a,r){var we=payrollWeek?payrollWeek.weekEnding:"";var key=r.name+"|"+we;return a+(payrollOverrides[key]!==undefined?payrollOverrides[key]:r.total);},0))}</td></tr></tfoot>
+            </table></div>
+            {/* Manual Payout Section */}
+            <div className="panel" style={{marginTop:12}}><div className="panel-hdr"><h3>MANUAL PAYOUTS</h3><button onClick={function(){setManualPayoutOpen(!manualPayoutOpen);}} className="btn-ghost" style={{padding:"3px 8px",borderRadius:3,fontSize:12,cursor:"pointer",fontFamily:FM}}>{manualPayoutOpen?"CANCEL":"+ ADD MANUAL PAYOUT"}</button></div>
+            {manualPayoutOpen&&<div className="panel-body" style={{padding:12}}>
+              <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Add a one-time payout (bonus, adjustment, etc.) that will be tracked on the team member's card.</p>
+              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 2fr auto",gap:8,alignItems:"end"}}>
+                <div><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM}}>TEAM MEMBER</label><select value={manualPayoutMember} onChange={function(e){setManualPayoutMember(e.target.value);}} style={{width:"100%",padding:"6px 8px",fontSize:13,borderRadius:4,fontFamily:FM,background:C.bgInput,color:C.text,border:"1px solid "+C.border}}><option value="">Select...</option>{members.filter(function(m){return!m.inactive;}).sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(m){return <option key={m.id} value={m.id}>{m.name}</option>;})}</select></div>
+                <div><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM}}>AMOUNT</label><div style={{display:"flex",alignItems:"center",gap:2}}><span style={{color:C.textDim}}>$</span><input type="number" step="0.01" value={manualPayoutAmount} onChange={function(e){setManualPayoutAmount(e.target.value);}} placeholder="0.00" style={{width:"100%",padding:"6px 8px",fontSize:13,borderRadius:4,fontFamily:FM,background:C.bgInput,color:C.text,border:"1px solid "+C.border}}/></div></div>
+                <div><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM}}>REASON</label><input value={manualPayoutReason} onChange={function(e){setManualPayoutReason(e.target.value);}} placeholder="Bonus, adjustment, etc." style={{width:"100%",padding:"6px 8px",fontSize:13,borderRadius:4,fontFamily:FM,background:C.bgInput,color:C.text,border:"1px solid "+C.border}}/></div>
+                <button onClick={function(){if(!manualPayoutMember||!manualPayoutAmount){showToast("Select a member and enter an amount","err");return;}var amt=parseFloat(manualPayoutAmount);if(isNaN(amt)||amt===0){showToast("Enter a valid amount","err");return;}var m=members.find(function(x){return String(x.id)===String(manualPayoutMember);});var we=payrollWeek?payrollWeek.weekEnding:"";var payout={memberId:manualPayoutMember,memberName:m?m.name:"",amount:amt,reason:manualPayoutReason,weekEnding:we,addedAt:new Date().toISOString(),addedBy:userEmail};setPayrollOverrides(function(prev){var n=Object.assign({},prev);n._manualPayouts=(n._manualPayouts||[]).concat(payout);return n;});log("MANUAL_PAYOUT",(m?m.name:"")+" "+fmtD(amt)+" WE "+we+" — "+manualPayoutReason);showToast("Manual payout of "+fmtD(amt)+" added for "+(m?m.name:""));setManualPayoutMember("");setManualPayoutAmount("");setManualPayoutReason("");setManualPayoutOpen(false);}} className="btn-primary" style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,fontWeight:700,whiteSpace:"nowrap",height:34}}>ADD</button>
+              </div>
+            </div>}
+            {function(){var we=payrollWeek?payrollWeek.weekEnding:"";var weekPayouts=(payrollOverrides._manualPayouts||[]).filter(function(p){return p.weekEnding===we;});if(weekPayouts.length===0)return null;return <div className="panel-body" style={{padding:"6px 12px",borderTop:"1px solid "+C.border}}><p style={{fontSize:11,fontWeight:700,color:C.textDim,margin:"0 0 4px",fontFamily:FM}}>MANUAL PAYOUTS THIS WEEK ({weekPayouts.length})</p>{weekPayouts.map(function(p,pi){return <div key={pi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",borderBottom:pi<weekPayouts.length-1?"1px solid "+C.border+"33":"none"}}><span style={{fontSize:13,fontFamily:FM,color:C.text}}>{p.memberName} — <span style={{color:C.textMuted,fontSize:12}}>{p.reason||"Manual"}</span></span><span style={{fontSize:14,fontWeight:700,color:C.accent,fontFamily:FM}}>{fmtD(p.amount)}</span></div>;})}</div>;}()}
+            </div>
+          </div>}
+          {!payrollWeekId&&chargeWeeks.length>0&&<div style={Object.assign({},card,{padding:20,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM,margin:0}}>Select a charge week above to calculate payroll</p>{readyDH.length>0&&<p style={{color:C.green,fontSize:14,fontFamily:FM,margin:"6px 0 0",textShadow:"0 0 6px "+C.greenGlow}}>{readyDH.length} DH ready to pay · {fmt(readyDH.reduce(function(a,d){return a+d.raw;},0))} raw</p>}</div>}
+          {chargeWeeks.length===0&&<div style={Object.assign({},card,{padding:20,textAlign:"center"})}><p style={{color:C.textDim,fontSize:15,fontFamily:FM,margin:0}}>Import charge weeks first to process payroll</p></div>}
+        </div>}
+        {/* ════════ FLOOR GUARANTEE TRACKER ════════ */}
+        {view==="floor"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:6}}>
+            <div>
+              <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Floor Guarantee Tracker</h2>
+              <p style={{fontSize:13,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>Floor payment vs. comp plan commission — week over week</p>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {chargeWeeks.length>0&&function(){
+                var floorMembers=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0;});
+                if(!floorMembers.length)return null;
+                return <select value={cmdDrill||""} onChange={function(e){setCmdDrill(e.target.value||null);}} style={{padding:"5px 10px",fontSize:14,borderRadius:6,fontFamily:FM}}>
+                  <option value="">All Floor Members ({floorMembers.length})</option>
+                  {floorMembers.map(function(m){return <option key={m.id} value={m.id}>{m.name}</option>;})}
+                </select>;
+              }()}
+            </div>
+          </div>
+          {function(){
+            var floorMembers=members.filter(function(m){return m.guarantee&&m.guarantee.active&&m.guarantee.amount>0;});
+            if(!floorMembers.length)return <div style={Object.assign({},card,{padding:30,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM,margin:0}}>No team members on a floor guarantee. Activate a floor on Team → Member Dashboard to start tracking.</p></div>;
+            if(!chargeWeeks.length)return <div style={Object.assign({},card,{padding:30,textAlign:"center"})}><p style={{color:C.textMuted,fontSize:15,fontFamily:FM,margin:0}}>Import charge weeks first — floor tracking requires charge data to calculate comp plan commission.</p></div>;
+            var sortedWeeksAll=chargeWeeks.slice().sort(function(a,b){return new Date(a.weekEnding)-new Date(b.weekEnding);});
+            var analyses=floorMembers.map(function(m){
+              var weekDetails=[];var cumFloorPaid=0;var cumCompPlan=0;
+              sortedWeeksAll.forEach(function(w){
+                var row=w.rows.find(function(r){return r.matchedId===m.id;});
+                if(!row)return;
+                var floorThisWeek=m.guarantee.amount;
+                cumFloorPaid+=floorThisWeek;
+                var fi=getFloorInfo(row,w);
+                var rawTotal=row.rawCharge;var pureSR=row.splitRec;
+                var pureAM=Math.max(0,row.splitAM-row.fullDesk);var pureFD=row.fullDesk;
+                var r=m.rates;var compComm=0;
+                if(r.flat>0){compComm=rawTotal*r.flat;}
+                else if(fi.belowFloor){
+                  if(rawTotal<FLOOR_WEEKLY_DEDUCT){compComm=0;}
+                  else{var commissionable=rawTotal-FLOOR_WEEKLY_DEDUCT;var ratio=rawTotal>0?commissionable/rawTotal:0;compComm=(pureSR*ratio)*r.sA+(pureAM*ratio)*r.sA+(pureFD*ratio)*r.fdA;}
+                }else if(fi.crossing){
+                  var belowP=fi.belowPortion;var aboveP=fi.abovePortion;
+                  var belowRatio=rawTotal>0?belowP/rawTotal:0;var aboveRatio=rawTotal>0?aboveP/rawTotal:0;
+                  var belowComm=0;
+                  if(belowP>=FLOOR_WEEKLY_DEDUCT){var bc=belowP-FLOOR_WEEKLY_DEDUCT;var bR=belowP>0?bc/belowP:0;belowComm=(pureSR*belowRatio*bR+pureAM*belowRatio*bR)*r.sA+pureFD*belowRatio*bR*r.fdA;}
+                  var aboveComm=(pureSR*aboveRatio)*r.sA+(pureAM*aboveRatio)*r.sA+(pureFD*aboveRatio)*r.fdA;
+                  compComm=belowComm+aboveComm;
+                }else{compComm=pureSR*r.sA+pureAM*r.sA+pureFD*r.fdA;}
+                cumCompPlan+=compComm;
+                weekDetails.push({we:w.weekEnding,rawCharge:rawTotal,splitRec:pureSR,splitAM:row.splitAM,fullDesk:pureFD,ytdRaw:row.ytdRaw,qtd:fi.qtd||0,belowFloor:fi.belowFloor,crossing:fi.crossing,floorPaid:floorThisWeek,compPlanComm:compComm,delta:floorThisWeek-compComm,cumFloor:cumFloorPaid,cumCompPlan:cumCompPlan,cumDelta:cumFloorPaid-cumCompPlan});
+              });
+              var weeksLoaded=weekDetails.length;var avgCompPerWeek=weeksLoaded>0?cumCompPlan/weeksLoaded:0;var avgFloorPerWeek=m.guarantee.amount;
+              var totalBudget=0;
+              if(m.guarantee.endDate){var s2=new Date(m.guarantee.startDate||"2026-01-01");var e2=new Date(m.guarantee.endDate);totalBudget=Math.max(1,Math.ceil((e2-s2)/(7*24*60*60*1000)))*avgFloorPerWeek;}
+              else{totalBudget=52*avgFloorPerWeek;}
+              var remaining=totalBudget-cumFloorPaid;
+              var weeksRemaining=m.guarantee.endDate?Math.max(0,Math.ceil((new Date(m.guarantee.endDate)-NOW)/(7*24*60*60*1000))):null;
+              var projectedTotalComp=weeksRemaining!==null?cumCompPlan+(avgCompPerWeek*weeksRemaining):null;
+              var projectedTotalFloor=weeksRemaining!==null?cumFloorPaid+(avgFloorPerWeek*weeksRemaining):null;
+              var willExceed=projectedTotalComp!==null&&projectedTotalFloor!==null&&projectedTotalComp>=projectedTotalFloor;
+              var recentAvg=weekDetails.length>=4?weekDetails.slice(-4).reduce(function(a2,w2){return a2+w2.compPlanComm;},0)/4:avgCompPerWeek;
+              var earlyAvg=weekDetails.length>=4?weekDetails.slice(0,Math.min(4,weekDetails.length)).reduce(function(a2,w2){return a2+w2.compPlanComm;},0)/Math.min(4,weekDetails.length):avgCompPerWeek;
+              var trending=recentAvg>earlyAvg*1.05?"up":recentAvg<earlyAvg*0.95?"down":"flat";
+              return{member:m,weeks:weekDetails,weeksLoaded:weeksLoaded,cumFloorPaid:cumFloorPaid,cumCompPlan:cumCompPlan,cumDelta:cumFloorPaid-cumCompPlan,avgCompPerWeek:avgCompPerWeek,avgFloorPerWeek:avgFloorPerWeek,totalBudget:totalBudget,remaining:remaining,weeksRemaining:weeksRemaining,projectedTotalComp:projectedTotalComp,projectedTotalFloor:projectedTotalFloor,willExceed:willExceed,trending:trending,recentAvg:recentAvg,earlyAvg:earlyAvg};
+            });
+            var filtered2=cmdDrill?analyses.filter(function(a2){return String(a2.member.id)===String(cmdDrill);}):analyses;
+            var totalFloorPaid=analyses.reduce(function(a2,x){return a2+x.cumFloorPaid;},0);
+            var totalCompPlan=analyses.reduce(function(a2,x){return a2+x.cumCompPlan;},0);
+            var totalBudgetAll=analyses.reduce(function(a2,x){return a2+x.totalBudget;},0);
+            var totalDelta=totalFloorPaid-totalCompPlan;
+            return <div>
+              {/* Global KPIs */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+                <Stat l="Floor Members" v={analyses.length} c={C.accent} s={analyses.filter(function(a2){return a2.willExceed;}).length+" on track to exceed"}/>
+                <Stat l="Total Floor Paid YTD" v={fmtD(totalFloorPaid)} c={C.orange}/>
+                <Stat l="Comp Plan Would Be" v={fmtD(totalCompPlan)} c={C.blue} s="without floor guarantee"/>
+                <Stat l="Floor Cost (Overpay)" v={fmtD(totalDelta)} c={totalDelta>0?C.red:C.green} s={totalDelta>0?"Floor costs "+fmtD(totalDelta)+" more":"Comp exceeds floor"}/>
+                <Stat l="Total Floor Budget" v={fmtD(totalBudgetAll)} c={C.textMuted} s={fmtD(totalBudgetAll-totalFloorPaid)+" remaining"}/>
+              </div>
+              {/* Per-Member Cards */}
+              {filtered2.map(function(a2){
+                var m=a2.member;
+                var pctUsed=a2.totalBudget>0?Math.round(a2.cumFloorPaid/a2.totalBudget*100):0;
+                var compVsFloorPct=a2.cumFloorPaid>0?Math.round(a2.cumCompPlan/a2.cumFloorPaid*100):0;
+                return <div key={m.id} className="panel" style={{marginBottom:14}}>
+                  <div className="panel-hdr" style={{borderBottom:"2px solid "+(a2.willExceed?C.green:a2.trending==="up"?C.orange:C.red)+"33",cursor:"pointer"}} onClick={function(){setExpandedRow(expandedRow===m.id?null:m.id);}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <h3 style={{color:C.text,fontSize:16,fontWeight:700,fontFamily:FU,textTransform:"none",letterSpacing:0}}>{expandedRow===m.id?"\u25BC":"\u25B6"} {m.name}</h3>
+                      <Badge v={UB[m.unit]||"muted"}>{m.unit}</Badge>
+                      <Badge v={a2.trending==="up"?"green":a2.trending==="down"?"red":"muted"}>{a2.trending==="up"?"\u25B2 Up":a2.trending==="down"?"\u25BC Down":"— Flat"}</Badge>
+                      {a2.willExceed&&<Badge v="green">On Track to Exceed</Badge>}
+                      {!a2.willExceed&&a2.weeksRemaining!==null&&<Badge v="red">Floor Exceeds Comp</Badge>}
+                    </div>
+                    <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:C.orange,fontFamily:FM}}>Floor: {fmtD(m.guarantee.amount)}/wk</span>
+                      <span style={{fontSize:13,fontWeight:700,color:C.blue,fontFamily:FM}}>Comp: {fmtD(a2.avgCompPerWeek)}/wk avg</span>
+                      <span style={{fontSize:14,fontWeight:800,color:a2.cumDelta>0?C.red:C.green,fontFamily:FM}}>{a2.cumDelta>0?"+":""}{fmtD(a2.cumDelta)}</span>
+                    </div>
+                  </div>
+                  {expandedRow===m.id&&<div className="panel-body" style={{padding:14}}>
+                    {/* KPI Row */}
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8,marginBottom:14}}>
+                      <div style={{padding:"10px 12px",background:C.orangeDim,borderRadius:6,border:"1px solid "+C.orange+"33"}}>
+                        <p style={{fontSize:10,color:C.orange,margin:"0 0 2px",fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>FLOOR PAID YTD</p>
+                        <p style={{fontSize:20,fontWeight:800,color:C.orange,margin:0,fontFamily:FM}}>{fmtD(a2.cumFloorPaid)}</p>
+                      </div>
+                      <div style={{padding:"10px 12px",background:C.blueDim,borderRadius:6,border:"1px solid "+C.blue+"33"}}>
+                        <p style={{fontSize:10,color:C.blue,margin:"0 0 2px",fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>COMP PLAN WOULD BE</p>
+                        <p style={{fontSize:20,fontWeight:800,color:C.blue,margin:0,fontFamily:FM}}>{fmtD(a2.cumCompPlan)}</p>
+                      </div>
+                      <div style={{padding:"10px 12px",background:a2.cumDelta>0?C.redDim:C.greenDim,borderRadius:6,border:"1px solid "+(a2.cumDelta>0?C.red:C.green)+"33"}}>
+                        <p style={{fontSize:10,color:a2.cumDelta>0?C.red:C.green,margin:"0 0 2px",fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>FLOOR VS COMP</p>
+                        <p style={{fontSize:20,fontWeight:800,color:a2.cumDelta>0?C.red:C.green,margin:0,fontFamily:FM}}>{a2.cumDelta>0?"+":""}{fmtD(a2.cumDelta)}</p>
+                        <p style={{fontSize:11,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>{a2.cumDelta>0?"Floor costs more":"Comp exceeds floor"}</p>
+                      </div>
+                      <div style={{padding:"10px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.border}}>
+                        <p style={{fontSize:10,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>COMP % OF FLOOR</p>
+                        <p style={{fontSize:20,fontWeight:800,color:compVsFloorPct>=100?C.green:compVsFloorPct>=75?C.orange:C.red,margin:0,fontFamily:FM}}>{compVsFloorPct}%</p>
+                        <p style={{fontSize:11,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>{compVsFloorPct>=100?"Self-sustaining":"Gap: "+fmtD(a2.cumFloorPaid-a2.cumCompPlan)}</p>
+                      </div>
+                      <div style={{padding:"10px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.border}}>
+                        <p style={{fontSize:10,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>AVG COMP/WEEK</p>
+                        <p style={{fontSize:20,fontWeight:800,color:C.text,margin:0,fontFamily:FM}}>{fmtD(a2.avgCompPerWeek)}</p>
+                        <p style={{fontSize:11,color:a2.recentAvg>a2.earlyAvg?C.green:C.red,margin:"2px 0 0",fontFamily:FM}}>Recent 4wk: {fmtD(a2.recentAvg)}</p>
+                      </div>
+                      <div style={{padding:"10px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.border}}>
+                        <p style={{fontSize:10,color:C.textDim,margin:"0 0 2px",fontWeight:700,fontFamily:FM,letterSpacing:".5px"}}>BUDGET REMAINING</p>
+                        <p style={{fontSize:20,fontWeight:800,color:C.accent,margin:0,fontFamily:FM}}>{fmtD(a2.remaining)}</p>
+                        <p style={{fontSize:11,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>{pctUsed}% of {fmtD(a2.totalBudget)} used</p>
+                      </div>
+                    </div>
+                    {/* Budget Progress Bar */}
+                    <div style={{marginBottom:14}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                        <span style={{fontSize:12,fontWeight:700,color:C.textMuted,fontFamily:FM}}>Floor Budget: {fmtD(a2.cumFloorPaid)} / {fmtD(a2.totalBudget)}</span>
+                        <span style={{fontSize:12,color:C.textMuted,fontFamily:FM}}>{a2.weeksRemaining!==null?a2.weeksRemaining+" wks remaining":""}{m.guarantee.endDate?" · ends "+m.guarantee.endDate:""}</span>
+                      </div>
+                      <div style={{height:12,background:C.bg,borderRadius:6,overflow:"hidden",position:"relative"}}>
+                        <div style={{position:"absolute",top:0,height:"100%",width:Math.min(100,pctUsed)+"%",background:"linear-gradient(90deg,"+C.orange+"cc,"+C.red+"cc)",borderRadius:6,transition:"width .5s ease"}}/>
+                        <div style={{position:"absolute",top:0,height:"100%",width:Math.min(100,a2.totalBudget>0?Math.round(a2.cumCompPlan/a2.totalBudget*100):0)+"%",background:C.blue+"55",borderRadius:6}}/>
+                      </div>
+                      <div style={{display:"flex",gap:16,marginTop:4}}>
+                        <span style={{fontSize:11,color:C.orange,fontFamily:FM}}>{"\u25A0"} Floor Paid ({pctUsed}%)</span>
+                        <span style={{fontSize:11,color:C.blue,fontFamily:FM}}>{"\u25A0"} Comp Plan ({a2.totalBudget>0?Math.round(a2.cumCompPlan/a2.totalBudget*100):0}%)</span>
+                      </div>
+                    </div>
+                    {/* Cumulative Chart */}
+                    {a2.weeks.length>=2&&<div style={{marginBottom:14}}>
+                      <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 8px",fontFamily:FM,letterSpacing:".5px"}}>CUMULATIVE — FLOOR PAID VS. COMP PLAN COMMISSION</p>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <AreaChart data={a2.weeks.map(function(w2){return{we:w2.we,floor:Math.round(w2.cumFloor*100)/100,comp:Math.round(w2.cumCompPlan*100)/100,wFloor:Math.round(w2.floorPaid*100)/100,wComp:Math.round(w2.compPlanComm*100)/100};})} margin={{left:10,right:10,top:5,bottom:0}}>
+                          <defs>
+                            <linearGradient id={"fg"+m.id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.orange} stopOpacity={0.35}/><stop offset="100%" stopColor={C.orange} stopOpacity={0.02}/></linearGradient>
+                            <linearGradient id={"cg"+m.id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.blue} stopOpacity={0.35}/><stop offset="100%" stopColor={C.blue} stopOpacity={0.02}/></linearGradient>
+                          </defs>
+                          <XAxis dataKey="we" fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false}/>
+                          <YAxis fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={function(v){return"$"+Math.round(v/1000)+"K";}}/>
+                          <Tooltip content={function(p){if(!p.active||!p.payload||!p.payload[0])return null;var d=p.payload[0].payload;return <div style={{background:C.bgCard,border:"1px solid "+C.border,borderRadius:6,padding:"8px 12px",fontFamily:FM,fontSize:13,boxShadow:"0 4px 20px rgba(0,0,0,.5)"}}><p style={{margin:0,color:C.textDim,fontSize:12}}>WE {d.we}</p><p style={{margin:"3px 0",color:C.orange,fontWeight:700}}>Floor: {fmtD(d.wFloor)} (Cum: {fmtD(d.floor)})</p><p style={{margin:"0 0 3px",color:C.blue,fontWeight:700}}>Comp: {fmtD(d.wComp)} (Cum: {fmtD(d.comp)})</p><p style={{margin:0,color:d.floor>d.comp?C.red:C.green,fontWeight:600}}>Gap: {d.floor>d.comp?"+":""}{fmtD(d.floor-d.comp)}</p></div>;}}/>
+                          <Area type="monotone" dataKey="floor" stroke={C.orange} strokeWidth={2.5} fill={"url(#fg"+m.id+")"} dot={{r:3,fill:C.orange,strokeWidth:0}}/>
+                          <Area type="monotone" dataKey="comp" stroke={C.blue} strokeWidth={2.5} fill={"url(#cg"+m.id+")"} dot={{r:3,fill:C.blue,strokeWidth:0}}/>
+                        </AreaChart>
+                      </ResponsiveContainer>
+                      <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:6}}>
+                        <span style={{fontSize:12,color:C.orange,fontFamily:FM}}>{"\u25CF"} Cumulative Floor Paid</span>
+                        <span style={{fontSize:12,color:C.blue,fontFamily:FM}}>{"\u25CF"} Cumulative Comp Plan</span>
+                      </div>
+                    </div>}
+                    {/* Weekly Bar Chart */}
+                    {a2.weeks.length>=2&&<div style={{marginBottom:14}}>
+                      <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 8px",fontFamily:FM,letterSpacing:".5px"}}>WEEKLY — FLOOR vs. COMP PLAN</p>
+                      <ResponsiveContainer width="100%" height={140}>
+                        <BarChart data={a2.weeks.map(function(w2){return{we:w2.we,floor:Math.round(w2.floorPaid*100)/100,comp:Math.round(w2.compPlanComm*100)/100};})} margin={{left:10,right:10,top:0,bottom:0}}>
+                          <XAxis dataKey="we" fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false}/>
+                          <YAxis fontSize={10} stroke={C.textDim} tick={{fontFamily:FM}} axisLine={false} tickLine={false} tickFormatter={function(v){return"$"+v;}}/>
+                          <Tooltip content={function(p){if(!p.active||!p.payload)return null;var d=p.payload[0]?p.payload[0].payload:{};return <div style={{background:C.bgCard,border:"1px solid "+C.border,borderRadius:6,padding:"8px 12px",fontFamily:FM,fontSize:13}}><p style={{margin:0,color:C.textDim}}>WE {d.we}</p><p style={{margin:"2px 0",color:C.orange,fontWeight:600}}>Floor: {fmtD(d.floor)}</p><p style={{margin:0,color:C.blue,fontWeight:600}}>Comp: {fmtD(d.comp)}</p><p style={{margin:"3px 0 0",color:d.floor>d.comp?C.red:C.green,fontWeight:600}}>Delta: {d.floor>d.comp?"+":""}{fmtD(d.floor-d.comp)}</p></div>;}}/>
+                          <Bar dataKey="floor" fill={C.orange} radius={[4,4,0,0]} barSize={16}/>
+                          <Bar dataKey="comp" fill={C.blue} radius={[4,4,0,0]} barSize={16}/>
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:4}}>
+                        <span style={{fontSize:11,color:C.orange,fontFamily:FM}}>{"\u25A0"} Floor Paid</span>
+                        <span style={{fontSize:11,color:C.blue,fontFamily:FM}}>{"\u25A0"} Comp Plan Commission</span>
+                      </div>
+                    </div>}
+                    {/* Projections */}
+                    {a2.weeksRemaining!==null&&a2.weeksRemaining>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+                      <div style={{padding:"12px 14px",background:C.orangeDim,borderRadius:8,border:"1px solid "+C.orange+"33"}}>
+                        <p style={{fontSize:11,color:C.orange,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>PROJECTED TOTAL FLOOR</p>
+                        <p style={{fontSize:22,fontWeight:800,color:C.orange,margin:0,fontFamily:FM}}>{fmtD(a2.projectedTotalFloor)}</p>
+                        <p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>{fmtD(a2.avgFloorPerWeek)}/wk × {a2.weeksRemaining} wk left</p>
+                      </div>
+                      <div style={{padding:"12px 14px",background:C.blueDim,borderRadius:8,border:"1px solid "+C.blue+"33"}}>
+                        <p style={{fontSize:11,color:C.blue,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>PROJECTED COMP PLAN</p>
+                        <p style={{fontSize:22,fontWeight:800,color:C.blue,margin:0,fontFamily:FM}}>{fmtD(a2.projectedTotalComp)}</p>
+                        <p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>{fmtD(a2.avgCompPerWeek)}/wk avg pace</p>
+                      </div>
+                      <div style={{padding:"12px 14px",background:a2.willExceed?C.greenDim:C.redDim,borderRadius:8,border:"1px solid "+(a2.willExceed?C.green:C.red)+"33"}}>
+                        <p style={{fontSize:11,color:a2.willExceed?C.green:C.red,margin:"0 0 4px",fontWeight:700,fontFamily:FM}}>PROJECTION</p>
+                        <p style={{fontSize:16,fontWeight:800,color:a2.willExceed?C.green:C.red,margin:0,fontFamily:FM}}>{a2.willExceed?"COMP WILL EXCEED":"FLOOR EXCEEDS COMP"}</p>
+                        <p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>Gap: {fmtD(Math.abs((a2.projectedTotalFloor||0)-(a2.projectedTotalComp||0)))}</p>
+                      </div>
+                    </div>}
+                    {/* Rates Reference */}
+                    <div style={{display:"flex",gap:8,marginBottom:12,padding:"8px 12px",background:C.bg,borderRadius:6,border:"1px solid "+C.border,flexWrap:"wrap",alignItems:"center"}}>
+                      <span style={{fontSize:12,fontWeight:700,color:C.textDim,fontFamily:FM}}>RATES:</span>
+                      {m.rates.fdA>0&&<span style={{fontSize:12,color:C.accent,fontFamily:FM}}>FD {Math.round(m.rates.fdA*100)}%</span>}
+                      {m.rates.sA>0&&<span style={{fontSize:12,color:C.blue,fontFamily:FM}}>Split {Math.round(m.rates.sA*100)}%</span>}
+                      {m.rates.fdDH>0&&<span style={{fontSize:12,color:C.teal,fontFamily:FM}}>DH FD {Math.round(m.rates.fdDH*100)}%</span>}
+                      {m.rates.sDH>0&&<span style={{fontSize:12,color:C.teal,fontFamily:FM}}>DH Split {Math.round(m.rates.sDH*100)}%</span>}
+                      <span style={{color:C.border}}>|</span>
+                      <span style={{fontSize:12,color:C.orange,fontFamily:FM,fontWeight:600}}>Floor: {fmtD(m.guarantee.amount)}/wk</span>
+                    </div>
+                    {/* Week Detail Table */}
+                    <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>WEEK-BY-WEEK DETAIL ({a2.weeksLoaded} weeks)</p>
+                    <div style={{overflow:"auto",maxHeight:"40vh",borderRadius:6,border:"1px solid "+C.border}}>
+                      <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <thead><tr>
+                          <th style={th}>WE</th>
+                          <th style={Object.assign({},th,{textAlign:"right"})}>Raw Charge</th>
+                          <th style={Object.assign({},th,{textAlign:"right"})}>QTD</th>
+                          <th style={Object.assign({},th,{textAlign:"center"})}>Tier</th>
+                          <th style={Object.assign({},th,{textAlign:"right",color:C.orange})}>Floor Paid</th>
+                          <th style={Object.assign({},th,{textAlign:"right",color:C.blue})}>Comp Plan</th>
+                          <th style={Object.assign({},th,{textAlign:"right"})}>Wkly Delta</th>
+                          <th style={Object.assign({},th,{textAlign:"right",color:C.orange})}>Cum Floor</th>
+                          <th style={Object.assign({},th,{textAlign:"right",color:C.blue})}>Cum Comp</th>
+                          <th style={Object.assign({},th,{textAlign:"right"})}>Cum Delta</th>
+                        </tr></thead>
+                        <tbody>{a2.weeks.map(function(w2){return <tr key={w2.we} className="trow">
+                          <td style={Object.assign({},td,{fontWeight:600,whiteSpace:"nowrap"})}>{w2.we}</td>
+                          <td style={Object.assign({},td,{textAlign:"right"})}>{fmtD(w2.rawCharge)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",color:w2.belowFloor?C.orange:C.green})}>{fmtD(w2.qtd)}</td>
+                          <td style={Object.assign({},td,{textAlign:"center"})}>{w2.crossing?<Badge v="green">Cross</Badge>:w2.belowFloor?<Badge v="red">Below</Badge>:<Badge v="green">Above</Badge>}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:C.orange})}>{fmtD(w2.floorPaid)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:C.blue})}>{fmtD(w2.compPlanComm)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:w2.delta>0?C.red:C.green})}>{w2.delta>0?"+":""}{fmtD(w2.delta)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",color:C.orange})}>{fmtD(w2.cumFloor)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",color:C.blue})}>{fmtD(w2.cumCompPlan)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:w2.cumDelta>0?C.red:C.green})}>{w2.cumDelta>0?"+":""}{fmtD(w2.cumDelta)}</td>
+                        </tr>;})}</tbody>
+                        <tfoot><tr style={{background:C.bg2,borderTop:"2px solid "+C.accent+"33"}}>
+                          <td style={Object.assign({},td,{fontWeight:700,color:C.accent})}>TOTALS</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:600})}>{fmtD(a2.weeks.reduce(function(s,w2){return s+w2.rawCharge;},0))}</td>
+                          <td colSpan={2} style={td}></td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.orange})}>{fmtD(a2.cumFloorPaid)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.blue})}>{fmtD(a2.cumCompPlan)}</td>
+                          <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:a2.cumDelta>0?C.red:C.green})}>{a2.cumDelta>0?"+":""}{fmtD(a2.cumDelta)}</td>
+                          <td colSpan={3} style={td}></td>
+                        </tr></tfoot>
+                      </table>
+                    </div>
+                    {/* Export */}
+                    <div style={{display:"flex",gap:6,justifyContent:"flex-end",marginTop:10}}>
+                      <button onClick={function(){
+                        var headers=["Week Ending","Raw Charge","Split Rec","Split AM","Full Desk","YTD Raw","QTD","Tier","Floor Paid","Comp Plan Comm","Weekly Delta","Cum Floor","Cum Comp Plan","Cum Delta"];
+                        var data=a2.weeks.map(function(w2){return[w2.we,w2.rawCharge.toFixed(2),w2.splitRec.toFixed(2),w2.splitAM.toFixed(2),w2.fullDesk.toFixed(2),w2.ytdRaw.toFixed(2),(w2.qtd||0).toFixed(2),w2.belowFloor?"Below":"Above",w2.floorPaid.toFixed(2),w2.compPlanComm.toFixed(2),w2.delta.toFixed(2),w2.cumFloor.toFixed(2),w2.cumCompPlan.toFixed(2),w2.cumDelta.toFixed(2)];});
+                        dlCSV("Floor_Tracker_"+m.name.replace(/ /g,"_")+".csv",headers,data);
+                        log("FLOOR_EXPORT",m.name+" — "+a2.weeks.length+" weeks");
+                      }} className="btn-ghost" style={{padding:"5px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM}}>EXPORT CSV</button>
+                    </div>
+                  </div>}
+                </div>;
+              })}
+            </div>;
+          }()}
+        </div>}
+        {/* ════════ EXEC SUMMARY ════════ */}
+        {view==="exec"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:6}}>
+            <div>
+              <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Commission Summary</h2>
+              <p style={{fontSize:13,color:C.textDim,margin:"2px 0 0",fontFamily:FM}}>Spark Portfolio Commission</p>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <select value={execWeekId||""} onChange={function(e){setExecWeekId(+e.target.value||null);}} style={{padding:"3px 6px",fontSize:13,borderRadius:3,fontFamily:FM}}><option value="">Select week...</option>{chargeWeeks.map(function(w){return <option key={w.id} value={w.id}>{lockedWeeks.includes(w.weekEnding)?"🔒 ":""}{"WE "+w.weekEnding}</option>;})}</select>
+              {execData&&<button onClick={function(){
+                var we=execWeek?execWeek.weekEnding:"";
+                var rows=execData.sorted.filter(function(s){return (s.hasOverride?s.overrideTotal:s.total)>0;});
+                var headers=["Producer","Entity","Unit","Split Rec","Split AM","Full Desk","Weekly Raw","Contract Comm","Tier Deduction","DH Comm","Total Commission","QTD Raw","Tier Status","Override"];
+                var data=rows.map(function(s){var m=members.find(function(x){return x.name===s.name;});return[s.name,m?m.entity:"",m?m.unit:"",Math.round((s.splitRec||0)*100)/100,Math.round((s.splitAM||0)*100)/100,Math.round((s.fullDesk||0)*100)/100,Math.round((s.rawCharge||0)*100)/100,Math.round(s.contract*100)/100,Math.round((s.deduction||0)*100)/100,Math.round(s.dh*100)/100,Math.round((s.hasOverride?s.overrideTotal:s.total)*100)/100,Math.round((s.qtd||0)*100)/100,s.aboveFloor?"Above":"Below",s.hasOverride?"Yes":""];});
+                try{
+                  var allRows=[["Spark Portfolio Commission\u2122 \u2014 Executive Summary"],["Week Ending: "+we,"","Generated: "+new Date().toLocaleDateString()],[],headers].concat(data).concat([[],["TOTALS","","","","","","",Math.round(execData.tContract*100)/100,"",Math.round(execData.tDH*100)/100,Math.round(execData.grandTotal*100)/100]]);
+                  // Add DH detail sheet if any
+                  var ws=XLSX.utils.aoa_to_sheet(allRows);
+                  ws["!cols"]=[{wch:22},{wch:10},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:14},{wch:12},{wch:16},{wch:14},{wch:12}];
+                  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Exec Summary");
+                  if(execData.dhPaidThisWeek&&execData.dhPaidThisWeek.length>0){
+                    var dhHeaders=["Candidate","Client","AM","Recruiter","Type","Raw Charge","Payout","Eligible"];
+                    var dhRows=execData.dhPaidThisWeek.map(function(d){return[d.can,d.cl,d.am,d.rec,d.typ,d.raw,Math.round(d.payout*100)/100,d.eligible?"Yes":"No"];});
+                    var dhWs=XLSX.utils.aoa_to_sheet([["DH Payouts — WE "+we],[],dhHeaders].concat(dhRows));
+                    dhWs["!cols"]=[{wch:20},{wch:22},{wch:18},{wch:18},{wch:6},{wch:12},{wch:12},{wch:8}];
+                    XLSX.utils.book_append_sheet(wb,dhWs,"DH Payouts");
+                  }
+                  var buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+                  dlFile(buf,"Exec_Summary_WE_"+we+".xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                  showToast("Exec Summary downloaded");log("EXEC_EXPORT","WE "+we);
+                }catch(e){showToast("Export failed: "+e.message,"err");}
+              }} className="btn-ghost" style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600}}>DOWNLOAD EXCEL</button>}
+              {execData&&<button onClick={function(){
+                var we=execWeek?execWeek.weekEnding:"";
+                var rows=execData.sorted.filter(function(s){return (s.hasOverride?s.overrideTotal:s.total)>0;});
+                var css="body{font-family:Arial,sans-serif;padding:24px;color:#1a1a2e;max-width:1000px;margin:0 auto}h1{font-size:20px;border-bottom:2px solid #d4a017;padding-bottom:4px;margin:0 0 2px}h2{font-size:13px;color:#666;margin:0 0 14px}h3{font-size:14px;margin:18px 0 6px;color:#1a1a2e;border-bottom:1px solid #ddd;padding-bottom:3px}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px}th{background:#1a1a2e;color:#fff;padding:4px 5px;text-align:left;font-size:9px}td{padding:3px 5px;border-bottom:1px solid #eee}.r{text-align:right}.tot{font-weight:700;background:#f5f5f5;border-top:2px solid #1a1a2e}.g{color:#16a34a}.rd{color:#dc2626}.kpi{display:inline-block;padding:6px 12px;background:#f8f8f8;border-radius:4px;margin:0 6px 6px 0;font-size:12px}.uc{display:inline-block;padding:8px 14px;background:#f8f8f8;border-left:3px solid #d4a017;border-radius:4px;margin:0 8px 8px 0;min-width:140px}@media print{body{padding:8px}}";
+                var html="<html><head><title>Exec Summary WE "+we+"</title><style>"+css+"</style></head><body>";
+                html+="<h1>Spark Portfolio Commission\u2122</h1><h2>Executive Summary \u2014 Week Ending "+we+"</h2>";
+                html+="<div style='margin-bottom:12px'><span class='kpi'><b>Total Payout:</b> "+fmtD(execData.grandTotal)+"</span><span class='kpi'><b>Contract:</b> "+fmtD(execData.tContract)+"</span><span class='kpi'><b>DH:</b> "+fmtD(execData.tDH)+"</span>"+(execData.tGuarantee>0?"<span class='kpi'><b>Weekly Floors:</b> "+fmtD(execData.tGuarantee)+"/wk</span>":"")+"<span class='kpi'><b>Producers:</b> "+rows.length+"</span><span class='kpi'><b>Above Tier:</b> "+rows.filter(function(s){return s.aboveFloor;}).length+"</span></div>";
+                var units={};rows.forEach(function(s){var u=s.unit||"Other";if(!units[u])units[u]={total:0,count:0};units[u].total+=(s.hasOverride?s.overrideTotal:s.total);units[u].count++;});
+                var unitArr=Object.keys(units).sort(function(a,b){return units[b].total-units[a].total;});
+                html+="<h3>Commission by Unit</h3><div>";
+                unitArr.forEach(function(u){html+="<div class='uc'><div style='font-size:10px;color:#666;font-weight:700;text-transform:uppercase'>"+u+"</div><div style='font-size:16px;font-weight:700'>"+fmtD(units[u].total)+"</div><div style='font-size:10px;color:#888'>"+units[u].count+" producer"+(units[u].count>1?"s":"")+"</div></div>";});
+                html+="</div>";
+                html+="<h3>Commission by Producer</h3>";
+                html+="<table><thead><tr><th>Producer</th><th>Unit</th><th class='r'>Weekly Raw</th><th class='r'>Contract Comm</th><th class='r'>DH Comm</th><th class='r'>Total</th><th class='r'>QTD Raw</th><th>Tier</th></tr></thead><tbody>";
+                rows.forEach(function(s){var m=members.find(function(x){return x.name===s.name;});html+="<tr><td><b>"+s.name+"</b></td><td>"+(m?m.unit:"")+"</td><td class='r'>"+fmtD(s.rawCharge||0)+"</td><td class='r'>"+fmtD(s.hasOverride?(s.overrideTotal-s.dh):s.contract)+"</td><td class='r'>"+(s.dh>0?fmtD(s.dh):"\u2014")+"</td><td class='r'><b>"+fmtD(s.hasOverride?s.overrideTotal:s.total)+"</b>"+(s.hasOverride?" <span style='color:#e89b00;font-size:8px'>OVR</span>":"")+"</td><td class='r'>"+fmtD(s.qtd||0)+"</td><td class='"+(s.aboveFloor?"g":"rd")+"'>"+(s.aboveFloor?"Above":"Below")+"</td></tr>";});
+                html+="<tr class='tot'><td colspan='2'>TOTALS</td><td></td><td class='r'>"+fmtD(execData.tContract)+"</td><td class='r'>"+fmtD(execData.tDH)+"</td><td class='r'><b>"+fmtD(execData.grandTotal)+"</b></td><td colspan='2'></td></tr></tbody></table>";
+                if(execData.dhPaidThisWeek&&execData.dhPaidThisWeek.length>0){html+="<h3>Direct Hire Payouts ("+execData.dhPaidThisWeek.length+" deals)</h3><table><thead><tr><th>Candidate</th><th>Client</th><th>AM</th><th>Rec</th><th>Type</th><th class='r'>Raw</th><th class='r'>Payout</th></tr></thead><tbody>";execData.dhPaidThisWeek.forEach(function(d){html+="<tr><td><b>"+d.can+"</b></td><td>"+d.cl+"</td><td>"+d.am+"</td><td>"+d.rec+"</td><td>"+d.typ+"</td><td class='r'>"+fmtD(d.raw)+"</td><td class='r'><b>"+fmtD(d.payout)+"</b></td></tr>";});html+="</tbody></table>";}
+                if(execData.gMembers&&execData.gMembers.length>0){html+="<h3>Weekly Floors ("+execData.gMembers.length+")</h3><table><thead><tr><th>Producer</th><th>Unit</th><th class='r'>Amount/Week</th><th>End Date</th><th>Status</th></tr></thead><tbody>";execData.gMembers.forEach(function(m){var dl=m.guarantee.endDate?Math.ceil((new Date(m.guarantee.endDate)-Date.now())/(1000*60*60*24)):null;var exp=dl!==null&&dl<0;html+="<tr><td><b>"+m.name+"</b></td><td>"+(m.unit||"")+"</td><td class='r'><b>"+fmtD(m.guarantee.amount)+"</b></td><td>"+(m.guarantee.endDate||"No end date")+"</td><td class='"+(exp?"rd":dl!==null&&dl<=60?"rd":"g")+"'>"+(exp?"EXPIRED":dl!==null?dl+" days left":"Ongoing")+"</td></tr>";});html+="<tr class='tot'><td colspan='2'>TOTAL</td><td class='r'><b>"+fmtD(execData.tGuarantee)+"</b>/wk</td><td colspan='2'></td></tr></tbody></table>";}
+                html+="<p style='font-size:9px;color:#999;margin-top:16px'>Generated "+new Date().toLocaleString()+" \u2014 Spark Companies\u2122</p></body></html>";
+                setExportModal({title:"Exec Summary \u2014 WE "+we,content:html,isHTML:true});
+              }} className="btn-ghost" style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600}}>PREVIEW</button>}
+              {execData&&<button onClick={function(){
+                var we=execWeek?execWeek.weekEnding:"";
+                var rows=execData.sorted.filter(function(s){return (s.hasOverride?s.overrideTotal:s.total)>0;});
+                var css="body{font-family:Arial,sans-serif;padding:24px;color:#1a1a2e;max-width:1000px;margin:0 auto}h1{font-size:20px;border-bottom:2px solid #d4a017;padding-bottom:4px;margin:0 0 2px}h2{font-size:13px;color:#666;margin:0 0 14px}h3{font-size:14px;margin:18px 0 6px;color:#1a1a2e;border-bottom:1px solid #ddd;padding-bottom:3px}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px}th{background:#1a1a2e;color:#fff;padding:4px 5px;text-align:left;font-size:9px}td{padding:3px 5px;border-bottom:1px solid #eee}.r{text-align:right}.tot{font-weight:700;background:#f5f5f5;border-top:2px solid #1a1a2e}.g{color:#16a34a}.rd{color:#dc2626}.kpi{display:inline-block;padding:6px 12px;background:#f8f8f8;border-radius:4px;margin:0 6px 6px 0;font-size:12px}.uc{display:inline-block;padding:8px 14px;background:#f8f8f8;border-left:3px solid #d4a017;border-radius:4px;margin:0 8px 8px 0;min-width:140px}@media print{body{padding:8px}}";
+                var html="<html><head><title>Exec Summary WE "+we+"</title><style>"+css+"</style></head><body>";
+                html+="<h1>Spark Portfolio Commission\u2122</h1><h2>Executive Summary \u2014 Week Ending "+we+"</h2>";
+                html+="<div style='margin-bottom:12px'><span class='kpi'><b>Total Payout:</b> "+fmtD(execData.grandTotal)+"</span><span class='kpi'><b>Contract:</b> "+fmtD(execData.tContract)+"</span><span class='kpi'><b>DH:</b> "+fmtD(execData.tDH)+"</span>"+(execData.tGuarantee>0?"<span class='kpi'><b>Weekly Floors:</b> "+fmtD(execData.tGuarantee)+"/wk</span>":"")+"<span class='kpi'><b>Producers:</b> "+rows.length+"</span><span class='kpi'><b>Above Tier:</b> "+rows.filter(function(s){return s.aboveFloor;}).length+"</span></div>";
+                var units={};rows.forEach(function(s){var u=s.unit||"Other";if(!units[u])units[u]={total:0,count:0};units[u].total+=(s.hasOverride?s.overrideTotal:s.total);units[u].count++;});
+                html+="<h3>Commission by Unit</h3><div>";
+                Object.keys(units).sort(function(a,b){return units[b].total-units[a].total;}).forEach(function(u){html+="<div class='uc'><div style='font-size:10px;color:#666;font-weight:700;text-transform:uppercase'>"+u+"</div><div style='font-size:16px;font-weight:700'>"+fmtD(units[u].total)+"</div><div style='font-size:10px;color:#888'>"+units[u].count+" producer"+(units[u].count>1?"s":"")+"</div></div>";});
+                html+="</div><h3>Commission by Producer</h3>";
+                html+="<table><thead><tr><th>Producer</th><th>Unit</th><th class='r'>Weekly Raw</th><th class='r'>Contract Comm</th><th class='r'>DH Comm</th><th class='r'>Total</th><th class='r'>QTD Raw</th><th>Tier</th></tr></thead><tbody>";
+                rows.forEach(function(s){var m=members.find(function(x){return x.name===s.name;});html+="<tr><td><b>"+s.name+"</b></td><td>"+(m?m.unit:"")+"</td><td class='r'>"+fmtD(s.rawCharge||0)+"</td><td class='r'>"+fmtD(s.hasOverride?(s.overrideTotal-s.dh):s.contract)+"</td><td class='r'>"+(s.dh>0?fmtD(s.dh):"\u2014")+"</td><td class='r'><b>"+fmtD(s.hasOverride?s.overrideTotal:s.total)+"</b>"+(s.hasOverride?" <span style='color:#e89b00;font-size:8px'>OVR</span>":"")+"</td><td class='r'>"+fmtD(s.qtd||0)+"</td><td class='"+(s.aboveFloor?"g":"rd")+"'>"+(s.aboveFloor?"Above":"Below")+"</td></tr>";});
+                html+="<tr class='tot'><td colspan='2'>TOTALS</td><td></td><td class='r'>"+fmtD(execData.tContract)+"</td><td class='r'>"+fmtD(execData.tDH)+"</td><td class='r'><b>"+fmtD(execData.grandTotal)+"</b></td><td colspan='2'></td></tr></tbody></table>";
+                if(execData.gMembers&&execData.gMembers.length>0){html+="<h3>Weekly Floors ("+execData.gMembers.length+") — "+fmtD(execData.tGuarantee)+"/week</h3><table><thead><tr><th>Producer</th><th>Unit</th><th class='r'>$/Week</th><th>End Date</th><th>Status</th></tr></thead><tbody>";execData.gMembers.forEach(function(m){var dl=m.guarantee.endDate?Math.ceil((new Date(m.guarantee.endDate)-Date.now())/(1000*60*60*24)):null;var ex=dl!==null&&dl<0;html+="<tr><td><b>"+m.name+"</b></td><td>"+(m.unit||"")+"</td><td class='r'><b>"+fmtD(m.guarantee.amount)+"</b></td><td>"+(m.guarantee.endDate||"No end date")+"</td><td class='"+(ex?"rd":dl!==null&&dl<=60?"":"")+"'>"+(ex?"EXPIRED":dl!==null?dl+"d left":"Open")+"</td></tr>";});html+="<tr class='tot'><td colspan='2'>TOTAL</td><td class='r'><b>"+fmtD(execData.tGuarantee)+"/wk</b></td><td colspan='2'></td></tr></tbody></table>";}
+                if(execData.dhPaidThisWeek&&execData.dhPaidThisWeek.length>0){html+="<h3>Direct Hire Payouts ("+execData.dhPaidThisWeek.length+")</h3><table><thead><tr><th>Candidate</th><th>Client</th><th>AM</th><th>Rec</th><th>Type</th><th class='r'>Raw</th><th class='r'>Payout</th></tr></thead><tbody>";execData.dhPaidThisWeek.forEach(function(d){html+="<tr><td><b>"+d.can+"</b></td><td>"+d.cl+"</td><td>"+d.am+"</td><td>"+d.rec+"</td><td>"+d.typ+"</td><td class='r'>"+fmtD(d.raw)+"</td><td class='r'><b>"+fmtD(d.payout)+"</b></td></tr>";});html+="</tbody></table>";}
+                if(execData.gMembers&&execData.gMembers.length>0){html+="<h3>Weekly Floors ("+execData.gMembers.length+")</h3><table><thead><tr><th>Producer</th><th>Unit</th><th class='r'>Amount/Week</th><th>End Date</th><th>Status</th></tr></thead><tbody>";execData.gMembers.forEach(function(m){var dl=m.guarantee.endDate?Math.ceil((new Date(m.guarantee.endDate)-Date.now())/(1000*60*60*24)):null;var exp=dl!==null&&dl<0;html+="<tr><td><b>"+m.name+"</b></td><td>"+(m.unit||"")+"</td><td class='r'><b>"+fmtD(m.guarantee.amount)+"</b></td><td>"+(m.guarantee.endDate||"No end date")+"</td><td class='"+(exp?"rd":dl!==null&&dl<=60?"rd":"g")+"'>"+(exp?"EXPIRED":dl!==null?dl+" days left":"Ongoing")+"</td></tr>";});html+="<tr class='tot'><td colspan='2'>TOTAL</td><td class='r'><b>"+fmtD(execData.tGuarantee)+"</b>/wk</td><td colspan='2'></td></tr></tbody></table>";}
+                showToast("Downloaded — open the file and use Ctrl+P to save as PDF");
+              }} className="btn-primary" style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:700}}>DOWNLOAD PDF</button>}
+            </div>
+          </div>
+          {execData&&<div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+              {[
+                {l:"GRAND TOTAL PAYOUT",v:fmtD(execData.grandTotal),s:"All commission types combined",bc:C.accent},
+                {l:"CONTRACT COMMISSION",v:fmtD(execData.tContract),s:execData.earners+" earners · "+(execData.grandTotal>0?Math.round(execData.tContract/execData.grandTotal*100):0)+"% of total",bc:C.green},
+                {l:"DH COMMISSION",v:fmtD(execData.tDH),s:execData.dhPaidThisWeek.length+" deal"+(execData.dhPaidThisWeek.length!==1?"s":"")+(execData.grandTotal>0?" · "+Math.round(execData.tDH/execData.grandTotal*100)+"% of total":""),bc:C.purple},
+                execData.tGuarantee>0?{l:"WEEKLY FLOORS",v:fmtD(execData.tGuarantee),s:execData.gMembers.length+" member"+(execData.gMembers.length>1?"s":"")+" · "+fmtD(execData.tGuarantee)+"/week",bc:C.orange}:null,
+                {l:"ROSTER",v:execData.earners+" / "+execData.total,s:"Earning · "+(execData.total-execData.earners)+" at $0",bc:C.teal}
+              ].filter(Boolean).map(function(c,i){return <div key={i} className="stat-card" style={{padding:"12px 14px",position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:c.bc}}/>
+                <p style={{fontSize:11,color:C.textDim,margin:"0 0 4px",fontWeight:600,letterSpacing:".6px",fontFamily:FM}}>{c.l}</p>
+                <p style={{fontSize:20,fontWeight:700,margin:0,color:C.text,fontFamily:FM}}>{c.v}</p>
+                <p style={{fontSize:12,color:C.textMuted,margin:"3px 0 0",fontFamily:FM}}>{c.s}</p>
+              </div>;})}
+            </div>
+            {/* Weekly Floors detail */}
+            {execData.gMembers&&execData.gMembers.length>0&&<div className="panel" style={{marginBottom:14,border:"1px solid "+C.orange+"33"}}><div className="panel-hdr" style={{borderBottomColor:C.orange+"33"}}><h3 style={{color:C.orange}}>WEEKLY FLOORS ({execData.gMembers.length}) — {fmtD(execData.tGuarantee)}/week</h3></div><div className="panel-body" style={{padding:10}}>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr><th style={th}>Producer</th><th style={th}>Unit</th><th style={Object.assign({},th,{textAlign:"right"})}>$/Week</th><th style={th}>End Date</th><th style={Object.assign({},th,{textAlign:"center"})}>Status</th></tr></thead>
+                <tbody>{execData.gMembers.map(function(m,i){var daysLeft=m.guarantee.endDate?Math.ceil((new Date(m.guarantee.endDate)-Date.now())/(1000*60*60*24)):null;var expired=daysLeft!==null&&daysLeft<0;return <tr key={i} className="trow">
+                  <td style={Object.assign({},td,{fontWeight:600})}>{m.name}</td>
+                  <td style={td}>{m.unit&&<Badge v={UB[m.unit]||"muted"}>{m.unit}</Badge>}</td>
+                  <td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.accent})}>{fmtD(m.guarantee.amount)}</td>
+                  <td style={td}>{m.guarantee.endDate||<span style={{color:C.textDim}}>No end date</span>}</td>
+                  <td style={Object.assign({},td,{textAlign:"center"})}>{expired?<Badge v="red">EXPIRED</Badge>:daysLeft!==null&&daysLeft<=60?<Badge v="orange">{daysLeft}d left</Badge>:daysLeft!==null?<Badge v="muted">{daysLeft}d left</Badge>:<Badge v="muted">Open</Badge>}</td>
+                </tr>;})}</tbody>
+                <tfoot><tr style={{background:C.bg2}}><td colSpan={2} style={Object.assign({},td,{fontWeight:700,textAlign:"right",color:C.textDim})}>TOTAL</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.accent})}>{fmtD(execData.tGuarantee)}/wk</td><td colSpan={2}></td></tr></tfoot>
+              </table>
+            </div></div>}
+            {execData.keyItems.length>0&&<div style={{marginBottom:16}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                {execData.keyItems.map(function(item,i){return <div key={i} className="panel"><div className="panel-body" style={{padding:8,display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <div style={{width:24,height:24,borderRadius:4,background:item.color+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Icon name={item.icon} sz={12} cl={item.color}/></div>
+                  <div><p style={{fontSize:14,fontWeight:600,margin:"0 0 2px",fontFamily:FM,color:C.text}}>{item.title}</p><p style={{fontSize:12,color:C.textMuted,margin:0,fontFamily:FM,lineHeight:"1.4"}}>{item.desc}</p></div>
+                </div></div>;})}
+              </div>
+            </div>}
+            {/* ── Commission by Producer + Payout Breakdown ── */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
+              <Panel title="Commission by Producer" icon="bar">
+                <ResponsiveContainer width="100%" height={Math.max(160,execData.sorted.filter(function(s){return (s.hasOverride?s.overrideTotal:s.total)>0;}).length*26+16)}>
+                  <BarChart data={execData.sorted.filter(function(s){return (s.hasOverride?s.overrideTotal:s.total)>0;}).slice(0,14).map(function(s){var parts=s.name.split(" ");return{name:parts[0]+" "+(parts[1]||"").charAt(0)+".",total:Math.round((s.hasOverride?s.overrideTotal:s.total)*100)/100,fullName:s.name};})} layout="vertical" margin={{left:60,right:10,top:0,bottom:0}}>
+                    <XAxis type="number" tickFormatter={function(v){return "$"+Math.round(v).toLocaleString();}} fontSize={8} stroke={C.textDim} tick={{fontFamily:FM}} hide/>
+                    <YAxis type="category" dataKey="name" fontSize={9} width={55} stroke={C.textDim} tick={{fontFamily:FM,fill:C.textMuted}} axisLine={false} tickLine={false}/>
+                    <Tooltip content={function(p){if(!p.active||!p.payload||!p.payload[0])return null;var d=p.payload[0].payload;return <div style={{background:C.bg,border:"1px solid "+C.border,borderRadius:4,padding:"6px 10px",fontFamily:FM,fontSize:13}}><p style={{margin:0,fontWeight:600,color:C.text}}>{d.fullName}</p><p style={{margin:"2px 0 0",color:C.accent,fontWeight:600}}>{fmtD(d.total)}</p></div>;}}/>
+                    <Bar dataKey="total" radius={[0,3,3,0]} barSize={14} label={{position:"right",fontSize:12,fontFamily:FM,fill:C.textMuted,formatter:function(v){return fmtD(v);}}}>{execData.sorted.filter(function(s){return (s.hasOverride?s.overrideTotal:s.total)>0;}).slice(0,14).map(function(s,i){return <Cell key={i} fill={UC[i%UC.length]}/>;})}</Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Panel>
+              <Panel title="Payout Breakdown" icon="dollar">
+                <div style={{display:"flex",justifyContent:"center",marginBottom:8}}>
+                  <div style={{position:"relative",width:160,height:160}}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart><Pie data={[{name:"Contract",value:Math.round(execData.tContract*100)/100},{name:"DH",value:Math.round(execData.tDH*100)/100},{name:"Floor",value:Math.round(execData.tFloor*100)/100},{name:"Floor",value:Math.round((execData.tGuarantee||0)*100)/100}].filter(function(d){return d.value>0;})} dataKey="value" cx="50%" cy="50%" outerRadius={70} innerRadius={42} stroke={C.bgCard} strokeWidth={2}>
+                        <Cell fill={C.green}/><Cell fill={C.teal}/><Cell fill={C.blue}/>
+                      </Pie><Tooltip content={TT}/></PieChart>
+                    </ResponsiveContainer>
+                    <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",textAlign:"center"}}><p style={{fontSize:20,fontWeight:700,margin:0,color:C.text,fontFamily:FM}}>{fmtD(execData.grandTotal)}</p><p style={{fontSize:11,color:C.textDim,margin:"1px 0 0",fontFamily:FM,letterSpacing:".5px"}}>TOTAL</p></div>
+                  </div>
+                </div>
+                <div style={{borderTop:"1px solid "+C.border,paddingTop:8}}>
+                  {[{l:"Contract",v:execData.tContract,c:C.green},{l:"Floor",v:execData.tFloor,c:C.blue},{l:"DH",v:execData.tDH,c:C.teal},{l:"Floor",v:execData.tGuarantee||0,c:C.orange}].filter(function(b){return b.v>0;}).map(function(b,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:1,background:b.c}}/><span style={{fontSize:13,fontFamily:FM,color:C.textMuted}}>{b.l}</span></div>
+                    <span style={{fontSize:13,fontFamily:FM,fontWeight:600,color:C.text}}>{fmtD(b.v)}</span>
+                  </div>;})}
+                  <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0 0",marginTop:4,borderTop:"1px solid "+C.border}}>
+                    <span style={{fontSize:14,fontWeight:600,fontFamily:FM,color:C.text}}>Grand Total</span>
+                    <span style={{fontSize:15,fontWeight:700,fontFamily:FM,color:C.accent}}>{fmtD(execData.grandTotal)}</span>
+                  </div>
+                  {execData.priorWeekTotal>0&&<div style={{marginTop:6,paddingTop:6,borderTop:"1px solid "+C.border}}>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"2px 0"}}>
+                      <span style={{fontSize:12,fontFamily:FM,color:C.textDim}}>Prior Week</span>
+                      <span style={{fontSize:12,fontFamily:FM,fontWeight:600,color:C.textMuted}}>{fmtD(execData.priorWeekTotal)}</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"2px 0"}}>
+                      <span style={{fontSize:15,fontFamily:FU,color:C.textMuted}}>Week-over-Week</span>
+                      <span style={{fontSize:13,fontFamily:FM,fontWeight:600,color:execData.wow>=0?C.green:C.red}}>{execData.wow>=0?"+":""}{fmtD(execData.wow)} ({execData.wow>=0?"+":""}{execData.wowPct}%)</span>
+                    </div>
+                  </div>}
+                </div>
+              </Panel>
+            </div>
+            {/* ── Commission by Unit ── */}
+            <Panel title="Commission by Unit" icon="grid">
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:8}}>
+                {function(){var units={};execData.sorted.forEach(function(s){var u=s.unit||"Unassigned";if(!units[u])units[u]={unit:u,total:0,count:0,contract:0,dh:0};var t=s.hasOverride?s.overrideTotal:s.total;units[u].total+=t;units[u].count++;units[u].contract+=s.hasOverride?(s.overrideTotal-s.dh):s.contract;units[u].dh+=s.dh;});return Object.values(units).sort(function(a,b){return b.total-a.total;}).filter(function(u){return u.total>0;}).map(function(u,i){return <div key={i} style={{background:C.bg,border:"1px solid "+C.border,borderRadius:6,padding:"10px 12px",borderLeft:"3px solid "+(UC[i%UC.length])}}>
+                  <p style={{fontSize:11,fontWeight:700,color:C.textDim,margin:"0 0 4px",fontFamily:FM,letterSpacing:".5px"}}>{u.unit.toUpperCase()}</p>
+                  <p style={{fontSize:20,fontWeight:700,color:C.text,margin:"0 0 2px",fontFamily:FM}}>{fmtD(u.total)}</p>
+                  <p style={{fontSize:11,color:C.textMuted,margin:0,fontFamily:FM}}>{u.count} producer{u.count>1?"s":""}{u.dh>0?" · "+fmtD(u.dh)+" DH":""}</p>
+                </div>;});}()}
+              </div>
+            </Panel>
+            {execData.dhPaidThisWeek.length>0&&<Panel title={"DH DEALS THIS WEEK ("+execData.dhPaidThisWeek.length+")"} icon="briefcase">
+              <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(execData.dhPaidThisWeek.length,3)+",1fr)",gap:6}}>
+                {execData.dhPaidThisWeek.map(function(d,i){return <div key={i} style={{background:C.bg,border:"1px solid "+C.border,borderRadius:4,padding:"6px 8px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}><span style={{fontSize:13,fontWeight:600,fontFamily:FM,color:C.text}}>{d.can}</span><Badge v={d.typ==="FD"?"gold":"muted"}>{d.typ}</Badge></div>
+                  <p style={{fontSize:12,color:C.textDim,margin:"0 0 2px",fontFamily:FM}}>{d.cl}</p>
+                  <p style={{fontSize:15,fontWeight:700,color:C.green,margin:0,fontFamily:FM}}>{fmt(d.raw)}</p>
+                </div>;})}
+              </div>
+            </Panel>}
+            {/* ── Weekly Floors ── */}
+          </div>}
+          {!execWeekId&&chargeWeeks.length>0&&<div className="panel"><div className="panel-hdr"><h3>EXECUTIVE SUMMARY</h3></div><div className="panel-body" style={{textAlign:"center",padding:20}}><p style={{color:C.textDim,fontSize:14,fontFamily:FM,margin:0}}>Select a charge week to generate summary</p></div></div>}
+          {chargeWeeks.length===0&&<div style={Object.assign({},card,{padding:30,textAlign:"center"})}><p style={{color:C.textDim,fontSize:15,fontFamily:FM,margin:0}}>Import charge weeks first</p></div>}
+        </div>}
+        {/* ════════ TEAM ════════ */}
+        {view==="team"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:10,flexWrap:"wrap",gap:6}}>
+            <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text}}>Team ({members.length})</h2>
+            <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
+              <input value={teamSearch} onChange={function(e){setTeamSearch(e.target.value);}} placeholder="Search..." style={{padding:"4px 8px",fontSize:14,borderRadius:4,fontFamily:FM,width:140,background:"#0B0E14",color:"#E8ECF2",border:"1px solid "+C.border,fontWeight:500}}/>
+              <select value={teamUnit} onChange={function(e){setTeamUnit(e.target.value);}} style={{padding:"3px 6px",fontSize:14,borderRadius:3,fontFamily:FM}}><option value="ALL">All Units</option>{UNITS.map(function(u){return <option key={u} value={u}>{u}</option>;})}</select>
+              <select value={teamEntity} onChange={function(e){setTeamEntity(e.target.value);}} style={{padding:"3px 6px",fontSize:14,borderRadius:3,fontFamily:FM}}><option value="ALL">All Entities</option>{ENTITIES.map(function(e){return <option key={e} value={e}>{e}</option>;})}</select>
+              <button onClick={addMember} className="btn-primary" style={{padding:"4px 10px",borderRadius:4,fontSize:14,cursor:"pointer",fontFamily:FM}}>+ ADD MEMBER</button>
+              <input type="file" accept=".csv,.xlsx,.xls" id="bulkMemberInput" style={{display:"none"}} onChange={function(e){
+                var f=e.target.files&&e.target.files[0];if(!f)return;
+                var processCSV=function(text){
+                  var rows=parseCSV(text.trim());if(!rows||rows.length<2){showToast("No data found","err");return;}
+                  var hdr=rows[0].map(function(h){return(h||"").toLowerCase().trim();});
+                  var iName=-1,iEntity=-1,iUnit=-1,iPath=-1,iEmail=-1,iManager=-1;
+                  hdr.forEach(function(h,i){
+                    if(h==="name"||h==="member"||h==="employee")iName=i;
+                    if(h==="entity"||h==="company")iEntity=i;
+                    if(h==="unit"||h==="business unit"||h==="bu")iUnit=i;
+                    if(h==="career path"||h==="path"||h==="role"||h==="title")iPath=i;
+                    if(h==="email"||h==="e-mail")iEmail=i;
+                    if(h==="manager"||h==="mgr"||h==="reports to"||h==="leader")iManager=i;
+                  });
+                  if(iName<0){iName=0;}
+                  var added=0;var skipped=0;var newMembers=members.slice();
+                  for(var i=1;i<rows.length;i++){
+                    var row=rows[i];var name=(row[iName]||"").trim();if(!name)continue;
+                    if(newMembers.find(function(m){return m.name.toLowerCase()===name.toLowerCase();})){skipped++;continue;}
+                    var entity=iEntity>=0?(row[iEntity]||"").trim()||"Talent":"Talent";
+                    var unit=iUnit>=0?(row[iUnit]||"").trim()||"MI Metro":"MI Metro";
+                    var path=iPath>=0?(row[iPath]||"").trim()||"Recruiter":"Recruiter";
+                    var email=iEmail>=0?(row[iEmail]||"").trim():"";
+                    var manager=iManager>=0?(row[iManager]||"").trim():"";
+                    var cp=config.careerPaths.find(function(c){return c.name.toLowerCase()===path.toLowerCase();});
+                    var m=initM([name,entity,manager,unit,path,cp?cp.fdDH:0.15,cp?cp.sDH:0.05,cp?cp.fdA:0.15,cp?cp.sA:0.05,cp?cp.flat:0,0,""],newMembers);
+                    if(email)m.email=email;
+                    newMembers.push(m);added++;
+                  }
+                  if(added===0){showToast(skipped>0?skipped+" members already exist — 0 new":"No valid rows found","err");return;}
+                  setMembers(newMembers);
+                  log("BULK_MEMBER_IMPORT",added+" members added"+(skipped?", "+skipped+" duplicates skipped":""));
+                  showToast(added+" members imported"+(skipped?", "+skipped+" already existed":""));
+                };
+                if(f.name.match(/\.xlsx?$/i)){var r=new FileReader();r.onload=function(ev){try{var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];processCSV(XLSX.utils.sheet_to_csv(ws));}catch(err){showToast("File error: "+err.message,"err");}};r.readAsArrayBuffer(f);}
+                else{var r=new FileReader();r.onload=function(ev){processCSV(ev.target.result);};r.readAsText(f);}
+                e.target.value="";
+              }}/>
+              <button onClick={function(){document.getElementById("bulkMemberInput").click();}} className="btn-ghost" style={{padding:"4px 10px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600}}>IMPORT ROSTER</button>
+              <button onClick={function(){
+                var headers=["Name","Entity","Unit","Career Path","Email","Leader","PIN","FD DH %","Split DH %","FD Assign %","Split Assign %","Flat %","Floor $/wk","Floor End","Notes","Status"];
+                var rows=members.map(function(m){return[m.name,m.entity||"",m.unit||"",m.careerPath||"",m.email||"",m.manager||"",m.pin||"",Math.round(m.rates.fdDH*10000)/100,Math.round(m.rates.sDH*10000)/100,Math.round(m.rates.fdA*10000)/100,Math.round(m.rates.sA*10000)/100,Math.round((m.rates.flat||0)*10000)/100,m.guarantee&&m.guarantee.active?m.guarantee.amount:"",m.guarantee&&m.guarantee.endDate||"",m.notes||"",m.inactive?"Inactive":"Active"];});
+                dlCSV("Spark_Roster_"+new Date().toISOString().slice(0,10),headers,rows);
+                log("ROSTER_EXPORT",members.length+" members");
+              }} className="btn-ghost" style={{padding:"4px 10px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600}}>EXPORT ROSTER</button>
+              {members.filter(function(m){return m.inactive;}).length>0&&<button onClick={function(){setShowInactive(!showInactive);}} style={{padding:"4px 10px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600,border:"1px solid "+(showInactive?C.orange:C.border)+"66",color:showInactive?C.orange:C.textDim,background:showInactive?C.orangeDim:"transparent"}}>{showInactive?"Hide":"Show"} Inactive ({members.filter(function(m){return m.inactive;}).length})</button>}
+            </div>
+          </div>
+          {function(){
+          var mStats={};
+          members.forEach(function(m){
+            var weeks=chargeWeeks.map(function(w){var row=w.rows.find(function(r){return r.matchedId===m.id;});if(!row)return null;var fi=getFloorInfo(row,w);var comm=calcRowComm(row,fi,w);return{rawCharge:row.rawCharge,ytdRaw:row.ytdRaw,totalComm:comm.totalComm,deduction:comm.deduction,belowFloor:fi.belowFloor,qtd:fi.qtd};}).filter(Boolean);
+            var latest=weeks.length?weeks[0]:null;
+            mStats[m.id]={ytd:latest?latest.ytdRaw:0,qtd:latest?latest.qtd:0,lastComm:latest?latest.totalComm:0,totalComm:weeks.reduce(function(a,w){return a+w.totalComm;},0),totalDeduct:weeks.reduce(function(a,w){return a+w.deduction;},0),belowFloor:latest?latest.belowFloor:false,weeksLoaded:weeks.length};
+          });
+          var filtered=members.filter(function(m){if(!showInactive&&m.inactive)return false;if(teamUnit!=="ALL"&&m.unit!==teamUnit)return false;if(teamEntity!=="ALL"&&m.entity!==teamEntity)return false;if(teamSearch){var s=teamSearch.toLowerCase();if(!(m.name+m.manager+m.careerPath+m.notes).toLowerCase().includes(s))return false;}return true;});
+          var sortedFiltered=filtered.slice().sort(function(a,b){
+            var sa=mStats[a.id]||{ytd:0,qtd:0,lastComm:0,totalComm:0};
+            var sb=mStats[b.id]||{ytd:0,qtd:0,lastComm:0,totalComm:0};
+            var va,vb;
+            if(teamSortKey==="name"){va=a.name.toLowerCase();vb=b.name.toLowerCase();return teamSortDir==="asc"?va.localeCompare(vb):vb.localeCompare(va);}
+            if(teamSortKey==="unit"){va=(a.unit||"").toLowerCase();vb=(b.unit||"").toLowerCase();return teamSortDir==="asc"?va.localeCompare(vb):vb.localeCompare(va);}
+            if(teamSortKey==="qtd"){va=sa.qtd;vb=sb.qtd;}
+            else if(teamSortKey==="comm"){va=sa.lastComm;vb=sb.lastComm;}
+            else{va=sa.ytd;vb=sb.ytd;}
+            return teamSortDir==="asc"?va-vb:vb-va;
+          });
+          var teamYTD=sortedFiltered.reduce(function(a,m){return a+(mStats[m.id]?mStats[m.id].ytd:0);},0);
+          var teamComm=sortedFiltered.reduce(function(a,m){return a+(mStats[m.id]?mStats[m.id].lastComm:0);},0);
+          var onFloor=sortedFiltered.filter(function(m){return mStats[m.id]&&mStats[m.id].belowFloor;}).length;
+          return <div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+            <Stat l="Members" v={sortedFiltered.length} c={C.blue} s={sortedFiltered.length!==members.length?"of "+members.length:""}/>
+            <Stat l="Team YTD Raw" v={fmtD(teamYTD)} c={C.accent}/>
+            <Stat l="Last Week Comm" v={fmtD(teamComm)} c={C.green}/>
+            <Stat l="On Floor" v={onFloor} c={onFloor?C.red:C.green} s={onFloor?onFloor+" below $25K":"All clear"}/>
+          </div>
+          <p style={{fontSize:13,color:C.textDim,margin:"0 0 6px",fontFamily:FM}}>{sortedFiltered.length===members.length?sortedFiltered.length+" members":"showing "+sortedFiltered.length+" of "+members.length}</p><div style={Object.assign({},card,{overflow:"auto",maxHeight:"60vh"})}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>{[["Name","name"],["Unit","unit"],["Title",""],["YTD Raw","ytd"],["QTD","qtd"],["Last Comm","comm"],["Floor",""],["Wks",""]].map(function(h,i){var key=h[1];var active=key&&teamSortKey===key;return <th key={h[0]} style={Object.assign({},th,{textAlign:i>=3&&i<=5?"right":i===6?"center":"left",cursor:key?"pointer":"default",color:active?C.accent:C.textDim,background:active?C.accentDim:C.bg})} onClick={key?function(){if(teamSortKey===key){setTeamSortDir(teamSortDir==="asc"?"desc":"asc");}else{setTeamSortKey(key);setTeamSortDir("desc");}}:undefined}>{h[0]}{active?(teamSortDir==="desc"?" ▼":" ▲"):""}</th>;})}</tr></thead>
+          <tbody>{sortedFiltered.map(function(m){var s=mStats[m.id]||{ytd:0,qtd:0,lastComm:0,totalComm:0,belowFloor:false,weeksLoaded:0};var pct=s.qtd/FLOOR*100;return <tr key={m.id} className="trow" onClick={function(){goEdit(m.id);}} style={{cursor:"pointer",opacity:m.inactive?.45:1}}><td style={Object.assign({},td,{fontWeight:600,fontFamily:FU,borderLeft:"3px solid "+(m.inactive?C.textDim:s.belowFloor?C.red:s.ytd>=FLOOR_ANNUAL?C.green:s.ytd>0?C.accent:C.border),paddingLeft:10})}>{m.name}{m.inactive?" (inactive)":""}</td><td style={td}><Badge v={UB[m.unit]||"muted"}>{m.unit}</Badge></td><td style={Object.assign({},td,{fontSize:12,color:C.textMuted,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{m.careerPath}</td>
+          <td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:s.ytd>=FLOOR_ANNUAL?C.green:s.ytd>0?C.text:C.textDim})}>{s.ytd>0?fmtD(s.ytd):"--"}</td>
+          <td style={Object.assign({},td,{textAlign:"right",color:s.qtd>=FLOOR?C.green:s.qtd>0?C.orange:C.textDim})}>{s.qtd>0?fmt(s.qtd):"--"}</td>
+          <td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:s.lastComm>0?C.green:C.textDim})}>{s.lastComm>0?fmtD(s.lastComm):"--"}</td>
+          <td style={Object.assign({},td,{textAlign:"center"})}>{s.weeksLoaded===0?<Badge v="muted">--</Badge>:s.belowFloor?<Badge v="red">{Math.round(pct)}%</Badge>:s.ytd>=FLOOR_ANNUAL?<Badge v="green">$100K</Badge>:<Badge v="green">OK</Badge>}</td>
+          <td style={Object.assign({},td,{textAlign:"right",color:C.textDim,fontSize:12})}>{s.weeksLoaded||"--"}</td>
+          </tr>;})}</tbody></table></div></div>;}()}
+        </div>}
+        {/* ════════ MEMBER DASHBOARD ════════ */}
+        {view==="edit"&&eM&&function(){
+          var memberWeeks=chargeWeeks.map(function(w){var row=w.rows.find(function(r){return r.matchedId===editMemberId;});if(!row)return null;var fi=getFloorInfo(row,w);var comm=calcRowComm(row,fi,w);return{weekEnding:w.weekEnding,rawCharge:row.rawCharge,splitRec:row.splitRec,splitAM:row.splitAM,fullDesk:row.fullDesk,ytdRaw:row.ytdRaw,qtd:fi.qtd,belowFloor:fi.belowFloor,deduction:comm.deduction,totalComm:comm.totalComm,crossDate:fi.crossDate,dhEligible:fi.dhEligible};}).filter(Boolean);
+          var latestWeek=memberWeeks.length?memberWeeks[0]:null;var ytdRaw=latestWeek?latestWeek.ytdRaw:0;var qtd=latestWeek?latestWeek.qtd:0;var floorOk=latestWeek?!latestWeek.belowFloor:false;
+          var totalComm=memberWeeks.reduce(function(a,w){return a+w.totalComm;},0);var totalRaw=memberWeeks.reduce(function(a,w){return a+w.rawCharge;},0);var totalDeductions=memberWeeks.reduce(function(a,w){return a+w.deduction;},0);
+          var memberDH=dhData.filter(function(d){
+            // Primary: match by member ID
+            if(d.amId===editMemberId||d.recId===editMemberId)return true;
+            // Fallback for legacy data without IDs: name matching
+            if(!d.amId&&!d.recId){
+              var mName=(eM.name||"").toLowerCase().trim();
+              var mLast=mName.split(" ").pop();
+              var recL=(d.rec||"").toLowerCase().trim();var amL=(d.am||"").toLowerCase().trim();
+              if(recL===mName||amL===mName)return true;
+              if(mLast.length>2&&(recL.split(" ").pop()===mLast||amL.split(" ").pop()===mLast))return true;
+            }
+            return false;
+          });var dhTotal=memberDH.reduce(function(a,d){return a+d.raw;},0);var qtdPct=Math.min(100,Math.round(qtd/FLOOR*100));
+          return <div style={{animation:"fadeIn .2s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+            <button onClick={function(){setView("team");setEditMemberId(null);}} className="btn-ghost" style={{fontSize:14,padding:"3px 8px",borderRadius:4,cursor:"pointer",fontFamily:FM}}>&larr; BACK</button>
+            <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:eM.inactive?C.textDim:C.text}}>{eM.name||"New Member"}</h2>
+            <Badge v={UB[eM.unit]||"muted"}>{eM.unit}</Badge><Badge v={eM.entity==="Ignite"?"blue":eM.entity==="JJP"?"orange":"muted"}>{eM.entity}</Badge>
+            {eM.inactive&&<Badge v="red">INACTIVE</Badge>}
+            {!eM.inactive&&floorOk&&latestWeek&&<Badge v="green">{ytdRaw>=FLOOR_ANNUAL?"$100K UNLOCKED":"ABOVE TIER"}</Badge>}
+            {!eM.inactive&&!floorOk&&latestWeek&&<Badge v="red">BELOW FLOOR</Badge>}
+            <div style={{marginLeft:"auto",display:"flex",gap:6,alignItems:"center"}}>
+              <button onClick={function(){upM(editMemberId,function(x){x.inactive=!x.inactive;return x;});log(eM.inactive?"MEMBER_REACTIVATED":"MEMBER_DEACTIVATED",eM.name);showToast(eM.name+(eM.inactive?" reactivated":" deactivated"));}} style={{padding:"4px 10px",borderRadius:5,fontSize:12,fontFamily:FM,fontWeight:600,border:"1px solid "+(eM.inactive?C.green:C.orange)+"44",color:eM.inactive?C.green:C.orange,background:"transparent",cursor:"pointer"}}>{eM.inactive?"Reactivate":"Deactivate"}</button>
+              <button onClick={function(){setConfirm({msg:"Delete "+eM.name+" from the roster?\n\nThis removes the member entirely. Their charge data in existing weeks will remain but show as UNMATCHED.\n\nConsider Deactivate instead if they may return.",fn:function(){setMembers(function(p){return p.filter(function(m){return m.id!==editMemberId;});});setView("team");setEditMemberId(null);setConfirm(null);log("MEMBER_DELETED",eM.name);showToast(eM.name+" deleted");}});}} style={{padding:"4px 10px",borderRadius:5,fontSize:12,fontFamily:FM,fontWeight:600,border:"1px solid "+C.red+"44",color:C.red,background:"transparent",cursor:"pointer"}}>Delete</button>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:6,marginBottom:14}}>
+            <Stat l="YTD Raw" v={fmtD(ytdRaw)} c={ytdRaw>=FLOOR_ANNUAL?C.green:C.accent}/><Stat l="QTD Raw" v={fmtD(qtd)} c={floorOk?C.green:C.red} s={qtdPct+"% of $25K"}/><Stat l="Weeks Loaded" v={memberWeeks.length} c={C.blue}/><Stat l="Total Comm" v={fmtD(totalComm)} c={C.green}/><Stat l="Tier Deductions" v={fmtD(totalDeductions)} c={totalDeductions>0?C.red:C.textDim}/><Stat l="DH Eligible" v={floorOk?"YES":"NO"} c={floorOk?C.green:C.red} s={floorOk&&latestWeek&&latestWeek.crossDate?"Crossed WE "+latestWeek.crossDate:floorOk?"Flat/exempt":"Need $25K QTD tier"}/>{eM.guarantee&&eM.guarantee.active&&<Stat l="Floor" v={fmtD(eM.guarantee.amount)+"/wk"} c={eM.guarantee.endDate&&eM.guarantee.endDate<new Date().toISOString().slice(0,10)?C.red:C.accent} s={eM.guarantee.endDate?"Through "+eM.guarantee.endDate:"No end date"}/>}<Stat l="DH Pipeline" v={memberDH.length} c={memberDH.length?C.teal:C.textDim} s={memberDH.length?fmtD(dhTotal)+" raw":""}/>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:10}}>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={Object.assign({},card,{padding:12})}><h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.textDim,fontFamily:FM,letterSpacing:"1px",borderBottom:"1px solid "+C.border,paddingBottom:4}}>PROFILE</h3>
+              {[["Name","name"],["Email","email"],["Leader","manager"],["Notes","notes"]].map(function(f){return <div key={f[1]} style={{marginBottom:5}}><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM}}>{f[0].toUpperCase()}{f[1]==="email"&&eM.name&&eM.name!=="New Member"&&<button onClick={function(){var parts=eM.name.trim().split(" ");if(parts.length>=2){var auto=(parts[0][0]+parts[parts.length-1]).toLowerCase()+"@"+(config.branding&&config.branding.emailDomain||"sparkcompanies.com");upM(editMemberId,function(x){x.email=auto;return x;});showToast("Email set to "+auto);}}} style={{marginLeft:6,padding:"1px 6px",fontSize:10,borderRadius:3,border:"1px solid "+C.accent+"44",color:C.accent,background:"transparent",cursor:"pointer",fontFamily:FM}}>{eM.email?"Regenerate":"Auto-generate"}</button>}</label><input value={eM[f[1]]||""} onChange={function(e){upM(editMemberId,function(x){x[f[1]]=e.target.value;return x;});}} type={f[1]==="email"?"email":"text"} placeholder={f[1]==="email"?(eM.name&&eM.name!=="New Member"?(eM.name.trim().split(" ")[0][0]+eM.name.trim().split(" ").pop()).toLowerCase()+"@"+(config.branding&&config.branding.emailDomain||"sparkcompanies.com"):"name@sparkcompanies.com"):""} style={inp}/></div>;})}
+              <div style={{marginBottom:5}}><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM}}>REP VIEW PIN</label><div style={{display:"flex",gap:6,alignItems:"center"}}><input value={eM.pin||""} readOnly style={Object.assign({},inp,{width:100,letterSpacing:"4px",textAlign:"center",fontSize:16,background:C.bgSurface,cursor:"default",color:C.accent,fontWeight:700})}/><button onClick={function(){var np=genPin(members);upM(editMemberId,function(x){x.pin=np;return x;});log("PIN_RESET",eM.name+" → "+np);showToast("New PIN: "+np);}} style={{padding:"4px 10px",borderRadius:5,fontSize:12,fontFamily:FM,fontWeight:600,border:"1px solid "+C.accent+"44",color:C.accent,background:"transparent",cursor:"pointer"}}>Regenerate</button><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>6-digit · auto-assigned · unique</span></div></div>              <div style={{marginBottom:5}}><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM}}>CAREER PATH</label><select value={eM.careerPath} onChange={function(e){var v=e.target.value;upM(editMemberId,function(x){x.careerPath=v;var cp=config.careerPaths.find(function(c){return c.name===v;});if(cp){x.rates=Object.assign({},x.rates,{fdDH:cp.fdDH||0,sDH:cp.sDH||0,fdA:cp.fdA||0,sA:cp.sA||0,flat:cp.flat||0});}else{var cpDef=CP_DEFAULTS.find(function(c){return c[0]===v;});if(cpDef){x.rates={fdDH:cpDef[1],sDH:cpDef[2],fdA:cpDef[3],sA:cpDef[4],flat:cpDef[5],drRate:x.rates.drRate||cpDef[6]};}}return x;});}} style={inp}><option value="">— Select —</option>{config.careerPaths.map(function(c){return <option key={c.name||c.id} value={c.name}>{c.name}{c.flat>0?" ("+Math.round(c.flat*100)+"% flat)":""}</option>;})}{CP_DEFAULTS.filter(function(c){return!config.careerPaths.find(function(cp){return cp.name===c[0];});}).map(function(c){return <option key={c[0]} value={c[0]}>{c[0]}{c[5]>0?" ("+Math.round(c[5]*100)+"% flat)":""}</option>;})}</select></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}><div><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM}}>ENTITY</label><select value={eM.entity} onChange={function(e){upM(editMemberId,function(x){x.entity=e.target.value;return x;});}} style={inp}>{ENTITIES.map(function(e){return <option key={e}>{e}</option>;})}</select></div><div><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM}}>UNIT</label><select value={eM.unit} onChange={function(e){upM(editMemberId,function(x){x.unit=e.target.value;return x;});}} style={inp}>{UNITS.map(function(u){return <option key={u}>{u}</option>;})}</select></div></div></div>
+            <div style={Object.assign({},card,{padding:12})}><h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.textDim,fontFamily:FM,letterSpacing:"1px",borderBottom:"1px solid "+C.border,paddingBottom:4}}>COMMISSION RATES</h3>
+                {[["DH Full Desk","fdDH"],["DH Split","sDH"],["Assignment Full Desk","fdA"],["Assignment Split","sA"],["Flat Rate","flat"]].map(function(f){return <div key={f[1]} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><span style={{fontSize:13,fontFamily:FM,color:C.textMuted}}>{f[0]}</span><div style={{display:"flex",alignItems:"center",gap:2}}><input type="number" step="1" value={Math.round(eM.rates[f[1]]*100*100)/100} onChange={function(e){upM(editMemberId,function(x){x.rates=Object.assign({},x.rates);x.rates[f[1]]=(+e.target.value||0)/100;return x;});}} style={{width:50,padding:"3px 5px",fontSize:14,borderRadius:3,textAlign:"right",fontFamily:FM}}/><span style={{fontSize:13,color:C.textDim,fontFamily:FM}}>%</span></div></div>;})}</div>
+              {/* Direct Report Commission */}
+              <div style={Object.assign({},card,{padding:12,marginTop:6})}>
+                <h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.textDim,fontFamily:FM,letterSpacing:"1px",borderBottom:"1px solid "+C.border,paddingBottom:4}}>DIRECT REPORT OVERRIDE</h3>
+                <p style={{fontSize:11,color:C.textDim,margin:"0 0 6px",fontFamily:FM}}>This member receives a % of their direct reports' charge totals</p>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <span style={{fontSize:13,fontFamily:FM,color:C.textMuted}}>DR Override Rate</span>
+                  <div style={{display:"flex",alignItems:"center",gap:2}}>
+                    <input type="number" step="0.1" value={Math.round((eM.rates.drRate||0)*100*100)/100} onChange={function(e){upM(editMemberId,function(x){x.rates=Object.assign({},x.rates);x.rates.drRate=(+e.target.value||0)/100;return x;});}} style={{width:50,padding:"3px 5px",fontSize:14,borderRadius:3,textAlign:"right",fontFamily:FM}}/>
+                    <span style={{fontSize:13,color:C.textDim,fontFamily:FM}}>%</span>
+                  </div>
+                </div>
+                <div style={{marginBottom:4}}><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM}}>DIRECT REPORTS (comma-separated names)</label>
+                  <input value={eM.drMembers||""} onChange={function(e){upM(editMemberId,function(x){x.drMembers=e.target.value;return x;});}} placeholder="e.g. Anthony Caucci, Nick Greenfelder" style={Object.assign({},inp,{width:"100%",fontSize:12})}/>
+                </div>
+                {eM.rates.drRate>0&&eM.drMembers&&<div style={{marginTop:4,padding:"4px 8px",background:C.greenDim,borderRadius:4,border:"1px solid "+C.green+"22"}}><span style={{fontSize:11,color:C.green,fontFamily:FM}}>{eM.name} earns {Math.round(eM.rates.drRate*10000)/100}% on charge totals from: {eM.drMembers}</span></div>}
+              </div>
+              {/* Manual Payouts History */}
+              {function(){var mPayouts=(payrollOverrides._manualPayouts||[]).filter(function(p){return p.memberId===editMemberId;});
+                if(mPayouts.length===0)return null;
+                return <div style={Object.assign({},card,{padding:12,marginTop:6})}><h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.textDim,fontFamily:FM,letterSpacing:"1px",borderBottom:"1px solid "+C.border,paddingBottom:4}}>MANUAL PAYOUTS</h3>
+                  <div style={{maxHeight:"15vh",overflowY:"auto"}}>{mPayouts.map(function(p,pi){return <div key={pi} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:"1px solid "+C.border+"44"}}><div><span style={{fontSize:13,fontWeight:600,color:C.text,fontFamily:FM}}>{fmtD(p.amount)}</span><span style={{fontSize:11,color:C.textDim,fontFamily:FM,marginLeft:6}}>{p.reason||"Manual payout"}</span></div><span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>WE {p.weekEnding||"N/A"}</span></div>;})}</div>
+                  <div style={{marginTop:4,paddingTop:4,borderTop:"1px solid "+C.border}}><span style={{fontSize:13,fontWeight:700,color:C.accent,fontFamily:FM}}>Total Manual: {fmtD(mPayouts.reduce(function(a,p){return a+p.amount;},0))}</span></div>
+                </div>;
+              }()}
+              {/* Guaranteed Commission */}
+              <div style={{marginTop:6,padding:"8px 10px",background:C.bg,borderRadius:4,border:"1px solid "+C.border}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                  <label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM}}>WEEKLY FLOOR</label>
+                  <input type="checkbox" checked={eM.guarantee&&eM.guarantee.active} onChange={function(e){upM(editMemberId,function(x){x.guarantee=Object.assign({},x.guarantee||{amount:0,endDate:"",active:false},{active:e.target.checked});return x;});}} style={{width:14,height:14,cursor:"pointer"}}/>
+                  <span style={{fontSize:12,color:eM.guarantee&&eM.guarantee.active?C.green:C.textDim,fontFamily:FM}}>{eM.guarantee&&eM.guarantee.active?"Active":"Off"}</span>
+                </div>
+                {eM.guarantee&&eM.guarantee.active&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                  <div><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM}}>$/WEEK</label><div style={{display:"flex",alignItems:"center",gap:3}}><span style={{color:C.textDim}}>$</span><input type="number" value={(eM.guarantee&&eM.guarantee.amount)||0} onChange={function(e){upM(editMemberId,function(x){x.guarantee=Object.assign({},x.guarantee||{},{amount:+e.target.value||0});return x;});}} style={Object.assign({},inp,{width:"100%"})} step="1"/></div></div>
+                  <div><label style={{fontSize:11,color:C.textDim,fontWeight:700,fontFamily:FM}}>END DATE</label><input type="date" value={(eM.guarantee&&eM.guarantee.endDate)||""} onChange={function(e){upM(editMemberId,function(x){x.guarantee=Object.assign({},x.guarantee||{},{endDate:e.target.value});return x;});}} style={inp}/></div>
+                </div>}
+                {eM.guarantee&&eM.guarantee.active&&eM.guarantee.endDate&&new Date(eM.guarantee.endDate)<NOW&&<p style={{fontSize:11,color:C.red,margin:"4px 0 0",fontFamily:FM}}>Guarantee expired {eM.guarantee.endDate}</p>}
+              </div>
+              <button onClick={function(){setConfirm({msg:"Remove "+eM.name+"?",fn:function(){setMembers(function(p){return p.filter(function(e){return e.id!==editMemberId;});});setView("team");setConfirm(null);log("REMOVE",eM.name);}});}} style={{background:"transparent",border:"1px solid "+C.red+"66",color:C.red,padding:"5px 12px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM}}>REMOVE MEMBER</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={Object.assign({},card,{padding:12})}><h3 style={{fontSize:12,fontWeight:700,margin:"0 0 8px",color:C.textDim,fontFamily:FM,letterSpacing:"1px",borderBottom:"1px solid "+C.border,paddingBottom:4}}>FLOOR PROGRESS</h3>
+                <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{flex:1}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:13,color:C.textMuted,fontFamily:FM}}>QTD: {fmtD(qtd)}</span><span style={{fontSize:13,color:floorOk?C.green:C.red,fontFamily:FM,fontWeight:600}}>{fmtD(FLOOR)}</span></div>
+                    <div style={{height:8,background:C.bg,borderRadius:4,overflow:"hidden"}}><div style={{height:"100%",width:qtdPct+"%",background:qtdPct>=100?"linear-gradient(90deg,"+C.green+","+C.teal+")":qtdPct>=60?"linear-gradient(90deg,"+C.orange+","+C.accent+")":"linear-gradient(90deg,"+C.red+","+C.orange+")",borderRadius:4,transition:"width .3s ease"}}/></div>
+                    <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}><span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>{qtdPct}%</span><span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>{floorOk?"No deduction":"$2,500/wk deduction"}</span></div>
+                  </div>{ytdRaw>=FLOOR_ANNUAL&&<div style={{textAlign:"center",padding:"4px 10px",background:C.greenDim,border:"1px solid "+C.green+"33",borderRadius:4}}><p style={{fontSize:18,fontWeight:800,color:C.green,margin:0,fontFamily:FM}}>$100K</p><p style={{fontSize:11,color:C.green,margin:0,fontFamily:FM}}>UNLOCKED</p></div>}</div>
+              </div>
+              <div style={Object.assign({},card,{overflow:"hidden"})}><div style={{padding:"5px 10px",borderBottom:"1px solid "+C.border,background:C.bg,borderLeft:"2px solid #FFD70066"}}><h3 style={{fontSize:13,fontWeight:600,color:C.textDim,letterSpacing:".6px",margin:0,fontFamily:FM}}>WEEK-BY-WEEK HISTORY</h3></div>
+                {memberWeeks.length===0&&<div style={{padding:16,textAlign:"center"}}><p style={{color:C.textDim,fontSize:13,fontFamily:FM,margin:0}}>No charge data yet</p></div>}
+                {memberWeeks.length>0&&<div style={{overflow:"auto",maxHeight:"28vh"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th}>Week</th><th style={Object.assign({},th,{textAlign:"right"})}>Raw</th><th style={Object.assign({},th,{textAlign:"right"})}>Split Rec</th><th style={Object.assign({},th,{textAlign:"right"})}>Split AM</th><th style={Object.assign({},th,{textAlign:"right"})}>Full Desk</th><th style={Object.assign({},th,{textAlign:"right"})}>Deduct</th><th style={Object.assign({},th,{textAlign:"right"})}>Comm</th><th style={Object.assign({},th,{textAlign:"center"})}>Tier</th><th style={Object.assign({},th,{textAlign:"center"})}>DH</th></tr></thead>
+                <tbody>{memberWeeks.map(function(w){return <tr key={w.weekEnding} className="trow"><td style={Object.assign({},td,{fontWeight:600})}>{w.weekEnding}</td><td style={Object.assign({},td,{textAlign:"right"})}>{fmtD(w.rawCharge)}</td><td style={Object.assign({},td,{textAlign:"right",color:C.textMuted})}>{fmtD(w.splitRec)}</td><td style={Object.assign({},td,{textAlign:"right",color:C.textMuted})}>{fmtD(w.splitAM)}</td><td style={Object.assign({},td,{textAlign:"right",color:C.textMuted})}>{fmtD(w.fullDesk)}</td><td style={Object.assign({},td,{textAlign:"right",color:w.deduction>0?C.red:C.textDim})}>{w.deduction>0?"-"+fmtD(w.deduction):"--"}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:w.totalComm>0?C.green:C.textDim})}>{w.totalComm>0?fmtD(w.totalComm):"$0"}</td><td style={Object.assign({},td,{textAlign:"center"})}>{w.belowFloor?<Badge v="red">{Math.round(w.qtd/FLOOR*100)}%</Badge>:<Badge v="green">OK</Badge>}</td><td style={Object.assign({},td,{textAlign:"center"})}>{w.dhEligible?<Badge v="green">YES</Badge>:<Badge v="red">NO</Badge>}</td></tr>;})}</tbody>
+                <tfoot><tr style={{borderTop:"1px solid "+C.accent+"33"}}><td style={Object.assign({},td,{fontWeight:700,color:C.accent})}>TOTALS</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.accent})}>{fmtD(totalRaw)}</td><td colSpan="3" style={td}></td><td style={Object.assign({},td,{textAlign:"right",fontWeight:600,color:totalDeductions>0?C.red:C.textDim})}>{totalDeductions>0?"-"+fmtD(totalDeductions):"--"}</td><td style={Object.assign({},td,{textAlign:"right",fontWeight:700,color:C.green})}>{fmtD(totalComm)}</td><td colSpan="2" style={td}></td></tr></tfoot></table></div>}
+              </div>
+              {/* ── DH PIPELINE ── */}
+              <div style={Object.assign({},card,{overflow:"hidden",border:memberDH.length>0?"1px solid "+C.teal+"33":"1px solid "+C.border})}><div style={{padding:"8px 12px",borderBottom:"1px solid "+C.border,background:memberDH.length>0?"linear-gradient(90deg,"+C.teal+"11,transparent)":C.bg,borderLeft:"3px solid "+(memberDH.length>0?C.teal:C.border),display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <h3 style={{fontSize:13,fontWeight:700,color:memberDH.length>0?C.teal:C.textDim,letterSpacing:".6px",margin:0,fontFamily:FM}}>DIRECT HIRE PIPELINE</h3>
+                {memberDH.length>0&&<span style={{fontSize:13,fontWeight:700,color:C.teal,fontFamily:FM}}>{memberDH.length} deal{memberDH.length>1?"s":""} · {fmtD(dhTotal)} raw</span>}
+              </div>
+                {memberDH.length===0&&<div style={{padding:16,textAlign:"center"}}><p style={{color:C.textDim,fontSize:13,fontFamily:FM,margin:0}}>No DH deals linked to {eM.name.split(" ")[0]}</p></div>}
+                {memberDH.length>0&&<div style={{padding:10}}>
+                  {/* Pipeline summary bar */}
+                  {function(){
+                    var rdyCount=memberDH.filter(function(d){return isReady(d)&&!d.paidOut;}).length;
+                    var activeCount=memberDH.filter(function(d){return(d.st==="o"||d.st==="p")&&!d.paidOut;}).length;
+                    var paidCount=memberDH.filter(function(d){return d.paidOut||d.st==="d";}).length;
+                    var termCount=memberDH.filter(function(d){return d.st==="t";}).length;
+                    var potentialPayout=memberDH.filter(function(d){
+                      var crossDt=latestWeek?latestWeek.crossDate:null;var ds=d.sd||"";var hf=latestWeek&&!latestWeek.belowFloor;
+                      return hf&&(!crossDt||!ds||ds>=crossDt)&&!d.paidOut&&d.st!=="t";
+                    }).reduce(function(a,d){var rate=eM.rates[d.typ==="FD"?"fdDH":"sDH"]||0;return a+d.raw*rate;},0);
+                    return <div style={{display:"flex",gap:8,marginBottom:14}}>
+                      {rdyCount>0&&<div style={{flex:1,padding:"6px 10px",background:C.greenDim,borderRadius:4,border:"1px solid "+C.green+"33",textAlign:"center"}}><p style={{fontSize:18,fontWeight:800,color:C.green,margin:0,fontFamily:FM}}>{rdyCount}</p><p style={{fontSize:11,color:C.green,margin:0,fontFamily:FM}}>Ready</p></div>}
+                      {activeCount>0&&<div style={{flex:1,padding:"6px 10px",background:C.orangeDim,borderRadius:4,border:"1px solid "+C.orange+"33",textAlign:"center"}}><p style={{fontSize:18,fontWeight:800,color:C.orange,margin:0,fontFamily:FM}}>{activeCount}</p><p style={{fontSize:11,color:C.orange,margin:0,fontFamily:FM}}>On Guarantee</p></div>}
+                      {paidCount>0&&<div style={{flex:1,padding:"6px 10px",background:C.purpleDim,borderRadius:4,border:"1px solid "+C.purple+"33",textAlign:"center"}}><p style={{fontSize:18,fontWeight:800,color:C.purple,margin:0,fontFamily:FM}}>{paidCount}</p><p style={{fontSize:11,color:C.purple,margin:0,fontFamily:FM}}>Paid</p></div>}
+                      {termCount>0&&<div style={{flex:1,padding:"6px 10px",background:C.redDim,borderRadius:4,border:"1px solid "+C.red+"33",textAlign:"center"}}><p style={{fontSize:18,fontWeight:800,color:C.red,margin:0,fontFamily:FM}}>{termCount}</p><p style={{fontSize:11,color:C.red,margin:0,fontFamily:FM}}>Termed</p></div>}
+                      {potentialPayout>0&&<div style={{flex:1,padding:"6px 10px",background:C.accentDim,borderRadius:4,border:"1px solid "+C.accent+"33",textAlign:"center"}}><p style={{fontSize:16,fontWeight:800,color:C.accent,margin:0,fontFamily:FM}}>{fmtD(potentialPayout)}</p><p style={{fontSize:11,color:C.accent,margin:0,fontFamily:FM}}>Est. Payout</p></div>}
+                    </div>;
+                  }()}
+                  {/* Deal cards */}
+                  {memberDH.sort(function(a,b){
+                    if(isReady(a)&&!a.paidOut)return -1;if(isReady(b)&&!b.paidOut)return 1;
+                    var ord={o:1,p:2,c:3,d:4,t:5};return(ord[a.st]||9)-(ord[b.st]||9);
+                  }).map(function(d,i){
+                    var crossDt=latestWeek?latestWeek.crossDate:null;var dealStart=d.sd||"";
+                    var hasFloor=latestWeek&&!latestWeek.belowFloor;
+                    var elig=hasFloor&&(!crossDt||!dealStart||dealStart>=crossDt);
+                    var rdy=isReady(d)&&!d.paidOut;
+                    var dt=d.cd?daysTo(d.cd):null;
+                    var rate=eM.rates[d.typ==="FD"?"fdDH":"sDH"]||0;
+                    var estPay=elig?d.raw*rate:0;
+                    var reason=!hasFloor?"Below $25K QTD tier — need "+fmtD(FLOOR-qtd)+" more":(!elig&&dealStart&&crossDt&&dealStart<crossDt?"Started before crossing $25K":"");
+                    var stColor=rdy?C.green:d.paidOut?C.purple:d.st==="t"?C.red:d.st==="o"||d.st==="p"?C.orange:d.st==="c"?C.teal:C.textDim;
+                    var stLabel=rdy?"\u2713 Ready to Pay":d.paidOut?"Paid Out":d.st==="t"?"Terminated":d.st==="o"?"On Guarantee":d.st==="p"?"Pending Start":d.st==="c"?"Cleared":"Done";
+                    return <div key={i} style={{padding:"8px 10px",marginBottom:4,borderRadius:4,background:rdy?C.greenDim:d.paidOut?C.purpleDim+"44":"transparent",border:"1px solid "+(rdy?C.green:C.border)+"44",borderLeft:"3px solid "+stColor}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                        <div>
+                          <span style={{fontSize:14,fontWeight:700,color:C.text,fontFamily:FU}}>{d.can}</span>
+                          <span style={{fontSize:13,color:C.textMuted,marginLeft:6,fontFamily:FM}}>@ {d.cl}</span>
+                          <div style={{display:"flex",gap:6,marginTop:3,alignItems:"center"}}>
+                            <Badge v={d.typ==="FD"?"gold":"muted"}>{d.typ==="FD"?"Full Desk":"Split"}</Badge>
+                            <span style={{fontSize:12,color:stColor,fontWeight:600,fontFamily:FM}}>{stLabel}</span>
+                            {dt!==null&&dt>0&&<span style={{fontSize:12,color:C.textDim,fontFamily:FM}}>{dt}d to clear</span>}
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <p style={{fontSize:15,fontWeight:700,color:C.text,margin:0,fontFamily:FM}}>{fmtD(d.raw)}</p>
+                          {elig&&estPay>0&&<p style={{fontSize:12,fontWeight:600,color:C.green,margin:"2px 0 0",fontFamily:FM}}>{(rate*100)+"% = "+fmtD(estPay)}</p>}
+                          {!elig&&!d.paidOut&&d.st!=="t"&&<p style={{fontSize:11,color:C.red,margin:"2px 0 0",fontFamily:FM}}>{reason||"Not eligible"}</p>}
+                        </div>
+                      </div>
+                      {dt!==null&&dt>0&&d.gd>0&&<div style={{height:3,background:C.bg,borderRadius:2,overflow:"hidden",marginTop:6}}><div style={{height:"100%",width:Math.max(0,Math.round((1-dt/d.gd)*100))+"%",background:dt<=7?"linear-gradient(90deg,"+C.green+","+C.teal+")":dt<=30?C.orange:C.blue,borderRadius:2}}/></div>}
+                    </div>;
+                  })}
+                </div>}
+              </div>
+            </div>
+          </div>
+        </div>;}()}
+        {/* ════════ RECON ════════ */}
+        {view==="recon"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <h2 style={{fontSize:20,fontWeight:700,margin:0,fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Reconciliation ({anomalies.length})</h2>
+            <div style={{display:"flex",gap:6}}>
+              {anomalies.length>0&&<button onClick={function(){setDismissedRecon(function(p){return p.concat(anomalies.map(function(a){return a.msg;}));});showToast("All notices dismissed");}} style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600,border:"1px solid "+C.border,color:C.textDim,background:"transparent"}}>Dismiss All</button>}
+              {dismissedRecon.length>0&&<button onClick={function(){setDismissedRecon([]);showToast("Dismissed notices restored");}} style={{padding:"4px 12px",borderRadius:4,fontSize:12,cursor:"pointer",fontFamily:FM,fontWeight:600,border:"1px solid "+C.orange+"44",color:C.orange,background:"transparent"}}>Restore Dismissed ({dismissedRecon.length})</button>}
+            </div>
+          </div>
+          {anomalies.length===0&&<div style={Object.assign({},card,{padding:20,textAlign:"center"})}><p style={{color:C.green,fontSize:15,fontFamily:FM}}>ALL CLEAR{dismissedRecon.length>0?" ("+dismissedRecon.length+" dismissed)":""}</p></div>}
+          {anomalies.length>0&&<div style={Object.assign({},card,{overflow:"auto"})}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={Object.assign({},th,{width:80})}>Severity</th><th style={th}>Finding</th><th style={Object.assign({},th,{width:80,textAlign:"center"})}>Action</th></tr></thead>
+          <tbody>{anomalies.map(function(a,i){return <tr key={i} className="trow" style={{borderLeft:"2px solid "+(a.type==="err"?C.red:C.orange)}}><td style={td}><Badge v={a.type==="err"?"red":"orange"}>{a.type==="err"?"ERR":"WARN"}</Badge></td><td style={Object.assign({},td,{fontSize:14})}>{a.msg}</td><td style={Object.assign({},td,{textAlign:"center"})}><button onClick={function(){setDismissedRecon(function(p){return p.concat([a.msg]);});showToast("Dismissed");}} style={{padding:"2px 8px",fontSize:11,borderRadius:3,border:"1px solid "+C.border,color:C.textDim,background:"transparent",cursor:"pointer",fontFamily:FM}}>Dismiss</button></td></tr>;})}</tbody></table></div>}
+        </div>}
+        {/* ════════ AUDIT ════════ */}
+        {view==="audit"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <h2 style={{fontSize:20,fontWeight:700,margin:"0 0 10px",fontFamily:FU,color:C.text,borderBottom:"2px solid #FFD70033",paddingBottom:4,display:"inline-block"}}>Audit Log ({auditLog.length})</h2>
+          {auditLog.length===0&&<div style={Object.assign({},card,{padding:20,textAlign:"center"})}><p style={{color:C.textDim,fontSize:15,fontFamily:FM}}>No events yet.</p></div>}
+          {auditLog.length>0&&<div style={Object.assign({},card,{overflow:"auto",maxHeight:"65vh"})}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><th style={th}>Time</th><th style={th}>Action</th><th style={th}>Detail</th></tr></thead>
+          <tbody>{auditLog.map(function(e,i){var dt=new Date(e.ts);return <tr key={i} className="trow"><td style={Object.assign({},td,{fontSize:13,color:C.textDim,whiteSpace:"nowrap"})}>{dt.toLocaleDateString()+" "+dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td><td style={td}><Badge v="blue">{e.action}</Badge></td><td style={Object.assign({},td,{fontSize:14})}>{e.detail}</td></tr>;})}</tbody></table></div>}
+        </div>}
+        {/* ════════ ADMIN SETTINGS ════════ */}
+        {view==="admin"&&<div style={{animation:"fadeIn .3s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}><Icon name="settings" sz={18} cl={C.accent}/><h2 style={{fontSize:20,fontWeight:800,margin:0,fontFamily:FU,color:C.text}}>Admin Settings</h2></div>
+          {function(){
+            var tabs=[{id:"floors",label:"Floor Thresholds"},{id:"paths",label:"Career Paths"},{id:"entities",label:"Entities"},{id:"units",label:"Business Units"},{id:"branding",label:"Branding"},{id:"data",label:"Data Management"}];
+            var inputS={padding:"6px 8px",fontSize:14,borderRadius:4,fontFamily:FM,background:C.bgCard,border:"1px solid "+C.border,color:C.text,width:"100%"};
+            var labelS={fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 3px",fontFamily:FM,letterSpacing:".5px",textTransform:"uppercase"};
+            return <div>
+              <div style={{display:"flex",gap:4,marginBottom:12,flexWrap:"wrap"}}>{tabs.map(function(t){return <button key={t.id} onClick={function(){setAdminTab(t.id);}} style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,fontWeight:adminTab===t.id?700:400,background:adminTab===t.id?C.accent+"22":"transparent",border:"1px solid "+(adminTab===t.id?C.accent:C.border),color:adminTab===t.id?C.accent:C.textMuted}}>{t.label}</button>;})}</div>
+              {/* ── TIER THRESHOLDS ── */}
+              {adminTab==="floors"&&<div className="panel"><div className="panel-hdr"><h3>Floor Thresholds</h3></div><div className="panel-body" style={{padding:14}}>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 12px",fontFamily:FM}}>These thresholds control the commission tier logic across all team members.</p>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+                  <div><p style={labelS}>Weekly Minimum</p><div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:14,color:C.textDim}}>$</span><input type="number" value={config.floors.weekly} onChange={function(e){var v=+e.target.value||0;setConfig(function(p){return Object.assign({},p,{floors:Object.assign({},p.floors,{weekly:v})});});}} style={inputS}/></div><p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>Below this weekly raw = $0 commission</p></div>
+                  <div><p style={labelS}>Quarterly Floor (QTD)</p><div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:14,color:C.textDim}}>$</span><input type="number" value={config.floors.quarterly} onChange={function(e){var v=+e.target.value||0;setConfig(function(p){return Object.assign({},p,{floors:Object.assign({},p.floors,{quarterly:v})});});}} style={inputS}/></div><p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>Must cross this QTD for DH eligibility & full raw commission</p></div>
+                  <div><p style={labelS}>Annual Unlock (YTD)</p><div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:14,color:C.textDim}}>$</span><input type="number" value={config.floors.annual} onChange={function(e){var v=+e.target.value||0;setConfig(function(p){return Object.assign({},p,{floors:Object.assign({},p.floors,{annual:v})});});}} style={inputS}/></div><p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>Floor off for rest of year once crossed</p></div>
+                </div>
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                  <p style={labelS}>DH Default Guarantee Days</p>
+                  <input type="number" value={config.dhDefaults.guaranteeDays} onChange={function(e){var v=+e.target.value||90;setConfig(function(p){return Object.assign({},p,{dhDefaults:Object.assign({},p.dhDefaults,{guaranteeDays:v})});});}} style={Object.assign({},inputS,{width:100})}/>
+                </div>
+              </div></div>}
+              {/* ── CAREER PATHS ── */}
+              {adminTab==="paths"&&<div className="panel"><div className="panel-hdr"><h3>Career Path Templates ({config.careerPaths.length})</h3><button onClick={function(){var id="cp"+Date.now();setConfig(function(p){return Object.assign({},p,{careerPaths:p.careerPaths.concat([{id:id,name:"New Path",fdDH:0.15,sDH:0.06,fdA:0.15,sA:0.06,flat:0,dhExempt:false}])});});}} className="btn-ghost" style={{padding:"3px 10px",borderRadius:3,fontSize:12,cursor:"pointer",fontFamily:FM}}>+ ADD PATH</button></div><div className="panel-body" style={{padding:8,maxHeight:"55vh",overflowY:"auto"}}>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 10px",fontFamily:FM}}>Define rate templates. Assign a path to a team member to auto-fill their rates.</p>
+                <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr>
+                  <th style={Object.assign({},th,{minWidth:180})}>Path Name</th>
+                  <th style={Object.assign({},th,{textAlign:"center",width:70})}>FD Rate</th>
+                  <th style={Object.assign({},th,{textAlign:"center",width:70})}>Split Rate</th>
+                  <th style={Object.assign({},th,{textAlign:"center",width:70})}>FD DH</th>
+                  <th style={Object.assign({},th,{textAlign:"center",width:70})}>Split DH</th>
+                  <th style={Object.assign({},th,{textAlign:"center",width:70})}>Flat</th>
+                  <th style={Object.assign({},th,{textAlign:"center",width:60})}>DH Exempt</th>
+                  <th style={Object.assign({},th,{width:60})}></th>
+                </tr></thead><tbody>{config.careerPaths.map(function(cp,idx){
+                  var upd=function(field,val){setConfig(function(p){var nPaths=p.careerPaths.slice();nPaths[idx]=Object.assign({},nPaths[idx]);nPaths[idx][field]=val;return Object.assign({},p,{careerPaths:nPaths});});};
+                  var pctIn={style:Object.assign({},inputS,{width:60,textAlign:"center"}),type:"number",step:"1",min:"0",max:"100"};
+                  var inUse=members.filter(function(m){return m.careerPath===cp.name;}).length;
+                  return <tr key={cp.id} className="trow">
+                    <td style={td}><input value={cp.name} onChange={function(e){upd("name",e.target.value);}} style={Object.assign({},inputS,{fontWeight:600})}/>{inUse>0&&<span style={{fontSize:11,color:C.textDim,fontFamily:FM,marginLeft:4}}>{inUse} member{inUse>1?"s":""}</span>}</td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><input {...pctIn} value={Math.round(cp.fdA*100)} onChange={function(e){upd("fdA",(+e.target.value||0)/100);}}/><span style={{fontSize:11,color:C.textDim}}>%</span></td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><input {...pctIn} value={Math.round(cp.sA*100)} onChange={function(e){upd("sA",(+e.target.value||0)/100);}}/><span style={{fontSize:11,color:C.textDim}}>%</span></td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><input {...pctIn} value={Math.round(cp.fdDH*100)} onChange={function(e){upd("fdDH",(+e.target.value||0)/100);}}/><span style={{fontSize:11,color:C.textDim}}>%</span></td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><input {...pctIn} value={Math.round(cp.sDH*100)} onChange={function(e){upd("sDH",(+e.target.value||0)/100);}}/><span style={{fontSize:11,color:C.textDim}}>%</span></td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><input {...pctIn} value={Math.round(cp.flat*100)} onChange={function(e){upd("flat",(+e.target.value||0)/100);}}/><span style={{fontSize:11,color:C.textDim}}>%</span></td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}><input type="checkbox" checked={cp.dhExempt} onChange={function(e){upd("dhExempt",e.target.checked);}} style={{width:16,height:16,cursor:"pointer"}}/></td>
+                    <td style={Object.assign({},td,{textAlign:"center"})}>{inUse===0&&<button onClick={function(){setConfig(function(p){return Object.assign({},p,{careerPaths:p.careerPaths.filter(function(_,i){return i!==idx;})});});}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16,fontWeight:700}}>×</button>}</td>
+                  </tr>;})}</tbody></table>
+                <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.green,margin:"0 0 6px",fontFamily:FM}}>APPLY PATH TO TEAM MEMBERS</p>
+                  <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Select a career path and member below to auto-assign rates.</p>
+                  <div style={{display:"flex",gap:6,alignItems:"flex-end",flexWrap:"wrap"}}>
+                      <div><p style={labelS}>Career Path</p><select value={applyPath} onChange={function(e){setApplyPath(e.target.value);}} style={Object.assign({},inputS,{width:250})}><option value="">Select path...</option>{config.careerPaths.map(function(cp){return <option key={cp.id} value={cp.id}>{cp.name}</option>;})}</select></div>
+                      <div><p style={labelS}>Team Member</p><select value={applyMember} onChange={function(e){setApplyMember(e.target.value);}} style={Object.assign({},inputS,{width:250})}><option value="">Select member...</option>{members.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(m){return <option key={m.id} value={m.id}>{m.name} — {m.careerPath||"no path"}</option>;})}</select></div>
+                      <button disabled={!applyPath||!applyMember} onClick={function(){
+                        var cp=config.careerPaths.find(function(p){return p.id===applyPath;});
+                        if(!cp)return;
+                        setMembers(function(prev){return prev.map(function(m){
+                          if(String(m.id)!==applyMember)return m;
+                          return Object.assign({},m,{careerPath:cp.name,rates:{fdDH:cp.fdDH,sDH:cp.sDH,fdA:cp.fdA,sA:cp.sA,flat:cp.flat,drRate:m.rates.drRate||0}});
+                        });});
+                        log("PATH_ASSIGN",cp.name+" → "+members.find(function(m){return String(m.id)===applyMember;}).name);
+                        showToast("Rates applied from "+cp.name);setApplyPath("");setApplyMember("");
+                      }} className="btn-primary" style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,fontWeight:700,opacity:(!applyPath||!applyMember)?0.4:1}}>APPLY RATES</button>
+                    </div>
+                </div>
+              </div></div>}
+              {/* ── ENTITIES ── */}
+              {adminTab==="entities"&&<div className="panel"><div className="panel-hdr"><h3>Entities ({config.entities.length})</h3></div><div className="panel-body" style={{padding:14}}>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 10px",fontFamily:FM}}>Portfolio companies shown in team member entity dropdowns.</p>
+                {config.entities.map(function(ent,idx){
+                  return <div key={idx} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6}}>
+                    <input value={ent} onChange={function(e){setConfig(function(p){var n=p.entities.slice();n[idx]=e.target.value;return Object.assign({},p,{entities:n});});}} style={Object.assign({},inputS,{width:250})}/>
+                    <span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>{members.filter(function(m){return m.entity===ent;}).length} members</span>
+                    {members.filter(function(m){return m.entity===ent;}).length===0&&<button onClick={function(){setConfig(function(p){return Object.assign({},p,{entities:p.entities.filter(function(_,i){return i!==idx;})});});}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16,fontWeight:700}}>×</button>}
+                  </div>;
+                })}
+                <button onClick={function(){setConfig(function(p){return Object.assign({},p,{entities:p.entities.concat(["New Entity"])});});}} className="btn-ghost" style={{padding:"4px 12px",borderRadius:3,fontSize:12,cursor:"pointer",fontFamily:FM,marginTop:6}}>+ ADD ENTITY</button>
+              </div></div>}
+              {/* ── BUSINESS UNITS ── */}
+              {adminTab==="units"&&<div className="panel"><div className="panel-hdr"><h3>Business Units ({config.units.length})</h3></div><div className="panel-body" style={{padding:14}}>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 10px",fontFamily:FM}}>Business units with assigned badge colors.</p>
+                {function(){
+                  var colors=["blue","purple","teal","orange","gold","green","red","muted"];
+                  return <div>{config.units.map(function(u,idx){
+                    return <div key={idx} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6}}>
+                      <input value={u.name} onChange={function(e){setConfig(function(p){var n=p.units.slice();n[idx]=Object.assign({},n[idx],{name:e.target.value});return Object.assign({},p,{units:n});});}} style={Object.assign({},inputS,{width:200})}/>
+                      <select value={u.color} onChange={function(e){setConfig(function(p){var n=p.units.slice();n[idx]=Object.assign({},n[idx],{color:e.target.value});return Object.assign({},p,{units:n});});}} style={Object.assign({},inputS,{width:100})}>{colors.map(function(c){return <option key={c} value={c}>{c}</option>;})}</select>
+                      <Badge v={u.color}>{u.name}</Badge>
+                      <span style={{fontSize:11,color:C.textDim,fontFamily:FM}}>{members.filter(function(m){return m.unit===u.name;}).length}</span>
+                      {members.filter(function(m){return m.unit===u.name;}).length===0&&<button onClick={function(){setConfig(function(p){return Object.assign({},p,{units:p.units.filter(function(_,i){return i!==idx;})});});}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:16,fontWeight:700}}>×</button>}
+                    </div>;
+                  })}
+                  <button onClick={function(){setConfig(function(p){return Object.assign({},p,{units:p.units.concat([{name:"New Unit",color:"blue"}])});});}} className="btn-ghost" style={{padding:"4px 12px",borderRadius:3,fontSize:12,cursor:"pointer",fontFamily:FM,marginTop:6}}>+ ADD UNIT</button>
+                  </div>;
+                }()}
+              </div></div>}
+              {/* ── DATA MANAGEMENT ── */}
+              {adminTab==="branding"&&<div className="panel"><div className="panel-hdr"><h3>Branding & Statements</h3></div><div className="panel-body" style={{padding:14}}>
+                <p style={{fontSize:13,color:C.textMuted,margin:"0 0 12px",fontFamily:FM}}>Customize company branding, email defaults, and commission statement text.</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+                  <div><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM,display:"block",marginBottom:4}}>Company Name</label><input value={(config.branding&&config.branding.companyName)||""} onChange={function(e){setConfig(function(p){return Object.assign({},p,{branding:Object.assign({},p.branding||{},{companyName:e.target.value})});});}} style={inp} placeholder="Spark Companies™"/></div>
+                  <div><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM,display:"block",marginBottom:4}}>Email Domain</label><div style={{display:"flex",alignItems:"center",gap:4}}><span style={{color:C.textDim,fontSize:14,fontFamily:FM}}>@</span><input value={(config.branding&&config.branding.emailDomain)||""} onChange={function(e){setConfig(function(p){return Object.assign({},p,{branding:Object.assign({},p.branding||{},{emailDomain:e.target.value})});});}} style={inp} placeholder="sparkcompanies.com"/></div><p style={{fontSize:11,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>Used for auto-generating member emails (first initial + last name)</p></div>
+                </div>
+                <div style={{marginBottom:14}}><label style={{fontSize:12,color:C.textDim,fontWeight:700,fontFamily:FM,display:"block",marginBottom:4}}>Statement Footer Note</label><textarea value={(config.branding&&config.branding.statementNote)||""} onChange={function(e){setConfig(function(p){return Object.assign({},p,{branding:Object.assign({},p.branding||{},{statementNote:e.target.value})});});}} rows={3} style={Object.assign({},inp,{resize:"vertical"})} placeholder="Optional note shown at the bottom of all commission statements (e.g. payment terms, contact info)"/></div>
+                <div style={{padding:"10px 14px",background:C.bgSurface,borderRadius:6,border:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM}}>AUTO-EMAIL FORMAT</p>
+                  <p style={{fontSize:13,color:C.textMuted,margin:0,fontFamily:FM}}>When a new member is added, their email is auto-generated as: <span style={{color:C.accent,fontWeight:600}}>[first initial][last name]@{(config.branding&&config.branding.emailDomain)||"sparkcompanies.com"}</span></p>
+                  <p style={{fontSize:12,color:C.textDim,margin:"4px 0 0",fontFamily:FM}}>Example: John Smith → jsmith@{(config.branding&&config.branding.emailDomain)||"sparkcompanies.com"} · Override per-member on their profile card</p>
+                </div>
+              </div></div>}
+              {adminTab==="data"&&<div className="panel"><div className="panel-hdr"><h3>Data Management</h3></div><div className="panel-body" style={{padding:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  <div style={{padding:14,background:C.bg,borderRadius:6,border:"1px solid "+C.border}}>
+                    <p style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 4px",fontFamily:FM}}>Export Configuration</p>
+                    <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Download all settings as a JSON backup file.</p>
+                    <button onClick={function(){
+                      var json=JSON.stringify(config,null,2);
+                      dlFile(json,"SparkV7_Config_"+new Date().toISOString().slice(0,10)+".json","application/json");
+                      showToast("Config exported");
+                    }} className="btn-ghost" style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM}}>EXPORT CONFIG JSON</button>
+                  </div>
+                  <div style={{padding:14,background:C.bg,borderRadius:6,border:"1px solid "+C.border}}>
+                    <p style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 4px",fontFamily:FM}}>Import Configuration</p>
+                    <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Upload a previously exported JSON config file.</p>
+                    <input type="file" accept=".json" onChange={function(e){
+                      var f=e.target.files[0];if(!f)return;var reader=new FileReader();
+                      reader.onload=function(ev){try{var parsed=JSON.parse(ev.target.result);setConfig(function(prev){return Object.assign({},prev,parsed);});log("CONFIG_IMPORT","Imported config from "+f.name);showToast("Config imported");}catch(err){showToast("Invalid JSON file","err");}};
+                      reader.readAsText(f);
+                    }} style={{fontSize:13,fontFamily:FM,color:C.textMuted}}/>
+                  </div>
+                  <div style={{padding:14,background:C.bg,borderRadius:6,border:"1px solid "+C.border}}>
+                    <p style={{fontSize:14,fontWeight:700,color:C.text,margin:"0 0 4px",fontFamily:FM}}>Export Full Data</p>
+                    <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Download all data (members, charges, DH, config) as one JSON backup.</p>
+                    <button onClick={function(){
+                      var full={config:config,members:members,dhData:dhData,chargeWeeks:chargeWeeks,qSnapshots:qSnapshots,auditLog:auditLog.slice(-200),exportDate:new Date().toISOString()};
+                      var json=JSON.stringify(full,null,2);
+                      dlFile(json,"SparkV7_Backup_"+new Date().toISOString().slice(0,10)+".json","application/json");
+                      log("BACKUP_EXPORT","Full backup");showToast("Full backup downloaded");
+                    }} className="btn-ghost" style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM}}>EXPORT FULL BACKUP</button>
+                  </div>
+                  <div style={{padding:14,background:C.bg,borderRadius:6,border:"1px solid "+C.red+"33"}}>
+                    <p style={{fontSize:14,fontWeight:700,color:C.red,margin:"0 0 4px",fontFamily:FM}}>Reset to Defaults</p>
+                    <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Reset all settings to factory defaults. Does NOT delete team or charge data.</p>
+                    <button onClick={function(){setConfirm({msg:"Reset all settings to defaults? This won't delete team data or charge history.",fn:function(){setConfig(DEFAULT_CFG);setConfirm(null);log("CONFIG_RESET","Reset to defaults");showToast("Settings reset to defaults");}});}} style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,fontWeight:700,background:C.red+"22",border:"1px solid "+C.red,color:C.red}}>RESET SETTINGS</button>
+                  </div>
+                </div>
+                {/* Clear All Weeks */}
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>CHARGE DATA</p>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <span style={{fontSize:13,color:C.textMuted,fontFamily:FM}}>{chargeWeeks.length} week{chargeWeeks.length!==1?"s":""} loaded</span>
+                    {chargeWeeks.length>0&&<button onClick={function(){setConfirm({msg:"Delete ALL "+chargeWeeks.length+" charge weeks? This removes all commission data and cannot be undone.",fn:function(){var count=chargeWeeks.length;setChargeWeeks([]);sav(SK.weeks,[]);setSelectedWeek(null);setConfirm(null);log("CLEAR_ALL_WEEKS",count+" weeks removed");showToast(count+" charge weeks deleted");}});}} style={{padding:"4px 10px",fontSize:12,borderRadius:4,border:"1px solid "+C.red+"66",color:C.red,background:"transparent",cursor:"pointer",fontFamily:FM,fontWeight:600}}>CLEAR ALL WEEKS</button>}
+                  </div>
+                </div>
+                {/* Quarter Rollover */}
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>QUARTER ROLLOVER</p>
+                  <p style={{fontSize:12,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Snapshot current quarter YTD data before starting a new quarter. This preserves the QTD boundary so floor calculations work correctly across quarters.</p>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                    {qSnapshots.length>0&&<div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{qSnapshots.map(function(s){return <Badge key={s.qKey} v="purple">{s.qKey} ({s.members.length} members)</Badge>;})}</div>}
+                    <button onClick={function(){
+                      if(!chargeWeeks.length){showToast("No charge weeks to snapshot","err");return;}
+                      var latest=chargeWeeks[0];var we=latest.weekEnding;var q=getQ(we);var yr=new Date(we).getFullYear();
+                      var qKey="Q"+q+"-"+yr;
+                      var doSnap=function(){
+                        var snapMembers=latest.rows.filter(function(r){return r.matchedId;}).map(function(r){return{id:r.matchedId,name:r.matchedName,ytdRaw:r.ytdRaw};});
+                        setQSnapshots(function(prev){var filtered=prev.filter(function(s){return s.qKey!==qKey;});return filtered.concat([{qKey:qKey,members:snapMembers,createdAt:new Date().toISOString()}]);});
+                        log("QUARTER_SNAPSHOT",qKey);showToast(qKey+" snapshot saved");setConfirm(null);
+                      };
+                      if(qSnapshots.find(function(s){return s.qKey===qKey;})){setConfirm({msg:qKey+" snapshot already exists. Overwrite?",fn:doSnap});return;}
+                      doSnap();
+                    }} className="btn-primary" style={{padding:"6px 14px",borderRadius:4,fontSize:13,cursor:"pointer",fontFamily:FM,fontWeight:700}}>SNAPSHOT CURRENT QUARTER</button>
+                  </div>
+                </div>
+                {/* Locked Payroll Weeks */}
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>LOCKED PAYROLL WEEKS ({lockedWeeks.length})</p>
+                  {lockedWeeks.length===0&&<p style={{fontSize:13,color:C.textMuted,fontFamily:FM,margin:0}}>No weeks locked yet. Lock weeks from the Payroll tab after processing.</p>}
+                  {lockedWeeks.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6}}>{lockedWeeks.map(function(we){return <div key={we} style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",background:C.greenDim,border:"1px solid "+C.green+"33",borderRadius:4}}>
+                    <span style={{fontSize:13,fontWeight:600,color:C.green,fontFamily:FM}}>🔒 WE {we}</span>
+                    <button onClick={function(){setConfirm({msg:"Unlock WE "+we+"?\n\nThis allows the week to be edited, overwritten, or deleted.",fn:function(){setLockedWeeks(function(p){return p.filter(function(x){return x!==we;});});setConfirm(null);log("PAYROLL_UNLOCKED","WE "+we);showToast("WE "+we+" unlocked");}});}} style={{background:"none",border:"none",color:C.red,cursor:"pointer",fontSize:14,fontWeight:700,marginLeft:4}}>×</button>
+                  </div>;})}</div>}
+                </div>
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                {/* Member PIN Status */}
+                <div style={{marginBottom:14,paddingBottom:10,borderBottom:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>REP VIEW PINS</p>
+                  <p style={{fontSize:13,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Every member gets a unique 6-digit PIN auto-assigned. PINs are required to access Rep View.</p>
+                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+                    <Badge v="green">{members.filter(function(m){return m.pin&&!m.inactive;}).length} active with PIN</Badge>
+                    {members.filter(function(m){return!m.pin&&!m.inactive;}).length>0&&<Badge v="orange">{members.filter(function(m){return!m.pin&&!m.inactive;}).length} missing PIN</Badge>}
+                  </div>
+                  {members.filter(function(m){return!m.pin&&!m.inactive;}).length>0&&<div style={{padding:"8px 12px",background:C.orangeDim,borderRadius:6,border:"1px solid "+C.orange+"33",marginBottom:8}}>
+                    <p style={{fontSize:12,fontWeight:600,color:C.orange,margin:"0 0 4px",fontFamily:FM}}>Members without a PIN can't access Rep View:</p>
+                    <p style={{fontSize:12,color:C.textMuted,margin:0,fontFamily:FM}}>{members.filter(function(m){return!m.pin&&!m.inactive;}).map(function(m){return m.name;}).join(", ")}</p>
+                  </div>}
+                  <button onClick={function(){
+                    var noPins=members.filter(function(m){return!m.pin&&!m.inactive;});
+                    if(!noPins.length){showToast("All active members already have PINs");return;}
+                    setConfirm({msg:"Auto-generate unique 6-digit PINs for "+noPins.length+" members who don't have one?\n\nExisting PINs won't be changed. All new PINs are guaranteed unique.",fn:function(){
+                      setMembers(function(prev){
+                        var updated=prev.slice();
+                        updated.forEach(function(m,i){
+                          if(m.pin||m.inactive)return;
+                          updated[i]=Object.assign({},m,{pin:genPin(updated)});
+                        });
+                        return updated;
+                      });
+                      setConfirm(null);log("PINS_GENERATED",noPins.length+" PINs auto-generated");showToast(noPins.length+" PINs generated");
+                    }});
+                  }} className="btn-ghost" style={{padding:"5px 12px",borderRadius:6,fontSize:12,fontFamily:FM,fontWeight:600,cursor:"pointer"}}>Fill Missing PINs</button>
+                  <button onClick={function(){
+                    setConfirm({msg:"Regenerate ALL PINs for all "+members.filter(function(m){return!m.inactive;}).length+" active members?\n\nThis will replace every existing PIN with a new unique 6-digit code. You'll need to redistribute PINs to the team.",fn:function(){
+                      setMembers(function(prev){
+                        var updated=prev.map(function(m){return Object.assign({},m,{pin:""});});
+                        updated.forEach(function(m,i){if(!m.inactive){updated[i]=Object.assign({},m,{pin:genPin(updated)});}});
+                        return updated;
+                      });
+                      setConfirm(null);log("PINS_REGENERATED_ALL","All PINs reset");showToast("All PINs regenerated");
+                    }});
+                  }} className="btn-ghost" style={{padding:"5px 12px",borderRadius:6,fontSize:12,fontFamily:FM,fontWeight:600,cursor:"pointer"}}>Regenerate All PINs</button>
+                  <button onClick={function(){
+                    var pinned=members.filter(function(m){return m.pin&&!m.inactive;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+                    if(!pinned.length){showToast("No PINs set yet","err");return;}
+                    var lines=pinned.map(function(m){return m.name+": "+m.pin;}).join("\n");
+                    showExport("Rep View PINs",lines);
+                  }} className="btn-ghost" style={{padding:"5px 12px",borderRadius:6,fontSize:12,fontFamily:FM,fontWeight:600,cursor:"pointer",marginLeft:6}}>Print PIN List</button>
+                </div>
+                {/* Admin PIN */}
+                <div style={{marginBottom:14,paddingBottom:10,borderBottom:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>ADMIN ACCESS PIN</p>
+                  <p style={{fontSize:13,color:C.textMuted,margin:"0 0 8px",fontFamily:FM}}>Set a PIN to protect admin access. Recruiters in Rep View will need this PIN to switch to admin.</p>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <input type="text" value={config.adminPin||""} onChange={function(e){setConfig(function(p){return Object.assign({},p,{adminPin:e.target.value});});}} placeholder="No PIN set" style={{padding:"6px 12px",fontSize:14,borderRadius:6,fontFamily:FM,background:C.bgInput,border:"1px solid "+C.border,color:C.text,width:160}} maxLength={8}/>
+                    {config.adminPin?<Badge v="green">PIN Active</Badge>:<Badge v="muted">Open</Badge>}
+                    {config.adminPin&&<button onClick={function(){setConfig(function(p){return Object.assign({},p,{adminPin:""});});showToast("PIN removed");}} style={{padding:"4px 10px",fontSize:12,borderRadius:4,border:"1px solid "+C.red+"44",color:C.red,background:"transparent",fontFamily:FM,cursor:"pointer"}}>Remove</button>}
+                  </div>
+                </div>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>STORAGE OVERVIEW</p>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+                    <Stat l="Members" v={members.length}/><Stat l="Charge Weeks" v={chargeWeeks.length} c={C.blue}/><Stat l="DH Deals" v={dhData.length} c={C.teal}/><Stat l="Audit Events" v={auditLog.length} c={C.purple}/>
+                  </div>
+                </div>
+                {/* Backup & Restore */}
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.border}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textDim,margin:"0 0 8px",fontFamily:FM,letterSpacing:".5px"}}>BACKUP & RESTORE</p>
+                  <p style={{fontSize:13,color:C.textMuted,margin:"0 0 10px",fontFamily:FM}}>Export all data as a JSON file for backup or transfer to another device. Import to restore.</p>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={function(){
+                      var backup={version:"SparkV7",exportedAt:new Date().toISOString(),members:members,dhData:dhData,chargeWeeks:chargeWeeks,lockedWeeks:lockedWeeks,auditLog:auditLog.slice(-500),qSnapshots:qSnapshots,config:config};
+                      var json=JSON.stringify(backup,null,2);
+                      dlFile(json,"SparkV7_Backup_"+new Date().toISOString().slice(0,10)+".json","application/json");
+                      log("BACKUP_EXPORT","Full backup");showToast("Backup downloaded");
+                    }} className="btn-primary" style={{padding:"6px 14px",borderRadius:6,fontSize:13,fontFamily:FM,fontWeight:700}}>EXPORT BACKUP</button>
+                    <label style={{padding:"6px 14px",borderRadius:6,fontSize:13,fontFamily:FM,fontWeight:700,border:"1px solid "+C.border,color:C.text,cursor:"pointer",background:C.bgCard,display:"inline-block"}}>
+                      IMPORT BACKUP
+                      <input type="file" accept=".json,.txt" style={{display:"none"}} onChange={function(e){
+                        var f=e.target.files&&e.target.files[0];if(!f)return;
+                        var reader=new FileReader();reader.onload=function(ev){
+                          try{
+                            var data=JSON.parse(ev.target.result);
+                            if(!data.version||!data.members){showToast("Invalid backup file","err");return;}
+                            setConfirm({msg:"Restore backup from "+new Date(data.exportedAt).toLocaleString()+"?\n\n"+data.members.length+" members, "+(data.chargeWeeks||[]).length+" charge weeks, "+(data.dhData||[]).length+" DH deals\n\nThis will REPLACE all current data.",fn:function(){
+                              if(data.members)setMembers(data.members);
+                              if(data.dhData)setDhData(data.dhData);
+                              if(data.chargeWeeks)setChargeWeeks(data.chargeWeeks);
+                              if(data.lockedWeeks)setLockedWeeks(data.lockedWeeks);
+                              if(data.auditLog)setAuditLog(data.auditLog);
+                              if(data.qSnapshots)setQSnapshots(data.qSnapshots);
+                              if(data.config)setConfig(function(prev){return Object.assign({},prev,data.config);});
+                              setConfirm(null);log("BACKUP_RESTORE","From "+data.exportedAt);showToast("Backup restored");
+                            }});
+                          }catch(err){showToast("Failed to parse: "+err.message,"err");}
+                        };reader.readAsText(f);e.target.value="";
+                      }}/>
+                    </label>
+                  </div>
+                </div>
+                {/* Danger Zone */}
+                <div style={{marginTop:14,paddingTop:10,borderTop:"1px solid "+C.red+"22"}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.red,margin:"0 0 6px",fontFamily:FM,letterSpacing:".5px"}}>DANGER ZONE</p>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={function(){setConfirm({msg:"Clear ALL "+chargeWeeks.length+" charge weeks?\n\nThis removes all imported charge data and commission calculations. Cannot be undone.",fn:function(){var ct=chargeWeeks.length;setChargeWeeks([]);sav(SK.weeks,[]);setSelectedWeek(null);setConfirm(null);log("CLEAR_ALL_WEEKS",ct+" weeks");showToast(ct+" charge weeks cleared");}});}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,fontFamily:FM,fontWeight:600,border:"1px solid "+C.red+"44",color:C.red,background:"transparent"}}>Clear All Charge Weeks</button>
+                    <button onClick={function(){setConfirm({msg:"FACTORY RESET — Delete ALL data?\n\nMembers, charge weeks, DH deals, audit history, settings — everything.\n\nExport a backup first!",fn:function(){
+                      // Explicitly write empty to all storage keys FIRST
+                      sav(SK.members,[]);sav(SK.dh,[]);sav(SK.weeks,[]);sav(SK.locked,[]);sav(SK.audit,[]);sav(SK.qsnap,[]);sav(SK.config,DEFAULT_CFG);sav(SK.dhsync,"");sav(SK.overrides,{});
+                      // Then clear React state
+                      setMembers([]);setDhData([]);setChargeWeeks([]);setLockedWeeks([]);setAuditLog([]);setQSnapshots({});setConfig(DEFAULT_CFG);setDhLastSync(null);setPayrollOverrides({});
+                      setConfirm(null);showToast("All data cleared — reload to start fresh");
+                    }});}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,fontFamily:FM,fontWeight:600,border:"1px solid "+C.red+"44",color:C.red,background:"transparent"}}>Factory Reset</button>
+                  </div>
+                </div>
+              </div></div>}
+            </div>;
+          }()}
+        </div>}
+      </div>
     </div>
-    <div style={{ fontSize: 10, color: "#cbd5e1", marginTop: 12, paddingTop: 10, borderTop: "1px solid #f0f0f0", lineHeight: 1.5 }}>Note: progress data is gathered from completion events shared across the team. New users won't appear until they complete their first step.</div>
-  </div>);
-})()}</div></Reveal>)}
-{/* Subject Cards */}
-<div style={{ display: "grid", gridTemplateColumns: mob ? "1fr" : "1fr 1fr", gap: 16 }}>{filteredSections.map((section, si) => { const c = secColors[section._idx % secColors.length]; const prog = getSubjectProgress(section); const isAssigned = section.assignedGroups?.includes(userGroup); return (<Reveal key={section._idx} delay={si * 0.04}><div style={{ background: "#fff", border: "1px solid #eee", borderRadius: 10, overflow: "hidden", cursor: "pointer" }} onMouseOver={e => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }} onMouseOut={e => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}><div style={{ height: 3, background: c }} /><div style={{ padding: mob ? "16px 16px 18px" : "20px 22px 22px" }}><div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}><div style={{ width: 44, height: 44, borderRadius: 12, background: c + "10", display: "flex", alignItems: "center", justifyContent: "center" }}><I name={section.icon} size={20} color={c} /></div><div style={{ flex: 1 }}><div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><span style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e" }}>{section.cat}</span>{isAssigned && <span style={{ fontSize: 9, fontWeight: 700, color: "#059669", background: "#ecfdf5", padding: "3px 8px", borderRadius: 6 }}>REQUIRED</span>}{section._type === "custom" && <span style={{ fontSize: 9, fontWeight: 700, color: "#7c3aed", background: "#f5f3ff", padding: "3px 8px", borderRadius: 6 }}>CUSTOM</span>}</div><div style={{ fontSize: 13, color: "#94a3b8", marginTop: 3 }}>{section.items.length} topic{section.items.length !== 1 ? "s" : ""} · {prog.total} steps</div></div>{prog.pct === 100 && <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><I name="check" size={14} color="#fff" sw={2.5} /></div>}</div><div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}><div style={{ flex: 1, height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: Math.max(prog.pct, 0) + "%", background: prog.pct === 100 ? "#059669" : c, borderRadius: 3, transition: "width 0.4s" }} /></div><span style={{ fontSize: 13, fontWeight: 700, color: prog.pct === 100 ? "#059669" : prog.pct > 0 ? c : "#cbd5e1" }}>{prog.pct}%</span></div><div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 16 }}>{section.items.slice(0, 4).map((item, ii) => { const steps = getSteps(item); const done = steps.filter((_, idx) => isStepDone(section._idx, ii, idx)).length; const allDone = done === steps.length && steps.length > 0; return (<button key={ii} onClick={() => { if (steps.length > 0) { setActiveCourse({ sectionIdx: section._idx, itemIdx: ii }); setActiveStep(0); setQuizState({idx:0,answers:[],score:null,active:false}); } else if (item.url) window.open(item.url,"_blank"); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", background: allDone ? "#f0fdf4" : "transparent", border: "none", borderRadius: 8, cursor: "pointer", textAlign: "left", color: "#1a1a2e", width: "100%" }} onMouseOver={e => { if(!allDone) e.currentTarget.style.background = "#f8fafc"; }} onMouseOut={e => { if(!allDone) e.currentTarget.style.background = "transparent"; }}><div style={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: allDone ? "#059669" : "#f1f5f9", border: allDone ? "none" : "1.5px solid #e2e8f0" }}>{allDone ? <I name="check" size={12} color="#fff" sw={2.5} /> : <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}>{ii + 1}</span>}</div><span style={{ fontSize: 13, fontWeight: 500, color: allDone ? "#059669" : "#475569", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: allDone ? "line-through" : "none" }}>{item.name}</span>{steps.length > 0 && <span style={{ fontSize: 11, color: "#cbd5e1" }}>{done}/{steps.length}</span>}</button>); })}{section.items.length > 4 && <div style={{ fontSize: 12, color: "#94a3b8", paddingLeft: 42 }}>+{section.items.length - 4} more</div>}</div><button onClick={() => { const fi = section.items.findIndex(it => getSteps(it).length > 0); if (fi >= 0) { setActiveCourse({ sectionIdx: section._idx, itemIdx: fi }); setActiveStep(0); } }} style={{ width: "100%", background: prog.pct === 100 ? "#f0fdf4" : c + "0c", border: "1px solid " + (prog.pct === 100 ? "#bbf7d0" : c + "20"), color: prog.pct === 100 ? "#059669" : c, padding: "11px 0", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>{prog.pct > 0 && prog.pct < 100 ? "Continue" : prog.pct === 100 ? "Review" : "Start Subject"} <I name="chevRight" size={14} color={prog.pct === 100 ? "#059669" : c} /></button></div></div></Reveal>); })}</div>
-</div>);
-}
-
-function TeamPage({ w }) {
-const mob = w < 768;
-const [selectedPerson, setSelectedPerson] = useState(null);
-const [searchTerm, setSearchTerm] = useState("");
-const [expandedNodes, setExpandedNodes] = useState({"aaron":true,"dave":true,"allie":true});
-const [viewMode, setViewMode] = useState("chart");
-const [hoverNode, setHoverNode] = useState(null);
-const toggle = id => setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
-
-const ORG = {
-id:"aaron",name:"Aaron Opalewski",title:"Chief Executive Officer",entity:"Spark Companies",email:"aopalewski@sparkcompanies.com",phone:"(586) 864-3746",color:"#FFD200",
-children:[
-{id:"dave",name:"Dave Veres",title:"Executive VP / COO",entity:"Spark Companies",email:"dveres@sparkcompanies.com",color:"#FF6B35",tag:"EXECUTIVE",children:[
-{id:"jamie",name:"Jamie Platt",title:"Director — MI Metro",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO",children:[
-{id:"chuck",name:"Chuck Chesner",title:"Sr. Sales Executive — PC",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"aidan",name:"Aidan Juengel",title:"Executive Recruiter",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"alec",name:"Alec Czartoyski",title:"ARM Level II",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"benjamin",name:"Benjamin Ockerman",title:"Recruiter",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"charles",name:"Charles Hemstrom",title:"ARM Level II",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"cj",name:"CJ Olaniyan",title:"ARM Level II",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"colin",name:"Colin Clancy",title:"Account Recruiting Executive",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"robert",name:"Robert Laing",title:"Sr. ARE",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"anja",name:"Anja Domazet",title:"Sr. ARE — PC",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-{id:"scott_t",name:"Scott Tanghe",title:"Recruiter",entity:"Spark Talent",color:"#FFD200",tag:"MI METRO"},
-]},
-{id:"fletcher",name:"Fletcher Kundtz",title:"Director — Technical Sales",entity:"Spark Talent",color:"#E84393",tag:"TALENT",children:[{id:"aron",name:"Aron Carroll",title:"Sr. ARE",entity:"Spark Talent",color:"#E84393",tag:"TALENT"}]},
-{id:"kristinv",name:"Kristin Voyer",title:"Sr. Director — Enterprise",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE",children:[
-{id:"kristins",name:"Kristin Scarth",title:"Sr. Director",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"claire",name:"Claire Woodrow",title:"ARM Level II",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"sam",name:"Samantha Webb",title:"Technical ARE",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"sara_w",name:"Sara Woods",title:"ARM Level II",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"ian",name:"Ian Shiemke",title:"ARM Level II",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"theresa",name:"Theresa Ferencz",title:"Sr. Recruiter",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"brittney",name:"Brittney Bowman",title:"ARM Level II",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-{id:"samantha_b",name:"Samantha Ban",title:"Technical Recruiter II",entity:"Spark Talent",color:"#7C5CFC",tag:"ENTERPRISE"},
-]},
-{id:"ryan",name:"Ryan Aymen",title:"VP — ARM",entity:"Spark Talent",email:"raymen@sparkcompanies.com",color:"#4ECDC4",tag:"AUTOMATION",children:[
-{id:"jennifer",name:"Jennifer Shy",title:"ARM Level II",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION",children:[{id:"anthony",name:"Anthony Caucci",title:"Recruiter",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION"},{id:"chris_b",name:"Chris Bull",title:"Recruiter",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION"},{id:"corsean",name:"Cor'sean Woodard",title:"Recruiter",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION"}]},
-{id:"julie",name:"Julie Rinaldi",title:"President — Flex",entity:"Flex Workforce Solutions",color:"#4ECDC4",tag:"FLEX",children:[{id:"nathan",name:"Nathan Edmiston",title:"Sr. Technical Recruiter",entity:"Flex Workforce Solutions",color:"#4ECDC4",tag:"FLEX"}]},
-{id:"christina",name:"Christina Getz",title:"Sr. Recruiter",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION"},
-{id:"nick",name:"Nick Greenfelder",title:"ARM Level I",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION"},
-{id:"sean",name:"Sean Casey",title:"ARM — PC",entity:"Spark Talent",color:"#4ECDC4",tag:"AUTOMATION"},
-]},
-{id:"jacob_p",name:"Jacob Patrico",title:"Sr. Director — Fulfillment",entity:"Spark Talent",color:"#FF6B35",tag:"FULFILLMENT",children:[
-{id:"jacob_r",name:"Jacob Roux",title:"VMS ARM",entity:"Spark Talent",color:"#FF6B35",tag:"FULFILLMENT"},
-{id:"luke",name:"Luke Oliver",title:"Sr. Recruiter",entity:"Spark Talent",color:"#FF6B35",tag:"FULFILLMENT"},
-{id:"brandon",name:"Brandon Shrewsberry",title:"Sr. Recruiter",entity:"Spark Talent",color:"#FF6B35",tag:"FULFILLMENT"},
-{id:"jamie_b",name:"Jamie Bell",title:"Executive Recruiter",entity:"Spark Talent",color:"#FF6B35",tag:"FULFILLMENT"},
-{id:"kade",name:"Kade Manzo",title:"Recruiter",entity:"Spark Talent",color:"#FF6B35",tag:"FULFILLMENT"},
-]},
-{id:"darrell",name:"Darrell Templeton",title:"Sr. Director — National",entity:"Spark Talent",color:"#E84393",tag:"NATIONAL",children:[{id:"sarah_k",name:"Sarah Keel",title:"ARE",entity:"Spark Talent",color:"#E84393",tag:"NATIONAL"}]},
-{id:"lauren",name:"Lauren Camill",title:"BD Lead",entity:"Spark Companies",color:"#FF3366",tag:"BD"},
-{id:"kevin",name:"Kevin MacKillop",title:"Sr. Director — BD",entity:"Ignite Search",color:"#FF3366",tag:"IGNITE",children:[{id:"carlin",name:"Carlin McCrimmon",title:"Account Executive",entity:"Ignite Search",color:"#FF3366",tag:"IGNITE"}]},
-{id:"jenny",name:"Jennifer Neuenfeldt",title:"Sr. Talent Advisor",entity:"John Joseph Partners",color:"#9b59b6",tag:"JJP"},
-]},
-{id:"allie",name:"Allie Spegel",title:"VP of Operations",entity:"Spark Companies",email:"aspegel@sparkcompanies.com",phone:"(248) 632-3560",color:"#4ECDC4",tag:"BACK OFFICE",children:[
-{id:"priyanka",name:"Priyanka Malani",title:"Payroll Manager",entity:"Spark Companies",email:"pmalani@sparkcompanies.com",color:"#2ecc71",tag:"PAYROLL"},
-{id:"erica",name:"Erica Ursitti",title:"Payroll Specialist",entity:"Spark Companies",color:"#2ecc71",tag:"PAYROLL"},
-{id:"tamika",name:"Tamika Coleman",title:"HR Lead",entity:"Spark Companies",email:"tcoleman@sparkcompanies.com",color:"#FF3366",tag:"HR"},
-{id:"maryam",name:"Maryam Odeesh",title:"HR Generalist",entity:"Spark Companies",color:"#FF3366",tag:"HR"},
-{id:"mary",name:"Mary Patrico",title:"Sr. Operations Manager",entity:"Spark Companies",email:"mpatrico@sparkcompanies.com",color:"#FF6B35",tag:"OPS"},
-{id:"chad",name:"Chad Opalewski",title:"Data Analyst",entity:"Spark Companies",color:"#7C5CFC",tag:"OPS"},
-{id:"anna",name:"Anna Opalewski",title:"Operations Manager",entity:"Spark Companies",color:"#FF6B35",tag:"OPS"},
-{id:"bedros",name:"Bedros Naama",title:"AR Specialist",entity:"Spark Companies",color:"#FF6B35",tag:"ACCOUNTING"},
-]},
-]};
-
-const flat = []; const walkTree = (node, parent = null, depth = 0) => { flat.push({ ...node, _parent: parent, _depth: depth }); if (node.children) node.children.forEach(c => walkTree(c, node, depth + 1)); }; walkTree(ORG);
-const totalPeople = flat.length;
-const countAll = (node) => { let c = 0; if (node.children) { c = node.children.length; node.children.forEach(ch => c += countAll(ch)); } return c; };
-const searchResults = searchTerm.length>1 ? flat.filter(p=> p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.title.toLowerCase().includes(searchTerm.toLowerCase())) : [];
-
-const OrgCard = ({ person, depth = 0 }) => {
-const hasKids = person.children && person.children.length > 0;
-const isExpanded = expandedNodes[person.id]; const isSelected = selectedPerson?.id === person.id;
-const initials = person.name.split(" ").map(n => n[0]).join("").slice(0,2);
-const c = person.color; const avSz = depth===0?52:depth===1?44:depth===2?38:32;
-const mL = mob ? Math.min(depth*20,60) : Math.min(depth*32,160);
-return (<div><div onClick={()=>setSelectedPerson(isSelected?null:person)} onMouseOver={()=>setHoverNode(person.id)} onMouseOut={()=>setHoverNode(null)} style={{ display:"flex", alignItems:"center", gap:mob?10:14, padding:mob?"10px 12px":depth<=1?"14px 18px":"10px 14px", cursor:"pointer", marginBottom:2, marginLeft:mL, background:isSelected?c+"14":hoverNode===person.id?"#f8f8f8":"transparent", border:"1px solid "+(isSelected?c+"35":"transparent"), borderRadius:12 }}><div style={{width:avSz,height:avSz,borderRadius:depth<=1?14:"50%",flexShrink:0,background:depth===0?c:c+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:avSz*0.3,fontWeight:800,color:depth===0?"#f7f7f5":c}}>{initials}</div><div style={{ flex:1 }}><div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}><span style={{ fontSize:depth<=1?15:13, fontWeight:depth<=1?800:600, color:"#1a1a2e" }}>{person.name}</span>{person.tag && depth>0 && <span style={{ fontSize:8, fontWeight:800, color:c, background:c+"12", padding:"2px 7px", borderRadius:4 }}>{person.tag}</span>}</div><div style={{ fontSize:Math.max(10,12-depth), color:"#94a3b8", marginTop:2 }}>{person.title}</div></div>{hasKids && (<button onClick={e=>{e.stopPropagation();toggle(person.id);}} style={{ background:isExpanded?c+"15":"#f5f5f5", border:"1px solid "+(isExpanded?c+"25":"#f0f0f0"), borderRadius:8, minWidth:32, height:28, display:"flex", alignItems:"center", justifyContent:"center", gap:4, cursor:"pointer", color:isExpanded?c:"#94a3b8", fontSize:10, fontWeight:700, padding:"0 8px" }}><span>{countAll(person)}</span><I name={isExpanded?"chevUp":"chevDown"} size={10} /></button>)}</div>
-{isSelected && person.email && (<div style={{ marginLeft:mL+32, padding:"10px 16px", marginBottom:6, background:c+"08", borderRadius:"0 0 12px 12px" }}><div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>{person.email && <a href={`mailto:${person.email}`} style={{ fontSize:11, color:c, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:4, background:c+"08", padding:"4px 10px", borderRadius:6 }}><I name="mail" size={11} color={c} /> {person.email}</a>}{person.phone && <a href={`tel:${person.phone}`} style={{ fontSize:11, color:"#FF6B35", textDecoration:"none", display:"inline-flex", alignItems:"center", gap:4, background:"rgba(255,107,53,0.08)", padding:"4px 10px", borderRadius:6 }}><I name="phone" size={11} color="#FF6B35" /> {person.phone}</a>}</div></div>)}
-{hasKids && isExpanded && (<div style={{ borderLeft:"2px solid "+c+"12", marginLeft:mL+(mob?16:25), paddingTop:2 }}>{person.children.map(child=><OrgCard key={child.id} person={child} depth={depth+1} />)}</div>)}
-</div>);
-};
-
-return (<div style={{ padding:mob?"24px 14px 40px":"36px 36px 50px", maxWidth:1100, margin:"0 auto" }}>
-<div style={{ marginBottom:28 }}><h2 style={{ fontSize:mob?22:28, fontWeight:700, color:"#1a1a2e", margin:0 }}>People</h2><div style={{ fontSize:13, color:"#94a3b8", marginTop:4 }}>{totalPeople} team members across Spark Companies</div></div>
-<div style={{ marginBottom:16, position:"relative", zIndex:20 }}><div style={{ display:"flex", alignItems:"center", gap:10, background:"#f8f8f8", border:"1px solid #eee", borderRadius:searchResults.length>0?"12px 12px 0 0":12, padding:"12px 16px" }}><I name="search" size={16} color="#cbd5e1" /><input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Search name or title..." style={{ background:"none", border:"none", color:"#1a1a2e", fontSize:13, flex:1, outline:"none", fontFamily:"inherit" }} />{searchTerm && <button onClick={()=>setSearchTerm("")} style={{ background:"#f0f0f0", border:"none", color:"#94a3b8", cursor:"pointer", padding:"4px 8px", borderRadius:6, fontSize:10 }}>Clear</button>}</div>{searchResults.length>0 && (<div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1px solid #eee", borderTop:"none", borderRadius:"0 0 12px 12px", maxHeight:280, overflow:"auto" }}>{searchResults.map(p=>(<button key={p.id} onClick={()=>{setSelectedPerson(p);setSearchTerm("");}} style={{ width:"100%", background:"transparent", border:"none", borderBottom:"1px solid #f8f8f8", color:"#1a1a2e", padding:"10px 14px", cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12 }}><div style={{ width:32, height:32, borderRadius:10, background:p.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800, color:p.color }}>{p.name.split(" ").map(n=>n[0]).join("").slice(0,2)}</div><div style={{flex:1}}><div style={{fontSize:12,fontWeight:700}}>{p.name}</div><div style={{fontSize:10,color:"#b0b8c4"}}>{p.title}</div></div></button>))}</div>)}</div>
-<div style={{ display:"flex", gap:6, marginBottom:12 }}>{[{v:"chart",icon:"layers",label:"Org Chart"},{v:"directory",icon:"grid",label:"Directory"}].map(m=>(<button key={m.v} onClick={()=>setViewMode(m.v)} style={{ background:viewMode===m.v?Y+"10":"#f5f5f5", border:"1px solid "+(viewMode===m.v?Y+"20":"#f0f0f0"), color:viewMode===m.v?Y:"#94a3b8", padding:"8px 16px", cursor:"pointer", fontSize:11, fontWeight:700, display:"flex", alignItems:"center", gap:6, borderRadius:8 }}><I name={m.icon} size={13} />{m.label}</button>))}</div>
-{viewMode==="chart" && (<Card style={{ padding:mob?10:16, overflow:"auto", background:"#fafafa" }}><OrgCard person={ORG} depth={0} /></Card>)}
-{viewMode==="directory" && (<div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"repeat(3,1fr)", gap:10 }}>{flat.sort((a,b)=>(a._depth||0)-(b._depth||0)).map((person,i)=>{ const c=person.color; const initials=person.name.split(" ").map(n=>n[0]).join("").slice(0,2); return (<Reveal key={person.id} delay={Math.min(i*0.02,0.4)}><div onClick={()=>setSelectedPerson(selectedPerson?.id===person.id?null:person)} style={{ background:selectedPerson?.id===person.id?c+"12":GLASS, border:"1px solid "+(selectedPerson?.id===person.id?c+"30":BORDER), borderRadius:14, padding:16, cursor:"pointer" }}><div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:c, opacity:0.5 }} /><div style={{ display:"flex", gap:12 }}><div style={{ width:40, height:40, borderRadius:12, background:c+"25", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:800, color:c }}>{initials}</div><div><div style={{fontSize:13,fontWeight:700,color:"#1a1a2e"}}>{person.name}</div><div style={{fontSize:10,color:"#94a3b8"}}>{person.title}</div>{person.tag&&<span style={{fontSize:8,fontWeight:800,color:c,background:c+"12",padding:"2px 6px",borderRadius:4}}>{person.tag}</span>}</div></div>{selectedPerson?.id===person.id && person.email && (<div style={{marginTop:12,paddingTop:10,borderTop:"1px solid "+c+"15"}}><a href={"mailto:"+person.email} onClick={e=>e.stopPropagation()} style={{fontSize:10,color:c,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:3,background:c+"08",padding:"3px 8px",borderRadius:5}}><I name="mail" size={10} color={c} /> {person.email}</a></div>)}</div></Reveal>); })}</div>)}
-<div style={{ marginTop:36 }}><div style={{ fontSize:10, fontWeight:800, letterSpacing:2, color:Y, marginBottom:12, textTransform:"uppercase" }}>Division Profiles</div><div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"1fr 1fr", gap:10 }}>{DIVISIONS.map((d,i)=>(<Reveal key={i} delay={i*0.04}><Card style={{ borderLeft:"3px solid "+d.color }}><div style={{fontSize:14,fontWeight:800,marginBottom:4}}>{d.name}</div><div style={{fontSize:11,color:"#94a3b8",lineHeight:1.5,marginBottom:8}}>{d.desc}</div><div style={{display:"flex",gap:12,fontSize:10,color:"#cbd5e1"}}><span>Est. {d.founded}</span><a href={d.url} target="_blank" rel="noopener noreferrer" style={{color:d.color,textDecoration:"none",fontWeight:700}}>Visit <I name="ext" size={8} color={d.color} /></a></div></Card></Reveal>))}</div></div>
-</div>);
-}
-
-/* ────── MAIN APP ────── */
-
-const THEME_VARS = {
-dark: {"--bg":"#0c0a06","--text":"#fff"},
-light: {"--bg":"#f5f5f0","--text":"#1a1a2e"},
-};
-
-export default function SparkTeamSite() {
-const [tab, setTab] = useState("home");
-const [dark, setDark] = useState(false);
-const w = useW();
-useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [tab]);
-useEffect(() => { const tryLoad = async () => { try { const r = await window.storage.get("spark-hq-theme"); if (r && r.value) setDark(r.value === "dark"); } catch(e){} }; if (window.storage) tryLoad(); }, []);
-const toggleTheme = async () => { const nd = !dark; setDark(nd); try { if (window.storage) await window.storage.set("spark-hq-theme", nd ? "dark" : "light"); } catch(e){} };
-const themeVars = dark ? THEME_VARS.dark : THEME_VARS.light;
-const renderPage = () => { switch (tab) { case "home": return <HomePage setTab={setTab} w={w} />; case "standard": return <SparkStandardPage w={w} />; case "careers": return <CareerPage w={w} />; case "training": return <TrainingPage w={w} setTab={setTab} />; case "tools": return <ToolsPage w={w} />; case "team": return <TeamPage w={w} />; case "sops": return <SOPsPage w={w} />; case "docs": return <DocumentsPage w={w} />; case "performance": return <PerformancePage w={w} />; default: return <HomePage setTab={setTab} w={w} />; } };
-const mob = w < 900;
-return (<ThemeCtx.Provider value={{ dark, toggle: toggleTheme }}><div style={{ minHeight: "100vh", paddingTop: 56, paddingLeft: mob ? 0 : 240, background: dark ? "#0c0a06" : "#f5f5f0", color: dark ? "#fff" : "#1a1a2e", transition: "background 0.3s, color 0.3s", ...themeVars }}><Navbar tab={tab} setTab={setTab} w={w} /><div style={{ maxWidth: 1000, margin: "0 auto", padding: mob ? "0" : "0 16px" }}>{renderPage()}</div><footer style={{ borderTop: "2px solid transparent", borderImage: "linear-gradient(90deg, #fbbf24, #4ecdc4, #7c5cfc) 1", padding: "24px 20px", textAlign: "center" }}><div style={{ fontSize: 11, color: "#94a3b8" }}>{"©"} 2026 Spark Companies{"™"} · 901 Wilshire Dr., Suite 585, Troy, MI 48084 · (586) 930-5000</div></footer></div></ThemeCtx.Provider>);
+    {/* ════════ COMMISSION STATEMENT OVERLAY ════════ */}
+    {stmtMember&&payrollWeek&&function(){
+      var stmtList=stmtMember==="ALL"?payrollData.filter(function(r){return r.total>0||r.contractComm>0;}):payrollData.filter(function(r){return r.name===stmtMember;});
+      var buildStmtHTML=function(r){
+        var m=members.find(function(x){return x.name===r.name;});
+        var weekRow=payrollWeek?payrollWeek.rows.find(function(x){return(x.matchedName||x.name)===r.name;}):null;
+        var fi=r.floorInfo;
+        var html='<div style="margin-bottom:24px;page-break-after:always;font-family:Arial,sans-serif;color:#1a1a2e">';
+        // Header
+        html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:10px;border-bottom:3px solid #FFD700">';
+        html+='<div><div style="font-size:22px;font-weight:800">'+r.name+'</div><div style="font-size:13px;color:#666;margin-top:2px">'+(m?m.careerPath:"")+(m?" · "+m.entity:"")+(m?" · "+m.unit:"")+'</div></div>';
+        html+='<div style="text-align:right"><div style="font-size:11px;color:#999;letter-spacing:1px;font-weight:700">WEEK ENDING</div><div style="font-size:18px;font-weight:800;margin-top:2px">'+payrollWeek.weekEnding+'</div></div></div>';
+        // Floor status
+        var floorBg=fi&&!fi.belowFloor?"#e8f5e9":"#fff3e0";var floorBorder=fi&&!fi.belowFloor?"#a5d6a7":"#ffe0b2";var floorColor=fi&&!fi.belowFloor?"#2e7d32":"#e65100";
+        html+='<div style="display:flex;gap:12px;margin-bottom:14px;padding:10px 14px;background:'+floorBg+';border-radius:6px;border:1px solid '+floorBorder+'">';
+        html+='<div style="flex:1"><div style="font-size:11px;color:#666;font-weight:700">QTD RAW</div><div style="font-size:18px;font-weight:800;color:'+floorColor+';margin-top:2px">'+(fi?fmtD(fi.qtd):"--")+'</div></div>';
+        html+='<div style="flex:1"><div style="font-size:11px;color:#666;font-weight:700">YTD RAW</div><div style="font-size:18px;font-weight:800;color:#1a1a2e;margin-top:2px">'+(fi?fmtD(fi.ytd):"--")+'</div></div>';
+        html+='<div style="flex:1"><div style="font-size:11px;color:#666;font-weight:700">FLOOR STATUS</div><div style="font-size:14px;font-weight:700;color:'+floorColor+';margin-top:4px">'+(fi?(fi.belowFloor?"Below $25K Floor":fi.ytd>=FLOOR_ANNUAL?"$100K Tier Unlocked":"Above Tier"):"--")+'</div></div></div>';
+        // Contract commission
+        if(r.contractComm>0){
+          html+='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#1565c0;margin-bottom:6px;letter-spacing:.5px">CONTRACT COMMISSION · Rate: '+r.rate+'</div>';
+          html+='<table style="width:100%;border-collapse:collapse;border:1px solid #e0e0e0"><thead><tr style="background:#f5f5f5"><th style="padding:6px 10px;text-align:left;font-size:12px;color:#666;font-weight:700">Charge Type</th><th style="padding:6px 10px;text-align:right;font-size:12px;color:#666;font-weight:700">Detail</th><th style="padding:6px 10px;text-align:right;font-size:12px;color:#666;font-weight:700">Commission</th></tr></thead><tbody>';
+          r.steps.filter(function(s){return s.a>0;}).forEach(function(s){html+='<tr style="border-bottom:1px solid #eee"><td style="padding:6px 10px;font-size:13px;color:#333">'+s.t+'</td><td style="padding:6px 10px;font-size:12px;color:#666;text-align:right">'+s.d+'</td><td style="padding:6px 10px;font-size:14px;font-weight:700;color:#1565c0;text-align:right">'+fmtD(s.a)+'</td></tr>';});
+          if(fi&&fi.belowFloor&&r.deduction>0){html+='<tr style="border-bottom:1px solid #eee;background:#fff8e1"><td style="padding:6px 10px;font-size:13px;color:#e65100">Tier Deduction</td><td style="padding:6px 10px;font-size:12px;color:#e65100;text-align:right">Weekly minimum</td><td style="padding:6px 10px;font-size:14px;font-weight:700;color:#e65100;text-align:right">-'+fmtD(r.deduction)+'</td></tr>';}
+          html+='</tbody><tfoot><tr style="background:#e3f2fd"><td colspan="2" style="padding:8px 10px;font-size:13px;font-weight:700;color:#1565c0">Contract Commission Total</td><td style="padding:8px 10px;font-size:16px;font-weight:800;color:#1565c0;text-align:right">'+fmtD(r.contractComm)+'</td></tr></tfoot></table></div>';
+        }
+        // DH payouts
+        if(r.dhPayouts.length>0){
+          html+='<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#2e7d32;margin-bottom:6px;letter-spacing:.5px">DIRECT HIRE PAYOUTS ('+r.dhPayouts.length+')</div>';
+          html+='<table style="width:100%;border-collapse:collapse;border:1px solid #e0e0e0"><thead><tr style="background:#f5f5f5"><th style="padding:6px 10px;text-align:left;font-size:12px;color:#666;font-weight:700">Candidate</th><th style="padding:6px 10px;text-align:left;font-size:12px;color:#666;font-weight:700">Client</th><th style="padding:6px 10px;text-align:right;font-size:12px;color:#666;font-weight:700">Raw</th><th style="padding:6px 10px;text-align:center;font-size:12px;color:#666;font-weight:700">Rate</th><th style="padding:6px 10px;text-align:right;font-size:12px;color:#666;font-weight:700">Payout</th></tr></thead><tbody>';
+          r.dhPayouts.forEach(function(d){html+='<tr style="border-bottom:1px solid #eee"><td style="padding:6px 10px;font-size:13px;font-weight:600">'+d.can+'</td><td style="padding:6px 10px;font-size:13px;color:#666">'+d.cl+'</td><td style="padding:6px 10px;font-size:13px;text-align:right">'+fmtD(d.raw)+'</td><td style="padding:6px 10px;font-size:13px;text-align:center">'+(d.rate*100)+'%</td><td style="padding:6px 10px;font-size:14px;font-weight:700;color:'+(d.eligible?"#2e7d32":"#999")+';text-align:right">'+(d.eligible?fmtD(d.payout):"$0 (ineligible)")+'</td></tr>';});
+          html+='</tbody><tfoot><tr style="background:#e8f5e9"><td colspan="4" style="padding:8px 10px;font-size:13px;font-weight:700;color:#2e7d32">DH Payout Total</td><td style="padding:8px 10px;font-size:16px;font-weight:800;color:#2e7d32;text-align:right">'+fmtD(r.dhTotal)+'</td></tr></tfoot></table></div>';
+        }
+        // Grand total
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(135deg,#1a1a2e 0%,#2d2d44 100%);border-radius:6px;margin-top:8px"><span style="font-size:14px;font-weight:700;color:#FFD700;letter-spacing:1px">TOTAL COMMISSION</span><span style="font-size:24px;font-weight:800;color:#FFD700">'+fmtD(r.total)+'</span></div>';
+        if(r.contractComm===0&&r.dhTotal===0){html+='<div style="padding:12px 16px;background:#fff3e0;border-radius:6px;margin-top:8px;text-align:center"><span style="font-size:13px;color:#e65100;font-weight:600">'+(fi&&fi.belowFloor&&weekRow&&weekRow.rawCharge<FLOOR_WEEKLY_DEDUCT?"Weekly raw charge below $"+FLOOR_WEEKLY_DEDUCT.toLocaleString()+" minimum":"No commissionable activity this week")+'</span></div>';}
+        html+='</div>';
+        return html;
+      };
+      var buildFullHTML=function(list){
+        return '<html><head><title>Commission Statements — WE '+payrollWeek.weekEnding+'</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;color:#1a1a2e;font-size:14px}@media print{body{padding:10px}div{page-break-inside:avoid}}</style></head><body>'+list.map(function(r){return buildStmtHTML(r);}).join("")+'</body></html>';
+      };
+      var emailOne=function(r){
+        var m=members.find(function(x){return x.name===r.name;});
+        var email=m&&m.email?m.email:"";
+        var subject="Commission Statement — WE "+payrollWeek.weekEnding;
+        var body="Hi "+r.name.split(" ")[0]+",\n\nPlease see your commission breakdown for the week ending "+payrollWeek.weekEnding+":\n\n";
+        body+="CONTRACT COMMISSION: "+fmtD(r.contractComm)+"\n";
+        if(r.dhPayouts.length>0)body+="DH PAYOUTS: "+fmtD(r.dhTotal)+" ("+r.dhPayouts.length+" deal"+(r.dhPayouts.length>1?"s":"")+")\n";
+        body+="TOTAL: "+fmtD(r.total)+"\n\n";
+        if(r.steps&&r.steps.length>0){body+="Breakdown:\n";r.steps.filter(function(s){return s.a>0;}).forEach(function(s){body+="  "+s.t+": "+fmtD(s.a)+" ("+s.d+")\n";});}
+        if(r.dhPayouts.length>0){body+="\nDH Details:\n";r.dhPayouts.forEach(function(d){body+="  "+d.can+" @ "+d.cl+": "+fmtD(d.raw)+" × "+(d.rate*100)+"% = "+(d.eligible?fmtD(d.payout):"$0 ineligible")+"\n";});}
+        body+="\nQuestions? Reach out to the operations team.\n\n— Spark Companies\u2122";
+        try{window.location.href="mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);}catch(e){showToast("Could not open email client","err");}
+      };
+      var emailAllCount=stmtList.filter(function(r){var m=members.find(function(x){return x.name===r.name;});return m&&m.email;}).length;
+      return <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.7)",zIndex:999,display:"flex",justifyContent:"center",alignItems:"flex-start",overflowY:"auto",padding:"20px 10px"}}>
+      <div style={{background:"#fff",borderRadius:8,maxWidth:700,width:"100%",padding:0,position:"relative",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 20px",borderBottom:"2px solid #FFD70066",background:"#1a1a2e",borderRadius:"8px 8px 0 0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M13 2L4.5 13.5H11.5L11 22L19.5 10.5H12.5L13 2Z" fill="#FFD700"/></svg>
+            <span style={{fontSize:16,fontWeight:800,color:"#fff",fontFamily:FU}}>Commission Statements</span>
+            <span style={{fontSize:12,color:"#FFD70099",fontFamily:FM}}>WE {payrollWeek.weekEnding}</span>
+          </div>
+          <button onClick={function(){setStmtMember(null);}} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",fontWeight:700,lineHeight:1}}>×</button>
+        </div>
+        {/* Toolbar */}
+        <div style={{display:"flex",gap:6,padding:"10px 20px",background:"#f8f9fa",borderBottom:"1px solid #e0e0e0",flexWrap:"wrap",alignItems:"center"}}>
+          <select value={stmtMember} onChange={function(e){setStmtMember(e.target.value||"ALL");}} style={{padding:"5px 10px",fontSize:13,borderRadius:4,border:"1px solid #ccc",fontFamily:FM}}>
+            <option value="ALL">All Members ({stmtList.length})</option>
+            {payrollData.filter(function(r){return r.total>0||r.contractComm>0;}).map(function(r){var m=members.find(function(x){return x.name===r.name;});return <option key={r.name} value={r.name}>{r.name}{m&&m.email?" ✉":""}</option>;})}
+          </select>
+          <button onClick={function(){
+            var html=buildFullHTML(stmtList);
+            setExportModal({title:"Commission Statement"+(stmtMember==="ALL"?" — All Members":" — "+stmtMember),content:html,isHTML:true});
+          }} style={{padding:"5px 12px",fontSize:13,borderRadius:4,border:"1px solid #ccc",background:"#fff",cursor:"pointer",fontFamily:FM,fontWeight:600}}>🖨 Print{stmtMember==="ALL"?" All":""}</button>
+          {stmtMember!=="ALL"&&function(){
+            var r=stmtList[0];if(!r)return null;
+            var m=members.find(function(x){return x.name===r.name;});
+            return <button onClick={function(){emailOne(r);}} style={{padding:"5px 12px",fontSize:13,borderRadius:4,border:"1px solid #ccc",background:m&&m.email?"#e3f2fd":"#f5f5f5",cursor:m&&m.email?"pointer":"not-allowed",fontFamily:FM,fontWeight:600,color:m&&m.email?"#1565c0":"#999"}} disabled={!m||!m.email} title={m&&m.email?m.email:"No email on file"}>✉ Email{m&&m.email?" "+m.email:""}</button>;
+          }()}
+          {stmtMember==="ALL"&&emailAllCount>0&&<button onClick={function(){
+            setConfirm({msg:"Open "+emailAllCount+" email drafts?\n\nEach team member with an email on file will get their own commission statement.",fn:function(){
+              stmtList.forEach(function(r){
+                var m=members.find(function(x){return x.name===r.name;});
+                if(m&&m.email)setTimeout(function(){emailOne(r);},0);
+              });
+              log("STMT_EMAIL_ALL","Emailed "+emailAllCount+" statements for WE "+payrollWeek.weekEnding);
+              showToast(emailAllCount+" email drafts opened");setConfirm(null);
+            }});
+          }} style={{padding:"5px 12px",fontSize:13,borderRadius:4,border:"1px solid #1565c0",background:"#e3f2fd",cursor:"pointer",fontFamily:FM,fontWeight:600,color:"#1565c0"}}>✉ Email All ({emailAllCount})</button>}
+          {stmtMember==="ALL"&&emailAllCount<stmtList.length&&<span style={{fontSize:11,color:"#999",fontFamily:FM,alignSelf:"center"}}>{stmtList.length-emailAllCount} missing email</span>}
+        </div>
+        {/* Statement Content */}
+        <div style={{padding:"20px 24px",maxHeight:"70vh",overflowY:"auto"}}>
+          {stmtList.map(function(r,idx){
+            var m=members.find(function(x){return x.name===r.name;});
+            var weekRow=payrollWeek?payrollWeek.rows.find(function(x){return(x.matchedName||x.name)===r.name;}):null;
+            var fi=r.floorInfo;
+            return <div key={r.name} style={{marginBottom:idx<stmtList.length-1?24:0}}>
+              {/* Per-member email button when viewing all */}
+              {stmtMember==="ALL"&&<div style={{display:"flex",justifyContent:"flex-end",gap:4,marginBottom:4}}>
+                <button onClick={function(){
+                  setExportModal({title:"Statement — "+r.name,content:buildFullHTML([r]),isHTML:true});
+                }} style={{padding:"2px 8px",fontSize:11,borderRadius:3,border:"1px solid #ccc",background:"#fff",cursor:"pointer",fontFamily:FM}}>🖨</button>
+                {m&&m.email&&<button onClick={function(){emailOne(r);}} style={{padding:"2px 8px",fontSize:11,borderRadius:3,border:"1px solid #90caf9",background:"#e3f2fd",cursor:"pointer",fontFamily:FM,color:"#1565c0"}}>✉ {m.email}</button>}
+              </div>}
+              {/* Header */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,paddingBottom:10,borderBottom:"2px solid #FFD700"}}>
+                <div>
+                  <p style={{fontSize:22,fontWeight:800,color:"#1a1a2e",margin:0,fontFamily:"'Outfit',sans-serif"}}>{r.name}</p>
+                  <p style={{fontSize:13,color:"#666",margin:"2px 0 0"}}>{m?m.careerPath:""}{m?" · "+m.entity:""}{m?" · "+m.unit:""}</p>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <p style={{fontSize:11,color:"#999",margin:0,letterSpacing:"1px",fontWeight:700}}>WEEK ENDING</p>
+                  <p style={{fontSize:18,fontWeight:800,color:"#1a1a2e",margin:"2px 0 0"}}>{payrollWeek.weekEnding}</p>
+                </div>
+              </div>
+              {/* Tier Status */}
+              <div style={{display:"flex",gap:12,marginBottom:14,padding:"10px 14px",background:fi&&!fi.belowFloor?"#e8f5e9":"#fff3e0",borderRadius:6,border:"1px solid "+(fi&&!fi.belowFloor?"#a5d6a7":"#ffe0b2")}}>
+                <div style={{flex:1}}><p style={{fontSize:11,color:"#666",margin:0,fontWeight:700}}>QTD RAW</p><p style={{fontSize:18,fontWeight:800,color:fi&&!fi.belowFloor?"#2e7d32":"#e65100",margin:"2px 0 0"}}>{fi?fmtD(fi.qtd):"--"}</p></div>
+                <div style={{flex:1}}><p style={{fontSize:11,color:"#666",margin:0,fontWeight:700}}>YTD RAW</p><p style={{fontSize:18,fontWeight:800,color:"#1a1a2e",margin:"2px 0 0"}}>{fi?fmtD(fi.ytd):"--"}</p></div>
+                <div style={{flex:1}}><p style={{fontSize:11,color:"#666",margin:0,fontWeight:700}}>FLOOR STATUS</p><p style={{fontSize:14,fontWeight:700,color:fi&&!fi.belowFloor?"#2e7d32":"#e65100",margin:"4px 0 0"}}>{fi?(fi.belowFloor?"Below $25K Floor":fi.ytd>=FLOOR_ANNUAL?"$100K Tier Unlocked":"Above Tier"):"--"}</p></div>
+              </div>
+              {/* Contract Commission */}
+              {r.contractComm>0&&<div style={{marginBottom:12}}>
+                <p style={{fontSize:12,fontWeight:700,color:"#1565c0",margin:"0 0 6px",letterSpacing:".5px"}}>CONTRACT COMMISSION · Rate: {r.rate}</p>
+                <table style={{width:"100%",borderCollapse:"collapse",border:"1px solid #e0e0e0"}}><thead><tr style={{background:"#f5f5f5"}}><th style={{padding:"6px 10px",textAlign:"left",fontSize:12,color:"#666",fontWeight:700}}>Charge Type</th><th style={{padding:"6px 10px",textAlign:"right",fontSize:12,color:"#666",fontWeight:700}}>Detail</th><th style={{padding:"6px 10px",textAlign:"right",fontSize:12,color:"#666",fontWeight:700}}>Commission</th></tr></thead>
+                <tbody>{r.steps.filter(function(s){return s.a>0;}).map(function(s,si){return <tr key={si} style={{borderBottom:"1px solid #eee"}}><td style={{padding:"6px 10px",fontSize:13,color:"#333"}}>{s.t}</td><td style={{padding:"6px 10px",fontSize:12,color:"#666",textAlign:"right"}}>{s.d}</td><td style={{padding:"6px 10px",fontSize:14,fontWeight:700,color:"#1565c0",textAlign:"right"}}>{fmtD(s.a)}</td></tr>;})}
+                {fi&&fi.belowFloor&&r.deduction>0&&<tr style={{borderBottom:"1px solid #eee",background:"#fff8e1"}}><td style={{padding:"6px 10px",fontSize:13,color:"#e65100"}}>Tier Deduction</td><td style={{padding:"6px 10px",fontSize:12,color:"#e65100",textAlign:"right"}}>Weekly minimum</td><td style={{padding:"6px 10px",fontSize:14,fontWeight:700,color:"#e65100",textAlign:"right"}}>-{fmtD(r.deduction)}</td></tr>}
+                </tbody>
+                <tfoot><tr style={{background:"#e3f2fd"}}><td colSpan={2} style={{padding:"8px 10px",fontSize:13,fontWeight:700,color:"#1565c0"}}>Contract Commission Total</td><td style={{padding:"8px 10px",fontSize:16,fontWeight:800,color:"#1565c0",textAlign:"right"}}>{fmtD(r.contractComm)}</td></tr></tfoot></table>
+              </div>}
+              {/* DH Payouts */}
+              {r.dhPayouts.length>0&&<div style={{marginBottom:12}}>
+                <p style={{fontSize:12,fontWeight:700,color:"#2e7d32",margin:"0 0 6px",letterSpacing:".5px"}}>DIRECT HIRE PAYOUTS ({r.dhPayouts.length})</p>
+                <table style={{width:"100%",borderCollapse:"collapse",border:"1px solid #e0e0e0"}}><thead><tr style={{background:"#f5f5f5"}}><th style={{padding:"6px 10px",textAlign:"left",fontSize:12,color:"#666",fontWeight:700}}>Candidate</th><th style={{padding:"6px 10px",textAlign:"left",fontSize:12,color:"#666",fontWeight:700}}>Client</th><th style={{padding:"6px 10px",textAlign:"right",fontSize:12,color:"#666",fontWeight:700}}>Raw</th><th style={{padding:"6px 10px",textAlign:"center",fontSize:12,color:"#666",fontWeight:700}}>Rate</th><th style={{padding:"6px 10px",textAlign:"right",fontSize:12,color:"#666",fontWeight:700}}>Payout</th></tr></thead>
+                <tbody>{r.dhPayouts.map(function(d,di){return <tr key={di} style={{borderBottom:"1px solid #eee"}}><td style={{padding:"6px 10px",fontSize:13,fontWeight:600}}>{d.can}</td><td style={{padding:"6px 10px",fontSize:13,color:"#666"}}>{d.cl}</td><td style={{padding:"6px 10px",fontSize:13,textAlign:"right"}}>{fmtD(d.raw)}</td><td style={{padding:"6px 10px",fontSize:13,textAlign:"center"}}>{(d.rate*100)+"%"}</td><td style={{padding:"6px 10px",fontSize:14,fontWeight:700,color:d.eligible?"#2e7d32":"#999",textAlign:"right"}}>{d.eligible?fmtD(d.payout):"$0 (ineligible)"}</td></tr>;})}</tbody>
+                <tfoot><tr style={{background:"#e8f5e9"}}><td colSpan={4} style={{padding:"8px 10px",fontSize:13,fontWeight:700,color:"#2e7d32"}}>DH Payout Total</td><td style={{padding:"8px 10px",fontSize:16,fontWeight:800,color:"#2e7d32",textAlign:"right"}}>{fmtD(r.dhTotal)}</td></tr></tfoot></table>
+              </div>}
+              {/* Grand Total */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",background:"linear-gradient(135deg,#1a1a2e 0%,#2d2d44 100%)",borderRadius:6,marginTop:8}}>
+                <span style={{fontSize:14,fontWeight:700,color:"#FFD700",letterSpacing:"1px"}}>TOTAL COMMISSION</span>
+                <span style={{fontSize:24,fontWeight:800,color:"#FFD700"}}>{fmtD(r.total)}</span>
+              </div>
+              {r.contractComm===0&&r.dhTotal===0&&<div style={{padding:"12px 16px",background:"#fff3e0",borderRadius:6,marginTop:8,textAlign:"center"}}><p style={{fontSize:13,color:"#e65100",margin:0,fontWeight:600}}>{fi&&fi.belowFloor&&weekRow&&weekRow.rawCharge<FLOOR_WEEKLY_DEDUCT?"Weekly raw charge below $"+FLOOR_WEEKLY_DEDUCT.toLocaleString()+" minimum":"No commissionable activity this week"}</p></div>}
+              {idx<stmtList.length-1&&<hr style={{border:"none",borderTop:"2px dashed #e0e0e0",margin:"20px 0"}}/>}
+            </div>;
+          })}
+        </div>
+      </div>
+    </div>;
+    }()}
+    </div>
+  );
 }
