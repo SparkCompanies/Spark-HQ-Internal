@@ -6226,7 +6226,7 @@ body {
   function seedConvo() {
     convoData = [
       { type: 'system', text: 'Spark Command online · 6 agents active' },
-      { type: 'ai', agent: 'OPS', text: "Morning, Allie. Pipeline at $1.6M weighted. Three accounts went quiet this week — Sniper flagged them. Want the brief?", meta: '8:42 AM · Today' }
+      { type: 'ai', agent: 'OPS', text: "Morning. I'm OPS — pipeline and GP. I don't have live Salesforce data yet (that lands with the Worker integration), but ask me anything and I'll reason it through with you.", meta: 'Today' }
     ];
     renderConvo();
   }
@@ -6323,7 +6323,7 @@ body {
         data: { 'Segment rev': '$4.2B', 'Open reqs': '3', 'Locations': 'MI, OH, AL' }, meta: 'via ZoomInfo + GovTribe' },
       DASH: { text: 'Built a 5-touch sequence: Day 1 LinkedIn DM, Day 3 email reply, Day 7 case study, Day 14 video, Day 21 call invite. Drafted in your voice. Review before sending?',
         data: { 'Touches': '5', 'Duration': '21 days', 'Recipients': '42 stale leads' }, meta: 'via M365' },
-      OPS: { text: 'Today: pipeline $1.6M weighted, +$340K WoW. Top deal: Mossberg ($85K). Risk flag: Steltech ghosted 6 days. Two team members below 80% of monthly quota. Full brief?',
+      OPS: { text: 'I don\'t have live pipeline data yet — Salesforce wiring lands with the Worker integration. Once connected, this brief pulls real weighted pipeline, WoW movement, and risk flags.',
         data: { 'Weighted pipe': '$1.6M', 'WoW change': '+$340K', 'At-risk': '$120K' }, meta: 'as of 8:42 AM today' },
       SCOUT: { text: 'Found 4 results across SharePoint, Indeed, and 2 YouTube tutorials. Top result: "Spark Onboarding Day 1.pdf" updated last Tuesday by Mary.',
         data: { 'SharePoint': '2 docs', 'Indeed': '1 article', 'YouTube': '2 videos' }, meta: 'via M365 Graph + web' }
@@ -7123,7 +7123,7 @@ body {
 
   // Storage (sessionStorage so it dies with the tab)
   let apiKey = sessionStorage.getItem('spark_hq_api_key') || '';
-  let modelChoice = sessionStorage.getItem('spark_hq_model') || 'claude-sonnet-4-20250514';
+  let modelChoice = sessionStorage.getItem('spark_hq_model') || 'claude-sonnet-4-6';
   let maxTokens = parseInt(sessionStorage.getItem('spark_hq_max_tokens') || '1024');
   let agentKnowledge = {};
   let universalKnowledge = '';
@@ -7547,14 +7547,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   // Model catalog per provider
   const PROVIDER_MODELS = {
     anthropic: [
-      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4 · balanced (default)' },
-      { id: 'claude-opus-4-20250514', name: 'Claude Opus 4 · best quality' },
+      { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 · balanced (default)' },
+      { id: 'claude-opus-4-8', name: 'Claude Opus 4 · best quality' },
       { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5 · fast + cheap' }
     ],
     bedrock: [
-      { id: 'anthropic.claude-sonnet-4-20250514-v1:0', name: 'Claude Sonnet 4 · balanced' },
-      { id: 'anthropic.claude-opus-4-20250514-v1:0', name: 'Claude Opus 4 · best quality' },
-      { id: 'anthropic.claude-haiku-4-5-20251001-v1:0', name: 'Claude Haiku 4.5 · fast + cheap' }
+      { id: 'anthropic.claude-sonnet-4-6:0', name: 'Claude Sonnet 4 · balanced' },
+      { id: 'anthropic.claude-opus-4-8:0', name: 'Claude Opus 4 · best quality' },
+      { id: 'anthropic.claude-haiku-4-5-20251001:0', name: 'Claude Haiku 4.5 · fast + cheap' }
     ],
     azure: [
       { id: 'gpt-5', name: 'GPT-5 · best quality (your deployment)' },
@@ -12450,7 +12450,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
         method: 'POST',
         headers,
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 2000,
           system: RD_SCHEMA_PROMPT,
           messages: [{ role: 'user', content }]
@@ -12734,7 +12734,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2500,
         system: sys,
         messages: [{ role: 'user', content: userMsg }]
