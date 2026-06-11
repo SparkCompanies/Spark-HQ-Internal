@@ -4710,6 +4710,13 @@ body {
   color: var(--muted-light);
 }
 
+
+/* ==================== V8T — CONNECTIONS REAL ==================== */
+#connStatusList .conn-card {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; margin-bottom: 10px;
+}
+
 </style>
 </head>
 <body>
@@ -5257,95 +5264,39 @@ body {
           <div class="admin-pane" data-admin-pane="connections" style="display: none;">
             <div class="admin-hero">
               <div class="eyebrow">Jarvis · Connections</div>
-              <h2>Integrations. <span style="color: var(--muted-light);">Demo view — statuses wire to production.</span></h2>
-              <div class="dek">Connected data sources that Jarvis can query, search, and act on. Status shows last successful sync. Pending sources need authentication.</div>
+              <h2>Connections. <span style="color: var(--muted-light);">Real status, real tests.</span></h2>
+              <div class="dek">The Spark HQ Worker is the gateway to Salesforce/Asymbl and server-held AI. Configure it here and test the actual connection — every badge on this page reflects a real test result, not a mock.</div>
             </div>
 
             <div class="admin-section">
-              <div class="admin-section-head">
-                <h3>Live connections</h3>
-                <button class="btn-add" onclick="alert('Open connector marketplace')">+ Add connection</button>
-              </div>
-
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #FF5C35;">Zi</div>
-                <div class="conn-info"><div class="conn-name">ZoomInfo</div><div class="conn-meta">Sales intelligence · 47,212 records cached</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 4m ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #0078D4;">M</div>
-                <div class="conn-info"><div class="conn-name">Microsoft 365 / Outlook</div><div class="conn-meta">Email, calendar, contacts · OAuth token valid</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 1m ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #038387;">SP</div>
-                <div class="conn-info"><div class="conn-name">SharePoint</div><div class="conn-meta">12 sites · 2,847 documents indexed</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 12m ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #0E5EA8;">GT</div>
-                <div class="conn-info"><div class="conn-name">GovTribe</div><div class="conn-meta">Federal contract intelligence · daily refresh</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 2h ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #003A9B;">in</div>
-                <div class="conn-info"><div class="conn-name">Indeed Employer</div><div class="conn-meta">Job posts, applicant flow · webhook active</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 18m ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #00A1E0;">SF</div>
-                <div class="conn-info"><div class="conn-name">Salesforce</div><div class="conn-meta">Primary CRM · Spark Talent + Spark Companies orgs · OAuth valid</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 2m ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #2E3192;">As</div>
-                <div class="conn-info"><div class="conn-name">Asymbl</div><div class="conn-meta">Staffing layer on Salesforce · req → placement → invoice flow</div></div>
-                <span class="conn-status live"><span class="d"></span>LIVE</span>
-                <span class="conn-last">synced 2m ago</span>
-                <button class="agent-edit-btn">CONFIG</button>
+              <div class="admin-section-head"><h3>Spark HQ Worker</h3></div>
+              <div class="conn-card" style="display:block; padding: 18px 20px;">
+                <div class="field-row">
+                  <div class="field-group" style="flex: 2;">
+                    <label>Worker URL</label>
+                    <input type="text" id="wkUrl" placeholder="https://spark-hq-worker.YOUR-SUBDOMAIN.workers.dev" />
+                  </div>
+                  <div class="field-group" style="flex: 2;">
+                    <label>Worker key (SPARK_HQ_KEY)</label>
+                    <input type="password" id="wkKey" placeholder="the long random string you set in Cloudflare" />
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top: 12px; flex-wrap: wrap;">
+                  <button class="btn-add" onclick="saveWorkerCfg()">Save</button>
+                  <button class="btn-secondary" onclick="testWorkerHealth()">Test Worker</button>
+                  <button class="btn-secondary" onclick="testWorkerSf()">Test Salesforce</button>
+                </div>
+                <div id="wkStatus" style="margin-top: 12px;"></div>
+                <div class="rd-asymbl-note" style="margin-top: 10px;">Saved to this browser session only (same model as the AI key) until MSAL + Supabase land. The Worker holds the actual Salesforce and Anthropic credentials server-side — nothing sensitive lives in this page.</div>
               </div>
             </div>
 
             <div class="admin-section">
-              <div class="admin-section-head"><h3>Pending</h3></div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #5BA13F;">Gs</div>
-                <div class="conn-info"><div class="conn-name">Greenshades</div><div class="conn-meta">Payroll · would enable payroll status queries in Jarvis</div></div>
-                <span class="conn-status pending"><span class="d"></span>PENDING</span>
-                <span class="conn-last">never synced</span>
-                <button class="btn-add" onclick="alert('OAuth flow opens for Greenshades')">CONNECT</button>
-              </div>
-              <div class="conn-card">
-                <div class="conn-icon" style="background: #6264A7;">T</div>
-                <div class="conn-info"><div class="conn-name">Microsoft Teams</div><div class="conn-meta">Chat + meeting actions · "Send to Jamie via Teams" needs this</div></div>
-                <span class="conn-status pending"><span class="d"></span>PENDING</span>
-                <span class="conn-last">never synced</span>
-                <button class="btn-add" onclick="alert('OAuth flow opens for Teams')">CONNECT</button>
-              </div>
-            </div>
-
-            <div class="admin-section">
-              <div class="admin-section-head"><h3>Available to add</h3></div>
-              <div style="font-size: 12px; color: var(--muted); padding: 12px 0;">
-                Slack · Paychex · Xero · Bill.com · Apollo.io · DocuSign · Calendly · Notion · plus 40+ more in the connector library.
-                <a href="#" onclick="alert('Connector marketplace opens')" style="color: var(--gold-dark); margin-left: 6px;">Browse all →</a>
-              </div>
+              <div class="admin-section-head"><h3>Connection status</h3></div>
+              <div id="connStatusList"></div>
             </div>
           </div>
 
-          <!-- ANALYTICS -->
           <div class="admin-pane" data-admin-pane="analytics" style="display: none;">
             <div class="admin-hero">
               <div class="eyebrow">Jarvis · Usage analytics</div>
@@ -13123,6 +13074,124 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     const btn = document.querySelector('.nav-item[data-tab="' + tab + '"]');
     if (btn) btn.click();
   };
+
+
+  // ==================== V8T — REAL WORKER CONNECTION ====================
+  let workerCfg = (function() {
+    try { const s = sessionStorage.getItem('spark_hq_worker_cfg'); if (s) return JSON.parse(s); } catch(e) {}
+    return { url: '', key: '' };
+  })();
+  let connTestResults = { worker: null, salesforce: null }; // null=untested, {ok, detail, at}
+
+  function workerFetch(path, opts) {
+    if (!workerCfg.url) return Promise.reject(new Error('Worker URL not configured — Admin → Connections'));
+    const headers = Object.assign({}, (opts && opts.headers) || {}, {
+      'Authorization': 'Bearer ' + workerCfg.key
+    });
+    return fetch(workerCfg.url.replace(/\/$/, '') + path, Object.assign({}, opts, { headers }));
+  }
+  window.workerFetch = workerFetch;
+
+  window.saveWorkerCfg = function() {
+    const u = document.getElementById('wkUrl');
+    const k = document.getElementById('wkKey');
+    workerCfg = { url: (u ? u.value.trim() : ''), key: (k ? k.value.trim() : '') };
+    try { sessionStorage.setItem('spark_hq_worker_cfg', JSON.stringify(workerCfg)); } catch(e) {}
+    wkSetStatus('Saved. Run the tests to verify.', 'ok');
+    renderConnStatusList();
+  };
+
+  function wkSetStatus(msg, kind) {
+    const el = document.getElementById('wkStatus');
+    if (!el) return;
+    const color = kind === 'ok' ? 'var(--green, #16a34a)' : (kind === 'err' ? '#dc2626' : 'var(--muted)');
+    el.innerHTML = '<div style="font-size:12px; color:' + color + '; font-weight:600;">' + escLms(msg) + '</div>';
+  }
+
+  window.testWorkerHealth = async function() {
+    if (!workerCfg.url) { wkSetStatus('Enter the Worker URL first, then Save.', 'err'); return; }
+    wkSetStatus('Testing Worker…', '');
+    try {
+      const r = await fetch(workerCfg.url.replace(/\/$/, '') + '/health');
+      const d = await r.json();
+      if (r.ok && d.ok) {
+        connTestResults.worker = { ok: true, detail: 'Reachable · /health ok', at: new Date() };
+        wkSetStatus('✓ Worker reachable.', 'ok');
+      } else throw new Error('Unexpected response: ' + JSON.stringify(d).slice(0, 120));
+    } catch(e) {
+      connTestResults.worker = { ok: false, detail: e.message, at: new Date() };
+      wkSetStatus('✗ Worker test failed: ' + e.message, 'err');
+    }
+    renderConnStatusList();
+  };
+
+  window.testWorkerSf = async function() {
+    if (!workerCfg.url || !workerCfg.key) { wkSetStatus('Enter Worker URL and key first, then Save.', 'err'); return; }
+    wkSetStatus('Testing Salesforce through the Worker…', '');
+    try {
+      const r = await workerFetch('/sf/soql?q=' + encodeURIComponent('SELECT Id, Name FROM Organization LIMIT 1'));
+      const d = await r.json();
+      if (r.ok && d.records && d.records.length) {
+        connTestResults.salesforce = { ok: true, detail: 'Authenticated as org: ' + d.records[0].Name, at: new Date() };
+        wkSetStatus('✓ Salesforce connected — org: ' + d.records[0].Name, 'ok');
+      } else throw new Error((d && d.error) ? d.error : 'No records returned (' + r.status + ')');
+    } catch(e) {
+      connTestResults.salesforce = { ok: false, detail: e.message, at: new Date() };
+      wkSetStatus('✗ Salesforce test failed: ' + e.message, 'err');
+    }
+    renderConnStatusList();
+  };
+
+  function connRow(name, sub, state, detail) {
+    const badge = state === 'live'
+      ? '<span style="background:#f0fdf4;color:#15803d;padding:3px 10px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:1px;">LIVE · TESTED</span>'
+      : state === 'failed'
+      ? '<span style="background:#fef2f2;color:#dc2626;padding:3px 10px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:1px;">TEST FAILED</span>'
+      : state === 'untested'
+      ? '<span style="background:var(--paper-warm);color:var(--gold-dark);padding:3px 10px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:1px;">CONFIGURED · UNTESTED</span>'
+      : '<span style="background:var(--paper);color:var(--muted-light);padding:3px 10px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:1px;">PLANNED</span>';
+    return '<div class="conn-card"><div class="conn-info"><div class="conn-name">' + escLms(name) + '</div><div class="conn-meta">' + escLms(sub) + (detail ? ' · ' + escLms(detail) : '') + '</div></div>' + badge + '</div>';
+  }
+
+  function renderConnStatusList() {
+    const host = document.getElementById('connStatusList');
+    if (!host) return;
+    let h = '';
+    const w = connTestResults.worker;
+    h += connRow('Spark HQ Worker', 'Cloudflare gateway',
+      !workerCfg.url ? 'planned' : (w === null ? 'untested' : (w.ok ? 'live' : 'failed')),
+      w ? w.detail : (workerCfg.url ? 'saved, not yet tested' : 'configure above'));
+    const sf = connTestResults.salesforce;
+    h += connRow('Salesforce + Asymbl', 'CRM + staffing layer, via the Worker',
+      !workerCfg.url ? 'planned' : (sf === null ? 'untested' : (sf.ok ? 'live' : 'failed')),
+      sf ? sf.detail : 'run Test Salesforce above');
+    h += connRow('Anthropic (browser)', 'AI Settings key — panel chat, Resume Drop, Search & Match',
+      (typeof providerCreds !== 'undefined' && providerCreds.anthropic && providerCreds.anthropic.apiKey) ? 'untested' : 'planned',
+      'moves behind the Worker once /ai wiring ships');
+    h += connRow('Microsoft 365 / SharePoint', 'Identity, directory, documents', 'planned', 'arrives with the MSAL build');
+    h += connRow('ZoomInfo · GovTribe', 'Available in the Command Center today', 'planned', 'Spark HQ access rides the Worker later');
+    host.innerHTML = h;
+  }
+
+  // hydrate config fields + list when pane opens
+  setTimeout(() => {
+    const u = document.getElementById('wkUrl');
+    const k = document.getElementById('wkKey');
+    if (u) u.value = workerCfg.url || '';
+    if (k) k.value = workerCfg.key || '';
+    renderConnStatusList();
+    document.querySelectorAll('.admin-subnav-item').forEach(b => {
+      if (b.dataset.adminTab === 'connections') {
+        b.addEventListener('click', () => setTimeout(() => {
+          const u2 = document.getElementById('wkUrl');
+          const k2 = document.getElementById('wkKey');
+          if (u2) u2.value = workerCfg.url || '';
+          if (k2) k2.value = workerCfg.key || '';
+          renderConnStatusList();
+        }, 50));
+      }
+    });
+  }, 500);
 
   init();
 })();
