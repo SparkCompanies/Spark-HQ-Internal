@@ -202,30 +202,53 @@ body {
   margin-bottom: 18px;
 }
 .agent-pill {
+  position: relative;
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px;
-  background: rgba(255,255,255,0.04);
+  padding: 9px 14px;
+  background: rgba(255,255,255,0.035);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s ease;
   font-family: inherit;
+  overflow: hidden;
 }
-.agent-pill:hover {
-  background: rgba(255,255,255,0.07);
-  border-color: var(--agent-color, rgba(245,197,24,0.4));
+.agent-pill::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 90% 120% at 50% 130%, color-mix(in srgb, var(--agent-color) 26%, transparent) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
 }
+.agent-pill:hover { transform: translateY(-2px); border-color: var(--agent-color); }
+.agent-pill:hover::before, .agent-pill.active::before { opacity: 1; }
 .agent-pill.active {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.07);
   border-color: var(--agent-color);
-  box-shadow: 0 0 0 1px var(--agent-color), 0 0 14px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 1px var(--agent-color), 0 6px 22px rgba(0,0,0,0.45), 0 0 18px color-mix(in srgb, var(--agent-color) 28%, transparent);
 }
 .agent-pill .swatch {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--agent-color); box-shadow: 0 0 6px var(--agent-color);
+  background: var(--agent-color);
+  box-shadow: 0 0 8px var(--agent-color);
+  animation: swatchPulse 2.6s ease-in-out infinite;
 }
-.agent-pill .name { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #fff; }
-.agent-pill.active .name { color: var(--agent-color); }
+@keyframes swatchPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.agent-pill .name { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: #fff; position: relative; }
+.agent-pill .spec {
+  font-size: 9px; letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.45);
+  max-width: 0; opacity: 0; white-space: nowrap; overflow: hidden;
+  transition: max-width 0.28s ease, opacity 0.2s ease, margin 0.28s ease;
+  position: relative;
+}
+.agent-pill:hover .spec, .agent-pill.active .spec {
+  max-width: 170px; opacity: 1; margin-left: 2px;
+}
 
 /* Hero input */
 .hero-input {
@@ -365,46 +388,58 @@ body {
 /* ============ JARVIS SPHERE (always visible globally) ============ */
 #jn-sphere {
   position: fixed; bottom: 32px; right: 32px; z-index: 99998;
-  width: 64px; height: 64px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #3a3a5e 0%, #14142b 60%, #0a0a18 100%);
-  border: 1.5px solid rgba(245,197,24,0.55);
+  width: 66px; height: 66px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #2e2e52 0%, #14142b 55%, #07070f 100%);
+  border: none;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
-  transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow:
+    0 14px 40px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(245,197,24,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s;
   font-family: inherit;
+  animation: sphereBreath 4.5s ease-in-out infinite;
 }
-#jn-sphere:hover { transform: scale(1.06); }
-#jn-sphere::before, #jn-sphere::after {
-  content: ""; position: absolute; inset: -5px; border-radius: 50%;
-  border: 1px solid rgba(245,197,24,0.5);
-  animation: jn-pulse 2.6s ease-in-out infinite;
+@keyframes sphereBreath {
+  0%, 100% { box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,197,24,0.22), 0 0 18px rgba(245,197,24,0.10), inset 0 1px 0 rgba(255,255,255,0.07); }
+  50%      { box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,197,24,0.40), 0 0 34px rgba(245,197,24,0.22), inset 0 1px 0 rgba(255,255,255,0.07); }
+}
+#jn-sphere:hover { transform: scale(1.08); }
+#jn-sphere:hover .orbit-ring { animation-duration: 2.2s; }
+#jn-sphere:hover .orbit-ring.r2 { animation-duration: 3.4s; }
+#jn-sphere .orbit-ring {
+  position: absolute; inset: -7px; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, transparent 70%, rgba(245,197,24,0.9) 88%, transparent 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+  animation: orbitSpin 6s linear infinite;
   pointer-events: none;
 }
-#jn-sphere::after { animation-delay: 1.3s; }
-@keyframes jn-pulse {
-  0%   { transform: scale(0.95); opacity: 0; }
-  25%  { opacity: 0.55; }
-  100% { transform: scale(1.5); opacity: 0; }
+#jn-sphere .orbit-ring.r2 {
+  inset: -13px;
+  background: conic-gradient(from 180deg, transparent 0%, transparent 82%, rgba(245,197,24,0.45) 94%, transparent 100%);
+  animation: orbitSpin 9s linear infinite reverse;
+  opacity: 0.8;
 }
+@keyframes orbitSpin { to { transform: rotate(360deg); } }
 #jn-sphere .core {
   width: 22px; height: 22px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, var(--gold) 0%, #C9A020 60%, #6b4a08 100%);
-  box-shadow: 0 0 12px rgba(245,197,24,0.6), inset 0 -2px 4px rgba(0,0,0,0.3);
+  background: radial-gradient(circle at 38% 32%, #ffe98a 0%, var(--gold) 45%, #b8920e 100%);
+  box-shadow: 0 0 16px rgba(245,197,24,0.85), 0 0 40px rgba(245,197,24,0.30);
+  animation: coreBreath 4.5s ease-in-out infinite;
+}
+@keyframes coreBreath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
 }
 #jn-sphere .dot {
-  position: absolute; bottom: 4px; right: 4px;
-  width: 11px; height: 11px; border-radius: 50%;
-  background: #64748b; border: 2px solid #0a0a18;
+  position: absolute; top: 7px; right: 7px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #22ff88;
+  box-shadow: 0 0 8px rgba(34,255,136,0.9);
+  border: 1.5px solid #07070f;
 }
-#jn-sphere.listening .dot { background: #22c55e; }
-#jn-sphere.listening .core { animation: jn-core 1.2s ease-in-out infinite; }
-@keyframes jn-core {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.18); box-shadow: 0 0 24px rgba(245,197,24,1); }
-}
-
-/* ============ JARVIS FULL PANEL ============ */
 #jn-panel {
   position: fixed; top: 0; right: 0; height: 100vh; width: 640px; max-width: 90vw;
   background: var(--jn-bg); z-index: 99999;
@@ -530,11 +565,41 @@ body {
 .tab-page.cream { background: var(--paper); }
 .tab-page.dark { background: var(--jn-bg); color: #fff; }
 
-.tab-hero { padding: 40px 48px 24px; max-width: 1100px; margin: 0 auto; }
+.tab-hero { padding: 56px 48px 30px; max-width: 1100px; margin: 0 auto; position: relative; }
 .tab-hero.center { text-align: center; }
-.tab-hero .eyebrow { font-size: 10px; letter-spacing: 3px; color: var(--gold-dark); font-weight: 600; text-transform: uppercase; margin-bottom: 14px; }
+.tab-hero .eyebrow {
+  font-size: 10px; letter-spacing: 3.5px; color: var(--gold-dark); font-weight: 700;
+  text-transform: uppercase; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 14px;
+}
+.tab-hero .eyebrow::after {
+  content: ""; flex: 0 1 64px; height: 1px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+}
+.tab-hero.center .eyebrow { justify-content: center; }
 .tab-hero.dark .eyebrow { color: rgba(245,197,24,0.85); }
-.tab-hero h1 { font-size: 36px; font-weight: 400; letter-spacing: -0.5px; margin: 0 0 8px; line-height: 1.1; }
+.tab-hero h1 {
+  font-size: clamp(34px, 4.4vw, 52px);
+  font-weight: 600;
+  letter-spacing: -1.6px;
+  margin: 0 0 12px;
+  line-height: 1.04;
+  position: relative; z-index: 1;
+}
+.tab-hero[data-ghost]::before {
+  content: attr(data-ghost);
+  position: absolute;
+  top: -6px; right: 36px;
+  font-size: clamp(120px, 16vw, 220px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -8px;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(245,197,24,0.30);
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
 .tab-hero .dim { color: var(--muted-light); }
 .tab-hero.dark .dim { color: rgba(255,255,255,0.45); }
 .tab-hero .dek { font-size: 16px; color: var(--muted); line-height: 1.5; font-style: italic; max-width: 600px; }
@@ -4717,6 +4782,210 @@ body {
   gap: 14px; margin-bottom: 10px;
 }
 
+
+/* ==================== V8U — JARVIS VISUAL PASS ==================== */
+.home-hero::before {
+  content: "";
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(ellipse 30% 22% at 28% 38%, rgba(245,197,24,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 26% 20% at 72% 60%, rgba(98,100,167,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 22% 18% at 55% 25%, rgba(34,255,136,0.05) 0%, transparent 70%);
+  animation: auroraDrift 26s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes auroraDrift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(4%, -3%) scale(1.08); }
+}
+.home-hero::after {
+  content: "";
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask: radial-gradient(ellipse 75% 65% at 50% 45%, #000 0%, transparent 75%);
+          mask: radial-gradient(ellipse 75% 65% at 50% 45%, #000 0%, transparent 75%);
+  pointer-events: none;
+}
+.home-hero .hero-inner { position: relative; z-index: 1; }
+.hero-input-wrap input:focus, .hero-input:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 1px var(--gold), 0 0 28px rgba(245,197,24,0.18) !important;
+}
+/* Panel + tab chrome: gold hairline */
+#jn-panel .chrome {
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, rgba(245,197,24,0.55), rgba(245,197,24,0.06)) 1;
+}
+.jarvis-tab-chrome {
+  border-bottom: 1px solid transparent !important;
+  border-image: linear-gradient(90deg, rgba(245,197,24,0.55), rgba(245,197,24,0.06)) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  #jn-sphere, #jn-sphere .core, #jn-sphere .orbit-ring, .agent-pill .swatch, .home-hero::before { animation: none !important; }
+}
+
+
+/* ==================== V8V — POLISH PASS ==================== */
+/* Version footer */
+.sidebar .footer .ver-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34,197,94,0.7);
+  display: inline-block;
+}
+
+/* Tab entrance — replays automatically when a view goes display:none → block */
+.tab-page { animation: viewIn 0.32s cubic-bezier(0.22, 0.8, 0.36, 1); }
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sidebar active indicator — gold bar grows in */
+.sidebar .nav-item { position: relative; }
+.sidebar .nav-item::before {
+  content: "";
+  position: absolute; left: 0; top: 50%;
+  width: 3px; height: 0;
+  background: var(--gold);
+  border-radius: 0 2px 2px 0;
+  transform: translateY(-50%);
+  transition: height 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.sidebar .nav-item.active::before { height: 60%; }
+
+/* Tool tiles — lift + mark pop */
+.tool-tile { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+.tool-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(26,26,46,0.10);
+}
+.tool-tile .mark { transition: transform 0.18s cubic-bezier(0.34, 1.5, 0.64, 1); }
+.tool-tile:hover .mark { transform: scale(1.1) rotate(-3deg); }
+
+/* Universal press feedback */
+.btn-add:active, .btn-secondary:active, .qc-btn:active, .rd-act:active,
+.rd-parse-btn:active, .hq-link:active, .agent-pill:active, .a-mini:active,
+.qf-submit:active, .jtc-btn:active, .pm-cta:active {
+  transform: scale(0.97);
+}
+
+/* Top bar search focus */
+.topbar input:focus, .search-input:focus {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px rgba(245,197,24,0.14) !important;
+  outline: none;
+}
+
+/* LMS — progress bars ease, topics breathe on hover */
+.lms-subj .prog-bar > div, .lms-prog > div { transition: width 0.5s cubic-bezier(0.22, 0.8, 0.36, 1); }
+.lms-topic { transition: background 0.15s, transform 0.15s; }
+.lms-topic:hover { transform: translateX(3px); }
+
+/* Quiz result — score pops, banner rises */
+.quiz-result { animation: viewIn 0.35s cubic-bezier(0.22, 0.8, 0.36, 1); }
+.quiz-result .qr-score { animation: scorePop 0.5s cubic-bezier(0.34, 1.5, 0.64, 1); display: inline-block; }
+@keyframes scorePop {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Modals — scale in */
+.modal-backdrop.open .modal { animation: modalIn 0.26s cubic-bezier(0.22, 0.8, 0.36, 1); }
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Cards that list things — consistent hover */
+.conn-card, .lead-esc-card, .tadm-subj-row, .sm-result, .doc-row {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.conn-card:hover, .lead-esc-card:hover, .sm-result:hover {
+  border-color: rgba(245,197,24,0.55);
+  box-shadow: 0 4px 16px rgba(26,26,46,0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-page, .quiz-result, .quiz-result .qr-score, .modal-backdrop.open .modal { animation: none !important; }
+  .tool-tile, .lms-topic, .sidebar .nav-item::before { transition: none !important; }
+}
+
+
+/* ==================== V8W — EDITORIAL ELEVATION ==================== */
+.std-value .v-num {
+  font-size: 52px !important;
+  color: transparent !important;
+  -webkit-text-stroke: 1.5px var(--gold);
+  opacity: 1 !important;
+  letter-spacing: -2px !important;
+  transition: color 0.25s;
+}
+.std-value { padding: 30px 32px 26px !important; }
+.std-value:hover .v-num { color: var(--gold) !important; -webkit-text-stroke: 0; }
+
+.rev { opacity: 0; transform: translateY(18px); transition: opacity 0.5s cubic-bezier(0.22,0.8,0.36,1), transform 0.5s cubic-bezier(0.22,0.8,0.36,1); }
+.rev.rev-in { opacity: 1; transform: translateY(0); }
+
+.std-value, .cp-level, .lead-esc-card, .conn-card, .people-m365-card { box-shadow: 0 1px 2px rgba(26,26,46,0.04); }
+.std-value:hover, .cp-level:hover, .lead-esc-card:hover { box-shadow: 0 8px 28px rgba(26,26,46,0.09); }
+
+.tab-page.cream { background: linear-gradient(180deg, var(--paper-warm) 0%, var(--paper) 220px); }
+
+@media (max-width: 760px) {
+  .tab-hero[data-ghost]::before { right: 12px; font-size: 96px; opacity: 0.7; }
+  .tab-hero { padding: 36px 24px 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rev { opacity: 1 !important; transform: none !important; transition: none !important; }
+}
+
+
+/* ==================== V8X — INTERACTIVE PASS ==================== */
+.bc-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+.bc-stat {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 16px 18px;
+}
+.bc-stat.hot { background: var(--paper-warm); border-color: var(--gold); }
+.bc-stat.wide { grid-column: 1 / -1; }
+.bc-stat .bc-lbl {
+  font-size: 9px; letter-spacing: 1.5px; font-weight: 700;
+  color: var(--gold-dark); text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.bc-stat .bc-val {
+  font-size: 26px; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.8px;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.15s;
+}
+.bc-stat.wide .bc-val { font-size: 32px; }
+
+/* LMS bar gold flash at 100% — pure CSS on inline width */
+.lms-subj .prog-bar > div[style*="100%"] {
+  animation: barComplete 0.9s ease;
+  background: linear-gradient(90deg, var(--gold), #22c55e) !important;
+}
+@keyframes barComplete {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
+
+#sparkConfettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 999999; }
+
 </style>
 </head>
 <body>
@@ -4744,7 +5013,7 @@ body {
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span>☾</span><span>Dark mode</span>
+      <span class="ver-dot"></span><span>Spark HQ · v8x</span>
     </div>
   </aside>
 
@@ -4869,7 +5138,7 @@ body {
 
     <!-- ==================== SPARK STANDARD ==================== -->
     <div id="view-standard" class="tab-page cream" style="display: none;">
-      <div class="tab-hero">
+      <div class="tab-hero" data-ghost="08">
         <div class="eyebrow">The Spark Standard</div>
         <h1>Eight core values. <span class="dim">One unified standard.</span></h1>
         <div class="dek">How we show up, serve, and succeed — rooted in our core values. The cultural manifesto and operational handbook for Spark Companies.</div>
@@ -5029,15 +5298,55 @@ body {
           </div>
         </div>
 
+        <!-- ==================== V8X — BURDEN CALCULATOR ==================== -->
+        <div class="rd-workspace" id="bcWorkspace">
+          <div class="rd-head">
+            <div>
+              <div class="rd-eyebrow">Built by Spark · calculator</div>
+              <h2>Burden Calculator</h2>
+              <div class="rd-dek">Pay rate to true cost to bill rate, live as you type. Burden bucket covers taxes, comp, and benefits load per the burden standardization guide.</div>
+            </div>
+            <button class="rd-close" onclick="closeBurdenCalc()" title="Close">×</button>
+          </div>
+          <div class="rd-grid" style="grid-template-columns: minmax(240px, 340px) 1fr;">
+            <div>
+              <div class="rd-field" style="margin-bottom: 12px;">
+                <label>Pay rate ($/hr)</label>
+                <input type="number" id="bcPay" value="22.00" step="0.25" min="0" oninput="calcBurden()" />
+              </div>
+              <div class="rd-field" style="margin-bottom: 12px;">
+                <label>Burden bucket (×)</label>
+                <input type="number" id="bcBucket" value="1.23" step="0.01" min="1" oninput="calcBurden()" />
+              </div>
+              <div class="rd-field" style="margin-bottom: 12px;">
+                <label>Markup (×)</label>
+                <input type="number" id="bcMarkup" value="1.55" step="0.01" min="1" oninput="calcBurden()" />
+              </div>
+              <div class="rd-field">
+                <label>Hours / week</label>
+                <input type="number" id="bcHrs" value="40" step="1" min="1" oninput="calcBurden()" />
+              </div>
+            </div>
+            <div class="bc-results">
+              <div class="bc-stat"><div class="bc-lbl">True cost / hr</div><div class="bc-val" id="bcCost">$27.06</div></div>
+              <div class="bc-stat"><div class="bc-lbl">Bill rate / hr</div><div class="bc-val" id="bcBill">$34.10</div></div>
+              <div class="bc-stat hot"><div class="bc-lbl">GP / hr</div><div class="bc-val" id="bcGp">$7.04</div></div>
+              <div class="bc-stat"><div class="bc-lbl">GP margin</div><div class="bc-val" id="bcGpPct">20.6%</div></div>
+              <div class="bc-stat hot wide"><div class="bc-lbl">Weekly GP per head</div><div class="bc-val" id="bcWeekly">$281.60</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="tools-cat">
           <div class="tools-cat-label">
             <span class="label">Built by Spark</span>
-            <span class="count">2 tools</span>
+            <span class="count">3 tools</span>
             <span class="line"></span>
           </div>
           <div class="tools-cat-grid">
             <a class="tool-tile tools-native-tile" onclick="openResumeDrop(); return false;" href="#"><div class="mark" style="background: var(--ink); color: var(--gold); font-size: 16px;">⇪</div><div><div class="label">Resume Drop<span class="native-badge">AI</span></div><div class="role">Parse resumes → Asymbl-ready records</div></div></a>
             <a class="tool-tile tools-native-tile" onclick="openSearchMatch('req'); return false;" href="#"><div class="mark" style="background: var(--ink); color: var(--gold); font-size: 16px;">⚲</div><div><div class="label">Search &amp; Match<span class="native-badge">AI</span></div><div class="role">Rank candidates ↔ reqs with scores</div></div></a>
+            <a class="tool-tile tools-native-tile" onclick="openBurdenCalc(); return false;" href="#"><div class="mark" style="background: var(--ink); color: var(--gold); font-size: 16px;">Σ</div><div><div class="label">Burden Calculator</div><div class="role">Pay → true cost → bill rate → GP</div></div></a>
           </div>
         </div>
 
@@ -5858,6 +6167,8 @@ body {
 
 <!-- ==================== JARVIS SPHERE ==================== -->
 <button id="jn-sphere" onclick="jnTogglePanel()" title="Open Jarvis">
+  <span class="orbit-ring"></span>
+  <span class="orbit-ring r2"></span>
   <span class="core"></span>
   <span class="dot"></span>
 </button>
@@ -6086,6 +6397,7 @@ body {
               onclick="heroSetAgent('${key}')">
         <span class="swatch"></span>
         <span class="name">${key}</span>
+        <span class="spec">${(a.role || a.specialty || '').split('—')[0].split('·')[0].trim()}</span>
       </button>
     `).join('');
 
@@ -11392,6 +11704,8 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     });
     persistLmsQuizAttempts();
 
+    if (passed && typeof window.sparkConfetti === 'function') window.sparkConfetti();
+
     // If it's a gated final quiz that passed, auto-complete all topics in the subject
     if (currentQuiz.kind === 'final' && passed && currentQuiz.quiz.gated) {
       (currentQuiz.subject.topics || []).forEach(t => {
@@ -13192,6 +13506,84 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
       }
     });
   }, 500);
+
+
+  // ==================== V8W — SCROLL REVEAL ====================
+  setTimeout(() => {
+    if (typeof IntersectionObserver !== 'function') return;
+    const targets = document.querySelectorAll('.std-value, .cp-level, .lead-esc-card');
+    targets.forEach((el, i) => {
+      el.classList.add('rev');
+      el.style.transitionDelay = (Math.min(i % 8, 5) * 55) + 'ms';
+    });
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (en.isIntersecting) { en.target.classList.add('rev-in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.12 });
+    targets.forEach(el => io.observe(el));
+  }, 700);
+
+
+  // ==================== V8X — INTERACTIVE PASS ====================
+  window.openBurdenCalc = function() {
+    const ws = document.getElementById('bcWorkspace');
+    if (!ws) return;
+    ws.classList.add('open');
+    calcBurden();
+    if (typeof ws.scrollIntoView === 'function') {
+      try { ws.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
+    }
+  };
+  window.closeBurdenCalc = function() {
+    const ws = document.getElementById('bcWorkspace');
+    if (ws) ws.classList.remove('open');
+  };
+
+  // Gold confetti — pure canvas, no libs, auto-cleans
+  window.sparkConfetti = function() {
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (typeof document.createElement('canvas').getContext !== 'function') return;
+      const c = document.createElement('canvas');
+      c.id = 'sparkConfettiCanvas';
+      c.width = window.innerWidth; c.height = window.innerHeight;
+      document.body.appendChild(c);
+      const ctx = c.getContext('2d');
+      if (!ctx) { c.remove(); return; }
+      const colors = ['#F5C518', '#ffe98a', '#1a1a2e', '#22c55e', '#fff'];
+      const parts = [];
+      for (let i = 0; i < 90; i++) {
+        parts.push({
+          x: c.width / 2 + (Math.random() - 0.5) * 220,
+          y: c.height * 0.35,
+          vx: (Math.random() - 0.5) * 11,
+          vy: -(Math.random() * 11 + 5),
+          s: Math.random() * 7 + 4,
+          r: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 0.3,
+          col: colors[i % colors.length]
+        });
+      }
+      let frames = 0;
+      function tick() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        parts.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += 0.42; p.r += p.vr;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.r);
+          ctx.fillStyle = p.col;
+          ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
+          ctx.restore();
+        });
+        frames++;
+        if (frames < 110) requestAnimationFrame(tick);
+        else c.remove();
+      }
+      requestAnimationFrame(tick);
+    } catch(_) {}
+  };
 
   init();
 })();
