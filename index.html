@@ -5429,6 +5429,15 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .cursor-ring.hot { width: 60px; height: 60px; border-color: var(--gold); background: rgba(245,197,24,0.1); }
 @media (hover: none), (pointer: coarse) { .cursor-dot, .cursor-ring { display: none !important; } }
 
+
+/* v9z — Jarvis brain explainers */
+.jcc-intro { font-family: 'Century Gothic','Questrial','Jost',sans-serif; font-size: 12.5px; line-height: 1.55; color: rgba(255,255,255,0.55); margin-top: 10px; max-width: 440px; }
+.jcc-intro strong { color: var(--gold); font-weight: 600; }
+.jcc-active-card .jac-role { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.jcc-active-card .jac-tag { font-family: var(--font-display); font-size: 9px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; color: rgba(255,255,255,0.55); border: 1px solid var(--jn-border); border-radius: 5px; padding: 2px 8px; }
+.jcc-active-card .jac-blurb { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.7); margin-top: 8px; }
+.jcc-active-card .jac-usewhen { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--gold); margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--jn-border); letter-spacing: 0.2px; }
+
 </style>
 </head>
 <body>
@@ -5459,7 +5468,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v9y</span>
+      <span class="ver-dot"></span><span>Spark HQ · v9z</span>
     </div>
   </aside>
 
@@ -5629,6 +5638,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             <div>
               <div class="jcc-eyebrow">Spark Command</div>
               <div class="jcc-title">Mission control</div>
+              <div class="jcc-intro">Six focused AI assistants, each great at one job. Tap a node to pick one yourself, or switch to <strong>Auto-route</strong> and Jarvis sends your question to the right one.</div>
             </div>
             <div class="jcc-mode">
               <button class="jcc-mode-btn active" id="jccModeManual" onclick="jccSetMode('manual')">Manual</button>
@@ -6905,16 +6915,28 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   // ==================== STATE ====================
   const AGENTS = {
     SNIPER: { name: 'Sniper', role: 'Sales intelligence — buying signals & timing', color: '#22ff88',
+      blurb: 'Watches the market for the right moment to reach out. Surfaces companies showing signs they are ready to buy — new funding, hiring sprees, leadership changes.',
+      useWhen: 'Use when you want to know WHO to call and WHEN.',
       suggestions: ['Find buying signals in Michigan manufacturing', 'Who in our pipeline went silent this week?', 'Surface accounts with new funding'] },
     REX: { name: 'Rex', role: 'Candidate sourcing — find people, fast', color: '#ff8c52',
+      blurb: 'Your sourcing engine. Describe the role and the area, and Rex hunts for matching candidates so you are not starting a search from scratch.',
+      useWhen: 'Use when you need to FIND PEOPLE for a req.',
       suggestions: ['Source CNC machinists near Troy', 'Senior controls engineers in Indiana', 'Bilingual recruiters in Mexico'] },
     IRIS: { name: 'Iris', role: 'Account research — go deep on a company', color: '#c084fc',
+      blurb: 'The deep-dive researcher. Point Iris at a company and get the background — what they do, recent news, funding, who the players are — before a call or pitch.',
+      useWhen: 'Use when you need to KNOW A COMPANY cold before a meeting.',
       suggestions: ['Research General Dynamics Land Systems', 'Latest funding rounds for plastics companies', 'Recent news on FANUC America'] },
     DASH: { name: 'Dash', role: 'Follow-up sequences — keep deals moving', color: '#38bdf8',
+      blurb: 'Keeps deals from going cold. Dash drafts the follow-up emails and multi-touch sequences so nothing slips through the cracks.',
+      useWhen: 'Use when you need to FOLLOW UP and keep momentum.',
       suggestions: ['Build a follow-up sequence for stale leads', 'Draft a re-engagement email', 'Schedule 5-touch nurture campaign'] },
     OPS: { name: 'Ops', role: 'Pipeline & GP — the executive brief', color: '#F5C518',
+      blurb: 'The numbers brain. Ops gives you the executive view — pipeline, gross profit run rate, top accounts — the morning brief without digging through reports.',
+      useWhen: 'Use when you want the BIG PICTURE on the business.',
       suggestions: ["Give me today's brief", "What's our GP run rate this month?", 'Show top 10 accounts by pipeline'] },
     SCOUT: { name: 'Scout', role: 'Search & research — anything, anywhere', color: '#f472b6',
+      blurb: 'The generalist. When it does not fit the other five, Scout searches the web, SharePoint, and your tools to find whatever you are after.',
+      useWhen: 'Use for ANYTHING ELSE — the catch-all.',
       suggestions: ['Find a YouTube tutorial on ZoomInfo', 'Search SharePoint for onboarding docs', 'Look up MI hire compliance changes'] }
   };
 
@@ -14427,7 +14449,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     if (dot) dot.style.background = a.color, dot.style.boxShadow = '0 0 8px ' + a.color;
     if (nm) nm.textContent = a.name.toUpperCase();
     if (role) role.textContent = a.role.split('—')[0].trim();
-    if (card) card.innerHTML = '<div class="jac-role" style="color:' + a.color + ';">' + escLms(a.name) + '</div><div class="jac-desc">' + escLms(a.role) + '</div>';
+    if (card) card.innerHTML = '<div class="jac-role" style="color:' + a.color + ';">' + escLms(a.name) + ' <span class="jac-tag">' + escLms((a.role.split(String.fromCharCode(8212))[0]).trim()) + '</span></div>' + '<div class="jac-blurb">' + escLms(a.blurb || a.role) + '</div>' + (a.useWhen ? '<div class="jac-usewhen">' + escLms(a.useWhen) + '</div>' : '');
     // data pills reflect real connection state
     const pills = document.getElementById('jccDataPills');
     if (pills) {
