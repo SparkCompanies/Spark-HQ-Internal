@@ -5439,6 +5439,38 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jcc-active-card .jac-usewhen { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--gold); margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--jn-border); letter-spacing: 0.2px; }
 
 
+
+/* ==================== V10 — SUPABASE AUTH UI ==================== */
+.sb-authpill { display:inline-flex; align-items:center; gap:7px; background:transparent;
+  border:1px solid var(--line); color:var(--muted); padding:5px 11px; border-radius:18px;
+  font-size:11px; font-family:inherit; cursor:pointer; transition:all .15s; margin-right:10px; letter-spacing:.3px; }
+.sb-authpill:hover { border-color:var(--gold); color:var(--ink); }
+.sb-dot { width:7px; height:7px; border-radius:50%; background:var(--muted-light); flex-shrink:0; transition:background .2s; }
+.sb-dot.live { background:#22c55e; box-shadow:0 0 6px rgba(34,197,94,.7); }
+.sb-modal-back { position:fixed; inset:0; background:rgba(10,10,24,.55); backdrop-filter:blur(3px);
+  display:none; align-items:center; justify-content:center; z-index:9000; }
+.sb-modal-back.show { display:flex; }
+.sb-modal { background:var(--paper); border:1px solid var(--line); border-radius:16px; width:380px; max-width:92vw;
+  padding:28px; font-family:inherit; box-shadow:0 24px 70px rgba(0,0,0,.3); }
+.sb-modal h3 { font-size:18px; font-weight:500; color:var(--ink); margin:0 0 4px; letter-spacing:-.2px; }
+.sb-modal .sb-sub { font-size:12px; color:var(--muted); margin:0 0 20px; line-height:1.5; }
+.sb-modal label { display:block; font-size:10px; letter-spacing:1.5px; color:var(--gold-dark); margin:0 0 6px; text-transform:uppercase; }
+.sb-modal input { width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:9px; font-size:13px;
+  font-family:inherit; background:#fff; color:var(--ink); margin-bottom:14px; box-sizing:border-box; }
+.sb-modal input:focus { outline:none; border-color:var(--gold); }
+.sb-modal .sb-row { display:flex; gap:8px; margin-top:6px; }
+.sb-btn-primary { flex:1; background:var(--ink); color:var(--gold); border:none; padding:11px; border-radius:9px;
+  font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; letter-spacing:.5px; }
+.sb-btn-primary:hover { background:#2d2d4a; }
+.sb-btn-ghost { background:transparent; border:1px solid var(--line); color:var(--muted); padding:11px 14px;
+  border-radius:9px; font-size:12px; font-family:inherit; cursor:pointer; }
+.sb-msg { font-size:11px; margin:10px 0 0; line-height:1.5; min-height:14px; }
+.sb-msg.err { color:#dc2626; }
+.sb-msg.ok { color:#15803d; }
+.sb-signedin { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 0 4px; }
+.sb-signedin .who { font-size:12px; color:var(--ink); }
+.sb-signedin .who small { display:block; color:var(--muted-light); font-size:10px; margin-top:2px; }
+
 /* v9z2 — clean search icon (replaces emoji) */
 .search .search-ico { color: var(--muted-light); flex-shrink: 0; transition: color 0.15s; }
 .search:hover .search-ico, .search.searching .search-ico { color: var(--gold-dark); }
@@ -5473,7 +5505,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v9z3</span>
+      <span class="ver-dot"></span><span>Spark HQ · v10</span>
     </div>
   </aside>
 
@@ -5512,7 +5544,39 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             <div class="notif-list" id="notifList"></div>
           </div>
         </div>
+        <button class="sb-authpill" id="sbAuthPill" onclick="sbOpenAuth()" title="Sign in to sync">
+          <span class="sb-dot" id="sbDot"></span>
+          <span id="sbAuthLabel">Sign in</span>
+        </button>
         <div class="avatar">AS</div>
+      </div>
+    </div>
+    <div class="sb-modal-back" id="sbModalBack" onclick="if(event.target===this)sbCloseAuth()">
+      <div class="sb-modal" id="sbModal">
+        <div id="sbAuthView">
+          <h3>Sign in to Spark HQ</h3>
+          <p class="sb-sub">Connects you to shared photos, the Pulse feed, and your training progress across devices.</p>
+          <label>Work email</label>
+          <input type="email" id="sbEmail" placeholder="you@sparkcompanies.com" autocomplete="email" />
+          <label>Password</label>
+          <input type="password" id="sbPassword" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" autocomplete="current-password" />
+          <div class="sb-row">
+            <button class="sb-btn-primary" onclick="sbDoSignIn()">Sign in</button>
+            <button class="sb-btn-ghost" onclick="sbDoSignUp()">Create account</button>
+          </div>
+          <p class="sb-msg" id="sbMsg"></p>
+        </div>
+        <div id="sbSignedView" style="display:none;">
+          <h3>You're connected</h3>
+          <div class="sb-signedin">
+            <div class="who" id="sbWho"></div>
+            <button class="sb-btn-ghost" onclick="sbDoSignOut()">Sign out</button>
+          </div>
+          <p class="sb-msg ok" id="sbSyncMsg"></p>
+          <div class="sb-row" style="margin-top:16px;">
+            <button class="sb-btn-primary" onclick="sbCloseAuth()">Done</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="mobile-backdrop" id="mobileBackdrop" onclick="toggleMobileNav()"></div>
@@ -7538,7 +7602,205 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
   })();
-  window.hbGetPhotos = hbGetPhotos; window.hbSavePhotos = hbSavePhotos;
+  
+  // ==================== V10 — SUPABASE INTEGRATION ====================
+  // Shared backend for Spark HQ. localStorage stays as the synchronous
+  // fast-path + offline fallback; Supabase is the shared source of truth.
+  window.SPARK_SB = (function() {
+    var SB_URL = 'https://rdyzvohphrmkkowdsoam.supabase.co';
+    var SB_KEY = 'sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5';
+    var client = null, user = null, ready = false;
+    var listeners = [];
+
+    function emit() { listeners.forEach(function(f){ try{f(user);}catch(e){} }); }
+    function onChange(f){ listeners.push(f); if (ready) try{f(user);}catch(e){} }
+
+    function init() {
+      if (client) return Promise.resolve(client);
+      return import('https://esm.sh/@supabase/supabase-js@2')
+        .then(function(m) {
+          client = m.createClient(SB_URL, SB_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true, storageKey: 'spark_hq_sb_auth' }
+          });
+          return client.auth.getSession();
+        })
+        .then(function(res) {
+          user = (res && res.data && res.data.session) ? res.data.session.user : null;
+          ready = true;
+          client.auth.onAuthStateChange(function(_e, session) {
+            user = session ? session.user : null;
+            emit();
+          });
+          emit();
+          return client;
+        })
+        .catch(function(err) {
+          console.warn('[SPARK_SB] init failed, staying local-only:', err && err.message);
+          ready = true; emit();
+          return null;
+        });
+    }
+
+    function signIn(email, password) {
+      return init().then(function(c){
+        if (!c) throw new Error('Supabase unavailable');
+        return c.auth.signInWithPassword({ email: email, password: password });
+      });
+    }
+    function signUp(email, password) {
+      return init().then(function(c){
+        if (!c) throw new Error('Supabase unavailable');
+        return c.auth.signUp({ email: email, password: password });
+      });
+    }
+    function signOut() {
+      return init().then(function(c){ return c ? c.auth.signOut() : null; });
+    }
+
+    // ---- shared content (app_content table: key -> jsonb value) ----
+    function getContent(key) {
+      return init().then(function(c){
+        if (!c) return null;
+        return c.from('app_content').select('value').eq('key', key).maybeSingle()
+          .then(function(r){ return (r && r.data) ? r.data.value : null; });
+      });
+    }
+    function setContent(key, value) {
+      return init().then(function(c){
+        if (!c || !user) return null;
+        return c.from('app_content').upsert(
+          { key: key, value: value, updated_by: user.id, updated_at: new Date().toISOString() },
+          { onConflict: 'key' }
+        ).then(function(r){ return r; });
+      });
+    }
+
+    // ---- pulse_posts ----
+    function listPulse() {
+      return init().then(function(c){
+        if (!c) return null;
+        return c.from('pulse_posts').select('*').order('created_at', { ascending: false }).limit(100)
+          .then(function(r){ return (r && r.data) ? r.data : null; });
+      });
+    }
+    function addPulse(body, kind) {
+      return init().then(function(c){
+        if (!c || !user) return null;
+        return c.from('pulse_posts').insert({
+          author_id: user.id,
+          author_name: (user.email || '').split('@')[0],
+          body: body, kind: kind || 'post'
+        }).select().then(function(r){ return r; });
+      });
+    }
+
+    function whoami(){ return user; }
+    function isReady(){ return ready; }
+
+    return {
+      init: init, onChange: onChange, signIn: signIn, signUp: signUp, signOut: signOut,
+      getContent: getContent, setContent: setContent,
+      listPulse: listPulse, addPulse: addPulse,
+      whoami: whoami, isReady: isReady
+    };
+  })();
+
+
+  // ---- V10 sync glue: push local saves up to Supabase, pull shared down on sign-in ----
+  function sbSyncPullPhotos() {
+    return window.SPARK_SB.getContent('burst_photos').then(function(val) {
+      if (val && Array.isArray(val) && val.length) {
+        try { localStorage.setItem('spark_hq_burst_photos', JSON.stringify(val)); } catch(e){}
+        if (window.SPARK_SOCIAL_IMAGES) { window.SPARK_SOCIAL_IMAGES.length = 0; val.forEach(function(p){ window.SPARK_SOCIAL_IMAGES.push(p); }); }
+        if (typeof hbRenderPhotos === 'function') try { hbRenderPhotos(); } catch(e){}
+        return true;
+      }
+      return false;
+    }).catch(function(){ return false; });
+  }
+  function sbSyncPushPhotos() {
+    try { var arr = hbGetPhotos(); return window.SPARK_SB.setContent('burst_photos', arr); } catch(e){ return Promise.resolve(null); }
+  }
+  // wrap hbSavePhotos so every local save also pushes to Supabase (if signed in)
+  var _origHbSave = window.hbSavePhotos;
+  window.hbSavePhotos = function(arr) {
+    _origHbSave(arr);
+    if (window.SPARK_SB && window.SPARK_SB.whoami()) { window.SPARK_SB.setContent('burst_photos', arr); }
+  };
+
+  window.hbGetPhotos = hbGetPhotos; window.hbSavePhotos = window.hbSavePhotos;
+
+  // ==================== V10 — AUTH MODAL CONTROLS ====================
+  window.sbOpenAuth = function() {
+    var back = document.getElementById('sbModalBack'); if (back) back.classList.add('show');
+    sbRefreshAuthView();
+  };
+  window.sbCloseAuth = function() {
+    var back = document.getElementById('sbModalBack'); if (back) back.classList.remove('show');
+  };
+  function sbRefreshAuthView() {
+    var u = window.SPARK_SB.whoami();
+    var av = document.getElementById('sbAuthView');
+    var sv = document.getElementById('sbSignedView');
+    var who = document.getElementById('sbWho');
+    if (u) {
+      if (av) av.style.display = 'none';
+      if (sv) sv.style.display = 'block';
+      if (who) who.innerHTML = (u.email || 'Signed in') + '<small>' + u.id.slice(0,8) + '\u2026</small>';
+    } else {
+      if (av) av.style.display = 'block';
+      if (sv) sv.style.display = 'none';
+    }
+  }
+  function sbSetMsg(t, cls) { var m = document.getElementById('sbMsg'); if(m){ m.textContent=t||''; m.className='sb-msg '+(cls||''); } }
+  window.sbDoSignIn = function() {
+    var e = (document.getElementById('sbEmail')||{}).value, p = (document.getElementById('sbPassword')||{}).value;
+    if (!e || !p) { sbSetMsg('Enter your email and password.', 'err'); return; }
+    sbSetMsg('Signing in\u2026','');
+    window.SPARK_SB.signIn(e, p).then(function(r){
+      if (r && r.error) { sbSetMsg(r.error.message, 'err'); return; }
+      sbSetMsg('', '');
+    }).catch(function(err){ sbSetMsg(err.message||'Sign-in failed','err'); });
+  };
+  window.sbDoSignUp = function() {
+    var e = (document.getElementById('sbEmail')||{}).value, p = (document.getElementById('sbPassword')||{}).value;
+    if (!e || !p) { sbSetMsg('Enter an email and a password (8+ characters).', 'err'); return; }
+    sbSetMsg('Creating account\u2026','');
+    window.SPARK_SB.signUp(e, p).then(function(r){
+      if (r && r.error) { sbSetMsg(r.error.message, 'err'); return; }
+      sbSetMsg('Account created. If email confirmation is on, check your inbox \u2014 otherwise you\u2019re signed in.', 'ok');
+    }).catch(function(err){ sbSetMsg(err.message||'Sign-up failed','err'); });
+  };
+  window.sbDoSignOut = function() {
+    window.SPARK_SB.signOut().then(function(){ sbRefreshAuthView(); });
+  };
+
+  // React to auth state: update pill, pull shared data on sign-in
+  window.SPARK_SB.onChange(function(u) {
+    var pill = document.getElementById('sbAuthPill');
+    var dot = document.getElementById('sbDot');
+    var label = document.getElementById('sbAuthLabel');
+    if (u) {
+      if (dot) dot.classList.add('live');
+      if (label) label.textContent = (u.email||'Signed in').split('@')[0];
+      if (pill) pill.title = 'Signed in \u2014 syncing';
+      var sm = document.getElementById('sbSyncMsg'); if (sm) sm.textContent = 'Pulling shared data\u2026';
+      sbSyncPullPhotos().then(function(pulled){
+        var sm2 = document.getElementById('sbSyncMsg');
+        if (sm2) sm2.textContent = pulled ? 'Shared photos loaded from the cloud.' : 'Connected. Your edits will now sync.';
+        // If nothing in cloud yet, seed it from local so other devices get it
+        if (!pulled && window.SPARK_SB.whoami()) { sbSyncPushPhotos(); }
+      });
+    } else {
+      if (dot) dot.classList.remove('live');
+      if (label) label.textContent = 'Sign in';
+      if (pill) pill.title = 'Sign in to sync';
+    }
+    sbRefreshAuthView();
+  });
+  // kick off Supabase init after load
+  window.SPARK_SB.init();
+
   window.hbRenderPhotos = hbRenderPhotos; window.hbDeletePhoto = hbDeletePhoto;
   window.hbResetPhotos = hbResetPhotos; window.hbAddFiles = hbAddFiles;
 
