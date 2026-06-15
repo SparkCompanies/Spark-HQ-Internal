@@ -5479,6 +5479,25 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .sb-ms-btn:hover { border-color:#c0c0c8; box-shadow:0 1px 6px rgba(0,0,0,.08); }
 .sb-ms-btn svg { flex-shrink:0; }
 
+
+/* ==================== V12 — LOGIN GATE ==================== */
+.login-gate { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(1200px 800px at 50% 30%, #1a1a2e 0%, #0e0e1c 60%, #08080f 100%);
+  font-family:'Century Gothic','Questrial','Jost',sans-serif; transition:opacity .4s ease; }
+.login-gate.hide { opacity:0; pointer-events:none; }
+.lg-inner { text-align:center; max-width:380px; padding:40px 32px; }
+.lg-mark { display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px;
+  border-radius:16px; background:rgba(245,197,24,.08); border:1px solid rgba(245,197,24,.25); margin-bottom:24px; }
+.lg-title { font-size:30px; font-weight:600; color:#FAF9F5; margin:0 0 10px; letter-spacing:-.5px; }
+.lg-sub { font-size:13px; line-height:1.6; color:#9a9ab0; margin:0 0 28px; }
+.lg-ms-btn { display:inline-flex; align-items:center; justify-content:center; gap:11px; width:100%;
+  background:#fff; border:none; color:#3c4043; padding:14px; border-radius:10px; font-size:13.5px; font-weight:500;
+  font-family:inherit; cursor:pointer; transition:all .15s; }
+.lg-ms-btn:hover { transform:translateY(-1px); box-shadow:0 6px 22px rgba(0,0,0,.35); }
+.lg-msg { font-size:12px; color:#F5C518; min-height:16px; margin:16px 0 0; }
+.lg-msg.err { color:#ff7a7a; }
+.lg-foot { font-size:10px; letter-spacing:1px; color:#54546a; margin:30px 0 0; text-transform:uppercase; }
+
 /* v9z2 — clean search icon (replaces emoji) */
 .search .search-ico { color: var(--muted-light); flex-shrink: 0; transition: color 0.15s; }
 .search:hover .search-ico, .search.searching .search-ico { color: var(--gold-dark); }
@@ -5488,6 +5507,23 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 <body>
 <div class="cursor-dot" aria-hidden="true"></div>
 <div class="cursor-ring" aria-hidden="true"></div>
+
+<!-- ==================== V12 — LOGIN GATE ==================== -->
+<div class="login-gate" id="loginGate">
+  <div class="lg-inner">
+    <div class="lg-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="34" height="34"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13l0-8z" fill="#F5C518" stroke="#1a1a2e" stroke-width="0.6" stroke-linejoin="round"/></svg>
+    </div>
+    <h1 class="lg-title">Spark HQ</h1>
+    <p class="lg-sub">Internal platform for Spark Companies. Sign in with your Microsoft work account to continue.</p>
+    <button class="lg-ms-btn" onclick="sbDoMicrosoft()">
+      <svg viewBox="0 0 23 23" width="18" height="18" aria-hidden="true"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg>
+      <span>Sign in with Microsoft</span>
+    </button>
+    <p class="lg-msg" id="lgMsg"></p>
+    <p class="lg-foot">Authorized Spark Companies personnel only.</p>
+  </div>
+</div>
 
 
 <div class="shell">
@@ -5513,7 +5549,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v11</span>
+      <span class="ver-dot"></span><span>Spark HQ · v12b</span>
     </div>
   </aside>
 
@@ -7712,12 +7748,13 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
     function whoami(){ return user; }
     function isReady(){ return ready; }
+    function clientUp(){ return !!client; }
 
     return {
       init: init, onChange: onChange, signIn: signIn, signUp: signUp, signInWithAzure: signInWithAzure, signOut: signOut,
       getContent: getContent, setContent: setContent,
       listPulse: listPulse, addPulse: addPulse,
-      whoami: whoami, isReady: isReady
+      whoami: whoami, isReady: isReady, clientUp: clientUp
     };
   })();
 
@@ -7803,7 +7840,9 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     var pill = document.getElementById('sbAuthPill');
     var dot = document.getElementById('sbDot');
     var label = document.getElementById('sbAuthLabel');
+    var gate = document.getElementById('loginGate');
     if (u) {
+      if (gate) gate.classList.add('hide');
       if (dot) dot.classList.add('live');
       if (label) label.textContent = (u.email||'Signed in').split('@')[0];
       if (pill) pill.title = 'Signed in \u2014 syncing';
@@ -7816,6 +7855,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         if (!pulled && window.SPARK_SB.whoami()) { sbSyncPushPhotos(); }
       });
     } else {
+      if (gate) gate.classList.remove('hide');
       if (dot) dot.classList.remove('live');
       if (label) label.textContent = 'Sign in';
       if (pill) pill.title = 'Sign in to sync';
@@ -7824,6 +7864,26 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   });
   // kick off Supabase init after load
   window.SPARK_SB.init();
+
+  // SAFETY HATCH: if the auth layer can't initialize at all (network/config failure),
+  // don't trap the user behind a dead login wall — release the gate after a grace period.
+  // This only fires when Supabase never became ready (not when simply signed out).
+  setTimeout(function() {
+    try {
+      var signedIn = !!window.SPARK_SB.whoami();
+      var clientOk = window.SPARK_SB.clientUp && window.SPARK_SB.clientUp();
+      // If the user is signed in, the onChange handler already hid the gate — nothing to do.
+      // Only intervene if NOT signed in AND the Supabase client never came up (real auth outage).
+      if (!signedIn && !clientOk) {
+        var gate = document.getElementById('loginGate');
+        var msg = document.getElementById('lgMsg');
+        if (msg) { msg.className = 'lg-msg err'; msg.textContent = 'Sign-in service is unavailable. Continuing in local mode\u2026'; }
+        setTimeout(function(){ if (gate) gate.classList.add('hide'); }, 2400);
+      }
+    } catch(e) {
+      var g = document.getElementById('loginGate'); if (g) g.classList.add('hide');
+    }
+  }, 6000);
 
   window.hbRenderPhotos = hbRenderPhotos; window.hbDeletePhoto = hbDeletePhoto;
   window.hbResetPhotos = hbResetPhotos; window.hbAddFiles = hbAddFiles;
