@@ -5480,6 +5480,39 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .sb-ms-btn svg { flex-shrink:0; }
 
 
+
+/* ==================== V13 — ROLES PANEL ==================== */
+.rp-head { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; margin-bottom:18px; }
+.rp-eyebrow { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:8px; }
+.rp-h { font-size:26px; font-weight:600; color:var(--ink); margin:0 0 6px; letter-spacing:-.4px; }
+.rp-dek { font-size:13px; color:var(--muted); max-width:560px; line-height:1.5; }
+.rp-actions { display:flex; gap:10px; align-items:center; }
+.rp-filter { padding:9px 13px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; font-family:inherit; min-width:240px; background:#fff; color:var(--ink); }
+.rp-filter:focus { outline:none; border-color:var(--gold); }
+.rp-refresh { padding:9px 16px; border:1px solid var(--line); border-radius:8px; background:var(--ink); color:var(--gold); font-size:12px; font-family:inherit; cursor:pointer; letter-spacing:.4px; }
+.rp-refresh:hover { background:#2d2d4a; }
+.rp-statusbar { font-size:12px; color:var(--muted); margin-bottom:12px; min-height:16px; }
+.rp-statusbar.err { color:#dc2626; }
+.rp-statusbar.ok { color:#15803d; }
+.rp-table-wrap { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
+.rp-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+.rp-table thead th { text-align:left; padding:11px 14px; background:var(--paper-warm); color:var(--gold-dark); font-size:10px; letter-spacing:1px; text-transform:uppercase; border-bottom:1px solid var(--line); font-weight:600; }
+.rp-table tbody td { padding:10px 14px; border-bottom:1px solid #f0ede3; color:var(--ink); vertical-align:middle; }
+.rp-table tbody tr:last-child td { border-bottom:none; }
+.rp-table tbody tr:hover { background:var(--paper-warm); }
+.rp-name { font-weight:500; }
+.rp-email { color:var(--muted); font-size:11.5px; }
+.rp-role-sel { padding:6px 9px; border:1px solid var(--line); border-radius:7px; font-size:12px; font-family:inherit; background:#fff; color:var(--ink); cursor:pointer; }
+.rp-role-sel:focus { outline:none; border-color:var(--gold); }
+.rp-role-sel.saving { opacity:.5; }
+.rp-badge { font-size:10px; padding:3px 8px; border-radius:20px; letter-spacing:.5px; }
+.rp-badge.signed { background:#dcfce7; color:#15803d; }
+.rp-badge.pending { background:#fef3c7; color:#92400e; }
+.rp-badge.disabled { background:#fee2e2; color:#991b1b; }
+.rp-gate-inner { max-width:440px; margin:60px auto; text-align:center; padding:40px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+.rp-gate-inner h2 { font-size:20px; color:var(--ink); margin:0 0 10px; }
+.rp-gate-inner p { font-size:13px; color:var(--muted); line-height:1.6; margin:0; }
+
 /* ==================== V12 — LOGIN GATE ==================== */
 .login-gate { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(1200px 800px at 50% 30%, #1a1a2e 0%, #0e0e1c 60%, #08080f 100%);
@@ -5549,7 +5582,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v12b</span>
+      <span class="ver-dot"></span><span>Spark HQ · v13</span>
     </div>
   </aside>
 
@@ -5873,15 +5906,32 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
     <!-- ==================== PEOPLE ==================== -->
     <div id="view-people" class="tab-page cream" style="display: none;">
-      <div class="tab-body" style="min-height: calc(100vh - 56px); display: flex; align-items: center; justify-content: center;">
-        <div class="people-m365-card">
-          <div class="pm-eyebrow">People</div>
-          <h1 class="pm-h">The directory lives in Microsoft 365.</h1>
-          <div class="pm-dek">Org chart, contact details, reporting lines — always current, maintained in one place. No second copy here to go stale.</div>
-          <a class="pm-cta src-dl" href="https://outlook.office.com/people/" target="_blank" rel="noopener">
-            <span>Open People in Microsoft 365</span><span class="arrow">↗</span>
-          </a>
-          <div class="pm-foot">Need someone fast? The search bar up top jumps to tabs and tools.</div>
+      <div class="tab-body" style="padding:28px 32px;">
+        <div class="rp-head">
+          <div>
+            <div class="rp-eyebrow">People &amp; Access</div>
+            <h1 class="rp-h">Team directory &amp; roles</h1>
+            <div class="rp-dek">Live from Microsoft 365. Assign each person's Spark HQ access level \u2014 changes apply the moment they sign in.</div>
+          </div>
+          <div class="rp-actions">
+            <input type="search" id="rpFilter" class="rp-filter" placeholder="Filter by name, email, department\u2026" oninput="rpRender()" />
+            <button class="rp-refresh" onclick="rpLoad()">Refresh</button>
+          </div>
+        </div>
+        <div class="rp-statusbar" id="rpStatus">Loading directory\u2026</div>
+        <div class="rp-table-wrap">
+          <table class="rp-table">
+            <thead><tr>
+              <th>Name</th><th>Email</th><th>Department</th><th>Title</th><th>HQ Role</th><th>Status</th>
+            </tr></thead>
+            <tbody id="rpBody"></tbody>
+          </table>
+        </div>
+        <div class="rp-gate" id="rpGate" style="display:none;">
+          <div class="rp-gate-inner">
+            <h2>Admins only</h2>
+            <p>The team directory and role assignment are available to Spark HQ admins. If you need access, ask an administrator to update your role.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -7749,12 +7799,28 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     function whoami(){ return user; }
     function isReady(){ return ready; }
     function clientUp(){ return !!client; }
+    function getClient(){ return client; }
+    function getToken(){
+      return init().then(function(c){
+        if (!c) return null;
+        return c.auth.getSession().then(function(r){
+          return (r && r.data && r.data.session) ? r.data.session.access_token : null;
+        });
+      });
+    }
+    function myRole(){
+      return init().then(function(c){
+        if (!c || !user) return 'member';
+        return c.from('profiles').select('role').eq('id', user.id).maybeSingle()
+          .then(function(r){ return (r && r.data && r.data.role) ? r.data.role : 'member'; });
+      });
+    }
 
     return {
       init: init, onChange: onChange, signIn: signIn, signUp: signUp, signInWithAzure: signInWithAzure, signOut: signOut,
       getContent: getContent, setContent: setContent,
       listPulse: listPulse, addPulse: addPulse,
-      whoami: whoami, isReady: isReady, clientUp: clientUp
+      whoami: whoami, isReady: isReady, clientUp: clientUp, getClient: getClient, getToken: getToken, myRole: myRole
     };
   })();
 
@@ -7784,6 +7850,134 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   window.hbGetPhotos = hbGetPhotos; window.hbSavePhotos = window.hbSavePhotos;
 
   // ==================== V10 — AUTH MODAL CONTROLS ====================
+
+
+  // ==================== V13 — ROLES PANEL ====================
+  var RP_WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+  var RP_DIRECTORY = [];      // from O365 via Worker
+  var RP_ASSIGNMENTS = {};    // email(lower) -> role, from role_assignments
+  var RP_PROFILES = {};       // email(lower) -> {role, signedIn:true}
+  var RP_ROLES = ['member','manager','admin','superadmin'];
+
+  function rpSetStatus(msg, cls) {
+    var el = document.getElementById('rpStatus');
+    if (el) { el.textContent = msg || ''; el.className = 'rp-statusbar ' + (cls||''); }
+  }
+
+  window.rpLoad = function() {
+    var gate = document.getElementById('rpGate');
+    var wrap = document.querySelector('#view-people .rp-table-wrap');
+    // must be signed in
+    if (!window.SPARK_SB || !window.SPARK_SB.whoami()) {
+      rpSetStatus('Sign in to view the team directory.', 'err');
+      return;
+    }
+    rpSetStatus('Checking your access\u2026');
+    window.SPARK_SB.myRole().then(function(role) {
+      var isAdmin = (role === 'admin' || role === 'superadmin');
+      if (!isAdmin) {
+        if (gate) gate.style.display = 'block';
+        if (wrap) wrap.style.display = 'none';
+        rpSetStatus('');
+        return;
+      }
+      if (gate) gate.style.display = 'none';
+      if (wrap) wrap.style.display = '';
+      rpSetStatus('Loading directory from Microsoft 365\u2026');
+      // Pull assignments + profiles from Supabase, and directory from the Worker, in parallel
+      var c = window.SPARK_SB.getClient();
+      var pAssign = c.from('role_assignments').select('email,role').then(function(r){
+        RP_ASSIGNMENTS = {};
+        (r.data||[]).forEach(function(a){ RP_ASSIGNMENTS[(a.email||'').toLowerCase()] = a.role; });
+      });
+      var pProf = c.from('profiles').select('email,role').then(function(r){
+        RP_PROFILES = {};
+        (r.data||[]).forEach(function(p){ if(p.email) RP_PROFILES[p.email.toLowerCase()] = { role:p.role, signedIn:true }; });
+      });
+      var pDir = window.SPARK_SB.getToken().then(function(tok){
+        return fetch(RP_WORKER + '/directory', { headers: { 'Authorization': 'Bearer ' + tok } })
+          .then(function(res){
+            if (!res.ok) return res.json().then(function(e){ throw new Error(e.error || ('HTTP '+res.status)); });
+            return res.json();
+          })
+          .then(function(d){ RP_DIRECTORY = d.people || []; });
+      });
+      Promise.all([pAssign, pProf, pDir]).then(function(){
+        rpSetStatus('Loaded ' + RP_DIRECTORY.length + ' people from Microsoft 365.', 'ok');
+        rpRender();
+      }).catch(function(err){
+        rpSetStatus('Could not load directory: ' + (err.message||err), 'err');
+      });
+    });
+  };
+
+  window.rpRender = function() {
+    var body = document.getElementById('rpBody');
+    if (!body) return;
+    var q = (document.getElementById('rpFilter')||{}).value || '';
+    q = q.toLowerCase().trim();
+    var rows = RP_DIRECTORY.filter(function(p){
+      if (!q) return true;
+      return (p.name+' '+p.email+' '+p.department+' '+p.title).toLowerCase().indexOf(q) >= 0;
+    });
+    body.innerHTML = rows.map(function(p){
+      var em = p.email.toLowerCase();
+      // effective role: profile (if signed in) wins for display, else assignment, else member
+      var prof = RP_PROFILES[em];
+      var assigned = RP_ASSIGNMENTS[em];
+      var current = (prof && prof.role) || assigned || 'member';
+      var statusBadge = !p.active
+        ? '<span class="rp-badge disabled">Disabled in O365</span>'
+        : (prof ? '<span class="rp-badge signed">Signed in</span>'
+                : (assigned ? '<span class="rp-badge pending">Assigned \u00b7 awaiting login</span>'
+                            : '<span class="rp-badge pending">Not assigned</span>'));
+      var opts = RP_ROLES.map(function(r){
+        return '<option value="'+r+'"'+(r===current?' selected':'')+'>'+r.charAt(0).toUpperCase()+r.slice(1)+'</option>';
+      }).join('');
+      return '<tr>'
+        + '<td class="rp-name">'+ (p.name||'\u2014') +'</td>'
+        + '<td class="rp-email">'+ p.email +'</td>'
+        + '<td>'+ (p.department||'\u2014') +'</td>'
+        + '<td>'+ (p.title||'\u2014') +'</td>'
+        + '<td><select class="rp-role-sel" data-email="'+ p.email +'" onchange="rpSetRole(this)">'+ opts +'</select></td>'
+        + '<td>'+ statusBadge +'</td>'
+        + '</tr>';
+    }).join('');
+  };
+
+  window.rpSetRole = function(sel) {
+    var email = sel.getAttribute('data-email');
+    var role = sel.value;
+    var em = email.toLowerCase();
+    sel.classList.add('saving');
+    var c = window.SPARK_SB.getClient();
+    var u = window.SPARK_SB.whoami();
+    // 1. upsert into role_assignments (covers people who haven't signed in)
+    c.from('role_assignments').upsert(
+      { email: em, role: role, assigned_by: u ? u.id : null, assigned_at: new Date().toISOString() },
+      { onConflict: 'email' }
+    ).then(function(r){
+      RP_ASSIGNMENTS[em] = role;
+      // 2. if they already have a profile (signed in before), update it too so it takes effect now
+      if (RP_PROFILES[em]) {
+        return c.from('profiles').update({ role: role }).eq('email', em).then(function(){
+          RP_PROFILES[em].role = role;
+        });
+      }
+    }).then(function(){
+      sel.classList.remove('saving');
+      rpSetStatus('Saved \u2014 ' + email + ' set to ' + role + '.', 'ok');
+    }).catch(function(err){
+      sel.classList.remove('saving');
+      rpSetStatus('Could not save role for ' + email + ': ' + (err.message||err), 'err');
+    });
+  };
+
+  // load the panel whenever the People tab is opened
+  document.querySelectorAll('.nav-item[data-tab="people"]').forEach(function(btn){
+    btn.addEventListener('click', function(){ setTimeout(window.rpLoad, 80); });
+  });
+
   window.sbOpenAuth = function() {
     var back = document.getElementById('sbModalBack'); if (back) back.classList.add('show');
     sbRefreshAuthView();
