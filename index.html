@@ -5471,6 +5471,14 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .sb-signedin .who { font-size:12px; color:var(--ink); }
 .sb-signedin .who small { display:block; color:var(--muted-light); font-size:10px; margin-top:2px; }
 
+
+/* v11 — Microsoft sign-in button */
+.sb-ms-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:11px;
+  background:#fff; border:1px solid var(--line); color:#3c4043; padding:13px; border-radius:9px;
+  font-size:13px; font-weight:500; font-family:inherit; cursor:pointer; transition:all .15s; margin-top:4px; }
+.sb-ms-btn:hover { border-color:#c0c0c8; box-shadow:0 1px 6px rgba(0,0,0,.08); }
+.sb-ms-btn svg { flex-shrink:0; }
+
 /* v9z2 — clean search icon (replaces emoji) */
 .search .search-ico { color: var(--muted-light); flex-shrink: 0; transition: color 0.15s; }
 .search:hover .search-ico, .search.searching .search-ico { color: var(--gold-dark); }
@@ -5505,7 +5513,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v10</span>
+      <span class="ver-dot"></span><span>Spark HQ · v11</span>
     </div>
   </aside>
 
@@ -5555,15 +5563,11 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <div class="sb-modal" id="sbModal">
         <div id="sbAuthView">
           <h3>Sign in to Spark HQ</h3>
-          <p class="sb-sub">Connects you to shared photos, the Pulse feed, and your training progress across devices.</p>
-          <label>Work email</label>
-          <input type="email" id="sbEmail" placeholder="you@sparkcompanies.com" autocomplete="email" />
-          <label>Password</label>
-          <input type="password" id="sbPassword" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" autocomplete="current-password" />
-          <div class="sb-row">
-            <button class="sb-btn-primary" onclick="sbDoSignIn()">Sign in</button>
-            <button class="sb-btn-ghost" onclick="sbDoSignUp()">Create account</button>
-          </div>
+          <p class="sb-sub">Use your Spark Companies Microsoft account. Connects you to shared photos, the Pulse feed, and your training progress across every device.</p>
+          <button class="sb-ms-btn" onclick="sbDoMicrosoft()">
+            <svg viewBox="0 0 23 23" width="18" height="18" aria-hidden="true"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg>
+            <span>Sign in with Microsoft</span>
+          </button>
           <p class="sb-msg" id="sbMsg"></p>
         </div>
         <div id="sbSignedView" style="display:none;">
@@ -7653,6 +7657,18 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         return c.auth.signUp({ email: email, password: password });
       });
     }
+    function signInWithAzure() {
+      return init().then(function(c){
+        if (!c) throw new Error('Supabase unavailable');
+        return c.auth.signInWithOAuth({
+          provider: 'azure',
+          options: {
+            scopes: 'email openid profile',
+            redirectTo: window.location.origin + window.location.pathname
+          }
+        });
+      });
+    }
     function signOut() {
       return init().then(function(c){ return c ? c.auth.signOut() : null; });
     }
@@ -7698,7 +7714,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     function isReady(){ return ready; }
 
     return {
-      init: init, onChange: onChange, signIn: signIn, signUp: signUp, signOut: signOut,
+      init: init, onChange: onChange, signIn: signIn, signUp: signUp, signInWithAzure: signInWithAzure, signOut: signOut,
       getContent: getContent, setContent: setContent,
       listPulse: listPulse, addPulse: addPulse,
       whoami: whoami, isReady: isReady
@@ -7753,6 +7769,13 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     }
   }
   function sbSetMsg(t, cls) { var m = document.getElementById('sbMsg'); if(m){ m.textContent=t||''; m.className='sb-msg '+(cls||''); } }
+  window.sbDoMicrosoft = function() {
+    sbSetMsg('Opening Microsoft sign-in\u2026','');
+    window.SPARK_SB.signInWithAzure().then(function(r){
+      if (r && r.error) { sbSetMsg(r.error.message, 'err'); return; }
+      // browser will redirect to Microsoft; nothing else to do here
+    }).catch(function(err){ sbSetMsg(err.message||'Sign-in failed','err'); });
+  };
   window.sbDoSignIn = function() {
     var e = (document.getElementById('sbEmail')||{}).value, p = (document.getElementById('sbPassword')||{}).value;
     if (!e || !p) { sbSetMsg('Enter your email and password.', 'err'); return; }
@@ -7785,6 +7808,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       if (label) label.textContent = (u.email||'Signed in').split('@')[0];
       if (pill) pill.title = 'Signed in \u2014 syncing';
       var sm = document.getElementById('sbSyncMsg'); if (sm) sm.textContent = 'Pulling shared data\u2026';
+      if (window.sbSyncPullPulse) window.sbSyncPullPulse().then(function(pp){ if(!pp && window.SPARK_SB.whoami() && window.sbSyncPushPulse) window.sbSyncPushPulse(); });
       sbSyncPullPhotos().then(function(pulled){
         var sm2 = document.getElementById('sbSyncMsg');
         if (sm2) sm2.textContent = pulled ? 'Shared photos loaded from the cloud.' : 'Connected. Your edits will now sync.';
@@ -14840,7 +14864,28 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     try { const s = localStorage.getItem('spark_hq_pulse'); if (s) { const p = JSON.parse(s); if (p && p.posts) return p; } } catch(e) {}
     return JSON.parse(JSON.stringify(PULSE_DEFAULT));
   })();
-  function persistPulse() { try { localStorage.setItem('spark_hq_pulse', JSON.stringify(PULSE_DATA)); } catch(e) {} }
+  function persistPulse() {
+    try { localStorage.setItem('spark_hq_pulse', JSON.stringify(PULSE_DATA)); } catch(e) {}
+    if (window.SPARK_SB && window.SPARK_SB.whoami()) {
+      try { window.SPARK_SB.setContent('pulse', PULSE_DATA); } catch(e) {}
+    }
+  }
+  window.sbSyncPullPulse = function() {
+    if (!window.SPARK_SB) return Promise.resolve(false);
+    return window.SPARK_SB.getContent('pulse').then(function(val) {
+      if (val && val.posts && Array.isArray(val.posts)) {
+        PULSE_DATA = val;
+        try { localStorage.setItem('spark_hq_pulse', JSON.stringify(PULSE_DATA)); } catch(e){}
+        if (typeof renderPulse === 'function') try { renderPulse(); } catch(e){}
+        return true;
+      }
+      return false;
+    }).catch(function(){ return false; });
+  };
+  window.sbSyncPushPulse = function() {
+    if (window.SPARK_SB && window.SPARK_SB.whoami()) { try { return window.SPARK_SB.setContent('pulse', PULSE_DATA); } catch(e){} }
+    return Promise.resolve(null);
+  };
 
   function pulseTimeAgo(ts) {
     const s = Math.floor((Date.now() - ts) / 1000);
