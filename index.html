@@ -5438,6 +5438,11 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jcc-active-card .jac-blurb { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.7); margin-top: 8px; }
 .jcc-active-card .jac-usewhen { font-family: var(--font-display); font-size: 11px; font-weight: 600; color: var(--gold); margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--jn-border); letter-spacing: 0.2px; }
 
+
+/* v9z2 — clean search icon (replaces emoji) */
+.search .search-ico { color: var(--muted-light); flex-shrink: 0; transition: color 0.15s; }
+.search:hover .search-ico, .search.searching .search-ico { color: var(--gold-dark); }
+
 </style>
 </head>
 <body>
@@ -5468,7 +5473,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v9z</span>
+      <span class="ver-dot"></span><span>Spark HQ · v9z3</span>
     </div>
   </aside>
 
@@ -5479,7 +5484,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
       </button>
       <div class="search" onclick="openSearch()" id="topSearch">
-        <span style="font-size: 14px;">🔍</span>
+        <svg class="search-ico" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <input id="searchInput" placeholder="Ask Jarvis or search anything..." onfocus="openSearch()" onkeydown="searchKeydown(event)" />
         <span class="kbd-hint">⌘K</span>
         <div class="search-suggest" id="searchSuggest">
@@ -5632,40 +5637,26 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         <!-- ==================== TRAINING ==================== -->
     <!-- ==================== JARVIS — COMMAND CENTER TAB ==================== -->
     <div id="view-jarvis" class="tab-page jarvis-page" style="display: none;">
-      <div class="jcc">
-        <div class="jcc-stage">
-          <div class="jcc-stage-top">
-            <div>
-              <div class="jcc-eyebrow">Spark Command</div>
-              <div class="jcc-title">Mission control</div>
-              <div class="jcc-intro">Six focused AI assistants, each great at one job. Tap a node to pick one yourself, or switch to <strong>Auto-route</strong> and Jarvis sends your question to the right one.</div>
-            </div>
-            <div class="jcc-mode">
-              <button class="jcc-mode-btn active" id="jccModeManual" onclick="jccSetMode('manual')">Manual</button>
-              <button class="jcc-mode-btn" id="jccModeAuto" onclick="jccSetMode('auto')">Auto-route</button>
-            </div>
-          </div>
-          <div class="jcc-constellation" id="jccConstellation"></div>
-          <div class="jcc-active-card" id="jccActiveCard"></div>
+      <div class="jarvis-tab-chrome">
+        <div class="jtc-l">
+          <span class="jtc-status"></span>
+          <span class="jtc-title">SPARK COMMAND CENTER</span>
+          <span class="jtc-sub">7 agents · ZoomInfo · M365 · Salesforce · Live</span>
         </div>
-        <div class="jcc-convo-col">
-          <div class="jcc-convo-head">
-            <div class="jcc-ch-l">
-              <span class="jcc-active-dot" id="jccActiveDot"></span>
-              <span id="jccActiveName">OPS</span>
-              <span class="jcc-ch-role" id="jccActiveRole">Pipeline &amp; GP</span>
-            </div>
-            <div class="jcc-data-pills" id="jccDataPills"></div>
-          </div>
-          <div class="jcc-convo" id="jccConvo"></div>
-          <div class="jcc-suggest" id="jccSuggest"></div>
-          <div class="jcc-input-row">
-            <input type="text" id="jccInput" placeholder="Ask the active agent, or type 'sniper ...' to switch" onkeydown="if(event.key==='Enter')jccSend()" />
-            <button class="jcc-send" onclick="jccSend()" title="Send">
-              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
-            </button>
-          </div>
-          <div class="jcc-foot" id="jccFoot">Running on Spark's own Claude. Live Salesforce data connects through the Worker.</div>
+        <div class="jtc-actions">
+          <a class="jtc-btn" href="https://spark-command.netlify.app" target="_blank" rel="noopener" title="Open in its own window (best for wall monitors)">Open standalone ↗</a>
+          <button class="jtc-btn" onclick="reloadJarvisFrame()" title="Reload the Command Center">Reload ⟳</button>
+        </div>
+      </div>
+      <div class="jarvis-frame-wrap">
+        <iframe id="jarvisTabFrame"
+                title="Spark Command Center"
+                allow="microphone; clipboard-write; autoplay"
+                allowfullscreen></iframe>
+        <div class="jarvis-frame-loading" id="jarvisFrameLoading">
+          <div class="jfl-pulse"></div>
+          <div class="jfl-text">CONNECTING TO COMMAND CENTER</div>
+          <div class="jfl-sub">spark-command.netlify.app</div>
         </div>
       </div>
     </div>
@@ -14568,11 +14559,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
 
   // Refresh the native CC whenever its tab opens
   setTimeout(() => {
-    document.querySelectorAll('.nav-item').forEach(b => {
-      if (b.dataset.tab === 'jarvis') {
-        b.addEventListener('click', () => setTimeout(jccRefreshAll, 60));
-      }
-    });
+    
     jccRefreshAll();
   }, 600);
 
