@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Spark HQ — Option B</title>
@@ -13,7 +17,12 @@
   --line: #ECE9E0;
   --line-light: #f5f3ec;
   --gold: #F5C518;
+  --gold-bright: #FFD43B;
+  --gold-deep: #D4A017;
   --gold-dark: #92400e;
+  --gold-grad: linear-gradient(135deg, #FFD43B 0%, #F5C518 45%, #D4A017 100%);
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
   --muted: #64748b;
   --muted-light: #94a3b8;
   --green: #15803d;
@@ -30,7 +39,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100vh; }
 body {
-  font-family: "Century Gothic", "Avant Garde", "Futura", sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: 'cv02','cv03','cv04','cv11';
   background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
@@ -4986,6 +4996,225 @@ body {
 
 #sparkConfettiCanvas { position: fixed; inset: 0; pointer-events: none; z-index: 999999; }
 
+
+/* ==================== V8Y — ROLE EDITOR ==================== */
+.re-check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+.re-check {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.re-check:hover { border-color: var(--gold); }
+.role-card { position: relative; }
+.role-card .r-edit-row {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 4px;
+}
+.role-card .r-locked {
+  font-size: 8px; letter-spacing: 1px; font-weight: 700;
+  color: var(--muted-light); text-transform: uppercase;
+  border: 1px solid var(--line);
+  padding: 2px 7px; border-radius: 4px;
+}
+
+
+/* ==================== V9 — TYPE SYSTEM + MATERIAL ELEVATION ==================== */
+
+/* Display face — headlines, mastheads, eyebrows, the orb */
+.hero-h, .tab-hero h1, .admin-hero h2, .lw-greet,
+.rd-head h2, .sm-head h2, .people-m365-card .pm-h,
+.tracks-grid .t-title, .std-value .v-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -1.4px;
+}
+.tab-hero h1 { letter-spacing: -2px; }
+
+/* Eyebrows — the recurring label device — tightened + display face */
+.eyebrow, .rd-eyebrow, .t-eyebrow, .admin-hero .eyebrow, .tab-hero .eyebrow {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+}
+
+/* Data face — every number that means something */
+.bc-val, .qr-score, .footer, .sm-score, .sm-ring-num,
+.dh-stat-num, .tadm-stat-num, .hc-num, .lms-pct,
+.conn-meta .num, .bc-stat .bc-val {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.5px;
+}
+
+/* Nav + UI labels — Inter medium, slightly tighter tracking for the "designed software" feel */
+.nav-item, .admin-subnav-item, .btn-add, .btn-secondary,
+.agent-pill .name, .tool-tile .label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+}
+
+/* Gold becomes material — gradient fills where gold was flat */
+.btn-add {
+  background: var(--gold-grad) !important;
+  color: #1a1a2e !important;
+  font-weight: 600 !important;
+  border: none !important;
+  box-shadow: 0 1px 2px rgba(212,160,23,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.btn-add:hover { filter: brightness(1.05); box-shadow: 0 4px 14px rgba(245,197,24,0.35), inset 0 1px 0 rgba(255,255,255,0.3); }
+
+/* Sidebar active — gold gradient bar instead of flat */
+.sidebar .nav-item.active::before { background: var(--gold-grad); }
+.sidebar .nav-item.active { color: var(--ink); font-weight: 600; }
+
+/* Orb core — display-face confidence already; tighten the glow with gradient */
+#jn-sphere .core { background: var(--gold-grad); }
+
+/* Ghost numeral → display face, thinner stroke for refinement */
+.tab-hero[data-ghost]::before {
+  font-family: var(--font-display);
+  font-weight: 700;
+  -webkit-text-stroke: 1px rgba(245,197,24,0.22);
+  letter-spacing: -10px;
+}
+
+/* Value numerals on Spark Standard — mono, gradient-filled on hover */
+.std-value .v-num { font-family: var(--font-mono) !important; font-weight: 700 !important; }
+
+/* Burden calculator — the hero numbers go big mono with gradient on the GP figure */
+.bc-stat.hot .bc-val { background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* Tool tiles — sharper: tighter radius, crisper border, lift refined */
+.tool-tile {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.tool-tile .mark { border-radius: 9px; font-family: var(--font-display); font-weight: 700; }
+
+/* Cards everywhere — unify to a sharper radius + hairline */
+.std-value, .cp-level, .conn-card, .lead-esc-card, .folder, .people-m365-card {
+  border-radius: 13px;
+}
+
+/* Version badge — mono, like a build hash */
+.footer { font-size: 10px; letter-spacing: 0; color: var(--muted); }
+
+/* Search bar — monospace placeholder feel for the command-bar vibe */
+.topbar .search-input, .topbar input[type="text"] { font-family: 'Inter', sans-serif; letter-spacing: -0.1px; }
+
+/* Tighten heading rhythm app-wide */
+h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.8px; }
+
+/* Links/buttons keep Inter via inherit; ensure inputs use Inter not serif fallback */
+input, select, textarea, button { font-family: 'Inter', sans-serif; }
+
+
+/* ==================== V9A — NATIVE COMMAND CENTER ==================== */
+.jarvis-page { padding: 0 !important; background: var(--jn-bg); }
+.jcc { display: grid; grid-template-columns: 1.1fr 1fr; min-height: calc(100vh - 56px); color: #fff; }
+.jcc-stage { position: relative; padding: 32px 36px; background: radial-gradient(ellipse 70% 50% at 50% 38%, rgba(245,197,24,0.05) 0%, transparent 65%), linear-gradient(160deg, #14142b 0%, #0a0a18 100%); border-right: 1px solid var(--jn-border); display: flex; flex-direction: column; overflow: hidden; }
+.jcc-stage-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.jcc-eyebrow { font-family: var(--font-display); font-size: 10px; letter-spacing: 3px; font-weight: 600; color: rgba(245,197,24,0.85); text-transform: uppercase; }
+.jcc-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; letter-spacing: -1px; margin-top: 4px; }
+.jcc-mode { display: flex; gap: 4px; background: rgba(255,255,255,0.04); padding: 3px; border-radius: 9px; border: 1px solid var(--jn-border); }
+.jcc-mode-btn { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; color: rgba(255,255,255,0.55); background: transparent; border: none; cursor: pointer; padding: 6px 12px; border-radius: 7px; transition: all 0.15s; }
+.jcc-mode-btn.active { background: var(--gold-grad); color: #14142b; }
+.jcc-constellation { flex: 1; position: relative; min-height: 340px; display: flex; align-items: center; justify-content: center; }
+.jcc-orbit { position: absolute; top: 50%; left: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.07); animation: jccOrbitSpin 60s linear infinite; }
+.jcc-orbit.inner { width: 190px; height: 190px; margin: -95px 0 0 -95px; animation-duration: 42s; animation-direction: reverse; }
+@keyframes jccOrbitSpin { to { transform: rotate(360deg); } }
+.jcc-core { position: absolute; top: 50%; left: 50%; width: 86px; height: 86px; margin: -43px 0 0 -43px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #ffe98a 0%, var(--gold) 45%, #b8920e 100%); box-shadow: 0 0 50px rgba(245,197,24,0.45), 0 0 100px rgba(245,197,24,0.18); animation: jccCoreBreath 4.5s ease-in-out infinite; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 1px; color: #14142b; }
+@keyframes jccCoreBreath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.jcc-node { position: absolute; top: 50%; left: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(20,20,43,0.9); border: 1.5px solid var(--agent-color); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; z-index: 2; }
+.jcc-node:hover { transform: scale(1.12); }
+.jcc-node.active { box-shadow: 0 0 0 3px var(--agent-color), 0 0 28px var(--agent-color); }
+.jcc-node .jn-ab { font-family: var(--font-display); font-weight: 700; font-size: 11px; color: #fff; }
+.jcc-node .jn-pulse { position: absolute; inset: -1.5px; border-radius: 50%; border: 1.5px solid var(--agent-color); opacity: 0; }
+.jcc-node.active .jn-pulse { animation: jccPulse 2s ease-out infinite; }
+@keyframes jccPulse { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 0; transform: scale(1.6); } }
+.jcc-link { position: absolute; top: 50%; left: 50%; height: 1px; transform-origin: 0 0; background: linear-gradient(90deg, var(--agent-color), transparent); opacity: 0.25; z-index: 1; }
+.jcc-link.active { opacity: 0.8; height: 1.5px; }
+.jcc-active-card { background: rgba(255,255,255,0.03); border: 1px solid var(--jn-border); border-radius: 13px; padding: 16px 18px; }
+.jcc-active-card .jac-role { font-family: var(--font-display); font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.jcc-active-card .jac-desc { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+.jcc-convo-col { display: flex; flex-direction: column; background: var(--jn-bg); min-height: 0; }
+.jcc-convo-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--jn-border); }
+.jcc-ch-l { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: 0.5px; }
+.jcc-active-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+.jcc-ch-role { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 0; }
+.jcc-data-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.jcc-data-pill { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.5px; color: rgba(255,255,255,0.4); border: 1px solid var(--jn-border); border-radius: 5px; padding: 3px 7px; }
+.jcc-data-pill.live { color: #22ff88; border-color: rgba(34,255,136,0.3); }
+.jcc-convo { flex: 1; overflow-y: auto; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; min-height: 200px; }
+.jcc-convo .msg { max-width: 82%; font-size: 13px; line-height: 1.55; }
+.jcc-convo .msg-user { align-self: flex-end; background: var(--gold-grad); color: #14142b; font-weight: 500; padding: 10px 14px; border-radius: 12px 12px 3px 12px; }
+.jcc-convo .msg-ai { align-self: flex-start; background: rgba(255,255,255,0.04); border: 1px solid var(--jn-border); border-left: 2px solid var(--agent-color); padding: 11px 15px; border-radius: 3px 12px 12px 12px; }
+.jcc-convo .msg-ai .mai-agent { font-family: var(--font-display); font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: var(--agent-color); margin-bottom: 5px; text-transform: uppercase; }
+.jcc-convo .msg-ai .mai-meta { font-family: var(--font-mono); font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 7px; }
+.jcc-convo .msg-system { align-self: center; font-size: 10px; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); text-transform: uppercase; font-family: var(--font-display); font-weight: 600; }
+.jcc-convo .msg-thinking { align-self: flex-start; display: flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.5); }
+.jcc-convo .msg-thinking .d { width: 5px; height: 5px; border-radius: 50%; background: var(--agent-color); animation: jccDot 1.2s ease-in-out infinite; }
+.jcc-convo .msg-thinking .d:nth-child(2) { animation-delay: 0.2s; }
+.jcc-convo .msg-thinking .d:nth-child(3) { animation-delay: 0.4s; }
+@keyframes jccDot { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+.jcc-suggest { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 24px 12px; }
+.jcc-suggest .ichip { font-family: 'Inter', sans-serif; font-size: 11px; color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.04); border: 1px solid var(--jn-border); border-radius: 8px; padding: 7px 12px; cursor: pointer; transition: all 0.15s; }
+.jcc-suggest .ichip:hover { border-color: var(--gold); color: #fff; }
+.jcc-input-row { display: flex; gap: 8px; padding: 0 24px 14px; }
+.jcc-input-row input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--jn-border); border-radius: 10px; padding: 13px 16px; color: #fff; font-family: 'Inter', sans-serif; font-size: 13px; }
+.jcc-input-row input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,197,24,0.12); }
+.jcc-send { background: var(--gold-grad); color: #14142b; border: none; border-radius: 10px; width: 46px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.jcc-foot { padding: 0 24px 18px; font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.3); }
+@media (max-width: 900px) { .jcc { grid-template-columns: 1fr; } .jcc-stage { min-height: 420px; } }
+@media (prefers-reduced-motion: reduce) { .jcc-orbit, .jcc-core, .jcc-node.active .jn-pulse { animation: none !important; } }
+
+
+/* ==================== V9B — PULSE FEED ==================== */
+.pulse-wrap { background: var(--paper); padding: 40px 24px 60px; }
+.pulse-col { max-width: 680px; margin: 0 auto; }
+.pulse-head { margin-bottom: 20px; }
+.pulse-h { font-family: var(--font-display); font-size: clamp(24px,3vw,32px); font-weight: 600; letter-spacing: -1px; margin: 4px 0 0; }
+.pulse-compose { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 26px; box-shadow: 0 1px 2px rgba(26,26,46,0.04); }
+.pulse-compose-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.pulse-compose-tab { font-family: 'Inter',sans-serif; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; transition: all 0.15s; }
+.pulse-compose-tab.active { background: var(--ink); color: var(--gold); border-color: var(--ink); }
+.pulse-compose-pane input, .pulse-compose-pane textarea, .pulse-compose-pane select { width: 100%; font-family: 'Inter',sans-serif; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 9px; color: var(--ink); background: var(--paper); }
+.pulse-compose-pane textarea { resize: vertical; }
+.pulse-compose-pane input:focus, .pulse-compose-pane textarea:focus, .pulse-compose-pane select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,197,24,0.12); }
+.pulse-field-row { display: flex; gap: 9px; }
+.pulse-field-row > * { flex: 1; }
+.pulse-feed { display: flex; flex-direction: column; gap: 14px; }
+.pulse-empty { text-align: center; color: var(--muted-light); font-size: 13px; padding: 40px 0; }
+.pulse-post { display: flex; background: #fff; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; box-shadow: 0 1px 2px rgba(26,26,46,0.04); transition: box-shadow 0.15s, transform 0.15s; }
+.pulse-post:hover { box-shadow: 0 8px 24px rgba(26,26,46,0.08); transform: translateY(-1px); }
+.pulse-rail { width: 4px; flex-shrink: 0; }
+.pulse-body { padding: 16px 18px; flex: 1; min-width: 0; }
+.pulse-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pulse-kind { font-family: var(--font-display); font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.pulse-time { font-family: var(--font-mono); font-size: 10px; color: var(--muted-light); }
+.pulse-rec-head { font-size: 14px; color: var(--ink); margin-bottom: 8px; }
+.pulse-from { font-weight: 600; }
+.pulse-to { font-weight: 700; color: var(--gold-dark); }
+.pulse-value-chip { display: inline-block; font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; color: var(--gold-dark); background: var(--paper-warm); border: 1px solid rgba(245,197,24,0.4); border-radius: 6px; padding: 4px 10px; margin-bottom: 10px; }
+.pulse-news-title { font-family: var(--font-display); font-size: 17px; font-weight: 600; letter-spacing: -0.4px; color: var(--ink); margin-bottom: 3px; }
+.pulse-text { font-size: 13.5px; line-height: 1.6; color: #374151; }
+.pulse-react-row { display: flex; gap: 7px; margin-top: 12px; flex-wrap: wrap; }
+.pulse-react { font-family: 'Inter',sans-serif; font-size: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 4px 11px; cursor: pointer; transition: all 0.12s; }
+.pulse-react:hover { border-color: var(--gold); background: var(--paper-warm); }
+.pulse-react.add { color: var(--muted); }
+@media (max-width: 760px) { .pulse-field-row { flex-direction: column; } }
+
 </style>
 </head>
 <body>
@@ -5013,7 +5242,7 @@ body {
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v8x</span>
+      <span class="ver-dot"></span><span>Spark HQ · v9d</span>
     </div>
   </aside>
 
@@ -5088,33 +5317,88 @@ body {
         </div>
       </section>
 
-      
+      <!-- ==================== PULSE — COMPANY FEED ==================== -->
+      <div class="pulse-wrap">
+        <div class="pulse-col">
+          <div class="pulse-head">
+            <div class="eyebrow">The Pulse</div>
+            <h2 class="pulse-h">What's happening at Spark</h2>
+          </div>
+
+          <!-- Composer -->
+          <div class="pulse-compose">
+            <div class="pulse-compose-tabs">
+              <button class="pulse-compose-tab active" data-kind="recognition" onclick="pulseSetKind('recognition')">◆ Recognize someone</button>
+              <button class="pulse-compose-tab" data-kind="news" onclick="pulseSetKind('news')">▸ Post news</button>
+              <button class="pulse-compose-tab" data-kind="milestone" onclick="pulseSetKind('milestone')">★ Milestone</button>
+            </div>
+            <div class="pulse-compose-pane" data-kind="recognition">
+              <div class="pulse-field-row">
+                <input type="text" id="pcRecTo" placeholder="Who are you recognizing?" />
+                <select id="pcRecValue" class="sm-select"></select>
+              </div>
+              <textarea id="pcRecText" rows="2" placeholder="What did they do? Tie it to the standard."></textarea>
+              <button class="btn-add" onclick="pulsePostRecognition()">Post recognition</button>
+            </div>
+            <div class="pulse-compose-pane" data-kind="news" style="display:none;">
+              <input type="text" id="pcNewsTitle" placeholder="Headline" />
+              <textarea id="pcNewsText" rows="2" placeholder="Share the update…"></textarea>
+              <button class="btn-add" onclick="pulsePostNews()">Post news</button>
+            </div>
+            <div class="pulse-compose-pane" data-kind="milestone" style="display:none;">
+              <div class="pulse-field-row">
+                <input type="text" id="pcMileWho" placeholder="Who?" />
+                <input type="text" id="pcMileDetail" placeholder="e.g. 5-year anniversary" />
+              </div>
+              <textarea id="pcMileText" rows="2" placeholder="A line to mark it (optional)…"></textarea>
+              <button class="btn-add" onclick="pulsePostMilestone()">Post milestone</button>
+            </div>
+          </div>
+
+          <div class="pulse-feed" id="pulseFeed"></div>
+          <div class="rd-asymbl-note" style="margin-top:14px;">Posts are saved on this device for now — when sign-in and the shared backend land, the feed goes company-wide and posts attribute to the real author.</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- OTHER TABS -->
         <!-- ==================== TRAINING ==================== -->
     <!-- ==================== JARVIS — COMMAND CENTER TAB ==================== -->
     <div id="view-jarvis" class="tab-page jarvis-page" style="display: none;">
-      <div class="jarvis-tab-chrome">
-        <div class="jtc-l">
-          <span class="jtc-status"></span>
-          <span class="jtc-title">SPARK COMMAND CENTER</span>
-          <span class="jtc-sub">7 agents · ZoomInfo · M365 · Salesforce · Live</span>
+      <div class="jcc">
+        <div class="jcc-stage">
+          <div class="jcc-stage-top">
+            <div>
+              <div class="jcc-eyebrow">Spark Command</div>
+              <div class="jcc-title">Mission control</div>
+            </div>
+            <div class="jcc-mode">
+              <button class="jcc-mode-btn active" id="jccModeManual" onclick="jccSetMode('manual')">Manual</button>
+              <button class="jcc-mode-btn" id="jccModeAuto" onclick="jccSetMode('auto')">Auto-route</button>
+            </div>
+          </div>
+          <div class="jcc-constellation" id="jccConstellation"></div>
+          <div class="jcc-active-card" id="jccActiveCard"></div>
         </div>
-        <div class="jtc-actions">
-          <a class="jtc-btn" href="https://spark-command.netlify.app" target="_blank" rel="noopener" title="Open in its own window (best for wall monitors)">Open standalone ↗</a>
-          <button class="jtc-btn" onclick="reloadJarvisFrame()" title="Reload the Command Center">Reload ⟳</button>
-        </div>
-      </div>
-      <div class="jarvis-frame-wrap">
-        <iframe id="jarvisTabFrame"
-                title="Spark Command Center"
-                allow="microphone; clipboard-write; autoplay"
-                allowfullscreen></iframe>
-        <div class="jarvis-frame-loading" id="jarvisFrameLoading">
-          <div class="jfl-pulse"></div>
-          <div class="jfl-text">CONNECTING TO COMMAND CENTER</div>
-          <div class="jfl-sub">spark-command.netlify.app</div>
+        <div class="jcc-convo-col">
+          <div class="jcc-convo-head">
+            <div class="jcc-ch-l">
+              <span class="jcc-active-dot" id="jccActiveDot"></span>
+              <span id="jccActiveName">OPS</span>
+              <span class="jcc-ch-role" id="jccActiveRole">Pipeline &amp; GP</span>
+            </div>
+            <div class="jcc-data-pills" id="jccDataPills"></div>
+          </div>
+          <div class="jcc-convo" id="jccConvo"></div>
+          <div class="jcc-suggest" id="jccSuggest"></div>
+          <div class="jcc-input-row">
+            <input type="text" id="jccInput" placeholder="Ask the active agent, or type 'sniper ...' to switch" onkeydown="if(event.key==='Enter')jccSend()" />
+            <button class="jcc-send" onclick="jccSend()" title="Send">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+            </button>
+          </div>
+          <div class="jcc-foot" id="jccFoot">Running on Spark's own Claude. Live Salesforce data connects through the Worker.</div>
         </div>
       </div>
     </div>
@@ -5359,49 +5643,18 @@ body {
       <div class="tab-hero">
         <div class="eyebrow">Documents</div>
         <h1>Company files, organized. <span class="dim">Pulled live from SharePoint.</span></h1>
-        <div class="dek">Templates, handbooks, forms, agreements — pulled from SharePoint in production. <strong style="color: var(--gold-dark);">Folders and files below are demo data until the SharePoint wiring lands.</strong></div>
+        <div class="dek">Templates, handbooks, forms, agreements. Curated here, edited in Admin → Documents — rows with a SharePoint link open the real file.</div>
       </div>
 
       <div class="tab-body">
-        <div class="eyebrow" style="margin-bottom: 12px;">Folders</div>
-        <div class="doc-folders">
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">HR & Onboarding</div><div class="ct">23 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Client Agreements</div><div class="ct">47 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Templates</div><div class="ct">18 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Benefits & Policies</div><div class="ct">12 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Branding & Marketing</div><div class="ct">31 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Legal</div><div class="ct">15 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Training Materials</div><div class="ct">29 files</div></div></div>
-          <div class="folder"><div class="ico">▢</div><div class="info"><div class="nm">Compliance</div><div class="ct">9 files</div></div></div>
+        <div class="docs-toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+          <div class="eyebrow" style="margin:0;">Folders</div>
+          <span id="docsFilterTag" style="display:none;font-size:10px;letter-spacing:1px;font-weight:700;color:var(--gold-dark);cursor:pointer;" onclick="docsSetFolder(null)">FILTER: <span id="docsFilterName"></span> · CLEAR ×</span>
         </div>
-
-        <div class="eyebrow" style="margin-bottom: 12px;">Recently updated</div>
-        <div class="doc-table">
-          <div class="doc-row header">
-            <div></div><div>Name</div><div>Owner</div><div>Modified</div><div>Size</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▤</div><div class="doc-name">Spark Onboarding Day 1.pdf</div><div class="doc-meta">Mary P.</div><div class="doc-meta">2 days ago</div><div class="doc-meta">2.4 MB</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▥</div><div class="doc-name">DFM Marshall MSA v3.docx</div><div class="doc-meta">Allie S.</div><div class="doc-meta">3 days ago</div><div class="doc-meta">412 KB</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▦</div><div class="doc-name">Q2 Commission Plan.xlsx</div><div class="doc-meta">Aaron O.</div><div class="doc-meta">1 week ago</div><div class="doc-meta">156 KB</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▤</div><div class="doc-name">Candidate Submittal Template.pdf</div><div class="doc-meta">Fletcher K.</div><div class="doc-meta">1 week ago</div><div class="doc-meta">88 KB</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▥</div><div class="doc-name">FMLA Request Form.docx</div><div class="doc-meta">Tamika C.</div><div class="doc-meta">2 weeks ago</div><div class="doc-meta">42 KB</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▦</div><div class="doc-name">Burden Rate Calculator.xlsx</div><div class="doc-meta">Priyanka M.</div><div class="doc-meta">3 weeks ago</div><div class="doc-meta">98 KB</div>
-          </div>
-          <div class="doc-row">
-            <div class="doc-icon">▤</div><div class="doc-name">Employee Handbook 2026.pdf</div><div class="doc-meta">Tamika C.</div><div class="doc-meta">1 month ago</div><div class="doc-meta">3.1 MB</div>
-          </div>
-        </div>
+        <div class="doc-folders" id="docsFolders"></div>
+        <div class="eyebrow" style="margin: 24px 0 12px;">Files</div>
+        <div class="doc-table" id="docsTable"></div>
+        <div class="rd-asymbl-note" style="margin-top: 12px;">Manage folders and files in Admin → Documents. Paste real SharePoint links and rows open the actual file — full automatic sync arrives with the Graph wiring.</div>
       </div>
     </div>
 
@@ -5532,6 +5785,9 @@ body {
           <button class="admin-subnav-item" data-admin-tab="tools-admin">
             <span>Tools</span>
           </button>
+          <button class="admin-subnav-item" data-admin-tab="docs-admin">
+            <span>Documents</span>
+          </button>
           <button class="admin-subnav-item" data-admin-tab="people-admin">
             <span>People & roles</span><span class="badge-mini">38</span>
           </button>
@@ -5596,7 +5852,7 @@ body {
                   <button class="btn-secondary" onclick="testWorkerSf()">Test Salesforce</button>
                 </div>
                 <div id="wkStatus" style="margin-top: 12px;"></div>
-                <div class="rd-asymbl-note" style="margin-top: 10px;">Saved to this browser session only (same model as the AI key) until MSAL + Supabase land. The Worker holds the actual Salesforce and Anthropic credentials server-side — nothing sensitive lives in this page.</div>
+                <div class="rd-asymbl-note" style="margin-top: 10px;">Saved in this browser on this device — survives refresh. Org-wide shared settings arrive with MSAL + Supabase. The Worker holds the actual Salesforce and Anthropic credentials server-side — nothing sensitive lives in this page.</div>
               </div>
             </div>
 
@@ -5846,7 +6102,7 @@ body {
               <div class="test-result" id="testResult"></div>
 
               <div class="key-info-banner" style="margin-top: 14px;">
-                <strong>Where credentials live:</strong> Browser session memory (sessionStorage) only. Never sent anywhere except the provider you select. Closing this tab clears everything. <a href="#" onclick="openKeyGuide(event)" style="color: var(--gold-dark); font-weight: 600;">Anthropic guide →</a>
+                <strong>Where credentials live:</strong> saved in this browser on this device (localStorage) — survives refresh and restart. Never sent anywhere except the provider you select. Use Disconnect to remove it. <a href="#" onclick="openKeyGuide(event)" style="color: var(--gold-dark); font-weight: 600;">Anthropic guide →</a>
               </div>
 
               <div class="danger-banner">
@@ -5921,26 +6177,8 @@ body {
             </div>
 
             <div style="margin: 22px 0 8px;" class="eyebrow">Switch role</div>
-            <div class="role-card-grid">
-              <button class="role-card active" data-role="super_admin" onclick="setRole('super_admin')">
-                <div class="r-icon sa">★</div>
-                <div class="r-name">Super Admin</div>
-                <div class="r-desc">Full access. Can manage agents, connections, users, billing. Sees Admin tab.</div>
-                <div class="r-perms">Allie · Aaron · Mary · Priyanka · Erica · Bedros</div>
-              </button>
-              <button class="role-card" data-role="manager" onclick="setRole('manager')">
-                <div class="r-icon mg">◐</div>
-                <div class="r-name">Manager</div>
-                <div class="r-desc">Most things. Can manage content, view analytics, no system config.</div>
-                <div class="r-perms">Team Leads · Directors · Entity Presidents</div>
-              </button>
-              <button class="role-card" data-role="member" onclick="setRole('member')">
-                <div class="r-icon mb">◯</div>
-                <div class="r-name">Member</div>
-                <div class="r-desc">Standard user. Use the intranet, ask Jarvis, no admin access.</div>
-                <div class="r-perms">Recruiters · Sourcers · Coordinators · Most of the team</div>
-              </button>
-            </div>
+            <div class="role-card-grid" id="roleCardGrid"></div>
+            <div style="margin-top: 10px;"><button class="btn-add" onclick="roleEditorOpen(null)">+ Add role</button></div>
 
             <div class="admin-section">
               <div class="admin-section-head"><h3>What each role sees</h3></div>
@@ -5996,6 +6234,18 @@ body {
                   <div style="color: var(--green);">✓</div><div style="color: #dc2626;">—</div><div style="color: #dc2626;">—</div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- DOCS ADMIN PANE -->
+          <div class="admin-pane" data-admin-pane="docs-admin" style="display: none;">
+            <div class="admin-hero">
+              <div class="eyebrow">Content · Documents</div>
+              <h2>Documents admin. <span style="color: var(--muted-light);">Folders, files, links.</span></h2>
+              <div class="dek">Add folders and files, paste SharePoint URLs so rows open the real document. Saved on this device; org-wide sync rides the Supabase/Graph work.</div>
+            </div>
+            <div class="admin-section">
+              <div id="docsAdminBody"></div>
             </div>
           </div>
 
@@ -7384,19 +7634,19 @@ body {
 
   // ==================== V6 — REAL API + KNOWLEDGE + ROLES ====================
 
-  // Storage (sessionStorage so it dies with the tab)
-  let apiKey = sessionStorage.getItem('spark_hq_api_key') || '';
-  let modelChoice = sessionStorage.getItem('spark_hq_model') || 'claude-sonnet-4-6';
-  let maxTokens = parseInt(sessionStorage.getItem('spark_hq_max_tokens') || '1024');
+  // Storage (localStorage so it dies with the tab)
+  let apiKey = localStorage.getItem('spark_hq_api_key') || '';
+  let modelChoice = localStorage.getItem('spark_hq_model') || 'claude-sonnet-4-6';
+  let maxTokens = parseInt(localStorage.getItem('spark_hq_max_tokens') || '1024');
   let agentKnowledge = {};
   let universalKnowledge = '';
-  let currentRole = sessionStorage.getItem('spark_hq_role') || 'super_admin';
+  let currentRole = localStorage.getItem('spark_hq_role') || 'super_admin';
 
   try {
-    const storedK = sessionStorage.getItem('spark_hq_knowledge');
+    const storedK = localStorage.getItem('spark_hq_knowledge');
     if (storedK) agentKnowledge = JSON.parse(storedK);
   } catch(e) { agentKnowledge = {}; }
-  universalKnowledge = sessionStorage.getItem('spark_hq_universal') || '';
+  universalKnowledge = localStorage.getItem('spark_hq_universal') || '';
 
   // ==================== API KEY MGMT ====================
   window.saveApiKey = function() {
@@ -7407,7 +7657,7 @@ body {
       if (!confirm('That doesn\'t look like an Anthropic key (should start with sk-ant-). Save anyway?')) return;
     }
     apiKey = val;
-    sessionStorage.setItem('spark_hq_api_key', val);
+    localStorage.setItem('spark_hq_api_key', val);
     input.value = '';
     refreshAiStatus();
   };
@@ -7415,15 +7665,15 @@ body {
   window.clearApiKey = function() {
     if (!confirm('Disconnect the API key? Jarvis will go back to demo mode.')) return;
     apiKey = '';
-    sessionStorage.removeItem('spark_hq_api_key');
+    localStorage.removeItem('spark_hq_api_key');
     refreshAiStatus();
   };
 
   window.saveModelChoice = function() {
     modelChoice = document.getElementById('modelSelect').value;
     maxTokens = parseInt(document.getElementById('maxTokensInput').value) || 1024;
-    sessionStorage.setItem('spark_hq_model', modelChoice);
-    sessionStorage.setItem('spark_hq_max_tokens', maxTokens);
+    localStorage.setItem('spark_hq_model', modelChoice);
+    localStorage.setItem('spark_hq_max_tokens', maxTokens);
   };
 
   function refreshAiStatus() {
@@ -7525,7 +7775,7 @@ body {
     const ta = document.getElementById('knw-' + k);
     if (!ta) return;
     agentKnowledge[k] = ta.value;
-    sessionStorage.setItem('spark_hq_knowledge', JSON.stringify(agentKnowledge));
+    localStorage.setItem('spark_hq_knowledge', JSON.stringify(agentKnowledge));
     renderKnowledgeList();
   };
 
@@ -7534,7 +7784,7 @@ body {
       const ta = document.getElementById('knw-' + k);
       if (ta) agentKnowledge[k] = ta.value;
     });
-    sessionStorage.setItem('spark_hq_knowledge', JSON.stringify(agentKnowledge));
+    localStorage.setItem('spark_hq_knowledge', JSON.stringify(agentKnowledge));
     renderKnowledgeList();
     alert('All agent knowledge saved.');
   };
@@ -7543,7 +7793,7 @@ body {
     const ta = document.getElementById('universalKnowledge');
     if (!ta) return;
     universalKnowledge = ta.value;
-    sessionStorage.setItem('spark_hq_universal', universalKnowledge);
+    localStorage.setItem('spark_hq_universal', universalKnowledge);
     const cc = document.getElementById('universalCharCount');
     if (cc) cc.textContent = universalKnowledge.length + ' / 4000 chars';
   };
@@ -7602,7 +7852,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     }
     const data = await response.json();
     const text = data.content.filter(c => c.type === 'text').map(c => c.text).join('\n');
-    return { agent: agentKey, text, meta: `via Claude · ${data.usage.input_tokens}→${data.usage.output_tokens} tokens` };
+    return { agent: agentKey, text, meta: data.usage ? `via Claude · ${data.usage.input_tokens}→${data.usage.output_tokens} tokens` : "via Claude" };
   }
 
   // ==================== INTERCEPT sendCommand FOR REAL API ====================
@@ -7695,32 +7945,160 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   };
 
   // ==================== ROLES ====================
-  const ROLE_PERMISSIONS = {
+  const ROLE_DEFAULTS = {
     super_admin: {
-      label: 'SUPER ADMIN',
-      adminTabs: ['agents', 'connections', 'analytics', 'ai-settings', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin'],
+      label: 'SUPER ADMIN', icon: '★', builtin: true,
+      desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
+      who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
+      adminTabs: ['agents', 'connections', 'analytics', 'ai-settings', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
       navItems: ['home','jarvis','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
-      label: 'MANAGER',
+      label: 'MANAGER', icon: '◐', builtin: true,
+      desc: 'Most things. Can manage content, view analytics, no system config.',
+      who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
       navItems: ['home','jarvis','training','standard','careers','people','tools','docs','leadership','admin']
     },
     member: {
-      label: 'MEMBER',
+      label: 'MEMBER', icon: '○', builtin: true,
+      desc: 'The day-to-day view. Training, tools, documents, career paths.',
+      who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: ['role'],
       navItems: ['home','training','standard','careers','people','tools','docs']
     }
   };
+  let ROLE_PERMISSIONS = (function() {
+    try {
+      const s = localStorage.getItem('spark_hq_roles');
+      if (s) {
+        const saved = JSON.parse(s);
+        // built-ins always exist; saved customs + saved edits to manager/member merge over defaults
+        const merged = JSON.parse(JSON.stringify(ROLE_DEFAULTS));
+        Object.keys(saved).forEach(k => {
+          if (k === 'super_admin') return; // super_admin is locked — never overridden
+          merged[k] = Object.assign({}, merged[k] || {}, saved[k]);
+        });
+        return merged;
+      }
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(ROLE_DEFAULTS));
+  })();
+  function persistRoles() {
+    try { localStorage.setItem('spark_hq_roles', JSON.stringify(ROLE_PERMISSIONS)); } catch(e) {}
+  }
+
+  const ALL_NAV_ITEMS = [
+    ['home','Home'], ['jarvis','Jarvis'], ['training','Training'], ['standard','Spark Standard'],
+    ['careers','Career Paths'], ['people','People'], ['tools','Software & Tools'],
+    ['docs','Documents'], ['leadership','Leadership'], ['admin','Admin']
+  ];
+  const ALL_ADMIN_TABS = [
+    ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
+    ['ai-settings','AI settings'], ['knowledge','Agent knowledge'], ['role','Your role'],
+    ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
+    ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
+    ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin'], ['docs-admin','Documents admin']
+  ];
 
   window.setRole = function(role) {
+    if (!ROLE_PERMISSIONS[role]) role = 'member';
     currentRole = role;
-    sessionStorage.setItem('spark_hq_role', role);
+    localStorage.setItem('spark_hq_role', role);
     document.querySelectorAll('.role-card').forEach(c => c.classList.toggle('active', c.dataset.role === role));
     const tag = document.getElementById('currentRoleTag');
     if (tag) tag.textContent = ROLE_PERMISSIONS[role].label;
     enforceRole();
   };
+
+  // ==================== V8Y — ROLE EDITOR ====================
+  function renderRoleCards() {
+    const grid = document.getElementById('roleCardGrid');
+    if (!grid) return;
+    grid.innerHTML = Object.entries(ROLE_PERMISSIONS).map(([id, r]) => `
+      <button class="role-card ${id === currentRole ? 'active' : ''}" data-role="${escLms(id)}" onclick="setRole('${escLms(id)}')">
+        <div class="r-icon ${id === 'super_admin' ? 'sa' : (id === 'manager' ? 'mg' : '')}">${escLms(r.icon || '◆')}</div>
+        <div class="r-name">${escLms(r.label)}</div>
+        <div class="r-desc">${escLms(r.desc || '')}</div>
+        <div class="r-perms">${escLms(r.who || '')}</div>
+        <div class="r-edit-row">
+          ${id === 'super_admin'
+            ? '<span class="r-locked">Locked</span>'
+            : `<span class="a-mini" role="button" onclick="event.stopPropagation(); roleEditorOpen('${escLms(id)}')">✎</span>` +
+              (r.builtin ? '' : `<span class="a-mini danger" role="button" onclick="event.stopPropagation(); roleDelete('${escLms(id)}')">×</span>`)}
+        </div>
+      </button>
+    `).join('');
+  }
+  window.renderRoleCards = renderRoleCards;
+
+  let roleEditingId = null;
+  window.roleEditorOpen = function(roleId) {
+    roleEditingId = roleId;
+    const isNew = !roleId;
+    const r = isNew
+      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','training','standard','careers','people','tools','docs'], adminTabs: [] }
+      : ROLE_PERMISSIONS[roleId];
+    const modal = document.getElementById('roleEditorModal');
+    if (!modal) return;
+    document.getElementById('roleEditorTitle').textContent = isNew ? 'Add role' : 'Edit role — ' + r.label;
+    document.getElementById('roleEditorBody').innerHTML = `
+      <div class="field-row">
+        <div class="field-group" style="flex:2;"><label>Role name</label><input type="text" id="re-label" value="${escLms(r.label)}" placeholder="e.g. ENTITY PRESIDENT" /></div>
+        <div class="field-group"><label>Icon (1 char)</label><input type="text" id="re-icon" maxlength="2" value="${escLms(r.icon || '◆')}" /></div>
+      </div>
+      <div class="field-group"><label>Description</label><input type="text" id="re-desc" value="${escLms(r.desc || '')}" placeholder="What this role is for" /></div>
+      <div class="field-group"><label>Who has it</label><input type="text" id="re-who" value="${escLms(r.who || '')}" placeholder="e.g. Fletcher · Jamie" /></div>
+      <div class="field-group"><label>Tabs this role can see</label>
+        <div class="re-check-grid">${ALL_NAV_ITEMS.map(([id2, lbl]) => `
+          <label class="re-check"><input type="checkbox" data-nav="${id2}" ${(r.navItems || []).includes(id2) ? 'checked' : ''} /> ${lbl}</label>`).join('')}
+        </div>
+      </div>
+      <div class="field-group"><label>Admin panes (only matters if Admin tab is checked)</label>
+        <div class="re-check-grid">${ALL_ADMIN_TABS.map(([id2, lbl]) => `
+          <label class="re-check"><input type="checkbox" data-admintab="${id2}" ${(r.adminTabs || []).includes(id2) ? 'checked' : ''} /> ${lbl}</label>`).join('')}
+        </div>
+      </div>
+    `;
+    modal.classList.add('open');
+  };
+  window.roleEditorClose = function() {
+    const m = document.getElementById('roleEditorModal');
+    if (m) m.classList.remove('open');
+    roleEditingId = null;
+  };
+  window.roleEditorSave = function() {
+    const label = document.getElementById('re-label').value.trim();
+    if (!label) { alert('Role name required.'); return; }
+    const navItems = [...document.querySelectorAll('#roleEditorBody [data-nav]')].filter(c => c.checked).map(c => c.dataset.nav);
+    const adminTabs = [...document.querySelectorAll('#roleEditorBody [data-admintab]')].filter(c => c.checked).map(c => c.dataset.admintab);
+    if (!navItems.includes('home')) navItems.unshift('home');
+    const id = roleEditingId || ('role-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24));
+    const existing = ROLE_PERMISSIONS[id] || {};
+    ROLE_PERMISSIONS[id] = {
+      label,
+      icon: document.getElementById('re-icon').value.trim() || '◆',
+      desc: document.getElementById('re-desc').value.trim(),
+      who: document.getElementById('re-who').value.trim(),
+      builtin: !!existing.builtin,
+      navItems, adminTabs
+    };
+    persistRoles();
+    roleEditorClose();
+    renderRoleCards();
+    if (id === currentRole) enforceRole();
+  };
+  window.roleDelete = function(roleId) {
+    const r = ROLE_PERMISSIONS[roleId];
+    if (!r || r.builtin || roleId === 'super_admin') return;
+    if (!confirm('Delete role "' + r.label + '"? Anyone set to it falls back to Member.')) return;
+    delete ROLE_PERMISSIONS[roleId];
+    persistRoles();
+    if (currentRole === roleId) setRole('member');
+    renderRoleCards();
+  };
+
+  setTimeout(renderRoleCards, 350);
 
   function enforceRole() {
     const perms = ROLE_PERMISSIONS[currentRole];
@@ -7788,22 +8166,22 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   // The v6 single-provider code is preserved but wrapped. callClaudeAPI is replaced by callProvider.
 
   // Storage migration: load existing v6 anthropic key into new structure
-  let currentProvider = sessionStorage.getItem('spark_hq_provider') || 'anthropic';
+  let currentProvider = localStorage.getItem('spark_hq_provider') || 'anthropic';
 
   let providerCreds = {
     anthropic: {
-      apiKey: sessionStorage.getItem('spark_hq_anthropic_key') || sessionStorage.getItem('spark_hq_api_key') || ''
+      apiKey: localStorage.getItem('spark_hq_anthropic_key') || localStorage.getItem('spark_hq_api_key') || ''
     },
     bedrock: {
-      accessKey: sessionStorage.getItem('spark_hq_bedrock_access') || '',
-      secretKey: sessionStorage.getItem('spark_hq_bedrock_secret') || '',
-      region: sessionStorage.getItem('spark_hq_bedrock_region') || 'us-east-1'
+      accessKey: localStorage.getItem('spark_hq_bedrock_access') || '',
+      secretKey: localStorage.getItem('spark_hq_bedrock_secret') || '',
+      region: localStorage.getItem('spark_hq_bedrock_region') || 'us-east-1'
     },
     azure: {
-      endpoint: sessionStorage.getItem('spark_hq_azure_endpoint') || '',
-      deployment: sessionStorage.getItem('spark_hq_azure_deployment') || '',
-      apiVersion: sessionStorage.getItem('spark_hq_azure_api_version') || '2024-10-21',
-      apiKey: sessionStorage.getItem('spark_hq_azure_key') || ''
+      endpoint: localStorage.getItem('spark_hq_azure_endpoint') || '',
+      deployment: localStorage.getItem('spark_hq_azure_deployment') || '',
+      apiVersion: localStorage.getItem('spark_hq_azure_api_version') || '2024-10-21',
+      apiKey: localStorage.getItem('spark_hq_azure_key') || ''
     }
   };
 
@@ -7827,10 +8205,10 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   };
 
   function getCurrentModel() {
-    return sessionStorage.getItem('spark_hq_model_' + currentProvider) || PROVIDER_MODELS[currentProvider][0].id;
+    return localStorage.getItem('spark_hq_model_' + currentProvider) || PROVIDER_MODELS[currentProvider][0].id;
   }
   function getCurrentMaxTokens() {
-    return parseInt(sessionStorage.getItem('spark_hq_max_tokens') || '1024');
+    return parseInt(localStorage.getItem('spark_hq_max_tokens') || '1024');
   }
 
   function isProviderConnected(p) {
@@ -7846,7 +8224,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   // ==================== PROVIDER UI ====================
   window.switchProvider = function(p) {
     currentProvider = p;
-    sessionStorage.setItem('spark_hq_provider', p);
+    localStorage.setItem('spark_hq_provider', p);
     document.querySelectorAll('.provider-tab').forEach(t => t.classList.toggle('active', t.dataset.provider === p));
     document.querySelectorAll('.provider-form').forEach(f => f.classList.toggle('active', f.dataset.providerForm === p));
     populateModelSelect();
@@ -7901,7 +8279,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
         if (!confirm('That doesn\'t look like an Anthropic key. Save anyway?')) return;
       }
       providerCreds.anthropic.apiKey = v;
-      sessionStorage.setItem('spark_hq_anthropic_key', v);
+      localStorage.setItem('spark_hq_anthropic_key', v);
     } else if (currentProvider === 'bedrock') {
       const ak = document.getElementById('bedrockAccessKey').value.trim();
       const sk = document.getElementById('bedrockSecretKey').value.trim();
@@ -7911,9 +8289,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       if (ak && !ak.startsWith('•')) providerCreds.bedrock.accessKey = ak;
       if (sk && !sk.startsWith('•')) providerCreds.bedrock.secretKey = sk;
       providerCreds.bedrock.region = rg;
-      sessionStorage.setItem('spark_hq_bedrock_access', providerCreds.bedrock.accessKey);
-      sessionStorage.setItem('spark_hq_bedrock_secret', providerCreds.bedrock.secretKey);
-      sessionStorage.setItem('spark_hq_bedrock_region', rg);
+      localStorage.setItem('spark_hq_bedrock_access', providerCreds.bedrock.accessKey);
+      localStorage.setItem('spark_hq_bedrock_secret', providerCreds.bedrock.secretKey);
+      localStorage.setItem('spark_hq_bedrock_region', rg);
     } else if (currentProvider === 'azure') {
       const ep = document.getElementById('azureEndpoint').value.trim();
       const dp = document.getElementById('azureDeployment').value.trim();
@@ -7925,10 +8303,10 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       providerCreds.azure.deployment = dp;
       providerCreds.azure.apiVersion = av || '2024-10-21';
       if (ak && !ak.startsWith('•')) providerCreds.azure.apiKey = ak;
-      sessionStorage.setItem('spark_hq_azure_endpoint', providerCreds.azure.endpoint);
-      sessionStorage.setItem('spark_hq_azure_deployment', providerCreds.azure.deployment);
-      sessionStorage.setItem('spark_hq_azure_api_version', providerCreds.azure.apiVersion);
-      sessionStorage.setItem('spark_hq_azure_key', providerCreds.azure.apiKey);
+      localStorage.setItem('spark_hq_azure_endpoint', providerCreds.azure.endpoint);
+      localStorage.setItem('spark_hq_azure_deployment', providerCreds.azure.deployment);
+      localStorage.setItem('spark_hq_azure_api_version', providerCreds.azure.apiVersion);
+      localStorage.setItem('spark_hq_azure_key', providerCreds.azure.apiKey);
     }
 
     populateCredFields();
@@ -7940,16 +8318,16 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     if (!confirm('Disconnect ' + currentProvider + '? Credentials will be cleared from this session.')) return;
     if (currentProvider === 'anthropic') {
       providerCreds.anthropic.apiKey = '';
-      sessionStorage.removeItem('spark_hq_anthropic_key');
-      sessionStorage.removeItem('spark_hq_api_key'); // legacy v6 key
+      localStorage.removeItem('spark_hq_anthropic_key');
+      localStorage.removeItem('spark_hq_api_key'); // legacy v6 key
     } else if (currentProvider === 'bedrock') {
       providerCreds.bedrock.accessKey = '';
       providerCreds.bedrock.secretKey = '';
-      sessionStorage.removeItem('spark_hq_bedrock_access');
-      sessionStorage.removeItem('spark_hq_bedrock_secret');
+      localStorage.removeItem('spark_hq_bedrock_access');
+      localStorage.removeItem('spark_hq_bedrock_secret');
     } else if (currentProvider === 'azure') {
       providerCreds.azure.apiKey = '';
-      sessionStorage.removeItem('spark_hq_azure_key');
+      localStorage.removeItem('spark_hq_azure_key');
     }
     populateCredFields();
     refreshAiStatusV7();
@@ -8027,7 +8405,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       icon.textContent = '●';
       title.textContent = 'Live mode · ' + providerLabels[currentProvider] + ' connected';
       const subtitleByProvider = {
-        anthropic: 'Real Claude API calls. Session memory only.',
+        anthropic: 'Real Claude API calls. Key saved on this device.',
         bedrock: 'Calls routed through your AWS account. CloudTrail logged.',
         azure: 'Calls routed through your Azure tenant. Same AD as Spark HQ.'
       };
@@ -8051,8 +8429,8 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   window.saveModelChoice = function() {
     const model = document.getElementById('modelSelect').value;
     const mt = parseInt(document.getElementById('maxTokensInput').value) || 1024;
-    sessionStorage.setItem('spark_hq_model_' + currentProvider, model);
-    sessionStorage.setItem('spark_hq_max_tokens', mt);
+    localStorage.setItem('spark_hq_model_' + currentProvider, model);
+    localStorage.setItem('spark_hq_max_tokens', mt);
   };
 
   // ==================== PROVIDER ADAPTERS ====================
@@ -9135,17 +9513,17 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 }
 ;
 
-  // Load from sessionStorage if present, else use default
+  // Load from localStorage if present, else use default
   let CAREER_PATHS = (function() {
     try {
-      const stored = sessionStorage.getItem('spark_hq_career_paths');
+      const stored = localStorage.getItem('spark_hq_career_paths');
       if (stored) return JSON.parse(stored);
     } catch(e) {}
     return JSON.parse(JSON.stringify(CAREER_PATHS_DEFAULT));
   })();
 
   function persistCareerPaths() {
-    try { sessionStorage.setItem('spark_hq_career_paths', JSON.stringify(CAREER_PATHS)); } catch(e) {}
+    try { localStorage.setItem('spark_hq_career_paths', JSON.stringify(CAREER_PATHS)); } catch(e) {}
   }
 
   function escapeCp(s) {
@@ -9621,7 +9999,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   window.resetCareerPaths = function() {
     if (!confirm('Reset all career paths to the defaults loaded from the spreadsheet? Any edits will be lost.')) return;
     CAREER_PATHS = JSON.parse(JSON.stringify(CAREER_PATHS_DEFAULT));
-    sessionStorage.removeItem('spark_hq_career_paths');
+    localStorage.removeItem('spark_hq_career_paths');
     renderCareerPathsAdmin();
     renderCareerPathsTab();
   };
@@ -9979,14 +10357,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   let SPARK_STANDARD = (function() {
     try {
-      const stored = sessionStorage.getItem('spark_hq_standard');
+      const stored = localStorage.getItem('spark_hq_standard');
       if (stored) return JSON.parse(stored);
     } catch(e) {}
     return JSON.parse(JSON.stringify(SPARK_STANDARD_DEFAULT));
   })();
 
   function persistStandard() {
-    try { sessionStorage.setItem('spark_hq_standard', JSON.stringify(SPARK_STANDARD)); } catch(e) {}
+    try { localStorage.setItem('spark_hq_standard', JSON.stringify(SPARK_STANDARD)); } catch(e) {}
   }
 
   function escStd(s) {
@@ -10245,7 +10623,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   window.resetSparkStandard = function() {
     if (!confirm('Reset Spark Standard to defaults from the source PDF?')) return;
     SPARK_STANDARD = JSON.parse(JSON.stringify(SPARK_STANDARD_DEFAULT));
-    sessionStorage.removeItem('spark_hq_standard');
+    localStorage.removeItem('spark_hq_standard');
     renderStandardAdmin();
     renderSparkStandardTab();
   };
@@ -10977,7 +11355,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   // { 'topic-id': { completed: true, completedAt: '2026-06-09T...' } }
   let lmsProgress = (function() {
     try {
-      const stored = sessionStorage.getItem('spark_hq_lms_progress');
+      const stored = localStorage.getItem('spark_hq_lms_progress');
       if (stored) return JSON.parse(stored);
     } catch(e) {}
     return {};
@@ -10985,11 +11363,11 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   // Current state
   let lmsActiveTopicId = (function() {
-    try { return sessionStorage.getItem('spark_hq_lms_active_topic') || null; } catch(e) { return null; }
+    try { return localStorage.getItem('spark_hq_lms_active_topic') || null; } catch(e) { return null; }
   })();
   let lmsExpandedSubjects = (function() {
     try {
-      const s = sessionStorage.getItem('spark_hq_lms_expanded');
+      const s = localStorage.getItem('spark_hq_lms_expanded');
       if (s) return JSON.parse(s);
     } catch(e) {}
     // Default: expand the subject containing the active topic, or the first subject
@@ -10998,9 +11376,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   function persistLmsState() {
     try {
-      sessionStorage.setItem('spark_hq_lms_progress', JSON.stringify(lmsProgress));
-      if (lmsActiveTopicId) sessionStorage.setItem('spark_hq_lms_active_topic', lmsActiveTopicId);
-      sessionStorage.setItem('spark_hq_lms_expanded', JSON.stringify(lmsExpandedSubjects));
+      localStorage.setItem('spark_hq_lms_progress', JSON.stringify(lmsProgress));
+      if (lmsActiveTopicId) localStorage.setItem('spark_hq_lms_active_topic', lmsActiveTopicId);
+      localStorage.setItem('spark_hq_lms_expanded', JSON.stringify(lmsExpandedSubjects));
     } catch(e) {}
   }
 
@@ -11176,7 +11554,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
     // Derive day count: pretend we're tracking from a start date.
     // Default to a constant for now (Allie on day 17 — matches old hero)
-    let dayCount = parseInt(sessionStorage.getItem('spark_hq_lms_day') || '17', 10);
+    let dayCount = parseInt(localStorage.getItem('spark_hq_lms_day') || '17', 10);
 
     // Find "continue where you left off" - most recent active topic, OR first incomplete topic
     const flat = getFlatTopicList();
@@ -11309,168 +11687,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   // ==================== V8J INSERTION POINT ====================
   // ==================== V8J — QUIZZES + ADMIN ====================
   const MOCK_LMS_USERS = {
-  "users": [
-    {
-      "id": "aaron.opalewski",
-      "name": "Aaron Opalewski",
-      "role": "CEO",
-      "entity": "Spark Companies",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6","ss-v7","ss-v8","ss-ops","ss-numbers","ss-conclusion"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-05-12T14:30:00Z" }
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter","cp-arm","cp-sales","cp-cs","cp-onsite","cp-rpo"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-05-12T15:15:00Z" }
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-04-01T09:00:00Z" }
-        }
-      }
-    },
-    {
-      "id": "dave.veres",
-      "name": "Dave Veres",
-      "role": "EVP/COO",
-      "entity": "Spark Companies",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6","ss-v7","ss-v8","ss-ops","ss-numbers","ss-conclusion"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-05-18T11:20:00Z" }
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter","cp-arm","cp-sales","cp-cs"],
-          "finalQuiz": null
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-04-02T10:30:00Z" }
-        }
-      }
-    },
-    {
-      "id": "mary.patrico",
-      "name": "Mary Patrico",
-      "role": "Director of Operations",
-      "entity": "Spark Companies",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6","ss-v7","ss-v8","ss-ops","ss-numbers","ss-conclusion"],
-          "finalQuiz": { "score": 86, "passed": true, "attempts": 1, "completedAt": "2026-05-22T13:45:00Z" }
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter","cp-arm","cp-sales","cp-cs","cp-onsite","cp-rpo"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-05-25T16:00:00Z" }
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-04-05T14:00:00Z" }
-        }
-      }
-    },
-    {
-      "id": "priyanka.malani",
-      "name": "Priyanka Malani",
-      "role": "Payroll Manager",
-      "entity": "Spark Companies",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6"],
-          "finalQuiz": null
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter"],
-          "finalQuiz": null
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 80, "passed": true, "attempts": 2, "completedAt": "2026-04-08T15:30:00Z" }
-        }
-      }
-    },
-    {
-      "id": "fletcher.kundtz",
-      "name": "Fletcher Kundtz",
-      "role": "President, Spark Talent",
-      "entity": "Spark Talent",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6","ss-v7","ss-v8","ss-ops","ss-numbers","ss-conclusion"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-05-15T10:00:00Z" }
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter","cp-arm","cp-sales","cp-cs","cp-onsite","cp-rpo"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-05-16T12:30:00Z" }
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-03-28T09:30:00Z" }
-        }
-      }
-    },
-    {
-      "id": "bedros.naama",
-      "name": "Bedros Naama",
-      "role": "Staff Accountant",
-      "entity": "Spark Companies",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4"],
-          "finalQuiz": null
-        },
-        "career-paths": {
-          "topicsCompleted": [],
-          "finalQuiz": null
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-04-10T11:15:00Z" }
-        }
-      }
-    },
-    {
-      "id": "tamika.coleman",
-      "name": "Tamika Coleman",
-      "role": "HR Lead",
-      "entity": "Spark Companies",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6","ss-v7","ss-v8","ss-ops","ss-numbers","ss-conclusion"],
-          "finalQuiz": { "score": 86, "passed": true, "attempts": 2, "completedAt": "2026-05-20T14:45:00Z" }
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter"],
-          "finalQuiz": null
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-04-12T13:00:00Z" }
-        }
-      }
-    },
-    {
-      "id": "jamie.platt",
-      "name": "Jamie Platt",
-      "role": "Sr. Director Michigan",
-      "entity": "Spark Talent",
-      "completion": {
-        "spark-standard": {
-          "topicsCompleted": ["ss-intro","ss-v1","ss-v2","ss-v3","ss-v4","ss-v5","ss-v6","ss-v7","ss-v8","ss-ops","ss-numbers","ss-conclusion"],
-          "finalQuiz": { "score": 71, "passed": false, "attempts": 1, "completedAt": "2026-05-28T15:30:00Z" }
-        },
-        "career-paths": {
-          "topicsCompleted": ["cp-intro","cp-recruiter","cp-arm","cp-sales"],
-          "finalQuiz": null
-        },
-        "onboarding": {
-          "topicsCompleted": ["ob-welcome","ob-first-week","ob-tools","ob-standard-intro","ob-career-path"],
-          "finalQuiz": { "score": 100, "passed": true, "attempts": 1, "completedAt": "2026-03-30T08:45:00Z" }
-        }
-      }
-    }
-  ]
+  "users": []
 }
 ;
 
@@ -11478,14 +11695,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   // { 'quiz-id': [ { score, passed, attempts, completedAt, answers: {} } ] }
   let lmsQuizAttempts = (function() {
     try {
-      const s = sessionStorage.getItem('spark_hq_lms_quiz_attempts');
+      const s = localStorage.getItem('spark_hq_lms_quiz_attempts');
       if (s) return JSON.parse(s);
     } catch(e) {}
     return {};
   })();
 
   function persistLmsQuizAttempts() {
-    try { sessionStorage.setItem('spark_hq_lms_quiz_attempts', JSON.stringify(lmsQuizAttempts)); } catch(e) {}
+    try { localStorage.setItem('spark_hq_lms_quiz_attempts', JSON.stringify(lmsQuizAttempts)); } catch(e) {}
   }
 
   // Current quiz session state
@@ -11971,7 +12188,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   // ==================== ADMIN: COMPLETION DASHBOARD ====================
   function renderAdminDashboardView() {
-    // Combine mock users with "you" (Allie) using real sessionStorage data
+    // Combine mock users with "you" (Allie) using real localStorage data
     const youUser = {
       id: 'allie.spegel',
       name: 'Allie Spegel',
@@ -12464,12 +12681,12 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   // ==================== PERSIST LMS DATA ====================
   function persistLmsData() {
-    try { sessionStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); } catch(e) {}
+    try { localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); } catch(e) {}
   }
   // Load any persisted LMS_DATA overrides on startup
   (function loadLmsDataOverrides() {
     try {
-      const s = sessionStorage.getItem('spark_hq_lms_data');
+      const s = localStorage.getItem('spark_hq_lms_data');
       if (s) {
         const parsed = JSON.parse(s);
         if (parsed && parsed.subjects) {
@@ -12481,7 +12698,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   window.resetTrainingData = function() {
     if (!confirm('Reset all training data to defaults? Your edits will be lost (progress and quiz attempts kept).')) return;
-    sessionStorage.removeItem('spark_hq_lms_data');
+    localStorage.removeItem('spark_hq_lms_data');
     location.reload();
   };
 
@@ -12521,6 +12738,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   let jarvisFrameLoaded = false;
 
   function loadJarvisFrame() {
+    if (!document.getElementById('jarvisTabFrame')) return;
     if (jarvisFrameLoaded) return;
     const frame = document.getElementById('jarvisTabFrame');
     const loading = document.getElementById('jarvisFrameLoading');
@@ -12557,6 +12775,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   }
 
   window.reloadJarvisFrame = function() {
+    if (!document.getElementById('jarvisTabFrame')) return;
     const frame = document.getElementById('jarvisTabFrame');
     const loading = document.getElementById('jarvisFrameLoading');
     if (!frame) return;
@@ -12863,25 +13082,9 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
 
 
   // ==================== V8N — SEARCH & MATCH ====================
-  const SM_MOCK_REQS = [
-    { id: 'req-001', title: 'CNC Machinist — 2nd Shift', client: 'DFM Solutions — Marshall', type: 'Contract', pay: '$26–31/hr', skills: ['CNC Milling', 'Fanuc Controls', 'GD&T', 'Blueprint Reading', '5-axis'], notes: 'Mazak cells, 2nd shift premium, 10% OT typical' },
-    { id: 'req-002', title: 'Controls Engineer', client: 'Fanuc — West Campus', type: 'Direct hire', pay: '$95–115K', skills: ['PLC Programming', 'Allen-Bradley', 'Robotics Integration', 'HMI', 'Electrical Schematics'], notes: 'Robot cell commissioning, some travel to integrator sites' },
-    { id: 'req-003', title: 'Production Operator', client: 'Toyoda Gosei — Brighton', type: 'Contract', pay: '$17–19/hr', skills: ['Assembly', 'Quality Inspection', 'Forklift', 'Kanban'], notes: 'Injection molding environment, 12-hr rotating shifts' },
-    { id: 'req-004', title: 'Tool & Die Maker', client: 'Rhino Tool House', type: 'Contract-to-hire', pay: '$30–36/hr', skills: ['Die Repair', 'Surface Grinding', 'EDM', 'Tryout', 'Welding'], notes: 'Progressive dies, automotive stampings' },
-    { id: 'req-005', title: 'Payroll Specialist', client: 'Spark Companies — Internal', type: 'Direct hire', pay: '$55–65K', skills: ['Multi-state Payroll', 'Greenshades', 'Payroll Tax', 'Excel', 'Garnishments'], notes: 'Six-entity environment, weekly cycles' },
-    { id: 'req-006', title: 'Quality Engineer', client: 'DFM Solutions — BU2', type: 'Direct hire', pay: '$80–95K', skills: ['PPAP', 'APQP', 'CMM Programming', 'Root Cause Analysis', 'IATF 16949'], notes: 'Customer-facing quality role, launch support' }
-  ];
+  const SM_MOCK_REQS = [];
 
-  const SM_MOCK_CANDIDATES = [
-    { id: 'cand-01', name: 'Jordan Reyes', title: 'CNC Machinist', location: 'Troy, MI', years: 8, skills: ['CNC Milling', 'Mazak', 'Fanuc Controls', 'GD&T', 'Blueprint Reading', '5-axis'], lastTouch: 'Placed 2024 — completed assignment', status: 'Available' },
-    { id: 'cand-02', name: 'Maria Delgado', title: 'Controls Engineer', location: 'Auburn Hills, MI', years: 6, skills: ['PLC Programming', 'Allen-Bradley', 'Siemens', 'HMI', 'Robotics Integration'], lastTouch: 'Interviewed 2025 — strong, client budget fell through', status: 'Passive' },
-    { id: 'cand-03', name: 'DeShawn Carter', title: 'Tool & Die Apprentice (4th yr)', location: 'Warren, MI', years: 4, skills: ['Die Repair', 'Surface Grinding', 'Manual Mills', 'Welding'], lastTouch: 'Applied last month', status: 'Active' },
-    { id: 'cand-04', name: 'Lindsey Park', title: 'Payroll Administrator', location: 'Rochester Hills, MI', years: 5, skills: ['Multi-state Payroll', 'ADP', 'Payroll Tax', 'Excel', 'Garnishments'], lastTouch: 'New applicant', status: 'Active' },
-    { id: 'cand-05', name: 'Robert Janik', title: 'Production Supervisor', location: 'Howell, MI', years: 12, skills: ['Assembly', 'Kanban', 'Forklift', 'Team Lead', '5S'], lastTouch: 'Former contractor — DFM 2023', status: 'Passive' },
-    { id: 'cand-06', name: 'Aisha Thompson', title: 'Quality Technician', location: 'Pontiac, MI', years: 7, skills: ['CMM Programming', 'PPAP', 'Quality Inspection', 'Root Cause Analysis', 'GD&T'], lastTouch: 'Active search — 2 client submittals out', status: 'Active' },
-    { id: 'cand-07', name: 'Kevin O\'Malley', title: 'Maintenance Electrician', location: 'Sterling Heights, MI', years: 15, skills: ['Electrical Schematics', 'PLC Troubleshooting', 'Allen-Bradley', 'Hydraulics', 'Conveyors'], lastTouch: 'Database — last contact 2024', status: 'Unknown' },
-    { id: 'cand-08', name: 'Brianna Walsh', title: 'Machine Operator', location: 'Flint, MI', years: 2, skills: ['Assembly', 'Quality Inspection', 'Press Operation'], lastTouch: 'New applicant via Indeed', status: 'Active' }
-  ];
+  const SM_MOCK_CANDIDATES = [];
 
 
   let smMode = 'req';          // 'req' = find candidates for a req · 'cand' = find reqs for a candidate
@@ -13012,6 +13215,11 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
   }
 
   window.runMatch = async function() {
+    if ((typeof SM_MOCK_REQS !== 'undefined' && SM_MOCK_REQS.length === 0) && (typeof SM_MOCK_CANDIDATES !== 'undefined' && SM_MOCK_CANDIDATES.length === 0)) {
+      const out = document.getElementById('smResults');
+      if (out) out.innerHTML = '<div style="padding:30px;text-align:center;color:var(--muted-light);font-size:13px;">No reqs or candidates loaded yet. Search &amp; Match goes live once the Worker connects Salesforce and Asymbl — then this runs on your real open reqs and candidate pool.</div>';
+      return;
+    }
     if (smRunning) return;
     smRunning = true;
     const btn = document.getElementById('smRunBtn');
@@ -13171,14 +13379,14 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
 
   let TOOLS_DATA = (function() {
     try {
-      const s = sessionStorage.getItem('spark_hq_tools_data');
+      const s = localStorage.getItem('spark_hq_tools_data');
       if (s) { const p = JSON.parse(s); if (p && p.categories) return p; }
     } catch(e) {}
     return JSON.parse(JSON.stringify(TOOLS_DEFAULT));
   })();
 
   function persistToolsData() {
-    try { sessionStorage.setItem('spark_hq_tools_data', JSON.stringify(TOOLS_DATA)); } catch(e) {}
+    try { localStorage.setItem('spark_hq_tools_data', JSON.stringify(TOOLS_DATA)); } catch(e) {}
   }
 
   // ===== Render the public grid =====
@@ -13247,7 +13455,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     h += '<button class="btn-secondary" onclick="taExportJson()">Export JSON</button>';
     h += '<button class="btn-secondary" onclick="taResetTools()">Reset to default</button>';
     h += '</div>';
-    h += '<div class="rd-asymbl-note" style="margin-top:12px;">Edits save to this browser session (sessionStorage). Production persistence rides the same Supabase wiring as Training content. "Built by Spark" native tools are code, not links — they\u2019re managed in builds, not here.</div>';
+    h += '<div class="rd-asymbl-note" style="margin-top:12px;">Edits save in this browser on this device — they survive refresh, but other browsers will not see them until the Supabase wiring lands. "Built by Spark" native tools are code, not links — they\u2019re managed in builds, not here.</div>';
     pane.innerHTML = h;
   }
   window.renderToolsAdmin = renderToolsAdmin;
@@ -13363,7 +13571,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
   };
   window.taResetTools = function() {
     if (!confirm('Reset tools to the built-in defaults? Your edits will be lost.')) return;
-    sessionStorage.removeItem('spark_hq_tools_data');
+    localStorage.removeItem('spark_hq_tools_data');
     TOOLS_DATA = JSON.parse(JSON.stringify(TOOLS_DEFAULT));
     renderToolsAdmin();
     renderToolsGrid();
@@ -13392,7 +13600,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
 
   // ==================== V8T — REAL WORKER CONNECTION ====================
   let workerCfg = (function() {
-    try { const s = sessionStorage.getItem('spark_hq_worker_cfg'); if (s) return JSON.parse(s); } catch(e) {}
+    try { const s = localStorage.getItem('spark_hq_worker_cfg'); if (s) return JSON.parse(s); } catch(e) {}
     return { url: '', key: '' };
   })();
   let connTestResults = { worker: null, salesforce: null }; // null=untested, {ok, detail, at}
@@ -13410,7 +13618,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     const u = document.getElementById('wkUrl');
     const k = document.getElementById('wkKey');
     workerCfg = { url: (u ? u.value.trim() : ''), key: (k ? k.value.trim() : '') };
-    try { sessionStorage.setItem('spark_hq_worker_cfg', JSON.stringify(workerCfg)); } catch(e) {}
+    try { localStorage.setItem('spark_hq_worker_cfg', JSON.stringify(workerCfg)); } catch(e) {}
     wkSetStatus('Saved. Run the tests to verify.', 'ok');
     renderConnStatusList();
   };
@@ -13584,6 +13792,472 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
       requestAnimationFrame(tick);
     } catch(_) {}
   };
+
+
+  // ==================== V8Z — DOCUMENTS DATA + ADMIN ====================
+  const DOCS_DEFAULT = {
+    folders: [
+      { id: 'f-hr', name: 'HR & Onboarding' },
+      { id: 'f-client', name: 'Client Agreements' },
+      { id: 'f-templates', name: 'Templates' },
+      { id: 'f-benefits', name: 'Benefits & Policies' },
+      { id: 'f-brand', name: 'Branding & Marketing' },
+      { id: 'f-legal', name: 'Legal' },
+      { id: 'f-training', name: 'Training Materials' },
+      { id: 'f-compliance', name: 'Compliance' }
+    ],
+    docs: []
+  
+  };
+  let DOCS_DATA = (function() {
+    try { const s = localStorage.getItem('spark_hq_docs_data'); if (s) { const p = JSON.parse(s); if (p && p.folders) return p; } } catch(e) {}
+    return JSON.parse(JSON.stringify(DOCS_DEFAULT));
+  })();
+  function persistDocs() { try { localStorage.setItem('spark_hq_docs_data', JSON.stringify(DOCS_DATA)); } catch(e) {} }
+  let docsActiveFolder = null;
+
+  function docIcon(name) {
+    if (/\.pdf$/i.test(name)) return '▤';
+    if (/\.xlsx?$/i.test(name)) return '▦';
+    if (/\.docx?$/i.test(name)) return '▥';
+    return '▢';
+  }
+
+  function renderDocs() {
+    const fh = document.getElementById('docsFolders');
+    const th = document.getElementById('docsTable');
+    if (!fh || !th) return;
+    fh.innerHTML = DOCS_DATA.folders.map(f => {
+      const n = DOCS_DATA.docs.filter(d => d.folder === f.id).length;
+      return '<div class="folder" style="cursor:pointer;' + (docsActiveFolder === f.id ? 'border-color:var(--gold);background:var(--paper-warm);' : '') + '" onclick="docsSetFolder(\'' + escLms(f.id) + '\')">' +
+        '<div class="ico">▢</div><div class="info"><div class="nm">' + escLms(f.name) + '</div><div class="ct">' + n + ' file' + (n === 1 ? '' : 's') + '</div></div></div>';
+    }).join('');
+
+    const docs = docsActiveFolder ? DOCS_DATA.docs.filter(d => d.folder === docsActiveFolder) : DOCS_DATA.docs;
+    const fname = {};
+    DOCS_DATA.folders.forEach(f => fname[f.id] = f.name);
+    let h = '<div class="doc-row header"><div></div><div>Name</div><div>Folder</div><div>Owner</div><div>Modified</div></div>';
+    if (!docs.length) h += '<div style="padding:20px;text-align:center;color:var(--muted-light);font-size:12px;">No files here yet — add some in Admin → Documents.</div>';
+    docs.forEach(d => {
+      const nameCell = d.url
+        ? '<a href="' + escLms(d.url) + '" target="_blank" rel="noopener" style="color:var(--ink);font-weight:500;text-decoration:none;border-bottom:1px dotted var(--gold-dark);">' + escLms(d.name) + '</a>'
+        : escLms(d.name);
+      h += '<div class="doc-row"><div class="doc-icon">' + docIcon(d.name) + '</div><div class="doc-name">' + nameCell + '</div><div class="doc-meta">' + escLms(fname[d.folder] || '—') + '</div><div class="doc-meta">' + escLms(d.owner || '') + '</div><div class="doc-meta">' + escLms(d.modified || '') + '</div></div>';
+    });
+    th.innerHTML = h;
+
+    const tag = document.getElementById('docsFilterTag');
+    const tagName = document.getElementById('docsFilterName');
+    if (tag && tagName) {
+      tag.style.display = docsActiveFolder ? '' : 'none';
+      if (docsActiveFolder) tagName.textContent = (fname[docsActiveFolder] || '').toUpperCase();
+    }
+  }
+  window.renderDocs = renderDocs;
+  window.docsSetFolder = function(fid) {
+    docsActiveFolder = (docsActiveFolder === fid) ? null : fid;
+    renderDocs();
+  };
+
+  // ===== Admin =====
+  function renderDocsAdmin() {
+    const host = document.getElementById('docsAdminBody');
+    if (!host) return;
+    let h = '<div class="admin-section-head"><h3>Folders</h3><div class="actions"><button class="btn-add" onclick="daAddFolder()">+ Add folder</button></div></div>';
+    DOCS_DATA.folders.forEach((f, fi) => {
+      const n = DOCS_DATA.docs.filter(d => d.folder === f.id).length;
+      h += '<div class="tadm-topic-row"><div class="ttr-num">▢</div><div class="ttr-body"><div class="ttr-title">' + escLms(f.name) + '</div><div class="ttr-meta">' + n + ' files</div></div>' +
+        '<div style="display:flex;gap:4px;">' +
+        '<button class="a-mini" onclick="daRenameFolder(' + fi + ')">✎</button>' +
+        '<button class="a-mini danger" onclick="daDeleteFolder(' + fi + ')">×</button>' +
+        '</div></div>';
+    });
+    h += '<div class="admin-section-head" style="margin-top:22px;"><h3>Files</h3><div class="actions"><button class="btn-add" onclick="daEditDoc(-1)">+ Add file</button></div></div>';
+    const fname = {};
+    DOCS_DATA.folders.forEach(f => fname[f.id] = f.name);
+    DOCS_DATA.docs.forEach((d, di) => {
+      h += '<div class="tadm-topic-row"><div class="ttr-num">' + docIcon(d.name) + '</div><div class="ttr-body"><div class="ttr-title">' + escLms(d.name) + (d.url ? ' <span class="quiz-tag">LINKED</span>' : '') + '</div><div class="ttr-meta">' + escLms(fname[d.folder] || '—') + ' · ' + escLms(d.owner || '') + ' · ' + escLms(d.modified || '') + '</div></div>' +
+        '<div style="display:flex;gap:4px;">' +
+        '<button class="a-mini" onclick="daEditDoc(' + di + ')">✎</button>' +
+        '<button class="a-mini danger" onclick="daDeleteDoc(' + di + ')">×</button>' +
+        '</div></div>';
+    });
+    host.innerHTML = h;
+  }
+  window.renderDocsAdmin = renderDocsAdmin;
+
+  window.daAddFolder = function() {
+    const name = prompt('Folder name:');
+    if (name === null || !name.trim()) return;
+    DOCS_DATA.folders.push({ id: 'f-' + Date.now(), name: name.trim() });
+    persistDocs(); renderDocsAdmin(); renderDocs();
+  };
+  window.daRenameFolder = function(fi) {
+    const f = DOCS_DATA.folders[fi];
+    const name = prompt('Folder name:', f.name);
+    if (name === null || !name.trim()) return;
+    f.name = name.trim();
+    persistDocs(); renderDocsAdmin(); renderDocs();
+  };
+  window.daDeleteFolder = function(fi) {
+    const f = DOCS_DATA.folders[fi];
+    const n = DOCS_DATA.docs.filter(d => d.folder === f.id).length;
+    if (!confirm('Delete folder "' + f.name + '"' + (n ? ' and its ' + n + ' file entries' : '') + '?')) return;
+    DOCS_DATA.docs = DOCS_DATA.docs.filter(d => d.folder !== f.id);
+    DOCS_DATA.folders.splice(fi, 1);
+    if (docsActiveFolder === f.id) docsActiveFolder = null;
+    persistDocs(); renderDocsAdmin(); renderDocs();
+  };
+  window.daDeleteDoc = function(di) {
+    const d = DOCS_DATA.docs[di];
+    if (!confirm('Remove "' + d.name + '" from the list? (Does not touch the real file.)')) return;
+    DOCS_DATA.docs.splice(di, 1);
+    persistDocs(); renderDocsAdmin(); renderDocs();
+  };
+
+  let daEditingIdx = -1;
+  window.daEditDoc = function(di) {
+    daEditingIdx = di;
+    const isNew = di < 0;
+    const d = isNew ? { name: '', folder: (DOCS_DATA.folders[0] || {}).id || '', owner: '', modified: 'today', url: '' } : DOCS_DATA.docs[di];
+    const modal = document.getElementById('docEditorModal');
+    if (!modal) return;
+    document.getElementById('docEditorTitle').textContent = isNew ? 'Add file' : 'Edit file';
+    document.getElementById('docEditorBody').innerHTML = `
+      <div class="field-group"><label>File name (with extension)</label><input type="text" id="da-name" value="${escLms(d.name)}" placeholder="e.g. W-9 Spark Talent.pdf" /></div>
+      <div class="field-row">
+        <div class="field-group"><label>Folder</label><select id="da-folder" class="sm-select">${DOCS_DATA.folders.map(f => '<option value="' + escLms(f.id) + '" ' + (f.id === d.folder ? 'selected' : '') + '>' + escLms(f.name) + '</option>').join('')}</select></div>
+        <div class="field-group"><label>Owner</label><input type="text" id="da-owner" value="${escLms(d.owner || '')}" placeholder="e.g. Allie S." /></div>
+        <div class="field-group"><label>Modified</label><input type="text" id="da-modified" value="${escLms(d.modified || 'today')}" /></div>
+      </div>
+      <div class="field-group"><label>SharePoint link (optional — makes the row clickable)</label><input type="text" id="da-url" value="${escLms(d.url || '')}" placeholder="https://sparkcompanies.sharepoint.com/…" /></div>
+    `;
+    modal.classList.add('open');
+  };
+  window.daCloseDoc = function() {
+    const m = document.getElementById('docEditorModal');
+    if (m) m.classList.remove('open');
+    daEditingIdx = -1;
+  };
+  window.daSaveDoc = function() {
+    const name = document.getElementById('da-name').value.trim();
+    if (!name) { alert('File name required.'); return; }
+    let url = document.getElementById('da-url').value.trim();
+    if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const doc = {
+      id: daEditingIdx >= 0 ? DOCS_DATA.docs[daEditingIdx].id : 'd-' + Date.now(),
+      name,
+      folder: document.getElementById('da-folder').value,
+      owner: document.getElementById('da-owner').value.trim(),
+      modified: document.getElementById('da-modified').value.trim() || 'today',
+      url
+    };
+    if (daEditingIdx >= 0) DOCS_DATA.docs[daEditingIdx] = doc;
+    else DOCS_DATA.docs.unshift(doc);
+    persistDocs();
+    daCloseDoc();
+    renderDocsAdmin();
+    renderDocs();
+  };
+
+  setTimeout(() => {
+    renderDocs();
+    document.querySelectorAll('.admin-subnav-item').forEach(b => {
+      if (b.dataset.adminTab === 'docs-admin') {
+        b.addEventListener('click', () => setTimeout(renderDocsAdmin, 50));
+      }
+    });
+    const m = document.getElementById('docEditorModal');
+    if (m) m.addEventListener('click', e => { if (e.target.id === 'docEditorModal') daCloseDoc(); });
+  }, 500);
+
+
+  // ==================== V9A — NATIVE COMMAND CENTER ====================
+  let jccMode = 'manual';
+
+  function jccRenderConstellation() {
+    const host = document.getElementById('jccConstellation');
+    if (!host) return;
+    const keys = Object.keys(AGENTS);
+    const R = 130;
+    let h = '<div class="jcc-orbit"></div><div class="jcc-orbit inner"></div>';
+    // links
+    keys.forEach((k, idx) => {
+      const ang = (idx / keys.length) * Math.PI * 2 - Math.PI / 2;
+      const len = R;
+      const deg = ang * 180 / Math.PI;
+      h += '<div class="jcc-link ' + (k === currentAgent ? 'active' : '') + '" style="--agent-color:' + AGENTS[k].color + ';width:' + len + 'px;transform:rotate(' + deg + 'deg);"></div>';
+    });
+    // core
+    h += '<div class="jcc-core">JARVIS</div>';
+    // nodes
+    keys.forEach((k, idx) => {
+      const ang = (idx / keys.length) * Math.PI * 2 - Math.PI / 2;
+      const x = Math.cos(ang) * R;
+      const y = Math.sin(ang) * R;
+      h += '<div class="jcc-node ' + (k === currentAgent ? 'active' : '') + '" style="--agent-color:' + AGENTS[k].color + ';transform:translate(' + x + 'px,' + y + 'px);" onclick="jccPick(\'' + k + '\')">' +
+        '<span class="jn-pulse"></span><span class="jn-ab">' + k.slice(0, 2) + '</span></div>';
+    });
+    host.innerHTML = h;
+  }
+
+  function jccRenderActive() {
+    const a = AGENTS[currentAgent];
+    if (!a) return;
+    const dot = document.getElementById('jccActiveDot');
+    const nm = document.getElementById('jccActiveName');
+    const role = document.getElementById('jccActiveRole');
+    const card = document.getElementById('jccActiveCard');
+    if (dot) dot.style.background = a.color, dot.style.boxShadow = '0 0 8px ' + a.color;
+    if (nm) nm.textContent = a.name.toUpperCase();
+    if (role) role.textContent = a.role.split('—')[0].trim();
+    if (card) card.innerHTML = '<div class="jac-role" style="color:' + a.color + ';">' + escLms(a.name) + '</div><div class="jac-desc">' + escLms(a.role) + '</div>';
+    // data pills reflect real connection state
+    const pills = document.getElementById('jccDataPills');
+    if (pills) {
+      const hasKey = (typeof providerCreds !== 'undefined' && providerCreds.anthropic && providerCreds.anthropic.apiKey);
+      const sfLive = (typeof connTestResults !== 'undefined' && connTestResults.salesforce && connTestResults.salesforce.ok);
+      pills.innerHTML =
+        '<span class="jcc-data-pill ' + (hasKey ? 'live' : '') + '">CLAUDE ' + (hasKey ? 'LIVE' : 'OFF') + '</span>' +
+        '<span class="jcc-data-pill ' + (sfLive ? 'live' : '') + '">SALESFORCE ' + (sfLive ? 'LIVE' : 'PENDING') + '</span>';
+    }
+  }
+
+  function jccRenderConvo() {
+    const host = document.getElementById('jccConvo');
+    if (!host) return;
+    if (!convoData.length) {
+      host.innerHTML = '<div class="msg-system">Pick an agent and ask. This is Sparks own command center.</div>';
+      return;
+    }
+    host.innerHTML = convoData.map(m => {
+      if (m.type === 'system') return '<div class="msg-system">' + escLms(m.text) + '</div>';
+      if (m.type === 'user') return '<div class="msg msg-user">' + escLms(m.text) + '</div>';
+      if (m.type === 'thinking') {
+        const a = AGENTS[m.agent || currentAgent];
+        return '<div class="msg msg-thinking" style="--agent-color:' + a.color + ';"><span class="d"></span><span class="d"></span><span class="d"></span><span style="margin-left:6px;">' + escLms(a.name) + ' is thinking…</span></div>';
+      }
+      const a = AGENTS[m.agent] || AGENTS[currentAgent];
+      return '<div class="msg msg-ai" style="--agent-color:' + a.color + ';"><div class="mai-agent">' + escLms(a.name) + '</div><div>' + escLms(m.text).replace(/\n/g, '<br>') + '</div>' + (m.meta ? '<div class="mai-meta">' + escLms(m.meta) + '</div>' : '') + '</div>';
+    }).join('');
+    host.scrollTop = host.scrollHeight;
+  }
+
+  function jccRenderSuggest() {
+    const host = document.getElementById('jccSuggest');
+    const a = AGENTS[currentAgent];
+    if (!host || !a) return;
+    host.innerHTML = (a.suggestions || []).map(s => '<button class="ichip" onclick="jccUseSuggest(this)">' + escLms(s) + '</button>').join('');
+  }
+
+  function jccRefreshAll() {
+    jccRenderConstellation();
+    jccRenderActive();
+    jccRenderConvo();
+    jccRenderSuggest();
+  }
+  window.jccRefreshAll = jccRefreshAll;
+
+  window.jccPick = function(key) {
+    if (!AGENTS[key]) return;
+    currentAgent = key;
+    if (typeof renderStrip === 'function') renderStrip();
+    if (typeof renderBanner === 'function') renderBanner();
+    if (typeof renderSuggest === 'function') renderSuggest();
+    if (typeof renderHeroAgents === 'function') renderHeroAgents();
+    jccRefreshAll();
+  };
+
+  window.jccSetMode = function(m) {
+    jccMode = m;
+    const mm = document.getElementById('jccModeManual');
+    const ma = document.getElementById('jccModeAuto');
+    if (mm) mm.classList.toggle('active', m === 'manual');
+    if (ma) ma.classList.toggle('active', m === 'auto');
+    // Mirror into the panel's brain router if present
+    if (typeof brainMode !== 'undefined') { try { brainMode = (m === 'auto' ? 'auto' : 'manual'); } catch(e) {} }
+  };
+
+  window.jccUseSuggest = function(el) {
+    const inp = document.getElementById('jccInput');
+    if (inp) inp.value = el.textContent;
+    jccSend();
+  };
+
+  window.jccSend = async function() {
+    const inp = document.getElementById('jccInput');
+    if (!inp) return;
+    let text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+
+    // agent prefix switch (sniper ... / ops ...)
+    const m = text.match(/^(sniper|rex|iris|dash|ops|scout)[\s,]+/i);
+    let useAgent = currentAgent;
+    if (m) {
+      useAgent = m[1].toUpperCase();
+      if (AGENTS[useAgent]) { currentAgent = useAgent; }
+      text = text.slice(m[0].length);
+    }
+
+    convoData.push({ type: 'user', text });
+    convoData.push({ type: 'thinking', agent: useAgent });
+    jccRenderConvo();
+    jccRenderActive();
+    jccRenderConstellation();
+    if (typeof renderHeroAgents === 'function') renderHeroAgents();
+
+    const hasKey = (typeof providerCreds !== 'undefined' && providerCreds.anthropic && providerCreds.anthropic.apiKey);
+    if (!hasKey) {
+      // pop thinking, honest message
+      for (let i = convoData.length - 1; i >= 0; i--) { if (convoData[i].type === 'thinking') { convoData.splice(i, 1); break; } }
+      convoData.push({ type: 'ai', agent: useAgent, text: "I'm not connected to Claude yet. Add the Anthropic key in Admin → AI Settings and I'll answer for real.", meta: 'not connected' });
+      jccRenderConvo();
+      return;
+    }
+
+    try {
+      const response = await callClaudeAPI(useAgent, text);
+      for (let i = convoData.length - 1; i >= 0; i--) { if (convoData[i].type === 'thinking') { convoData.splice(i, 1); break; } }
+      convoData.push({ type: 'ai', agent: useAgent, text: response.text, meta: response.meta });
+      jccRenderConvo();
+    } catch (err) {
+      for (let i = convoData.length - 1; i >= 0; i--) { if (convoData[i].type === 'thinking') { convoData.splice(i, 1); break; } }
+      convoData.push({ type: 'ai', agent: useAgent, text: 'Error reaching Claude: ' + (err && err.message ? err.message : err), meta: 'error' });
+      jccRenderConvo();
+    }
+  };
+
+  // Refresh the native CC whenever its tab opens
+  setTimeout(() => {
+    document.querySelectorAll('.nav-item').forEach(b => {
+      if (b.dataset.tab === 'jarvis') {
+        b.addEventListener('click', () => setTimeout(jccRefreshAll, 60));
+      }
+    });
+    jccRefreshAll();
+  }, 600);
+
+
+  // ==================== V9B — PULSE: COMPANY FEED ====================
+  const SPARK_VALUES = [
+    "Leading by Example", "Do the Right Thing", "Conquering Adversity",
+    "Be Humble, Crave Improvement", "People Driven; Service Focused",
+    "Dominate the Day", "Find a Way to Deliver Value", "Mindset is the Foundation"
+  ];
+
+  const PULSE_DEFAULT = {
+    posts: []
+  };;
+  let PULSE_DATA = (function() {
+    try { const s = localStorage.getItem('spark_hq_pulse'); if (s) { const p = JSON.parse(s); if (p && p.posts) return p; } } catch(e) {}
+    return JSON.parse(JSON.stringify(PULSE_DEFAULT));
+  })();
+  function persistPulse() { try { localStorage.setItem('spark_hq_pulse', JSON.stringify(PULSE_DATA)); } catch(e) {} }
+
+  function pulseTimeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s/60) + 'm ago';
+    if (s < 86400) return Math.floor(s/3600) + 'h ago';
+    const d = Math.floor(s/86400);
+    return d === 1 ? 'yesterday' : d + 'd ago';
+  }
+
+  const PULSE_KIND_META = {
+    recognition: { label: 'Recognition', icon: '◆', color: 'var(--gold)' },
+    news:        { label: 'News',        icon: '▸', color: '#38bdf8' },
+    milestone:   { label: 'Milestone',   icon: '★', color: '#22c55e' }
+  };
+
+  function renderPulse() {
+    const host = document.getElementById('pulseFeed');
+    if (!host) return;
+    const posts = [...PULSE_DATA.posts].sort((a,b) => b.ts - a.ts);
+    if (!posts.length) {
+      host.innerHTML = '<div class="pulse-empty">Nothing in the feed yet. Post the first update or recognition above.</div>';
+      return;
+    }
+    host.innerHTML = posts.map(p => {
+      const m = PULSE_KIND_META[p.kind] || PULSE_KIND_META.news;
+      let head = '';
+      if (p.kind === 'recognition') {
+        head = '<div class="pulse-rec-head"><span class="pulse-from">' + escLms(p.author) + '</span> recognized <span class="pulse-to">' + escLms(p.to) + '</span></div>' +
+               '<div class="pulse-value-chip">' + escLms(p.value) + '</div>';
+      } else if (p.kind === 'milestone') {
+        head = '<div class="pulse-rec-head"><span class="pulse-to">' + escLms(p.who) + '</span> · ' + escLms(p.detail) + '</div>';
+      } else {
+        head = '<div class="pulse-news-title">' + escLms(p.title || '') + '</div><div class="pulse-from">' + escLms(p.author) + '</div>';
+      }
+      const reactions = Object.entries(p.reactions || {}).map(([emoji, n]) =>
+        '<button class="pulse-react" onclick="pulseReact(\'' + p.id + '\',\'' + emoji + '\')">' + emoji + ' ' + n + '</button>'
+      ).join('');
+      return '<div class="pulse-post pulse-' + p.kind + '">' +
+        '<div class="pulse-rail" style="background:' + m.color + ';"></div>' +
+        '<div class="pulse-body">' +
+          '<div class="pulse-meta"><span class="pulse-kind" style="color:' + m.color + ';">' + m.icon + ' ' + m.label + '</span><span class="pulse-time">' + pulseTimeAgo(p.ts) + '</span></div>' +
+          head +
+          '<div class="pulse-text">' + escLms(p.text).replace(/\n/g,'<br>') + '</div>' +
+          '<div class="pulse-react-row">' + reactions +
+            '<button class="pulse-react add" onclick="pulseReact(\'' + p.id + '\',\'👏\')">+ 👏</button>' +
+          '</div>' +
+        '</div></div>';
+    }).join('');
+  }
+  window.renderPulse = renderPulse;
+
+  window.pulseReact = function(id, emoji) {
+    const p = PULSE_DATA.posts.find(x => x.id === id);
+    if (!p) return;
+    p.reactions = p.reactions || {};
+    p.reactions[emoji] = (p.reactions[emoji] || 0) + 1;
+    persistPulse(); renderPulse();
+  };
+
+  // Composer
+  window.pulseSetKind = function(kind) {
+    document.querySelectorAll('.pulse-compose-tab').forEach(t => t.classList.toggle('active', t.dataset.kind === kind));
+    document.querySelectorAll('.pulse-compose-pane').forEach(pane => pane.style.display = pane.dataset.kind === kind ? '' : 'none');
+  };
+  window.pulsePostRecognition = function() {
+    const to = document.getElementById('pcRecTo').value.trim();
+    const value = document.getElementById('pcRecValue').value;
+    const text = document.getElementById('pcRecText').value.trim();
+    if (!to || !text) { alert('Who are you recognizing, and what for?'); return; }
+    PULSE_DATA.posts.push({ id: 'p-' + Date.now(), kind: 'recognition', author: pulseCurrentUser(), to, value, text, ts: Date.now(), reactions: {} });
+    persistPulse(); renderPulse();
+    document.getElementById('pcRecTo').value = ''; document.getElementById('pcRecText').value = '';
+  };
+  window.pulsePostNews = function() {
+    const title = document.getElementById('pcNewsTitle').value.trim();
+    const text = document.getElementById('pcNewsText').value.trim();
+    if (!title || !text) { alert('Add a headline and a few words.'); return; }
+    PULSE_DATA.posts.push({ id: 'p-' + Date.now(), kind: 'news', author: pulseCurrentUser(), title, text, ts: Date.now(), reactions: {} });
+    persistPulse(); renderPulse();
+    document.getElementById('pcNewsTitle').value = ''; document.getElementById('pcNewsText').value = '';
+  };
+  window.pulsePostMilestone = function() {
+    const who = document.getElementById('pcMileWho').value.trim();
+    const detail = document.getElementById('pcMileDetail').value.trim();
+    const text = document.getElementById('pcMileText').value.trim();
+    if (!who || !detail) { alert('Who, and what milestone?'); return; }
+    PULSE_DATA.posts.push({ id: 'p-' + Date.now(), kind: 'milestone', milestone: 'custom', who, detail, text, ts: Date.now(), reactions: {} });
+    persistPulse(); renderPulse();
+    document.getElementById('pcMileWho').value = ''; document.getElementById('pcMileDetail').value = ''; document.getElementById('pcMileText').value = '';
+  };
+  function pulseCurrentUser() {
+    // Until MSAL, posts attribute to a generic author; real identity arrives with sign-in
+    return 'Spark Team';
+  }
+
+  setTimeout(renderPulse, 450);
+  setTimeout(() => {
+    const sel = document.getElementById('pcRecValue');
+    if (sel && !sel.options.length) {
+      sel.innerHTML = SPARK_VALUES.map(v => '<option value="' + v + '">' + v + '</option>').join('');
+    }
+  }, 500);
+
 
   init();
 })();
@@ -13870,6 +14544,32 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     <div class="modal-foot">
       <button class="btn-secondary" onclick="closeToolEditor()">Cancel</button>
       <button class="btn-add" onclick="saveToolEdit()">Save tool</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="roleEditorModal">
+  <div class="modal" style="width: 620px; max-width: 96vw;">
+    <div class="modal-head">
+      <h3 id="roleEditorTitle">Role editor</h3>
+      <button class="close" onclick="roleEditorClose()">×</button>
+    </div>
+    <div class="modal-body" id="roleEditorBody"></div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="roleEditorClose()">Cancel</button>
+      <button class="btn-add" onclick="roleEditorSave()">Save role</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="docEditorModal">
+  <div class="modal" style="width: 560px; max-width: 96vw;">
+    <div class="modal-head">
+      <h3 id="docEditorTitle">File editor</h3>
+      <button class="close" onclick="daCloseDoc()">×</button>
+    </div>
+    <div class="modal-body" id="docEditorBody"></div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="daCloseDoc()">Cancel</button>
+      <button class="btn-add" onclick="daSaveDoc()">Save file</button>
     </div>
   </div>
 </div>
