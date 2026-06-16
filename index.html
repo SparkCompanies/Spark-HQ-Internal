@@ -5586,6 +5586,25 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jv-foot { text-align:center; font-size:11px; color:var(--muted); padding:8px 0 12px; }
 .jv-err { font-size:13px; color:#dc2626; background:#fef2f2; border:1px solid #f3d0d0; border-radius:10px; padding:10px 13px; }
 
+/* ===== v22 — Jarvis LIGHT theme (readable, elevated) ===== */
+.jarvis-page { background: var(--paper) !important; }
+.jarvis-tab-chrome { background: #fff !important; border-bottom: 1px solid var(--line) !important; border-image: none !important; padding: 14px 22px !important; }
+.jtc-title { color: var(--ink) !important; font-size: 13px !important; letter-spacing: 1.5px !important; }
+.jtc-sub { display: inline !important; color: var(--muted) !important; font-size: 11px !important; }
+.jtc-status { background: #2fbf71 !important; box-shadow: 0 0 8px rgba(47,191,113,.6) !important; }
+.jtc-btn { background: #fff !important; border: 1px solid var(--line) !important; color: var(--ink) !important; }
+.jtc-btn:hover { border-color: var(--gold) !important; }
+/* agent pills sit on light now */
+.jv-agents { background: var(--paper); }
+/* messages area + bubbles already light-friendly; ensure text is dark */
+.jv-messages { background: var(--paper); }
+.jv-bubble { color: var(--ink) !important; }
+.jv-msg.bot .jv-bubble { color: #2a2a3a !important; }
+/* a subtle elevated card feel for the whole shell */
+.jv-shell { background: var(--paper); }
+.jv-composer { box-shadow: 0 2px 12px rgba(20,20,46,.06); }
+
+
 /* ===== v18 — Custom Role Editor ===== */
 .re-wrap { margin-top:32px; padding-top:28px; border-top:2px solid var(--line); }
 .re-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; }
@@ -5789,7 +5808,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v21</span>
+      <span class="ver-dot"></span><span>Spark HQ · v22</span>
     </div>
   </aside>
 
