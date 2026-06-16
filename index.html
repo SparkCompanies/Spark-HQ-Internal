@@ -5489,8 +5489,6 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 .org-stage { background:radial-gradient(1300px 850px at 50% 22%, #18182e 0%, #0e0e1c 55%, #07070d 100%); }
-.org-world { backface-visibility:hidden; }
-.org-node { -webkit-font-smoothing:antialiased; }
 .org-node .on-name { letter-spacing:-.1px; }
 
 /* v15b — People tab full-bleed dark (overrides centered light column) */
@@ -5517,7 +5515,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .org-stage { position:absolute; inset:0; overflow:hidden; cursor:grab;
   background:radial-gradient(1200px 800px at 50% 25%, #16162a 0%, #0e0e1c 55%, #08080f 100%); }
 .org-stage.dragging { cursor:grabbing; }
-.org-world { position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; }
+.org-world { position:absolute; top:0; left:0; transform-origin:0 0; }
 /* connector layer */
 .org-edge { position:absolute; top:0; left:0; pointer-events:none; overflow:visible; z-index:1; }
 .org-edge path { fill:none; stroke:#2e2e46; stroke-width:1.4; }
@@ -5534,6 +5532,9 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .org-node:hover { transform:translateY(-2px); box-shadow:0 0 18px var(--ng, rgba(245,197,24,.7)); z-index:50; }
 .org-node.dim { opacity:.22; }
 .org-node.match { box-shadow:0 0 0 2px var(--nc), 0 0 20px var(--ng); }
+
+.org-stage.dragging .org-world { will-change:transform; }
+
 /* during drag: kill all glows (single biggest perf win) */
 .org-stage.dragging .org-node { box-shadow:none !important; transition:none !important; }
 .org-stage.dragging .org-node:hover { transform:none; }
@@ -5639,7 +5640,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v15b</span>
+      <span class="ver-dot"></span><span>Spark HQ · v15c</span>
     </div>
   </aside>
 
@@ -8067,7 +8068,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   var ORG_BY_ID = {};
   var ORG_NODES = {};
   var ORG_DEPT_COLOR = {};       // department -> {c: hex, g: rgba-glow}
-  var orgView = { x: 80, y: 120, scale: 0.8 };
+  var orgView = { x: 80, y: 120, scale: 1 };
   var orgLoaded = false;
 
   // neon palette for departments (cycled, stable per dept)
@@ -8208,7 +8209,10 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
   function orgApplyTransform() {
     var world = document.getElementById('orgWorld');
-    if (world) world.style.transform = 'translate('+orgView.x+'px,'+orgView.y+'px) scale('+orgView.scale+')';
+    if (!world) return;
+    // plain 2D transform (no translate3d / will-change) so the browser re-rasterizes
+    // text crisply at the current scale instead of stretching a cached bitmap.
+    world.style.transform = 'translate('+orgView.x.toFixed(1)+'px,'+orgView.y.toFixed(1)+'px) scale('+orgView.scale+')';
   }
   window.orgZoom = function(f) {
     orgView.scale = Math.max(0.25, Math.min(2.2, orgView.scale * f));
@@ -8216,7 +8220,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   };
   window.orgResetView = function() {
     var stage = document.getElementById('orgStage');
-    orgView.scale = 0.7;
+    orgView.scale = 1;
     orgView.x = (stage ? stage.clientWidth/2 : 500) - 91;
     orgView.y = 120;
     orgApplyTransform();
