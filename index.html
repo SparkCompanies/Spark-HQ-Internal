@@ -5723,6 +5723,46 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jv-table tr:nth-child(even) td { background:#fcfbf7; }
 
 
+
+
+/* v32 — router suggestion chip */
+.jv-route { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 8px 40px; padding:10px 14px; background:rgba(34,211,238,0.07); border:1px solid rgba(34,211,238,0.25); border-radius:10px; }
+.jv-route-txt { font-size:12.5px; color:rgba(255,255,255,0.8); }
+.jv-route-txt strong { color:#22d3ee; }
+.jv-route-btn { background:#22d3ee; color:#0a0c10; border:none; border-radius:7px; padding:5px 12px; font-family:inherit; font-size:11.5px; font-weight:600; cursor:pointer; }
+.jv-route-btn:hover { background:#67e8f9; }
+
+/* v32 — two-column command-center layout */
+.jv-layout { display:flex; gap:0; height:calc(100vh - 56px - 52px); background:#0a0c10; }
+.jv-rail { width:248px; flex-shrink:0; background:#0b0e14; border-right:1px solid rgba(255,255,255,0.07); overflow-y:auto; padding:16px 14px; }
+.jv-rail-sec { margin-bottom:22px; }
+.jv-rail-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#22d3ee; font-weight:700; margin-bottom:10px; opacity:.85; }
+.jv-roster { display:flex; flex-direction:column; gap:7px; }
+.jv-rost { display:block; width:100%; text-align:left; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all .15s; font-family:inherit; }
+.jv-rost:hover { border-color:rgba(34,211,238,0.5); background:rgba(34,211,238,0.05); }
+.jv-rost.active { border-color:#22d3ee; background:rgba(34,211,238,0.1); box-shadow:0 0 0 1px rgba(34,211,238,0.4); }
+.jv-rost-top { display:flex; align-items:center; gap:8px; }
+.jv-rost-dot { width:7px; height:7px; border-radius:50%; background:var(--ag,#22d3ee); flex-shrink:0; }
+.jv-rost.active .jv-rost-dot { box-shadow:0 0 7px var(--ag,#22d3ee); }
+.jv-rost-name { font-size:13px; font-weight:600; color:#fff; }
+.jv-rost-state { font-size:8px; letter-spacing:.6px; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-left:auto; }
+.jv-rost.active .jv-rost-state { color:#22d3ee; }
+.jv-rost-blurb { font-size:11px; line-height:1.4; color:rgba(255,255,255,0.5); margin-top:5px; }
+.jv-history { display:flex; flex-direction:column; gap:5px; }
+.jv-hist-item { display:block; width:100%; text-align:left; background:transparent; border:none; border-radius:7px; padding:7px 9px; cursor:pointer; font-family:inherit; font-size:11.5px; color:rgba(255,255,255,0.6); transition:background .15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.jv-hist-item:hover { background:rgba(255,255,255,0.05); color:#fff; }
+.jv-hist-agent { font-size:9px; color:#22d3ee; text-transform:uppercase; letter-spacing:.5px; margin-right:5px; }
+.jv-hist-empty { font-size:11px; color:rgba(255,255,255,0.3); font-style:italic; padding:4px 0; }
+.jv-main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.jv-main .jv-shell { height:100%; max-width:760px; }
+/* the connections panel reuses jv-conn-* (already styled) */
+@media (max-width:760px){ .jv-rail { display:none; } }
+
+
+/* v32 — dark composer (fix white bar) */
+#view-jarvis .jv-composer { background:#11151c !important; border:1px solid rgba(34,211,238,0.22) !important; }
+#view-jarvis .jv-input { background:transparent !important; color:#fff !important; }
+
 /* (v22 light theme removed — v31 dark command-center theme now governs Jarvis) */
 
 
@@ -5929,7 +5969,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v31b</span>
+      <span class="ver-dot"></span><span>Spark HQ · v32</span>
     </div>
   </aside>
 
@@ -6160,53 +6200,50 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           <button class="jtc-btn" onclick="jvNewChat()" title="Start a fresh conversation">New chat</button>
         </div>
       </div>
-      <div class="jv-agents" id="jvAgents"></div>
-      <div class="jv-mc-grid">
-        <div class="jv-panel">
-          <div class="jv-panel-title">Connections</div>
-          <div id="jvConnections">
-            <div class="jv-conn-row"><span><span class="jv-conn-dot not_connected"></span>Checking…</span></div>
+      <div class="jv-layout">
+        <!-- LEFT RAIL: agent roster + history + connections -->
+        <aside class="jv-rail">
+          <div class="jv-rail-sec">
+            <div class="jv-rail-title">Agents</div>
+            <div class="jv-roster" id="jvAgents"></div>
           </div>
-        </div>
-        <div class="jv-panel">
-          <div class="jv-panel-title">Annual Targets</div>
-          <div class="jv-target"><span>Contract</span><input type="text" id="tgtContract" placeholder="set target" oninput="jvSaveTargets()"></div>
-          <div class="jv-target"><span>Direct Place</span><input type="text" id="tgtDirect" placeholder="set target" oninput="jvSaveTargets()"></div>
-          <div class="jv-target"><span>GP / Producer</span><input type="text" id="tgtGP" placeholder="set target" oninput="jvSaveTargets()"></div>
-        </div>
-        <div class="jv-panel" style="grid-column:1/-1;">
-          <div class="jv-panel-title">Command Log</div>
-          <div class="jv-log" id="jvLog"><div class="jv-log-empty">Your queries this session will appear here.</div></div>
-        </div>
-      </div>
-      <div class="jv-shell">
-        <div class="jv-messages" id="jvMessages">
-          <div class="jv-empty" id="jvEmpty">
-            <div class="jv-sphere" id="jvSphere" onclick="jvToggleMic()" role="button" aria-label="Tap to speak">
-              <div class="jv-orbit jv-orbit1"></div>
-              <div class="jv-orbit jv-orbit2"></div>
-              <div class="jv-orbit jv-orbit3"></div>
-              <div class="jv-brain-core"></div>
-              <div class="jv-node jv-node1"></div>
-              <div class="jv-node jv-node2"></div>
-              <div class="jv-node jv-node3"></div>
-              <div class="jv-sphere-glyph">⬡</div>
+          <div class="jv-rail-sec">
+            <div class="jv-rail-title">History</div>
+            <div class="jv-history" id="jvHistory"><div class="jv-hist-empty">No past chats yet.</div></div>
+          </div>
+          <div class="jv-rail-sec">
+            <div class="jv-rail-title">Connections</div>
+            <div id="jvConnections"><div class="jv-conn-row"><span><span class="jv-conn-dot not_connected"></span>Checking…</span></div></div>
+          </div>
+        </aside>
+        <!-- RIGHT: the chat -->
+        <div class="jv-main">
+          <div class="jv-shell">
+            <div class="jv-messages" id="jvMessages">
+              <div class="jv-empty" id="jvEmpty">
+                <div class="jv-sphere" id="jvSphere" onclick="jvToggleMic()" role="button" aria-label="Tap to speak">
+                  <div class="jv-orbit jv-orbit1"></div><div class="jv-orbit jv-orbit2"></div><div class="jv-orbit jv-orbit3"></div>
+                  <div class="jv-brain-core"></div>
+                  <div class="jv-node jv-node1"></div><div class="jv-node jv-node2"></div><div class="jv-node jv-node3"></div>
+                  <div class="jv-sphere-glyph">⬡</div>
+                </div>
+                <div class="jv-empty-title">How can I help?</div>
+                <div class="jv-empty-sub">Ask me anything — or tell me what you need and I\'ll point you to the right specialist.</div>
+                <div class="jv-suggest" id="jvSuggest"></div>
+              </div>
             </div>
-            <div class="jv-empty-title">How can I help?</div>
-            <div class="jv-empty-sub">Tap the sphere, type below, or use the mic. Switch agents above for specialized help.</div>
-            <div class="jv-suggest" id="jvSuggest"></div>
+            <div class="jv-composer">
+              <textarea id="jvInput" class="jv-input" rows="1" placeholder="Message Jarvis…" oninput="jvAutoGrow(this)" onkeydown="jvKey(event)"></textarea>
+              <button class="jv-mic" id="jvMic" onclick="jvToggleMic()" aria-label="Voice input" title="Tap to speak">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+              </button>
+              <button class="jv-send" id="jvSend" onclick="jvSend()" aria-label="Send">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              </button>
+            </div>
+            <div class="jv-foot">Jarvis can make mistakes. Check important info.</div>
           </div>
         </div>
-        <div class="jv-composer">
-          <textarea id="jvInput" class="jv-input" rows="1" placeholder="Message Jarvis…" oninput="jvAutoGrow(this)" onkeydown="jvKey(event)"></textarea>
-          <button class="jv-mic" id="jvMic" onclick="jvToggleMic()" aria-label="Voice input" title="Tap to speak">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
-          </button>
-          <button class="jv-send" id="jvSend" onclick="jvSend()" aria-label="Send">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-          </button>
-        </div>
-        <div class="jv-foot">Jarvis can make mistakes. Check important info.</div>
       </div>
     </div>
 
@@ -7621,6 +7658,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         });
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
+          try { jvRenderHistory(); } catch(e){}
           try { jvLoadConnections(); } catch(e){}
           try { jvLoadTargets(); } catch(e){}
           try { jvRequestLocation(); } catch(e){}
@@ -9085,17 +9123,17 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   // ===== v21 — Jarvis agents (personas; same /ai endpoint, different system prompts) =====
   var JV_AGENTS = [
     { id:'jarvis', name:'Jarvis', tag:'General assistant', color:'#F5C518', soon:false,
-      sys:"Keep formatting clean and minimal: short paragraphs, simple tables only when truly helpful, no emoji in headers. You are Jarvis, the general AI assistant inside Spark HQ, Spark Companies' internal hub (a multi-entity staffing & workforce-services firm). Be concise, friendly, practical. Help with drafting, summarizing, planning, and answering questions across the business." },
+      blurb:"Your front door. Ask anything, or tell me what you need and I'll route you.", sys:"Keep formatting clean and minimal: short paragraphs, simple tables only when truly helpful, no emoji in headers. You are Jarvis, the general AI assistant inside Spark HQ, Spark Companies' internal hub (a multi-entity staffing & workforce-services firm). Be concise, friendly, practical. Help with drafting, summarizing, planning, and answering questions across the business." },
     { id:'ops', name:'OPS', tag:'Pipeline & GP', color:'#2fbf71', soon:true,
-      sys:"Keep formatting clean: a simple table is fine for numbers, but no emoji-decorated headers and no walls of markdown. You are OPS, Spark's pipeline and gross-profit analyst. You think like a sales-operations leader: weighted pipeline, win rates, GP per placement, week-over-week movement, at-risk deals. Be analytical and numbers-oriented. NOTE: live Salesforce data is not connected yet, so when asked for specific current figures, say so plainly and reason from whatever the user provides rather than inventing numbers." },
+      blurb:"Live Salesforce pipeline, GP, and where to focus to close.", sys:"Keep formatting clean: a simple table is fine for numbers, but no emoji-decorated headers and no walls of markdown. You are OPS, Spark's pipeline and gross-profit analyst. You think like a sales-operations leader: weighted pipeline, win rates, GP per placement, week-over-week movement, at-risk deals. Be analytical and numbers-oriented. NOTE: live Salesforce data is not connected yet, so when asked for specific current figures, say so plainly and reason from whatever the user provides rather than inventing numbers." },
     { id:'scout', name:'Scout', tag:'Research & search', color:'#22d3ee', soon:true,
-      sys:"You are Scout, Spark's research and search specialist. You help find, synthesize, and summarize information \u2014 documents, market/competitor research, candidates, and best practices. Be resourceful and cite what you're reasoning from. NOTE: live SharePoint/M365 and web search are not wired in yet; when asked to actually search internal files, say so and help structure the search instead." },
+      blurb:"Research, market intel, and finding what you need.", sys:"You are Scout, Spark's research and search specialist. You help find, synthesize, and summarize information \u2014 documents, market/competitor research, candidates, and best practices. Be resourceful and cite what you're reasoning from. NOTE: live SharePoint/M365 and web search are not wired in yet; when asked to actually search internal files, say so and help structure the search instead." },
     { id:'alfred', name:'Alfred', tag:'O365 super-assistant', color:'#c084fc', soon:true,
-      sys:"You are Alfred, Spark's Microsoft 365 super-assistant \u2014 calendar, email, meetings, and files. You think like a sharp executive assistant: anticipate needs, draft crisply, manage time well. NOTE: live calendar/mail/file access is being wired in; when asked to read actual O365 data you don't have yet, say so and help draft or plan instead." },
+      blurb:"Calendar, email, and Microsoft 365 help.", sys:"You are Alfred, Spark's Microsoft 365 super-assistant \u2014 calendar, email, meetings, and files. You think like a sharp executive assistant: anticipate needs, draft crisply, manage time well. NOTE: live calendar/mail/file access is being wired in; when asked to read actual O365 data you don't have yet, say so and help draft or plan instead." },
     { id:'sniper', name:'Sniper', tag:'Sourcing & recruiting', color:'#ff8c52', soon:true,
-      sys:"You are Sniper, Spark's precision sourcing and recruiting specialist. You help write boolean searches, outreach messages, screen candidates, and target hard-to-fill roles. Be sharp, fast, and tactical about talent acquisition." },
+      blurb:"Sourcing, boolean searches, and candidate outreach.", sys:"You are Sniper, Spark's precision sourcing and recruiting specialist. You help write boolean searches, outreach messages, screen candidates, and target hard-to-fill roles. Be sharp, fast, and tactical about talent acquisition." },
     { id:'rex', name:'Rex', tag:'Contracts & compliance', color:'#f472b6', soon:true,
-      sys:"You are Rex, Spark's contracts and compliance assistant. You help review agreements, flag risks, explain clauses, and navigate employment/staffing compliance across multiple states. Be precise and risk-aware. You are not a lawyer and you remind users to confirm anything material with counsel." }
+      blurb:"Contracts, clauses, and compliance across states.", sys:"You are Rex, Spark's contracts and compliance assistant. You help review agreements, flag risks, explain clauses, and navigate employment/staffing compliance across multiple states. Be precise and risk-aware. You are not a lawyer and you remind users to confirm anything material with counsel." }
   ];
   var JV_ACTIVE = 'jarvis';
 
@@ -9104,11 +9142,54 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   function jvRenderAgents(){
     var bar=document.getElementById('jvAgents'); if(!bar) return;
     bar.innerHTML = JV_AGENTS.map(function(a){
-      return '<button class="jv-agent'+(a.id===JV_ACTIVE?' active':'')+'" style="--ag:'+a.color+'" onclick="jvSwitchAgent(\''+a.id+'\')">'
-        + '<span class="ja-dot"></span>' + a.name
-        + '<span class="ja-state">'+(a.id===JV_ACTIVE?'active':'standby')+'</span>'
-        + (a.soon ? '<span class="ja-soon">data soon</span>' : '') + '</button>';
+      return '<button class="jv-rost'+(a.id===JV_ACTIVE?' active':'')+'" style="--ag:'+a.color+'" onclick="jvSwitchAgent(\''+a.id+'\')">'
+        + '<div class="jv-rost-top"><span class="jv-rost-dot"></span><span class="jv-rost-name">'+a.name+'</span>'
+        + '<span class="jv-rost-state">'+(a.id===JV_ACTIVE?'active':'standby')+'</span></div>'
+        + '<div class="jv-rost-blurb">'+(a.blurb||a.tag)+'</div>'
+        + '</button>';
     }).join('');
+  }
+
+  // ---- History: list past saved conversations, click to reopen ----
+  window.jvRenderHistory = function(){
+    var box=document.getElementById('jvHistory'); if(!box) return;
+    try {
+      var c = window.SPARK_SB && window.SPARK_SB.getClient ? window.SPARK_SB.getClient() : null;
+      var u = window.SPARK_SB && window.SPARK_SB.whoami ? window.SPARK_SB.whoami() : null;
+      if(!c || !u){ box.innerHTML='<div class="jv-hist-empty">Sign in to see history.</div>'; return; }
+      c.from('jarvis_conversations').select('id,agent,title,updated_at').eq('user_id',u.id).order('updated_at',{ascending:false}).limit(20)
+        .then(function(r){
+          var rows=(r&&r.data)||[];
+          if(!rows.length){ box.innerHTML='<div class="jv-hist-empty">No past chats yet.</div>'; return; }
+          box.innerHTML = rows.map(function(row){
+            var label=(row.title||'Untitled').slice(0,40);
+            return '<button class="jv-hist-item" onclick="jvOpenHistory(\''+row.id+'\',\''+(row.agent||'jarvis')+'\')"><span class="jv-hist-agent">'+(row.agent||'jarvis')+'</span>'+label.replace(/</g,'&lt;')+'</button>';
+          }).join('');
+        }, function(){ box.innerHTML='<div class="jv-hist-empty">History unavailable.</div>'; });
+    } catch(e){ box.innerHTML='<div class="jv-hist-empty">History unavailable.</div>'; }
+  };
+  window.jvOpenHistory = function(id, agent){
+    var c = window.SPARK_SB && window.SPARK_SB.getClient ? window.SPARK_SB.getClient() : null;
+    if(!c) return;
+    if(agent && agent!==JV_ACTIVE){ JV_ACTIVE=agent; var a=jvCurrentAgent(); var t=document.getElementById('jvTitle'); if(t)t.textContent=a.name.toUpperCase(); var s=document.getElementById('jvSub'); if(s)s.textContent=a.tag+' \u00b7 powered by Claude'; jvRenderAgents(); }
+    c.from('jarvis_conversations').select('id,messages').eq('id',id).limit(1).then(function(r){
+      if(r&&r.data&&r.data[0]){ JV_CONV_ID=r.data[0].id; JV_HISTORY=(r.data[0].messages||[]).slice(); jvRepaint(); }
+    },function(){});
+  };
+
+  // ---- Router: Jarvis suggests the right specialist based on the message ----
+  function jvRouteHint(text){
+    if(JV_ACTIVE!=='jarvis') return null;  // only Jarvis routes
+    var t=(text||'').toLowerCase();
+    var map=[
+      ['ops', /(pipeline|gross profit|\bgp\b|forecast|opportunit|deals?|revenue|close rate|quota)/],
+      ['alfred', /(calendar|schedule|meeting|email|outlook|inbox|my day|availability)/],
+      ['sniper', /(candidate|sourc|boolean|recruit|resume|outreach|req\b|hire)/],
+      ['rex', /(contract|clause|compliance|agreement|msa|nda|legal|terms)/],
+      ['scout', /(research|competitor|market|find me|look up|trend|industry)/]
+    ];
+    for(var i=0;i<map.length;i++){ if(map[i][1].test(t)) return map[i][0]; }
+    return null;
   }
 
   window.jvSwitchAgent = function(id){
@@ -9457,6 +9538,20 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     if(!text) return;
     input.value=''; jvAutoGrow(input);
     jvAppend('user', text); JV_HISTORY.push({role:'user', content:text}); jvSaveSoon(); try{ jvLogAdd(text); }catch(e){}
+    // Router: if on Jarvis and the ask fits a specialist, offer to route
+    try {
+      var hint=jvRouteHint(text);
+      if(hint){
+        var ha=JV_AGENTS.find(function(x){return x.id===hint;});
+        if(ha){
+          var box=document.getElementById('jvMessages');
+          var chip=document.createElement('div');
+          chip.className='jv-route';
+          chip.innerHTML='<span class="jv-route-txt">This looks like a job for <strong>'+ha.name+'</strong> \u2014 '+(ha.tag)+'.</span> <button class="jv-route-btn" onclick="jvSwitchAgent(\''+hint+'\')">Switch to '+ha.name+'</button>';
+          box.appendChild(chip); box.scrollTop=box.scrollHeight;
+        }
+      }
+    } catch(e){}
     JV_BUSY=true; var sb=document.getElementById('jvSend'); if(sb) sb.disabled=true;
     var typing=jvTyping();
     window.SPARK_SB.getToken().then(function(tok){
@@ -15218,6 +15313,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     try { jvRenderAgents(); } catch(e){}
     try { jvRequestLocation(); } catch(e){}
     try { jvRestoreConversation(); } catch(e){}
+    try { jvRenderHistory(); } catch(e){}
     try { jvLoadConnections(); } catch(e){}
     try { jvLoadTargets(); } catch(e){}
     if (typeof jnClose === 'function') { try { jnClose(); } catch(_){} }
@@ -16942,7 +17038,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
   // v26 — draw Jarvis agent pills on load (they only rendered on nav-click before,
   // so landing on the tab any other way left the bar empty). jvNewChat() renders them.
   try {
-    setTimeout(function(){ try { if (window.jvNewChat) window.jvNewChat(); } catch(e){} try { jvLoadConnections(); } catch(e){} try { jvLoadTargets(); } catch(e){} }, 500);
+    setTimeout(function(){ try { if (window.jvNewChat) window.jvNewChat(); } catch(e){} try { jvRenderHistory(); } catch(e){} try { jvLoadConnections(); } catch(e){} try { jvLoadTargets(); } catch(e){} }, 500);
   } catch(e){}
 })();
 </script>
