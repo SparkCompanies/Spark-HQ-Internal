@@ -5808,7 +5808,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v22</span>
+      <span class="ver-dot"></span><span>Spark HQ · v23</span>
     </div>
   </aside>
 
@@ -8957,16 +8957,21 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     var t=document.getElementById('jvTitle'); if(t) t.textContent = a.name.toUpperCase();
     var s=document.getElementById('jvSub'); if(s) s.textContent = a.tag + ' · powered by Claude';
     jvRenderAgents();
-    jvNewChat();  // fresh conversation per agent
+    JV_HISTORY=[]; JV_CONV_ID=null;
+    var box=document.getElementById('jvMessages'); if(box) box.innerHTML='';
+    jvNewChat();
+    jvRestoreConversation();  // bring back this agent's last thread if any
   };
 
   // ===== v20 — Jarvis real chat (talks to Worker /ai -> Claude) =====
   var JV_HISTORY = [];
+  var JV_CONV_ID = null;   // current saved conversation row id (per agent)
+  var JV_SAVE_T = null;    // debounce timer
   var JV_BUSY = false;
   window.jvAutoGrow = function(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,160)+'px'; };
   window.jvKey = function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); jvSend(); } };
   window.jvNewChat = function(){
-    JV_HISTORY = [];
+    JV_HISTORY = []; JV_CONV_ID = null;
     try { jvRenderAgents(); } catch(e){}
     var box=document.getElementById('jvMessages');
     if(box) box.innerHTML='<div class="jv-empty" id="jvEmpty"><div class="jv-empty-mark">\u2b21</div><div class="jv-empty-title">How can I help?</div><div class="jv-empty-sub">Ask me anything \u2014 drafting, summarizing, quick questions, or thinking through a problem.</div></div>';
@@ -8993,12 +8998,62 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     row.innerHTML='<div class="jv-av">JV</div><div class="jv-typing"><span></span><span></span><span></span></div>';
     box.appendChild(row); box.scrollTop=box.scrollHeight; return row;
   }
+
+  // ----- conversation persistence (Supabase jarvis_conversations) -----
+  function jvSaveConversation(){
+    try {
+      var c = window.SPARK_SB && window.SPARK_SB.getClient ? window.SPARK_SB.getClient() : null;
+      var u = window.SPARK_SB && window.SPARK_SB.whoami ? window.SPARK_SB.whoami() : null;
+      if (!c || !u || !JV_HISTORY.length) return;
+      var title = '';
+      for (var i=0;i<JV_HISTORY.length;i++){ if(JV_HISTORY[i].role==='user'){ title=JV_HISTORY[i].content.slice(0,60); break; } }
+      var row = { user_id: u.id, agent: JV_ACTIVE, title: title, messages: JV_HISTORY, updated_at: new Date().toISOString() };
+      if (JV_CONV_ID) {
+        c.from('jarvis_conversations').update(row).eq('id', JV_CONV_ID).then(function(){},function(){});
+      } else {
+        c.from('jarvis_conversations').insert(row).select('id').then(function(r){
+          if (r && r.data && r.data[0]) JV_CONV_ID = r.data[0].id;
+        }, function(){});
+      }
+    } catch(e){}
+  }
+  function jvSaveSoon(){ if(JV_SAVE_T) clearTimeout(JV_SAVE_T); JV_SAVE_T=setTimeout(jvSaveConversation, 600); }
+
+  // restore the most recent conversation for the active agent
+  window.jvRestoreConversation = function(){
+    try {
+      var c = window.SPARK_SB && window.SPARK_SB.getClient ? window.SPARK_SB.getClient() : null;
+      var u = window.SPARK_SB && window.SPARK_SB.whoami ? window.SPARK_SB.whoami() : null;
+      if (!c || !u) return;
+      c.from('jarvis_conversations')
+        .select('id,messages')
+        .eq('user_id', u.id).eq('agent', JV_ACTIVE)
+        .order('updated_at', { ascending:false }).limit(1)
+        .then(function(r){
+          if (r && r.data && r.data[0] && Array.isArray(r.data[0].messages) && r.data[0].messages.length) {
+            JV_CONV_ID = r.data[0].id;
+            JV_HISTORY = r.data[0].messages.slice();
+            jvRepaint();
+          }
+        }, function(){});
+    } catch(e){}
+  };
+
+  // repaint the message area from JV_HISTORY (used after restore)
+  function jvRepaint(){
+    var box=document.getElementById('jvMessages'); if(!box) return;
+    box.innerHTML='';
+    if(!JV_HISTORY.length){ jvNewChat(); return; }
+    JV_HISTORY.forEach(function(m){ jvAppend(m.role==='user'?'user':'assistant', m.content); });
+  }
+
+
   window.jvSend = function(){
     if(JV_BUSY) return;
     var input=document.getElementById('jvInput'); var text=(input.value||'').trim();
     if(!text) return;
     input.value=''; jvAutoGrow(input);
-    jvAppend('user', text); JV_HISTORY.push({role:'user', content:text});
+    jvAppend('user', text); JV_HISTORY.push({role:'user', content:text}); jvSaveSoon();
     JV_BUSY=true; var sb=document.getElementById('jvSend'); if(sb) sb.disabled=true;
     var typing=jvTyping();
     window.SPARK_SB.getToken().then(function(tok){
@@ -9016,7 +9071,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         box.appendChild(e); box.scrollTop=box.scrollHeight;
       } else {
         var reply=(res.d&&res.d.reply)?res.d.reply:'(no response)';
-        jvAppend('assistant', reply); JV_HISTORY.push({role:'assistant', content:reply});
+        jvAppend('assistant', reply); JV_HISTORY.push({role:'assistant', content:reply}); jvSaveSoon();
       }
     }).catch(function(err){
       if(typing) typing.remove();
@@ -14758,6 +14813,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   window.reloadJarvisFrame = function() { /* removed */ };
   window.openJarvisTab = function() {
     try { jvRenderAgents(); } catch(e){}
+    try { jvRestoreConversation(); } catch(e){}
     if (typeof jnClose === 'function') { try { jnClose(); } catch(_){} }
     var btn = document.querySelector('.nav-item[data-tab="jarvis"]');
     if (btn) btn.click();
