@@ -5756,7 +5756,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v18a</span>
+      <span class="ver-dot"></span><span>Spark HQ · v19</span>
     </div>
   </aside>
 
@@ -8802,6 +8802,67 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   function reEsc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 
+
+  // ===== v19 — Permission gates (hide tabs/features the user lacks) =====
+  // Map each gated nav tab to its permission key. Tabs NOT listed here are always visible.
+  var GATE_TAB_PERM = {
+    'tools':   'tab:tools',
+    'people':  'tab:people',
+    'careers': 'tab:career'
+    // 'jarvis' handled separately below
+  };
+  var MY_PERMS = null;
+
+  window.applyPermissionGates = function(u) {
+    // Signed out: leave everything as-is (the login wall handles access).
+    if (!u || !window.SPARK_SB || !window.SPARK_SB.getToken) return;
+    window.SPARK_SB.getToken().then(function(tok){
+      if (!tok) return;
+      return fetch(RP_WORKER + '/permissions', { headers: { 'Authorization': 'Bearer ' + tok } })
+        .then(function(r){ return r.ok ? r.json() : null; });
+    }).then(function(d){
+      MY_PERMS = (d && d.permissions) ? d.permissions : {};
+      gateRender();
+    }).catch(function(){ /* on any failure, don't hide things (fail open for visibility, since /ai still enforces server-side) */ });
+  };
+
+  function permAllowed(key) {
+    if (!MY_PERMS) return true;            // not loaded yet -> don't hide
+    if (MY_PERMS._admin === true) return true;  // admins see everything
+    if (MY_PERMS[key] === true) return true;
+    // wildcard: training:* covers training:<id>
+    if (key.indexOf(':') > 0) {
+      var wild = key.split(':')[0] + ':*';
+      if (MY_PERMS[wild] === true) return true;
+    }
+    return false;                          // default-deny
+  }
+
+  function gateRender() {
+    // nav tabs
+    Object.keys(GATE_TAB_PERM).forEach(function(tab){
+      var allowed = permAllowed(GATE_TAB_PERM[tab]);
+      document.querySelectorAll('.nav-item[data-tab="' + tab + '"]').forEach(function(btn){
+        btn.style.display = allowed ? '' : 'none';
+      });
+      // if the user is currently ON a tab they can't see, bounce them home
+      if (!allowed) {
+        var view = document.getElementById('view-' + tab);
+        if (view && view.style.display !== 'none') { var hb = document.querySelector('.nav-item[data-tab="home"]'); if (hb) hb.click(); }
+      }
+    });
+    // Jarvis (nav + any home launchers)
+    var jarvisOk = permAllowed('jarvis');
+    document.querySelectorAll('.nav-item[data-tab="jarvis"]').forEach(function(btn){
+      btn.style.display = jarvisOk ? '' : 'none';
+    });
+    if (!jarvisOk) {
+      var jv = document.getElementById('view-jarvis');
+      if (jv && jv.style.display !== 'none') { var hb2 = document.querySelector('.nav-item[data-tab="home"]'); if (hb2) hb2.click(); }
+    }
+  }
+
+
   window.sbOpenAuth = function() {
     var back = document.getElementById('sbModalBack'); if (back) back.classList.add('show');
     sbRefreshAuthView();
@@ -8856,6 +8917,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   // React to auth state: update pill, pull shared data on sign-in
   window.SPARK_SB.onChange(function(u) {
     try { window.updateUserAvatar(u); } catch(e){}
+    try { window.applyPermissionGates(u); } catch(e){}
     var pill = document.getElementById('sbAuthPill');
     var dot = document.getElementById('sbDot');
     var label = document.getElementById('sbAuthLabel');
