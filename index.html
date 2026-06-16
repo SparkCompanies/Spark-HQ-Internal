@@ -5774,7 +5774,13 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 /* v41 — home widget cards (left rail) */
 .hw-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(26,26,46,0.04); }
-.hw-title { font-family: var(--font-display); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:12px; }
+.hw-title { font-family: var(--font-display); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); }
+.hw-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px; }
+.hw-sflink { font-size:10px; font-weight:700; color:var(--muted); text-decoration:none; white-space:nowrap; border:1px solid var(--line); border-radius:6px; padding:2px 7px; transition:all .12s; }
+.hw-sflink:hover { color:var(--ink); border-color:var(--gold); background:#fffdf5; }
+a.hw-stat { text-decoration:none; cursor:pointer; }
+a.hw-stat:hover .hw-stat-label { color:var(--ink); }
+a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 .hw-loading { font-size:12px; color:var(--muted-light); }
 .hw-stat { display:flex; align-items:baseline; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); }
 .hw-stat:last-child { border-bottom:none; }
@@ -6071,7 +6077,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v41</span>
+      <span class="ver-dot"></span><span>Spark HQ · v42</span>
     </div>
   </aside>
 
@@ -6233,7 +6239,10 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             <a class="teams-btn" href="https://teams.microsoft.com/l/chat/19:fcd57349346e49e7abe48951e12d659e@thread.v2/conversations?context=%7B%22contextType%22%3A%22chat%22%7D" target="_blank" rel="noopener">Open in Teams</a>
           </div>
             <div class="hw-card" id="hwSalesSnapshot">
-              <div class="hw-title">Pipeline snapshot</div>
+              <div class="hw-title-row">
+                <span class="hw-title">Pipeline snapshot</span>
+                <a class="hw-sflink" id="hwPipeSfLink" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list?filterName=__Recent" target="_blank" rel="noopener" title="Open in Salesforce">Open in SF ↗</a>
+              </div>
               <div class="hw-body" id="hwSalesBody"><div class="hw-loading">Loading from Salesforce…</div></div>
             </div>
           </aside>
@@ -9336,11 +9345,12 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       if(!res.ok || res.d.error){ body.innerHTML='<div class="hw-err">'+((res.d&&res.d.error)||'Unavailable')+'</div>'; return; }
       var d=res.d;
       function money(n){ if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+(n||0); }
+      var SF_OPP_LIST = 'https://spark-companies.lightning.force.com/lightning/o/Opportunity/list?filterName=__Recent';
       var html='';
-      html += '<div class="hw-stat"><span class="hw-stat-label">Open pipeline</span><span class="hw-stat-val big">'+money(d.totalOpen)+'</span></div>';
-      html += '<div class="hw-stat"><span class="hw-stat-label">Open opportunities</span><span class="hw-stat-val">'+(d.openCount||0)+'</span></div>';
+      html += '<a class="hw-stat" href="'+SF_OPP_LIST+'" target="_blank" rel="noopener"><span class="hw-stat-label">Open pipeline</span><span class="hw-stat-val big">'+money(d.totalOpen)+'</span></a>';
+      html += '<a class="hw-stat" href="'+SF_OPP_LIST+'" target="_blank" rel="noopener"><span class="hw-stat-label">Open opportunities</span><span class="hw-stat-val">'+(d.openCount||0)+'</span></a>';
       (d.topStages||[]).forEach(function(s){
-        html += '<div class="hw-stat"><span class="hw-stat-label">'+(s.stage||'').replace(/</g,'&lt;')+'</span><span class="hw-stat-val">'+money(s.amount)+'</span></div>';
+        html += '<a class="hw-stat" href="'+SF_OPP_LIST+'" target="_blank" rel="noopener"><span class="hw-stat-label">'+(s.stage||'').replace(/</g,'&lt;')+'</span><span class="hw-stat-val">'+money(s.amount)+'</span></a>';
       });
       body.innerHTML = html;
     }).catch(function(err){ body.innerHTML='<div class="hw-err">'+(err.message||err)+'</div>'; });
