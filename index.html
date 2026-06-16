@@ -5193,7 +5193,11 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 /* ==================== V9B — PULSE FEED ==================== */
 .pulse-wrap { background: var(--paper); padding: 40px 24px 60px; }
-.pulse-col { max-width: 680px; margin: 0 auto; }
+.pulse-col { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 290px 1fr; gap: 28px; align-items: start; }
+.pulse-railside { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; }
+.pulse-main { min-width: 0; }
+.pulse-belowcal { margin-top: 22px; }
+@media (max-width: 880px) { .pulse-col { grid-template-columns: 1fr; } .pulse-railside { position: static; } }
 .pulse-head { margin-bottom: 20px; }
 .pulse-h { font-family: var(--font-display); font-size: clamp(24px,3vw,32px); font-weight: 600; letter-spacing: -1px; margin: 4px 0 0; }
 .pulse-compose { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 26px; box-shadow: 0 1px 2px rgba(26,26,46,0.04); }
@@ -5206,6 +5210,17 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .pulse-field-row { display: flex; gap: 9px; }
 .pulse-field-row > * { flex: 1; }
 .pulse-feed { display: flex; flex-direction: column; gap: 14px; }
+/* v41 — kanban columns for the feed */
+.pulse-kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.pk-col { background: rgba(255,255,255,0.5); border: 1px solid var(--line); border-radius: 12px; padding: 12px; min-height: 80px; }
+.pk-col-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.pk-col-title { font-family: var(--font-display); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.pk-col-count { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--paper); border-radius: 20px; padding: 1px 8px; }
+.pk-col-body { display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow-y: auto; }
+.pk-col-body::-webkit-scrollbar { width: 6px; } .pk-col-body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.pk-empty { font-size: 11px; color: var(--muted-light); text-align: center; padding: 16px 0; }
+@media (max-width: 1100px) { .pulse-kanban { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px) { .pulse-kanban { grid-template-columns: 1fr; } }
 .pulse-empty { text-align: center; color: var(--muted-light); font-size: 13px; padding: 40px 0; }
 .pulse-post { display: flex; background: #fff; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; box-shadow: 0 1px 2px rgba(26,26,46,0.04); transition: box-shadow 0.15s, transform 0.15s; }
 .pulse-post:hover { box-shadow: 0 8px 24px rgba(26,26,46,0.08); transform: translateY(-1px); }
@@ -5756,6 +5771,18 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .onb-btn-go { padding:10px 20px; border-radius:9px; border:none; background:var(--ink); color:#fff; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; }
 .onb-btn-go:disabled { opacity:.6; cursor:default; }
 
+
+/* v41 — home widget cards (left rail) */
+.hw-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(26,26,46,0.04); }
+.hw-title { font-family: var(--font-display); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:12px; }
+.hw-loading { font-size:12px; color:var(--muted-light); }
+.hw-stat { display:flex; align-items:baseline; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--line); }
+.hw-stat:last-child { border-bottom:none; }
+.hw-stat-label { font-size:12px; color:var(--muted); }
+.hw-stat-val { font-size:16px; font-weight:700; color:var(--ink); }
+.hw-stat-val.big { font-size:22px; color:var(--gold-dark); }
+.hw-err { font-size:11.5px; color:#dc2626; }
+
 /* v37 — onboarding calendar on home */
 .onb-cal { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
 .onb-cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
@@ -6044,7 +6071,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v40</span>
+      <span class="ver-dot"></span><span>Spark HQ · v41</span>
     </div>
   </aside>
 
@@ -6137,7 +6164,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           <!-- top bar: brand left, live status right -->
           <div class="bolt-topbar">
             
-            <div class="bolt-status"><span class="bs-dot"></span>SPARK HQ · LIVE</div>
+            <div class="bolt-status" id="boltClock">—</div>
           </div>
 
           <!-- the particle bolt, full stage -->
@@ -6187,6 +6214,30 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <!-- ==================== PULSE — COMPANY FEED ==================== -->
       <div class="pulse-wrap">
         <div class="pulse-col">
+          <aside class="pulse-railside">
+          <div class="teams-card">
+            <div class="teams-card-main">
+              <div class="teams-ico teams-ico-ms" aria-hidden="true">
+                <svg viewBox="0 0 32 32" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="23" cy="7.5" r="3.4" fill="#ffffff" opacity="0.9"/>
+                  <rect x="14.5" y="11.5" width="13.5" height="11" rx="2.4" fill="#ffffff" opacity="0.85"/>
+                  <rect x="3.5" y="8" width="16" height="16" rx="2.6" fill="#ffffff"/>
+                  <text x="11.5" y="20.2" font-family="Century Gothic, Arial, sans-serif" font-size="12" font-weight="700" fill="#5b5fc7" text-anchor="middle">T</text>
+                </svg>
+              </div>
+              <div class="teams-txt">
+                <div class="teams-title">Spark Portfolio — All Team</div>
+                <div class="teams-sub">Jump into the company-wide Teams chat</div>
+              </div>
+            </div>
+            <a class="teams-btn" href="https://teams.microsoft.com/l/chat/19:fcd57349346e49e7abe48951e12d659e@thread.v2/conversations?context=%7B%22contextType%22%3A%22chat%22%7D" target="_blank" rel="noopener">Open in Teams</a>
+          </div>
+            <div class="hw-card" id="hwSalesSnapshot">
+              <div class="hw-title">Pipeline snapshot</div>
+              <div class="hw-body" id="hwSalesBody"><div class="hw-loading">Loading from Salesforce…</div></div>
+            </div>
+          </aside>
+          <div class="pulse-main">
           <div class="pulse-head">
             <div class="eyebrow">The Pulse</div>
             <h2 class="pulse-h">What's happening at Spark</h2>
@@ -6228,24 +6279,22 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             </div>
           </div>
 
-          <div class="teams-card">
-            <div class="teams-card-main">
-              <div class="teams-ico teams-ico-ms" aria-hidden="true">
-                <svg viewBox="0 0 32 32" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="23" cy="7.5" r="3.4" fill="#ffffff" opacity="0.9"/>
-                  <rect x="14.5" y="11.5" width="13.5" height="11" rx="2.4" fill="#ffffff" opacity="0.85"/>
-                  <rect x="3.5" y="8" width="16" height="16" rx="2.6" fill="#ffffff"/>
-                  <text x="11.5" y="20.2" font-family="Century Gothic, Arial, sans-serif" font-size="12" font-weight="700" fill="#5b5fc7" text-anchor="middle">T</text>
-                </svg>
-              </div>
-              <div class="teams-txt">
-                <div class="teams-title">Spark Portfolio — All Team</div>
-                <div class="teams-sub">Jump into the company-wide Teams chat</div>
-              </div>
+          <div class="pulse-board" id="pulseBoard"></div>
+          <div class="pulse-feed" id="pulseFeed"></div>
+          <div class="spark-links">
+            <div class="sl-label">Spark on the web</div>
+            <div class="sl-row">
+              <a class="sl-chip" href="https://www.linkedin.com/company/spark-companies" target="_blank" rel="noopener"><span class="sl-i">in</span>LinkedIn</a>
+              <a class="sl-chip" href="https://sparktalentinc.com" target="_blank" rel="noopener"><span class="sl-i">↗</span>Careers site</a>
+              <a class="sl-chip" href="https://outlook.office.com" target="_blank" rel="noopener"><span class="sl-i">M</span>Microsoft 365</a>
             </div>
-            <a class="teams-btn" href="https://teams.microsoft.com/l/chat/19:fcd57349346e49e7abe48951e12d659e@thread.v2/conversations?context=%7B%22contextType%22%3A%22chat%22%7D" target="_blank" rel="noopener">Open in Teams</a>
+            <div class="sl-note">Edit these links in Admin → Tools (they point to real Spark pages — swap any placeholder URLs for the correct ones).</div>
           </div>
-          <div class="onb-cal" id="onbCal">
+          <div class="rd-asymbl-note" style="margin-top:14px;">Posts are saved on this device for now — when sign-in and the shared backend land, the feed goes company-wide and posts attribute to the real author.</div>
+          </div>
+        </div>
+        <div class="pulse-belowcal" style="max-width:1100px;margin:0 auto;">
+<div class="onb-cal" id="onbCal">
             <div class="onb-cal-head">
               <div class="onb-cal-title">Onboarding Calendar</div>
               <button class="onb-book-btn" onclick="onbOpenBook()">+ Request appointment</button>
@@ -6282,19 +6331,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
               </div>
             </div>
           </div>
-          <div class="pulse-board" id="pulseBoard"></div>
-          <div class="pulse-feed" id="pulseFeed"></div>
-          <div class="spark-links">
-            <div class="sl-label">Spark on the web</div>
-            <div class="sl-row">
-              <a class="sl-chip" href="https://www.linkedin.com/company/spark-companies" target="_blank" rel="noopener"><span class="sl-i">in</span>LinkedIn</a>
-              <a class="sl-chip" href="https://sparktalentinc.com" target="_blank" rel="noopener"><span class="sl-i">↗</span>Careers site</a>
-              <a class="sl-chip" href="https://outlook.office.com" target="_blank" rel="noopener"><span class="sl-i">M</span>Microsoft 365</a>
-            </div>
-            <div class="sl-note">Edit these links in Admin → Tools (they point to real Spark pages — swap any placeholder URLs for the correct ones).</div>
-          </div>
-          <div class="rd-asymbl-note" style="margin-top:14px;">Posts are saved on this device for now — when sign-in and the shared backend land, the feed goes company-wide and posts attribute to the real author.</div>
-        </div>
+                  </div>
       </div>
 
     </div>
@@ -7643,7 +7680,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
         });
-        if (tab === 'home') { try { onbCalLoad(); } catch(e){} }
+        if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
           try { jvRenderHistory(); } catch(e){}
@@ -9283,6 +9320,42 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     pop.style.display='flex';
     pop.onclick=function(ev){ if(ev.target===pop) onbClosePop(); };
   };
+
+
+
+  // ===== v41 — home Salesforce pipeline snapshot widget =====
+  function hwLoadSalesSnapshot(){
+    var body=document.getElementById('hwSalesBody'); if(!body) return;
+    if(!window.SPARK_SB || !window.SPARK_SB.getToken){ body.innerHTML='<div class="hw-err">Sign in to load.</div>'; return; }
+    window.SPARK_SB.getToken().then(function(tok){
+      if(!tok){ body.innerHTML='<div class="hw-err">Sign in to load.</div>'; return null; }
+      return fetch(RP_WORKER + '/pipeline-snapshot', { headers:{ 'Authorization':'Bearer '+tok } })
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); });
+    }).then(function(res){
+      if(!res) return;
+      if(!res.ok || res.d.error){ body.innerHTML='<div class="hw-err">'+((res.d&&res.d.error)||'Unavailable')+'</div>'; return; }
+      var d=res.d;
+      function money(n){ if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+(n||0); }
+      var html='';
+      html += '<div class="hw-stat"><span class="hw-stat-label">Open pipeline</span><span class="hw-stat-val big">'+money(d.totalOpen)+'</span></div>';
+      html += '<div class="hw-stat"><span class="hw-stat-label">Open opportunities</span><span class="hw-stat-val">'+(d.openCount||0)+'</span></div>';
+      (d.topStages||[]).forEach(function(s){
+        html += '<div class="hw-stat"><span class="hw-stat-label">'+(s.stage||'').replace(/</g,'&lt;')+'</span><span class="hw-stat-val">'+money(s.amount)+'</span></div>';
+      });
+      body.innerHTML = html;
+    }).catch(function(err){ body.innerHTML='<div class="hw-err">'+(err.message||err)+'</div>'; });
+  }
+  try { setTimeout(function(){ try{ hwLoadSalesSnapshot(); }catch(e){} }, 1100); } catch(e){}
+
+  // ===== v41 — header live clock (replaces the LIVE badge) =====
+  function hqClockTick(){
+    var el=document.getElementById('boltClock'); if(!el) return;
+    var now=new Date();
+    var date=now.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'});
+    var time=now.toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit'});
+    el.textContent = date + '  ·  ' + time;
+  }
+  try { hqClockTick(); setInterval(hqClockTick, 1000*15); } catch(e){}
 
   // ===== v37 — Onboarding calendar (reads sterlingtmx shared calendar via Worker) =====
   // Onboarding calendar source. Set to 'group:<id>' or 'user:<email>' once discovered.
@@ -16917,7 +16990,14 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
       host.innerHTML = '<div class="pulse-empty">Nothing in the feed yet. Post the first update or recognition above.</div>';
       return;
     }
-    host.innerHTML = posts.map(p => {
+    // Kanban: group by kind into columns so it's not an endless list
+    const COLS = [
+      { kind:'recognition', label:'Recognition' },
+      { kind:'news', label:'News' },
+      { kind:'milestone', label:'Milestones' },
+      { kind:'poll', label:'Polls' }
+    ];
+    function cardHtml(p){
       const m = PULSE_KIND_META[p.kind] || PULSE_KIND_META.news;
       let head = '';
       if (p.kind === 'recognition') {
@@ -16934,7 +17014,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
       return '<div class="pulse-post pulse-' + p.kind + '">' +
         '<div class="pulse-rail" style="background:' + m.color + ';"></div>' +
         '<div class="pulse-body">' +
-          '<div class="pulse-meta"><span class="pulse-kind" style="color:' + m.color + ';">' + m.icon + ' ' + m.label + '</span><span class="pulse-time">' + pulseTimeAgo(p.ts) + '</span></div>' +
+          '<div class="pulse-meta"><span class="pulse-time">' + pulseTimeAgo(p.ts) + '</span></div>' +
           head +
           '<div class="pulse-text">' + escLms(p.text).replace(/\n/g,'<br>') + '</div>' +
           (p.kind === 'poll' ? pulsePollHtml(p) : '') +
@@ -16942,6 +17022,16 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
             '<button class="pulse-react add" onclick="pulseReact(\'' + p.id + '\',\'👏\')">+ 👏</button>' +
           '</div>' +
         '</div></div>';
+    }
+    host.className = 'pulse-kanban';
+    host.innerHTML = COLS.map(c => {
+      const items = posts.filter(p => p.kind === c.kind);
+      const m = PULSE_KIND_META[c.kind] || PULSE_KIND_META.news;
+      const body = items.length ? items.map(cardHtml).join('') : '<div class="pk-empty">Nothing yet</div>';
+      return '<div class="pk-col">' +
+        '<div class="pk-col-head"><span class="pk-col-title" style="color:' + m.color + ';">' + m.icon + ' ' + c.label + '</span>' +
+        '<span class="pk-col-count">' + items.length + '</span></div>' +
+        '<div class="pk-col-body">' + body + '</div></div>';
     }).join('');
   }
   function renderPulseBoard() {
