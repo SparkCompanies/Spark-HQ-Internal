@@ -5772,6 +5772,17 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .onb-btn-go:disabled { opacity:.6; cursor:default; }
 
 
+
+/* v43 — headcount widget */
+.hc-headline { display:flex; align-items:flex-end; gap:10px; margin-bottom:4px; }
+.hc-big { font-size:30px; font-weight:700; color:var(--ink); line-height:1; }
+.hc-delta { font-size:12px; font-weight:700; padding:2px 7px; border-radius:20px; }
+.hc-delta.up { color:#0f7a4d; background:#e7f7ef; } .hc-delta.down { color:#b91c1c; background:#fdeaea; } .hc-delta.flat { color:var(--muted); background:var(--paper); }
+.hc-sub { font-size:11.5px; color:var(--muted); margin-bottom:10px; }
+.hc-spark { width:100%; height:40px; display:block; margin:6px 0 4px; }
+.hc-hours { display:flex; align-items:baseline; justify-content:space-between; padding-top:8px; border-top:1px solid var(--line); }
+.hc-hours-label { font-size:12px; color:var(--muted); } .hc-hours-val { font-size:15px; font-weight:700; color:var(--ink); }
+
 /* v41 — home widget cards (left rail) */
 .hw-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(26,26,46,0.04); }
 .hw-title { font-family: var(--font-display); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); }
@@ -6077,7 +6088,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v42</span>
+      <span class="ver-dot"></span><span>Spark HQ · v43</span>
     </div>
   </aside>
 
@@ -6244,6 +6255,13 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
                 <a class="hw-sflink" id="hwPipeSfLink" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list?filterName=__Recent" target="_blank" rel="noopener" title="Open in Salesforce">Open in SF ↗</a>
               </div>
               <div class="hw-body" id="hwSalesBody"><div class="hw-loading">Loading from Salesforce…</div></div>
+            </div>
+            <div class="hw-card" id="hwHeadcount">
+              <div class="hw-title-row">
+                <span class="hw-title">Headcount · week over week</span>
+                <a class="hw-sflink" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000001IOuXMAW/view" target="_blank" rel="noopener" title="Open dashboard in Salesforce">Open in SF ↗</a>
+              </div>
+              <div class="hw-body" id="hwHcBody"><div class="hw-loading">Loading from Salesforce…</div></div>
             </div>
           </aside>
           <div class="pulse-main">
@@ -7689,7 +7707,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
         });
-        if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} }
+        if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} try { hwLoadHeadcount(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
           try { jvRenderHistory(); } catch(e){}
@@ -9331,6 +9349,53 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   };
 
 
+
+
+  // ===== v43 — headcount week-over-week widget =====
+  function hwLoadHeadcount(){
+    var body=document.getElementById('hwHcBody'); if(!body) return;
+    if(!window.SPARK_SB || !window.SPARK_SB.getToken){ body.innerHTML='<div class="hw-err">Sign in to load.</div>'; return; }
+    window.SPARK_SB.getToken().then(function(tok){
+      if(!tok){ body.innerHTML='<div class="hw-err">Sign in to load.</div>'; return null; }
+      return fetch(RP_WORKER + '/headcount-wow', { headers:{ 'Authorization':'Bearer '+tok } })
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); });
+    }).then(function(res){
+      if(!res) return;
+      if(!res.ok || res.d.error){ body.innerHTML='<div class="hw-err">'+((res.d&&res.d.error)||'Unavailable')+'</div>'; return; }
+      var weeks=(res.d.weeks||[]).filter(function(w){ return w.headcount!=null; });
+      if(!weeks.length){ body.innerHTML='<div class="hw-err">No data in report.</div>'; return; }
+      var latest=weeks[weeks.length-1], prev=weeks.length>1?weeks[weeks.length-2]:null;
+      var delta = prev ? (latest.headcount-prev.headcount) : 0;
+      var dCls = delta>0?'up':(delta<0?'down':'flat');
+      var dTxt = (delta>0?'\u25b2 +':(delta<0?'\u25bc ':''))+(delta===0?'no change':Math.abs(delta));
+      function fmtHours(n){ return (n||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
+      // sparkline over last 12 weeks of headcount
+      var series=weeks.slice(-12).map(function(w){return w.headcount;});
+      var spark=hcSparkline(series);
+      var html='';
+      html += '<div class="hc-headline"><span class="hc-big">'+latest.headcount+'</span><span class="hc-delta '+dCls+'">'+dTxt+'</span></div>';
+      html += '<div class="hc-sub">on payroll \u00b7 week of '+latest.label+(prev?(' \u00b7 vs '+prev.headcount+' prior week'):'')+'</div>';
+      html += spark;
+      html += '<div class="hc-hours"><span class="hc-hours-label">Total hours logged</span><span class="hc-hours-val">'+fmtHours(latest.hours)+'</span></div>';
+      body.innerHTML = html;
+    }).catch(function(err){ body.innerHTML='<div class="hw-err">'+(err.message||err)+'</div>'; });
+  }
+  function hcSparkline(vals){
+    if(!vals || vals.length<2) return '';
+    var w=240,h=40,pad=3;
+    var min=Math.min.apply(null,vals), max=Math.max.apply(null,vals);
+    var range=(max-min)||1;
+    var pts=vals.map(function(v,i){
+      var x=pad+(i/(vals.length-1))*(w-2*pad);
+      var y=h-pad-((v-min)/range)*(h-2*pad);
+      return x.toFixed(1)+','+y.toFixed(1);
+    });
+    var last=pts[pts.length-1].split(',');
+    return '<svg class="hc-spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+
+      '<polyline fill="none" stroke="#F5C518" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.join(' ')+'"/>'+
+      '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.6" fill="#92400e"/></svg>';
+  }
+  try { setTimeout(function(){ try{ hwLoadHeadcount(); }catch(e){} }, 1300); } catch(e){}
 
   // ===== v41 — home Salesforce pipeline snapshot widget =====
   function hwLoadSalesSnapshot(){
