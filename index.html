@@ -5586,6 +5586,33 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jv-foot { text-align:center; font-size:11px; color:var(--muted); padding:8px 0 12px; }
 .jv-err { font-size:13px; color:#dc2626; background:#fef2f2; border:1px solid #f3d0d0; border-radius:10px; padding:10px 13px; }
 
+
+/* ===== v28 — Mission Control feel (sphere, voice, status, suggestions) ===== */
+.jv-sphere { position:relative; width:120px; height:120px; margin:0 auto 22px; cursor:pointer; }
+.jv-sphere-core { position:absolute; inset:28px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #ffe89a, var(--gold) 55%, var(--gold-dark)); box-shadow:0 0 36px rgba(245,197,24,.55), inset 0 0 18px rgba(146,64,14,.35); animation:jvPulse 3s ease-in-out infinite; }
+.jv-sphere-ring { position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(245,197,24,.35); animation:jvSpin 9s linear infinite; }
+.jv-sphere-ring2 { inset:14px; border-color:rgba(146,64,14,.25); animation-duration:6s; animation-direction:reverse; }
+.jv-sphere-glyph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:30px; color:var(--ink); text-shadow:0 1px 3px rgba(255,255,255,.6); pointer-events:none; }
+.jv-sphere.listening .jv-sphere-core { animation:jvPulseFast 1s ease-in-out infinite; box-shadow:0 0 50px rgba(245,197,24,.85), inset 0 0 18px rgba(146,64,14,.4); }
+@keyframes jvPulse { 0%,100%{transform:scale(1);opacity:.95;} 50%{transform:scale(1.06);opacity:1;} }
+@keyframes jvPulseFast { 0%,100%{transform:scale(1);} 50%{transform:scale(1.12);} }
+@keyframes jvSpin { from{transform:rotate(0);} to{transform:rotate(360deg);} }
+.jv-suggest { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:20px; max-width:520px; }
+.jv-sug { padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:#fff; font-family:inherit; font-size:12.5px; color:var(--muted); cursor:pointer; transition:border-color .15s,color .15s; }
+.jv-sug:hover { border-color:var(--gold); color:var(--ink); }
+.jv-mic { flex-shrink:0; width:38px; height:38px; border-radius:10px; background:#fff; color:var(--ink); border:1px solid var(--line); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.jv-mic:hover { border-color:var(--gold); }
+.jv-mic.on { background:var(--gold); color:var(--ink); border-color:var(--gold); animation:jvMicPulse 1.1s ease-in-out infinite; }
+@keyframes jvMicPulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,197,24,.5);} 50%{box-shadow:0 0 0 6px rgba(245,197,24,0);} }
+.jtc-wake { font-size:11px !important; }
+.jtc-wake.on { background:var(--gold) !important; color:var(--ink) !important; border-color:var(--gold) !important; }
+/* agent status dot states */
+.jv-agent .ja-dot { transition:background .2s, box-shadow .2s; }
+.jv-agent.active .ja-dot { box-shadow:0 0 7px var(--ag, var(--gold)); animation:jvDotLive 1.6s ease-in-out infinite; }
+@keyframes jvDotLive { 0%,100%{opacity:1;} 50%{opacity:.45;} }
+.jv-agent .ja-state { font-size:8.5px; letter-spacing:.7px; text-transform:uppercase; color:var(--muted); margin-left:5px; }
+.jv-agent.active .ja-state { color:var(--gold-dark); font-weight:700; }
+
 /* v27 — rendered markdown in Jarvis bubbles */
 .jv-bubble .jv-h { font-weight:700; color:var(--ink); margin:12px 0 6px; line-height:1.3; }
 .jv-bubble .jv-h1 { font-size:18px; } .jv-bubble .jv-h2 { font-size:16px; } .jv-bubble .jv-h3 { font-size:14.5px; } .jv-bubble .jv-h4 { font-size:13.5px; }
@@ -5824,7 +5851,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v27</span>
+      <span class="ver-dot"></span><span>Spark HQ · v28</span>
     </div>
   </aside>
 
@@ -6051,6 +6078,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           <span class="jtc-sub" id="jvSub">Spark HQ assistant · powered by Claude</span>
         </div>
         <div class="jtc-actions">
+          <button class="jtc-btn jtc-wake" id="jvWakeBtn" onclick="jvToggleWake()" title="Hands-free: say Hey Jarvis">Wake word: off</button>
           <button class="jtc-btn" onclick="jvNewChat()" title="Start a fresh conversation">New chat</button>
         </div>
       </div>
@@ -6058,13 +6086,22 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <div class="jv-shell">
         <div class="jv-messages" id="jvMessages">
           <div class="jv-empty" id="jvEmpty">
-            <div class="jv-empty-mark">⬡</div>
+            <div class="jv-sphere" id="jvSphere" onclick="jvFocusInput()" role="button" aria-label="Activate">
+              <div class="jv-sphere-core"></div>
+              <div class="jv-sphere-ring jv-sphere-ring1"></div>
+              <div class="jv-sphere-ring jv-sphere-ring2"></div>
+              <div class="jv-sphere-glyph">⬡</div>
+            </div>
             <div class="jv-empty-title">How can I help?</div>
-            <div class="jv-empty-sub">Ask me anything — drafting, summarizing, quick questions, or thinking through a problem.</div>
+            <div class="jv-empty-sub">Tap the sphere, type below, or use the mic. Switch agents above for specialized help.</div>
+            <div class="jv-suggest" id="jvSuggest"></div>
           </div>
         </div>
         <div class="jv-composer">
           <textarea id="jvInput" class="jv-input" rows="1" placeholder="Message Jarvis…" oninput="jvAutoGrow(this)" onkeydown="jvKey(event)"></textarea>
+          <button class="jv-mic" id="jvMic" onclick="jvToggleMic()" aria-label="Voice input" title="Tap to speak">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+          </button>
           <button class="jv-send" id="jvSend" onclick="jvSend()" aria-label="Send">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           </button>
@@ -8962,6 +8999,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     bar.innerHTML = JV_AGENTS.map(function(a){
       return '<button class="jv-agent'+(a.id===JV_ACTIVE?' active':'')+'" style="--ag:'+a.color+'" onclick="jvSwitchAgent(\''+a.id+'\')">'
         + '<span class="ja-dot"></span>' + a.name
+        + '<span class="ja-state">'+(a.id===JV_ACTIVE?'active':'standby')+'</span>'
         + (a.soon ? '<span class="ja-soon">data soon</span>' : '') + '</button>';
     }).join('');
   }
@@ -8979,6 +9017,90 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     jvRestoreConversation();  // bring back this agent's last thread if any
   };
 
+
+  // ===== v28 — Mission Control: sphere, suggestions, voice (push-to-talk + best-effort wake word) =====
+  var JV_SUGGESTIONS = {
+    jarvis: ["Draft a quick email", "Summarize this for me", "What's the weather today?"],
+    ops:    ["What's our current pipeline?", "Which stage has the most value?", "Where should we focus to close?"],
+    scout:  ["Research a competitor", "Find best practices for onboarding", "Summarize an industry trend"],
+    alfred: ["Draft a meeting agenda", "Help me plan my week", "Write a professional reply"],
+    sniper: ["Write a boolean search for a role", "Draft candidate outreach", "Screen this candidate"],
+    rex:    ["Explain a contract clause", "What compliance risks should I watch?", "Review this agreement"]
+  };
+  window.jvFocusInput = function(){ var i=document.getElementById('jvInput'); if(i) i.focus(); };
+  function jvRenderSuggestions(){
+    var box=document.getElementById('jvSuggest'); if(!box) return;
+    var list = JV_SUGGESTIONS[JV_ACTIVE] || JV_SUGGESTIONS.jarvis;
+    box.innerHTML = list.map(function(s){ return '<button class="jv-sug" onclick="jvUseSuggestion(this)">'+s.replace(/"/g,'&quot;')+'</button>'; }).join('');
+  }
+  window.jvUseSuggestion = function(btn){
+    var i=document.getElementById('jvInput'); if(!i) return;
+    i.value = btn.textContent; jvAutoGrow(i); i.focus();
+  };
+
+  // ---- voice: push-to-talk via Web Speech API ----
+  var JV_REC = null, JV_MIC_ON = false, JV_WAKE_ON = false, JV_WAKE_REC = null;
+  function jvSpeechSupported(){ return ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window); }
+  function jvMakeRec(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR) return null;
+    var r = new SR(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1; r.continuous=false;
+    return r;
+  }
+  window.jvToggleMic = function(){
+    if(!jvSpeechSupported()){ alert('Voice input isn\'t supported in this browser. Try Chrome or Edge.'); return; }
+    if(JV_MIC_ON){ jvStopMic(); return; }
+    JV_REC = jvMakeRec(); if(!JV_REC) return;
+    JV_MIC_ON = true;
+    var mic=document.getElementById('jvMic'); if(mic) mic.classList.add('on');
+    var sph=document.getElementById('jvSphere'); if(sph) sph.classList.add('listening');
+    JV_REC.onresult = function(e){
+      var txt = e.results[0][0].transcript || '';
+      var i=document.getElementById('jvInput'); if(i){ i.value = (i.value? i.value+' ':'') + txt; jvAutoGrow(i); }
+    };
+    JV_REC.onerror = function(){ jvStopMic(); };
+    JV_REC.onend = function(){ jvStopMic(); };
+    try { JV_REC.start(); } catch(e){ jvStopMic(); }
+  };
+  function jvStopMic(){
+    JV_MIC_ON=false;
+    var mic=document.getElementById('jvMic'); if(mic) mic.classList.remove('on');
+    var sph=document.getElementById('jvSphere'); if(sph) sph.classList.remove('listening');
+    if(JV_REC){ try{ JV_REC.stop(); }catch(e){} JV_REC=null; }
+  }
+
+  // ---- best-effort wake word: continuous listening for "hey jarvis" ----
+  window.jvToggleWake = function(){
+    var btn=document.getElementById('jvWakeBtn');
+    if(JV_WAKE_ON){ jvStopWake(); if(btn){ btn.classList.remove('on'); btn.textContent='Wake word: off'; } return; }
+    if(!jvSpeechSupported()){ alert('Wake word needs the Web Speech API (Chrome or Edge). Push-to-talk mic still works.'); return; }
+    JV_WAKE_ON=true; if(btn){ btn.classList.add('on'); btn.textContent='Wake word: on'; }
+    jvStartWake();
+  };
+  function jvStartWake(){
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition; if(!SR) return;
+    JV_WAKE_REC = new SR(); JV_WAKE_REC.lang='en-US'; JV_WAKE_REC.continuous=true; JV_WAKE_REC.interimResults=true;
+    JV_WAKE_REC.onresult = function(e){
+      for(var k=e.resultIndex;k<e.results.length;k++){
+        var t=(e.results[k][0].transcript||'').toLowerCase();
+        if(t.indexOf('hey jarvis')!==-1 || t.indexOf('hey, jarvis')!==-1){
+          // wake! stop wake-listening briefly and open push-to-talk
+          try{ JV_WAKE_REC.stop(); }catch(_){}
+          jvToggleMic();
+          return;
+        }
+      }
+    };
+    // auto-restart: browsers stop continuous recognition after silence/timeout
+    JV_WAKE_REC.onend = function(){ if(JV_WAKE_ON){ try{ JV_WAKE_REC.start(); }catch(e){ setTimeout(function(){ if(JV_WAKE_ON) jvStartWake(); }, 800); } } };
+    JV_WAKE_REC.onerror = function(){ /* keep trying via onend */ };
+    try{ JV_WAKE_REC.start(); }catch(e){}
+  }
+  function jvStopWake(){
+    JV_WAKE_ON=false;
+    if(JV_WAKE_REC){ try{ JV_WAKE_REC.stop(); }catch(e){} JV_WAKE_REC=null; }
+  }
+
   // ===== v20 — Jarvis real chat (talks to Worker /ai -> Claude) =====
   var JV_HISTORY = [];
   var JV_CONV_ID = null;   // current saved conversation row id (per agent)
@@ -8990,7 +9112,8 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     JV_HISTORY = []; JV_CONV_ID = null;
     try { jvRenderAgents(); } catch(e){}
     var box=document.getElementById('jvMessages');
-    if(box) box.innerHTML='<div class="jv-empty" id="jvEmpty"><div class="jv-empty-mark">\u2b21</div><div class="jv-empty-title">How can I help?</div><div class="jv-empty-sub">Ask me anything \u2014 drafting, summarizing, quick questions, or thinking through a problem.</div></div>';
+    if(box) box.innerHTML='<div class="jv-empty" id="jvEmpty"><div class="jv-sphere" id="jvSphere" onclick="jvFocusInput()" role="button" aria-label="Activate"><div class="jv-sphere-core"></div><div class="jv-sphere-ring jv-sphere-ring1"></div><div class="jv-sphere-ring jv-sphere-ring2"></div><div class="jv-sphere-glyph">\u2b21</div></div><div class="jv-empty-title">How can I help?</div><div class="jv-empty-sub">Tap the sphere, type below, or use the mic. Switch agents above for specialized help.</div><div class="jv-suggest" id="jvSuggest"></div></div>';
+    try { jvRenderSuggestions(); } catch(e){}
   };
   function jvInitials(){
     try { var u=window.SPARK_SB&&window.SPARK_SB.whoami?window.SPARK_SB.whoami():null;
