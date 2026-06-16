@@ -5808,7 +5808,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v23</span>
+      <span class="ver-dot"></span><span>Spark HQ · v24</span>
     </div>
   </aside>
 
@@ -9048,6 +9048,36 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   }
 
 
+
+  // ----- per-user location (asked once, cached) for web search accuracy -----
+  var JV_GEO = null;          // {city,region,country,timezone} once resolved
+  var JV_GEO_TRIED = false;
+  function jvRequestLocation(){
+    if (JV_GEO || JV_GEO_TRIED) return;
+    JV_GEO_TRIED = true;
+    try {
+      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Detroit';
+      // timezone alone already helps; set it immediately as a baseline
+      JV_GEO = { type:'approximate', timezone: tz };
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos){
+          // reverse-geocode via a lightweight public API to get city/region
+          var la=pos.coords.latitude, lo=pos.coords.longitude;
+          fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+la+'&lon='+lo+'&zoom=10')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              var a=(d&&d.address)||{};
+              JV_GEO = { type:'approximate',
+                city: a.city||a.town||a.village||a.county||'',
+                region: a.state||'',
+                country: (a.country_code||'us').toUpperCase(),
+                timezone: tz };
+            }).catch(function(){});
+        }, function(){ /* denied -> keep timezone-only baseline */ }, { timeout:8000, maximumAge: 3600000 });
+      }
+    } catch(e){}
+  }
+
   window.jvSend = function(){
     if(JV_BUSY) return;
     var input=document.getElementById('jvInput'); var text=(input.value||'').trim();
@@ -9060,7 +9090,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       if(!tok) throw new Error('Not signed in');
       return fetch(RP_WORKER+'/ai', { method:'POST',
         headers:{ 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' },
-        body: JSON.stringify({ messages: JV_HISTORY, system: jvCurrentAgent().sys }) });
+        body: JSON.stringify({ messages: JV_HISTORY, system: jvCurrentAgent().sys, location: JV_GEO }) });
     }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, status:r.status, d:d}; }); })
     .then(function(res){
       if(typing) typing.remove();
@@ -14813,6 +14843,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   window.reloadJarvisFrame = function() { /* removed */ };
   window.openJarvisTab = function() {
     try { jvRenderAgents(); } catch(e){}
+    try { jvRequestLocation(); } catch(e){}
     try { jvRestoreConversation(); } catch(e){}
     if (typeof jnClose === 'function') { try { jnClose(); } catch(_){} }
     var btn = document.querySelector('.nav-item[data-tab="jarvis"]');
