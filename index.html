@@ -5550,6 +5550,9 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .teams-btn:hover { opacity:.9; transform:translateY(-1px); }
 
 
+.re-wrap.re-wrap-top { margin-top:0; padding-top:0; border-top:none; }
+.rp-section-label { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); font-weight:700; margin:30px 0 12px; padding-top:24px; border-top:2px solid var(--line); }
+
 /* ===== v18 — Custom Role Editor ===== */
 .re-wrap { margin-top:32px; padding-top:28px; border-top:2px solid var(--line); }
 .re-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; }
@@ -5753,7 +5756,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v18</span>
+      <span class="ver-dot"></span><span>Spark HQ · v18a</span>
     </div>
   </aside>
 
@@ -6970,33 +6973,8 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
           <div class="admin-pane" data-admin-pane="people-admin" style="display: none;">
-            <div class="admin-hero">
-              <div class="eyebrow">Spark HQ · Access &amp; roles</div>
-              <h2>Team access. <span style="color: var(--muted-light);">Assign each person's role.</span></h2>
-              <div class="dek">Live from Microsoft 365. Set each person's Spark HQ access level — changes apply the moment they sign in. Disabled O365 accounts are excluded automatically.</div>
-            </div>
-            <div class="rp-actions" style="margin-bottom:14px; display:flex; gap:10px;">
-              <input type="search" id="rpFilter" class="rp-filter" placeholder="Filter by name, email, department\u2026" oninput="rpRender()" />
-              <button class="rp-refresh" onclick="rpLoad()">Refresh</button>
-            </div>
-            <div class="rp-statusbar" id="rpStatus">Open this panel to load the directory.</div>
-            <div class="rp-table-wrap">
-              <table class="rp-table">
-                <thead><tr>
-                  <th>Name</th><th>Email</th><th>Department</th><th>Title</th><th>HQ Role</th><th>Status</th>
-                </tr></thead>
-                <tbody id="rpBody"></tbody>
-              </table>
-            </div>
-            <div class="rp-gate" id="rpGate" style="display:none;">
-              <div class="rp-gate-inner">
-                <h2>Admins only</h2>
-                <p>Role assignment is available to Spark HQ admins.</p>
-              </div>
-            </div>
-
             <!-- ===== CUSTOM ROLE EDITOR (v18) ===== -->
-            <div class="re-wrap" id="reWrap">
+            <div class="re-wrap re-wrap-top" id="reWrap">
               <div class="re-head">
                 <div>
                   <div class="rp-eyebrow">Access control</div>
@@ -7045,6 +7023,28 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
                 <div class="re-ov-list" id="reOvList"></div>
               </div>
             </div>
+            <div class="rp-section-label">Team directory &amp; built-in roles</div>
+            <div class="rp-actions" style="margin-bottom:14px; display:flex; gap:10px;">
+              <input type="search" id="rpFilter" class="rp-filter" placeholder="Filter by name, email, department\u2026" oninput="rpRender()" />
+              <button class="rp-refresh" onclick="rpLoad()">Refresh</button>
+            </div>
+            <div class="rp-statusbar" id="rpStatus">Open this panel to load the directory.</div>
+            <div class="rp-table-wrap">
+              <table class="rp-table">
+                <thead><tr>
+                  <th>Name</th><th>Email</th><th>Department</th><th>Title</th><th>HQ Role</th><th>Status</th>
+                </tr></thead>
+                <tbody id="rpBody"></tbody>
+              </table>
+            </div>
+            <div class="rp-gate" id="rpGate" style="display:none;">
+              <div class="rp-gate-inner">
+                <h2>Admins only</h2>
+                <p>Role assignment is available to Spark HQ admins.</p>
+              </div>
+            </div>
+
+
           </div>
           <div class="admin-pane" data-admin-pane="content" style="display: none;">
             <div class="admin-hero">
