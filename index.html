@@ -5808,7 +5808,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v24</span>
+      <span class="ver-dot"></span><span>Spark HQ · v25</span>
     </div>
   </aside>
 
@@ -9090,7 +9090,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       if(!tok) throw new Error('Not signed in');
       return fetch(RP_WORKER+'/ai', { method:'POST',
         headers:{ 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' },
-        body: JSON.stringify({ messages: JV_HISTORY, system: jvCurrentAgent().sys, location: JV_GEO }) });
+        body: JSON.stringify({ messages: JV_HISTORY, system: jvCurrentAgent().sys, location: JV_GEO, agent: JV_ACTIVE }) });
     }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, status:r.status, d:d}; }); })
     .then(function(res){
       if(typing) typing.remove();
