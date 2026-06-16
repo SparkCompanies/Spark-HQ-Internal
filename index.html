@@ -5586,6 +5586,22 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jv-foot { text-align:center; font-size:11px; color:var(--muted); padding:8px 0 12px; }
 .jv-err { font-size:13px; color:#dc2626; background:#fef2f2; border:1px solid #f3d0d0; border-radius:10px; padding:10px 13px; }
 
+/* v27 — rendered markdown in Jarvis bubbles */
+.jv-bubble .jv-h { font-weight:700; color:var(--ink); margin:12px 0 6px; line-height:1.3; }
+.jv-bubble .jv-h1 { font-size:18px; } .jv-bubble .jv-h2 { font-size:16px; } .jv-bubble .jv-h3 { font-size:14.5px; } .jv-bubble .jv-h4 { font-size:13.5px; }
+.jv-bubble .jv-p { margin:7px 0; }
+.jv-bubble .jv-ul, .jv-bubble .jv-ol { margin:7px 0; padding-left:22px; }
+.jv-bubble .jv-ul li, .jv-bubble .jv-ol li { margin:3px 0; }
+.jv-bubble .jv-hr { border:none; border-top:1px solid var(--line); margin:12px 0; }
+.jv-bubble code { background:#f1efe8; padding:1px 5px; border-radius:4px; font-size:12.5px; font-family:ui-monospace,Menlo,monospace; }
+.jv-bubble strong { font-weight:700; color:var(--ink); }
+.jv-bubble a { color:var(--gold-dark); text-decoration:underline; }
+.jv-table { border-collapse:collapse; margin:10px 0; font-size:12.5px; width:100%; }
+.jv-table th, .jv-table td { border:1px solid var(--line); padding:6px 10px; text-align:left; }
+.jv-table th { background:#faf8f1; font-weight:700; color:var(--ink); }
+.jv-table tr:nth-child(even) td { background:#fcfbf7; }
+
+
 /* ===== v22 — Jarvis LIGHT theme (readable, elevated) ===== */
 .jarvis-page { background: var(--paper) !important; }
 .jarvis-tab-chrome { background: #fff !important; border-bottom: 1px solid var(--line) !important; border-image: none !important; padding: 14px 22px !important; }
@@ -5808,7 +5824,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v26</span>
+      <span class="ver-dot"></span><span>Spark HQ · v27</span>
     </div>
   </aside>
 
@@ -8925,9 +8941,9 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   // ===== v21 — Jarvis agents (personas; same /ai endpoint, different system prompts) =====
   var JV_AGENTS = [
     { id:'jarvis', name:'Jarvis', tag:'General assistant', color:'#F5C518', soon:false,
-      sys:"You are Jarvis, the general AI assistant inside Spark HQ, Spark Companies' internal hub (a multi-entity staffing & workforce-services firm). Be concise, friendly, practical. Help with drafting, summarizing, planning, and answering questions across the business." },
+      sys:"Keep formatting clean and minimal: short paragraphs, simple tables only when truly helpful, no emoji in headers. You are Jarvis, the general AI assistant inside Spark HQ, Spark Companies' internal hub (a multi-entity staffing & workforce-services firm). Be concise, friendly, practical. Help with drafting, summarizing, planning, and answering questions across the business." },
     { id:'ops', name:'OPS', tag:'Pipeline & GP', color:'#2fbf71', soon:true,
-      sys:"You are OPS, Spark's pipeline and gross-profit analyst. You think like a sales-operations leader: weighted pipeline, win rates, GP per placement, week-over-week movement, at-risk deals. Be analytical and numbers-oriented. NOTE: live Salesforce data is not connected yet, so when asked for specific current figures, say so plainly and reason from whatever the user provides rather than inventing numbers." },
+      sys:"Keep formatting clean: a simple table is fine for numbers, but no emoji-decorated headers and no walls of markdown. You are OPS, Spark's pipeline and gross-profit analyst. You think like a sales-operations leader: weighted pipeline, win rates, GP per placement, week-over-week movement, at-risk deals. Be analytical and numbers-oriented. NOTE: live Salesforce data is not connected yet, so when asked for specific current figures, say so plainly and reason from whatever the user provides rather than inventing numbers." },
     { id:'scout', name:'Scout', tag:'Research & search', color:'#22d3ee', soon:true,
       sys:"You are Scout, Spark's research and search specialist. You help find, synthesize, and summarize information \u2014 documents, market/competitor research, candidates, and best practices. Be resourceful and cite what you're reasoning from. NOTE: live SharePoint/M365 and web search are not wired in yet; when asked to actually search internal files, say so and help structure the search instead." },
     { id:'alfred', name:'Alfred', tag:'O365 super-assistant', color:'#c084fc', soon:true,
@@ -8982,6 +8998,62 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         if(n){ var p=n.split(/\s+/); var s=((p[0]||'')[0]||'')+(p.length>1?((p[p.length-1]||'')[0]||''):''); return (s||n.slice(0,2)).toUpperCase(); } } }catch(e){}
     return 'YOU';
   }
+  // ----- safe, lightweight markdown renderer (escape first, then format) -----
+  function jvEscHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function jvRenderMarkdown(src){
+    var text = jvEscHtml(src);
+    var lines = text.split(/\r?\n/);
+    var out = [], i = 0;
+    function inline(s){
+      // bold, italic, inline code, links
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+      s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      return s;
+    }
+    while (i < lines.length) {
+      var line = lines[i];
+      // table: a line with | and a following |---| separator
+      if (/^\s*\|.*\|\s*$/.test(line) && i+1 < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i+1])) {
+        var header = line.trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
+        i += 2; // skip header + separator
+        var rows = [];
+        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+          rows.push(lines[i].trim().replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();}));
+          i++;
+        }
+        var t = '<table class="jv-table"><thead><tr>' + header.map(function(h){return '<th>'+inline(h)+'</th>';}).join('') + '</tr></thead><tbody>';
+        t += rows.map(function(r){ return '<tr>'+r.map(function(c){return '<td>'+inline(c)+'</td>';}).join('')+'</tr>'; }).join('');
+        t += '</tbody></table>';
+        out.push(t);
+        continue;
+      }
+      // headers
+      var h = line.match(/^(#{1,4})\s+(.*)$/);
+      if (h) { var lvl = h[1].length; out.push('<div class="jv-h jv-h'+lvl+'">'+inline(h[2])+'</div>'); i++; continue; }
+      // horizontal rule
+      if (/^\s*---+\s*$/.test(line)) { out.push('<hr class="jv-hr">'); i++; continue; }
+      // unordered list
+      if (/^\s*[-*]\s+/.test(line)) {
+        var items=[];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { items.push('<li>'+inline(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>'); i++; }
+        out.push('<ul class="jv-ul">'+items.join('')+'</ul>'); continue;
+      }
+      // ordered list
+      if (/^\s*\d+\.\s+/.test(line)) {
+        var oi=[];
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { oi.push('<li>'+inline(lines[i].replace(/^\s*\d+\.\s+/,''))+'</li>'); i++; }
+        out.push('<ol class="jv-ol">'+oi.join('')+'</ol>'); continue;
+      }
+      // blank line
+      if (/^\s*$/.test(line)) { i++; continue; }
+      // paragraph
+      out.push('<p class="jv-p">'+inline(line)+'</p>'); i++;
+    }
+    return out.join('');
+  }
+
   function jvAppend(role, text){
     var box=document.getElementById('jvMessages'); if(!box) return null;
     var empty=document.getElementById('jvEmpty'); if(empty) empty.remove();
@@ -8989,7 +9061,8 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     row.className='jv-msg '+(role==='user'?'user':'bot');
     row.innerHTML='<div class="jv-av"></div><div class="jv-bubble"></div>';
     row.querySelector('.jv-av').textContent = role==='user'? jvInitials() : 'JV';
-    row.querySelector('.jv-bubble').textContent=text;
+    if (role==='user') { row.querySelector('.jv-bubble').textContent=text; }
+    else { row.querySelector('.jv-bubble').innerHTML = jvRenderMarkdown(text); }
     box.appendChild(row); box.scrollTop=box.scrollHeight; return row;
   }
   function jvTyping(){
