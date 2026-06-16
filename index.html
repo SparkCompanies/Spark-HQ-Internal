@@ -5737,6 +5737,25 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+/* v39 — onboarding booking */
+.onb-book-btn { margin-left:auto; margin-right:14px; padding:7px 14px; border-radius:8px; border:1px solid var(--gold); background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--ink); font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.onb-book-btn:hover { filter:brightness(1.05); }
+.onb-modal { position:fixed; inset:0; background:rgba(10,12,16,0.55); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px; }
+.onb-modal-card { background:#fff; border-radius:16px; padding:24px; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+.onb-modal-title { font-size:18px; font-weight:700; color:var(--ink); }
+.onb-modal-sub { font-size:12.5px; color:var(--muted); margin:4px 0 16px; }
+.onb-f-label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gold-dark); margin:12px 0 5px; }
+.onb-f-input { width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:9px; padding:10px 12px; font-family:inherit; font-size:13.5px; color:var(--ink); }
+.onb-f-input:focus { outline:none; border-color:var(--gold); }
+.onb-f-row { display:flex; gap:12px; }
+.onb-modal-msg { font-size:12.5px; margin:12px 0 0; min-height:16px; }
+.onb-modal-msg.err { color:#dc2626; } .onb-modal-msg.ok { color:#0f7a4d; }
+.onb-modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+.onb-btn-ghost { padding:10px 18px; border-radius:9px; border:1px solid var(--line); background:#fff; color:var(--ink); font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.onb-btn-go { padding:10px 20px; border-radius:9px; border:none; background:var(--ink); color:#fff; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.onb-btn-go:disabled { opacity:.6; cursor:default; }
+
 /* v37 — onboarding calendar on home */
 .onb-cal { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
 .onb-cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
@@ -6012,7 +6031,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v37</span>
+      <span class="ver-dot"></span><span>Spark HQ · v39</span>
     </div>
   </aside>
 
@@ -6216,6 +6235,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           <div class="onb-cal" id="onbCal">
             <div class="onb-cal-head">
               <div class="onb-cal-title">Onboarding Calendar</div>
+              <button class="onb-book-btn" onclick="onbOpenBook()">+ Request appointment</button>
               <div class="onb-cal-nav">
                 <button class="onb-nav-btn" onclick="onbCalPrev()" aria-label="Previous month">&#8249;</button>
                 <span class="onb-cal-month" id="onbCalMonth">—</span>
@@ -6227,6 +6247,27 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             </div>
             <div class="onb-cal-grid" id="onbCalGrid"></div>
             <div class="onb-cal-foot" id="onbCalFoot">Loading the onboarding calendar…</div>
+          </div>
+          <div class="onb-modal" id="onbModal" style="display:none;">
+            <div class="onb-modal-card">
+              <div class="onb-modal-title">Request Onboarding Appointment</div>
+              <div class="onb-modal-sub">This sends a request to the onboarding coordinator to confirm.</div>
+              <label class="onb-f-label">What is this for?</label>
+              <input class="onb-f-input" id="onbFSubject" placeholder="e.g. New hire orientation — Jane Doe">
+              <label class="onb-f-label">Date</label>
+              <input class="onb-f-input" id="onbFDate" type="date">
+              <div class="onb-f-row">
+                <div style="flex:1;"><label class="onb-f-label">Start</label><input class="onb-f-input" id="onbFStart" type="time" value="09:00"></div>
+                <div style="flex:1;"><label class="onb-f-label">End</label><input class="onb-f-input" id="onbFEnd" type="time" value="10:00"></div>
+              </div>
+              <label class="onb-f-label">Notes (optional)</label>
+              <textarea class="onb-f-input" id="onbFNotes" rows="2" placeholder="Anything the coordinator should know"></textarea>
+              <div class="onb-modal-msg" id="onbModalMsg"></div>
+              <div class="onb-modal-actions">
+                <button class="onb-btn-ghost" onclick="onbCloseBook()">Cancel</button>
+                <button class="onb-btn-go" id="onbSubmitBtn" onclick="onbSubmitBook()">Send request</button>
+              </div>
+            </div>
           </div>
           <div class="pulse-board" id="pulseBoard"></div>
           <div class="pulse-feed" id="pulseFeed"></div>
@@ -9146,7 +9187,49 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+  // ===== v39 — onboarding appointment request (safe: creates a request the coordinator confirms) =====
+  window.onbOpenBook = function(){
+    var m=document.getElementById('onbModal'); if(!m) return;
+    var d=document.getElementById('onbFDate'); if(d && !d.value){ d.value = new Date().toISOString().slice(0,10); }
+    var msg=document.getElementById('onbModalMsg'); if(msg){ msg.textContent=''; msg.className='onb-modal-msg'; }
+    m.style.display='flex';
+  };
+  window.onbCloseBook = function(){ var m=document.getElementById('onbModal'); if(m) m.style.display='none'; };
+  window.onbSubmitBook = function(){
+    var subj=(document.getElementById('onbFSubject')||{}).value||'';
+    var date=(document.getElementById('onbFDate')||{}).value||'';
+    var st=(document.getElementById('onbFStart')||{}).value||'';
+    var en=(document.getElementById('onbFEnd')||{}).value||'';
+    var notes=(document.getElementById('onbFNotes')||{}).value||'';
+    var msg=document.getElementById('onbModalMsg');
+    var btn=document.getElementById('onbSubmitBtn');
+    if(!subj.trim()||!date||!st||!en){ if(msg){msg.className='onb-modal-msg err'; msg.textContent='Please fill in subject, date, start and end.';} return; }
+    var startISO = date+'T'+st+':00';
+    var endISO = date+'T'+en+':00';
+    if(btn){ btn.disabled=true; btn.textContent='Sending\u2026'; }
+    if(msg){ msg.className='onb-modal-msg'; msg.textContent=''; }
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER + '/calendar-request', { method:'POST',
+        headers:{ 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' },
+        body: JSON.stringify({ subject:subj, start:startISO, end:endISO, notes:notes }) });
+    }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+    .then(function(res){
+      if(btn){ btn.disabled=false; btn.textContent='Send request'; }
+      if(!res.ok || res.d.error){ if(msg){ msg.className='onb-modal-msg err'; msg.textContent = (res.d&&res.d.error)||'Could not send request.'; } return; }
+      if(msg){ msg.className='onb-modal-msg ok'; msg.textContent='Request sent! The coordinator will confirm.'; }
+      setTimeout(function(){ onbCloseBook(); try{ onbCalLoad(); }catch(e){} }, 1400);
+    }).catch(function(err){
+      if(btn){ btn.disabled=false; btn.textContent='Send request'; }
+      if(msg){ msg.className='onb-modal-msg err'; msg.textContent='Could not send: '+(err.message||err); }
+    });
+  };
+
   // ===== v37 — Onboarding calendar (reads sterlingtmx shared calendar via Worker) =====
+  // Onboarding calendar source. Set to 'group:<id>' or 'user:<email>' once discovered.
+  // Empty string = let the Worker use its default/configured source.
+  var ONB_SOURCE = 'user:modeesh@sparkcompanies.com';  // Maryam's calendar (Troy onboarding)
+  var ONB_ONLY = true;  // show only onboarding-titled events
   var ONB_VIEW = new Date(); ONB_VIEW.setDate(1);
   var ONB_EVENTS = [];
   function onbMonthLabel(d){ return d.toLocaleString('en-US',{month:'long',year:'numeric'}); }
@@ -9163,7 +9246,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     if(foot){ foot.classList.remove('err'); foot.textContent='Loading the onboarding calendar\u2026'; }
     window.SPARK_SB.getToken().then(function(tok){
       if(!tok) return null;
-      var u = RP_WORKER + '/calendar-events?from=' + encodeURIComponent(first.toISOString()) + '&to=' + encodeURIComponent(last.toISOString());
+      var u = RP_WORKER + '/calendar-events?from=' + encodeURIComponent(first.toISOString()) + '&to=' + encodeURIComponent(last.toISOString()) + (ONB_SOURCE ? '&source=' + encodeURIComponent(ONB_SOURCE) : '') + (ONB_ONLY ? '&onlyOnboarding=1' : '');
       return fetch(u, { headers:{ 'Authorization':'Bearer '+tok } }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); });
     }).then(function(res){
       if(!res){ return; }
