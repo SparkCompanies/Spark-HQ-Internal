@@ -5549,6 +5549,59 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   font-size:13px; font-weight:600; text-decoration:none; border:1px solid var(--ink); transition:opacity .15s, transform .12s; }
 .teams-btn:hover { opacity:.9; transform:translateY(-1px); }
 
+
+/* ===== v18 — Custom Role Editor ===== */
+.re-wrap { margin-top:32px; padding-top:28px; border-top:2px solid var(--line); }
+.re-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; }
+.re-h { font-size:20px; font-weight:700; color:var(--ink); margin:0; }
+.re-dek { font-size:12.5px; color:var(--muted); margin-top:3px; max-width:560px; line-height:1.4; }
+.re-new-btn { flex-shrink:0; padding:9px 16px; border-radius:9px; background:var(--ink); color:#fff; border:none; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.re-new-btn:hover { opacity:.9; }
+.re-status { font-size:12px; color:var(--muted); margin:12px 0; }
+.re-status.err { color:#dc2626; }
+.re-status.ok { color:#0f7a4d; }
+.re-cols { display:flex; gap:20px; flex-wrap:wrap; }
+.re-col { flex:1; min-width:240px; }
+.re-col-wide { flex:1.6; min-width:300px; }
+.re-col-title { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:10px; font-weight:700; }
+.re-roles { display:flex; flex-direction:column; gap:7px; }
+.re-role-item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 13px; border:1px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; transition:border-color .15s, background .15s; }
+.re-role-item:hover { border-color:var(--gold); }
+.re-role-item.active { border-color:var(--gold); background:#fffdf5; box-shadow:0 0 0 1px var(--gold); }
+.re-role-name { font-size:13.5px; font-weight:600; color:var(--ink); }
+.re-role-sub { font-size:11px; color:var(--muted); margin-top:1px; }
+.re-role-count { font-size:10.5px; color:var(--gold-dark); background:#fff8e1; padding:2px 7px; border-radius:20px; flex-shrink:0; }
+.re-editor { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; }
+.re-field { display:block; margin-bottom:13px; }
+.re-field > span { display:block; font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+.re-field input { width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:13px; color:var(--ink); }
+.re-field input:focus { outline:none; border-color:var(--gold); }
+.re-perms-title { font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); margin:16px 0 9px; }
+.re-perms { display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; }
+.re-perm { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; border:1px solid var(--line); border-radius:8px; }
+.re-perm-label { font-size:12.5px; color:var(--ink); }
+.re-perm-key { font-size:10px; color:var(--muted); font-family:monospace; }
+.re-toggle { position:relative; width:38px; height:21px; border-radius:21px; background:#d4d0c4; border:none; cursor:pointer; transition:background .15s; flex-shrink:0; }
+.re-toggle.on { background:var(--gold); }
+.re-toggle::after { content:''; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:50%; background:#fff; transition:left .15s; }
+.re-toggle.on::after { left:19px; }
+.re-editor-actions { display:flex; gap:10px; margin-top:18px; }
+.re-save { padding:9px 18px; border-radius:8px; background:var(--gold); color:var(--ink); border:none; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.re-save:hover { background:var(--gold-dark); color:#fff; }
+.re-del { padding:9px 14px; border-radius:8px; background:none; color:#dc2626; border:1px solid #f0c5c5; font-family:inherit; font-size:13px; cursor:pointer; }
+.re-del:hover { background:#fef2f2; }
+.re-ov { margin-top:28px; padding-top:22px; border-top:1px solid var(--line); }
+.re-ov-add { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.re-ov-input { padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:12.5px; color:var(--ink); background:#fff; }
+.re-ov-input:focus { outline:none; border-color:var(--gold); }
+.re-ov-btn { padding:8px 16px; border-radius:8px; background:var(--ink); color:#fff; border:none; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+.re-ov-list { display:flex; flex-direction:column; gap:6px; }
+.re-ov-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; }
+.re-ov-row .ov-allow { color:#0f7a4d; font-weight:600; }
+.re-ov-row .ov-deny { color:#dc2626; font-weight:600; }
+.re-ov-x { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1; }
+.re-ov-x:hover { color:#dc2626; }
+
 /* v15b — People tab full-bleed dark (overrides centered light column) */
 #view-people { background:#08080f; }
 #view-people .tab-body { max-width:none !important; margin:0 !important; padding:0 !important; background:#08080f; }
@@ -5700,7 +5753,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v17a</span>
+      <span class="ver-dot"></span><span>Spark HQ · v18</span>
     </div>
   </aside>
 
@@ -6356,7 +6409,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             <span>Documents</span>
           </button>
           <button class="admin-subnav-item" data-admin-tab="people-admin">
-            <span>People & roles</span><span class="badge-mini">38</span>
+            <span>People & roles</span><span class="badge-mini" id="peopleCountBadge"></span>
           </button>
           <button class="admin-subnav-item" data-admin-tab="content">
             <span>Content & SOPs</span>
@@ -6939,6 +6992,57 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
               <div class="rp-gate-inner">
                 <h2>Admins only</h2>
                 <p>Role assignment is available to Spark HQ admins.</p>
+              </div>
+            </div>
+
+            <!-- ===== CUSTOM ROLE EDITOR (v18) ===== -->
+            <div class="re-wrap" id="reWrap">
+              <div class="re-head">
+                <div>
+                  <div class="rp-eyebrow">Access control</div>
+                  <h2 class="re-h">Custom roles &amp; permissions</h2>
+                  <div class="re-dek">Create roles, choose what each unlocks, then assign people. Per-person exceptions override their role.</div>
+                </div>
+                <button class="re-new-btn" onclick="reNewRole()">+ New role</button>
+              </div>
+              <div class="re-status" id="reStatus">Loading roles\u2026</div>
+
+              <div class="re-cols">
+                <!-- roles list -->
+                <div class="re-col">
+                  <div class="re-col-title">Roles</div>
+                  <div class="re-roles" id="reRoles"></div>
+                </div>
+                <!-- editor for the selected role -->
+                <div class="re-col re-col-wide">
+                  <div class="re-col-title" id="reEditTitle">Select a role to edit</div>
+                  <div class="re-editor" id="reEditor" style="display:none;">
+                    <label class="re-field"><span>Name</span><input type="text" id="reName" placeholder="e.g. Recruiter" /></label>
+                    <label class="re-field"><span>Description</span><input type="text" id="reDesc" placeholder="Short description" /></label>
+                    <div class="re-perms-title">Permissions</div>
+                    <div class="re-perms" id="rePerms"></div>
+                    <div class="re-editor-actions">
+                      <button class="re-save" onclick="reSaveRole()">Save role</button>
+                      <button class="re-del" onclick="reDeleteRole()">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- per-person overrides -->
+              <div class="re-ov">
+                <div class="re-col-title">Per-person exceptions</div>
+                <div class="re-dek" style="margin-bottom:10px;">Force-allow or force-deny a single permission for one person, regardless of their role.</div>
+                <div class="re-ov-add">
+                  <select id="reOvEmail" class="re-ov-input"></select>
+                  <select id="reOvPerm" class="re-ov-input"></select>
+                  <select id="reOvGrant" class="re-ov-input">
+                    <option value="true">Allow</option>
+                    <option value="false">Deny</option>
+                  </select>
+                  <button class="re-ov-btn" onclick="reAddOverride()">Add</button>
+                </div>
+                <div class="re-ov-list" id="reOvList"></div>
               </div>
             </div>
           </div>
@@ -7621,7 +7725,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       // Show quick jumps when no query
       html_out += '<div class="section-label" style="margin-top: 8px;">Quick jumps</div>';
       ['training','leadership','people','docs','admin'].forEach(t => {
-        const titles = { training: 'Training · Day 4 in progress', leadership: 'Leadership · Templates & playbooks', people: 'People · 38 across 6 entities', docs: 'Documents · SharePoint files', admin: 'Admin · Jarvis & settings' };
+        const titles = { training: 'Training · Day 4 in progress', leadership: 'Leadership · Templates & playbooks', people: 'People · roles & access', docs: 'Documents · SharePoint files', admin: 'Admin · Jarvis & settings' };
         html_out += '<div class="search-result-item" onclick="searchJumpTo(\'' + t + '\')">';
         html_out += '<div class="ico" style="background: var(--paper-warm); color: var(--gold-dark);">→</div>';
         html_out += '<div class="res-title">' + titles[t] + '</div></div>';
@@ -7794,7 +7898,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     document.querySelectorAll('.admin-subnav-item').forEach(b => b.classList.toggle('active', b.dataset.adminTab === tab));
     document.querySelectorAll('.admin-pane').forEach(p => p.style.display = (p.dataset.adminPane === tab) ? '' : 'none');
     if (tab === 'home-branding') { try { hbRenderPhotos(); } catch(e){} }
-    if (tab === 'people-admin') { try { window.rpLoad(); } catch(e){} }
+    if (tab === 'people-admin') { try { window.rpLoad(); } catch(e){} try { window.reLoad(); } catch(e){} }
   };
   document.querySelectorAll('.admin-subnav-item').forEach(b => {
     b.addEventListener('click', () => switchAdminTab(b.dataset.adminTab));
@@ -8089,6 +8193,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       });
       Promise.all([pAssign, pProf, pDir]).then(function(){
         rpSetStatus('Loaded ' + RP_DIRECTORY.length + ' people from Microsoft 365.', 'ok');
+        var pcb = document.getElementById('peopleCountBadge'); if (pcb) pcb.textContent = RP_DIRECTORY.length;
         rpRender();
       }).catch(function(err){
         rpSetStatus('Could not load directory: ' + (err.message||err), 'err');
@@ -8492,6 +8597,210 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       SPARK_SB.signOut().then(function(){ location.reload(); }).catch(function(){ location.reload(); });
     }
   };
+
+
+  // ===== v18 — Custom Role Editor engine =====
+  var RE_ROLES = [];        // app_roles rows
+  var RE_OVERRIDES = [];    // permission_overrides rows
+  var RE_SELECTED = null;   // currently-edited role id (or '__new__')
+  // permission catalog shown as toggles (label + key)
+  var RE_PERM_CATALOG = [
+    { key: 'jarvis',            label: 'Use Jarvis (AI assistant)' },
+    { key: 'tab:tools',         label: 'See Tools & Apps tab' },
+    { key: 'tab:people',        label: 'See Org Chart tab' },
+    { key: 'tab:career',        label: 'See Career Paths tab' },
+    { key: 'training:*',        label: 'All trainings' },
+    { key: 'training:onboarding', label: 'Onboarding training' },
+    { key: 'training:recruiting', label: 'Recruiting training' },
+    { key: 'training:compliance', label: 'Compliance training' }
+  ];
+
+  function reSetStatus(msg, cls) {
+    var el = document.getElementById('reStatus');
+    if (el) { el.textContent = msg || ''; el.className = 're-status' + (cls ? ' ' + cls : ''); }
+  }
+
+  window.reLoad = function() {
+    if (!window.SPARK_SB || !window.SPARK_SB.getClient) { reSetStatus('Sign in to manage roles.', 'err'); return; }
+    var c = window.SPARK_SB.getClient();
+    if (!c) { reSetStatus('Sign in to manage roles.', 'err'); return; }
+    reSetStatus('Loading roles\u2026');
+    var p1 = c.from('app_roles').select('id,name,description,permissions').order('name');
+    var p2 = c.from('user_app_role').select('email,role_id');
+    var p3 = c.from('permission_overrides').select('email,perm_key,grant_perm,note');
+    Promise.all([p1, p2, p3]).then(function(res){
+      RE_ROLES = (res[0].data || []);
+      var assigns = (res[1].data || []);
+      RE_OVERRIDES = (res[2].data || []);
+      // count members per role
+      var counts = {};
+      assigns.forEach(function(a){ if (a.role_id) counts[a.role_id] = (counts[a.role_id]||0)+1; });
+      RE_ROLES.forEach(function(r){ r._count = counts[r.id] || 0; });
+      reRenderRoles();
+      reRenderOverrides();
+      rePopulateOverridePickers();
+      reSetStatus(RE_ROLES.length + ' custom role' + (RE_ROLES.length===1?'':'s') + '.', 'ok');
+    }).catch(function(err){
+      reSetStatus('Could not load roles: ' + (err.message || err), 'err');
+    });
+  };
+
+  function reRenderRoles() {
+    var box = document.getElementById('reRoles');
+    if (!box) return;
+    if (!RE_ROLES.length) { box.innerHTML = '<div class="re-dek">No custom roles yet. Click \u201c+ New role\u201d.</div>'; return; }
+    box.innerHTML = RE_ROLES.map(function(r){
+      return '<div class="re-role-item' + (RE_SELECTED===r.id?' active':'') + '" onclick="reSelectRole(\'' + r.id + '\')">'
+        + '<div><div class="re-role-name">' + reEsc(r.name) + '</div>'
+        + '<div class="re-role-sub">' + reEsc(r.description||'') + '</div></div>'
+        + '<span class="re-role-count">' + r._count + ' ppl</span></div>';
+    }).join('');
+  }
+
+  window.reNewRole = function() {
+    RE_SELECTED = '__new__';
+    document.getElementById('reEditTitle').textContent = 'New role';
+    document.getElementById('reEditor').style.display = '';
+    document.getElementById('reName').value = '';
+    document.getElementById('reDesc').value = '';
+    reRenderPerms({});
+    reRenderRoles();
+    var del = document.querySelector('.re-del'); if (del) del.style.display = 'none';
+  };
+
+  window.reSelectRole = function(id) {
+    var r = RE_ROLES.find(function(x){ return x.id===id; });
+    if (!r) return;
+    RE_SELECTED = id;
+    document.getElementById('reEditTitle').textContent = 'Editing: ' + r.name;
+    document.getElementById('reEditor').style.display = '';
+    document.getElementById('reName').value = r.name || '';
+    document.getElementById('reDesc').value = r.description || '';
+    reRenderPerms(r.permissions || {});
+    reRenderRoles();
+    var del = document.querySelector('.re-del'); if (del) del.style.display = '';
+  };
+
+  function reRenderPerms(perms) {
+    var box = document.getElementById('rePerms');
+    if (!box) return;
+    box.innerHTML = RE_PERM_CATALOG.map(function(p){
+      var on = perms[p.key] === true;
+      return '<div class="re-perm"><div><div class="re-perm-label">' + reEsc(p.label) + '</div>'
+        + '<div class="re-perm-key">' + reEsc(p.key) + '</div></div>'
+        + '<button class="re-toggle' + (on?' on':'') + '" data-key="' + p.key + '" onclick="reTogglePerm(this)"></button></div>';
+    }).join('');
+  }
+
+  window.reTogglePerm = function(btn) {
+    btn.classList.toggle('on');
+  };
+
+  function reCollectPerms() {
+    var out = {};
+    document.querySelectorAll('#rePerms .re-toggle').forEach(function(b){
+      if (b.classList.contains('on')) out[b.getAttribute('data-key')] = true;
+    });
+    return out;
+  }
+
+  window.reSaveRole = function() {
+    var c = window.SPARK_SB.getClient(); if (!c) return;
+    var name = (document.getElementById('reName').value || '').trim();
+    if (!name) { reSetStatus('Role name is required.', 'err'); return; }
+    var row = {
+      name: name,
+      description: (document.getElementById('reDesc').value || '').trim(),
+      permissions: reCollectPerms(),
+      updated_at: new Date().toISOString()
+    };
+    reSetStatus('Saving\u2026');
+    var op;
+    if (RE_SELECTED && RE_SELECTED !== '__new__') {
+      op = c.from('app_roles').update(row).eq('id', RE_SELECTED);
+    } else {
+      op = c.from('app_roles').insert(row);
+    }
+    op.then(function(r){
+      if (r.error) throw r.error;
+      RE_SELECTED = null;
+      document.getElementById('reEditor').style.display = 'none';
+      document.getElementById('reEditTitle').textContent = 'Select a role to edit';
+      reLoad();
+    }).catch(function(err){ reSetStatus('Save failed: ' + (err.message||err), 'err'); });
+  };
+
+  window.reDeleteRole = function() {
+    if (!RE_SELECTED || RE_SELECTED === '__new__') return;
+    var r = RE_ROLES.find(function(x){ return x.id===RE_SELECTED; });
+    if (!confirm('Delete role "' + (r?r.name:'') + '"? People assigned to it will lose its permissions.')) return;
+    var c = window.SPARK_SB.getClient(); if (!c) return;
+    reSetStatus('Deleting\u2026');
+    c.from('app_roles').delete().eq('id', RE_SELECTED).then(function(r2){
+      if (r2.error) throw r2.error;
+      RE_SELECTED = null;
+      document.getElementById('reEditor').style.display = 'none';
+      document.getElementById('reEditTitle').textContent = 'Select a role to edit';
+      reLoad();
+    }).catch(function(err){ reSetStatus('Delete failed: ' + (err.message||err), 'err'); });
+  };
+
+  // ---- per-person overrides ----
+  function rePopulateOverridePickers() {
+    var emailSel = document.getElementById('reOvEmail');
+    var permSel = document.getElementById('reOvPerm');
+    if (permSel) {
+      permSel.innerHTML = RE_PERM_CATALOG.map(function(p){
+        return '<option value="' + p.key + '">' + reEsc(p.label) + '</option>';
+      }).join('');
+    }
+    if (emailSel) {
+      // use the directory the roles panel already loaded, if present
+      var people = (typeof RP_DIRECTORY !== 'undefined' && RP_DIRECTORY.length) ? RP_DIRECTORY : [];
+      if (people.length) {
+        emailSel.innerHTML = people.map(function(p){
+          return '<option value="' + reEsc(p.email) + '">' + reEsc(p.name) + ' (' + reEsc(p.email) + ')</option>';
+        }).join('');
+      } else {
+        emailSel.innerHTML = '<option value="">Load the directory above first</option>';
+      }
+    }
+  }
+
+  function reRenderOverrides() {
+    var box = document.getElementById('reOvList');
+    if (!box) return;
+    if (!RE_OVERRIDES.length) { box.innerHTML = '<div class="re-dek">No per-person exceptions.</div>'; return; }
+    box.innerHTML = RE_OVERRIDES.map(function(o){
+      var cls = o.grant_perm ? 'ov-allow' : 'ov-deny';
+      var word = o.grant_perm ? 'ALLOW' : 'DENY';
+      return '<div class="re-ov-row"><div>' + reEsc(o.email)
+        + ' \u00b7 <span class="re-perm-key">' + reEsc(o.perm_key) + '</span> \u00b7 <span class="' + cls + '">' + word + '</span></div>'
+        + '<button class="re-ov-x" onclick="reDeleteOverride(\'' + reEsc(o.email) + '\',\'' + reEsc(o.perm_key) + '\')">\u00d7</button></div>';
+    }).join('');
+  }
+
+  window.reAddOverride = function() {
+    var c = window.SPARK_SB.getClient(); if (!c) return;
+    var email = (document.getElementById('reOvEmail').value || '').trim().toLowerCase();
+    var perm = document.getElementById('reOvPerm').value;
+    var grant = document.getElementById('reOvGrant').value === 'true';
+    if (!email) { reSetStatus('Pick a person for the exception.', 'err'); return; }
+    reSetStatus('Saving exception\u2026');
+    c.from('permission_overrides').upsert({ email: email, perm_key: perm, grant_perm: grant }, { onConflict: 'email,perm_key' })
+      .then(function(r){ if (r.error) throw r.error; reLoad(); })
+      .catch(function(err){ reSetStatus('Could not save exception: ' + (err.message||err), 'err'); });
+  };
+
+  window.reDeleteOverride = function(email, perm) {
+    var c = window.SPARK_SB.getClient(); if (!c) return;
+    c.from('permission_overrides').delete().eq('email', email).eq('perm_key', perm)
+      .then(function(r){ if (r.error) throw r.error; reLoad(); })
+      .catch(function(err){ reSetStatus('Could not remove exception: ' + (err.message||err), 'err'); });
+  };
+
+  function reEsc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
 
   window.sbOpenAuth = function() {
     var back = document.getElementById('sbModalBack'); if (back) back.classList.add('show');
