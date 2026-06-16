@@ -5808,7 +5808,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v25</span>
+      <span class="ver-dot"></span><span>Spark HQ · v26</span>
     </div>
   </aside>
 
@@ -16564,6 +16564,11 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
   })();
 
   init();
+  // v26 — draw Jarvis agent pills on load (they only rendered on nav-click before,
+  // so landing on the tab any other way left the bar empty). jvNewChat() renders them.
+  try {
+    setTimeout(function(){ try { if (window.jvNewChat) window.jvNewChat(); } catch(e){} }, 500);
+  } catch(e){}
 })();
 </script>
 
