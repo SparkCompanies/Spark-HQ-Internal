@@ -5668,7 +5668,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v16</span>
+      <span class="ver-dot"></span><span>Spark HQ · v16b</span>
     </div>
   </aside>
 
@@ -8297,20 +8297,38 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     document.getElementById('odDept').textContent = p.department || '—';
     var mgr = (p.managerId && ORG_BY_ID[p.managerId]) ? ORG_BY_ID[p.managerId].name : '—';
     document.getElementById('odMgr').textContent = mgr;
-    // groups
+    // groups — fetched on demand from the Worker (Graph allows only one $expand on the bulk call,
+    // so memberOf can't ride along with manager; we fetch this person's groups when their card opens)
     var gWrap = document.getElementById('odGroups');
-    var groups = p.groups || [];
-    if (groups.length) {
-      gWrap.innerHTML = groups.map(function(g){
-        return '<div class="od-group"><span class="gdot '+(g.distribution?'dist':'sec')+'"></span>'+
-          g.name + (g.distribution ? ' <span style="color:#6a6a82;font-size:10px;">· distribution</span>' : '') + '</div>';
-      }).join('');
+    gWrap.innerHTML = '<div class="od-group-empty">Loading groups\u2026</div>';
+    if (p._groupsCache) {
+      orgRenderGroups(p._groupsCache);
     } else {
-      gWrap.innerHTML = '<div class="od-group-empty">No groups found</div>';
+      window.SPARK_SB.getToken().then(function(tok){
+        return fetch(RP_WORKER + '/groups?id=' + encodeURIComponent(p.id), { headers: { 'Authorization': 'Bearer ' + tok } })
+          .then(function(res){ return res.ok ? res.json() : res.json().then(function(e){ throw new Error(e.error||('HTTP '+res.status)); }); });
+      }).then(function(d){
+        p._groupsCache = d.groups || [];
+        orgRenderGroups(p._groupsCache);
+      }).catch(function(err){
+        gWrap.innerHTML = '<div class="od-group-empty">Could not load groups</div>';
+      });
     }
     panel.classList.add('open');
     panel.setAttribute('aria-hidden','false');
   };
+  function orgRenderGroups(groups) {
+    var gWrap = document.getElementById('odGroups');
+    if (!gWrap) return;
+    if (groups && groups.length) {
+      gWrap.innerHTML = groups.map(function(g){
+        return '<div class="od-group"><span class="gdot '+(g.distribution?'dist':'sec')+'"></span>'+
+          g.name + (g.distribution ? ' <span style="color:#6a6a82;font-size:10px;">\u00b7 distribution</span>' : '') + '</div>';
+      }).join('');
+    } else {
+      gWrap.innerHTML = '<div class="od-group-empty">No groups found</div>';
+    }
+  }
   window.orgCloseDetail = function() {
     var panel = document.getElementById('orgDetail');
     if (panel) { panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); }
