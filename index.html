@@ -5491,6 +5491,34 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .org-stage { background:radial-gradient(1300px 850px at 50% 22%, #18182e 0%, #0e0e1c 55%, #07070d 100%); }
 .org-node .on-name { letter-spacing:-.1px; }
 
+
+.org-tagline { font-size:11px; color:#7a7a92; margin-top:4px; max-width:420px; line-height:1.4; }
+
+
+.org-detail { position:absolute; top:0; right:0; width:300px; height:100%; background:#12121e;
+  border-left:1px solid #2a2a40; box-shadow:-8px 0 30px rgba(0,0,0,.4); z-index:60;
+  transform:translateX(100%); transition:transform .25s ease; padding:54px 22px 22px; box-sizing:border-box; overflow-y:auto; }
+.org-detail.open { transform:translateX(0); }
+.od-close { position:absolute; top:14px; right:16px; background:none; border:none; color:#9a9ab0; font-size:24px; cursor:pointer; line-height:1; }
+.od-close:hover { color:#FAF9F5; }
+.od-avatar { width:64px; height:64px; border-radius:50%; background:#0e0e1c; border:2px solid var(--od-c,#F5C518);
+  color:var(--od-c,#F5C518); font-size:22px; font-weight:600; display:flex; align-items:center; justify-content:center;
+  margin-bottom:16px; box-shadow:0 0 16px var(--od-g, rgba(245,197,24,.5)); }
+.od-name { font-size:18px; font-weight:600; color:#FAF9F5; line-height:1.2; }
+.od-title { font-size:13px; color:#9a9ab0; margin-top:3px; }
+.od-email { display:inline-block; font-size:12.5px; color:#22d3ee; margin-top:12px; text-decoration:none; word-break:break-all; }
+.od-email:hover { text-decoration:underline; }
+.od-row { display:flex; justify-content:space-between; gap:10px; font-size:12.5px; color:#d8d8e8; padding:10px 0; border-top:1px solid #22223a; margin-top:14px; }
+.od-row:first-of-type { margin-top:18px; }
+.od-label { font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#6a6a82; }
+.od-groups-wrap { margin-top:18px; padding-top:14px; border-top:1px solid #22223a; }
+.od-groups { display:flex; flex-direction:column; gap:6px; }
+.od-group { font-size:12px; color:#d8d8e8; display:flex; align-items:center; gap:7px; }
+.od-group .gdot { width:7px; height:7px; border-radius:2px; flex-shrink:0; }
+.od-group .gdot.dist { background:#2fbf71; }
+.od-group .gdot.sec { background:#6a6a82; }
+.od-group-empty { font-size:12px; color:#6a6a82; font-style:italic; }
+
 /* v15b — People tab full-bleed dark (overrides centered light column) */
 #view-people { background:#08080f; }
 #view-people .tab-body { max-width:none !important; margin:0 !important; padding:0 !important; background:#08080f; }
@@ -5633,14 +5661,14 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="training"><span class="ico">▤</span>Training</button>
       <button class="nav-item" data-tab="standard"><span class="ico">★</span>Spark Standard</button>
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
-      <button class="nav-item" data-tab="people"><span class="ico">◍</span>People</button>
+      <button class="nav-item" data-tab="people"><span class="ico">◍</span>Org Chart</button>
       <button class="nav-item" data-tab="tools"><span class="ico">⊕</span>Software & Tools</button>
       <button class="nav-item" data-tab="docs"><span class="ico">▢</span>Documents</button>
       <button class="nav-item nav-leadership" data-tab="leadership"><span class="ico">⛨</span>Leadership</button>
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v15c</span>
+      <span class="ver-dot"></span><span>Spark HQ · v16</span>
     </div>
   </aside>
 
@@ -5967,8 +5995,9 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <div class="tab-body" style="padding:0; height:calc(100vh - 56px); overflow:hidden; position:relative;">
         <div class="org-head">
           <div>
-            <div class="org-eyebrow">People</div>
-            <h1 class="org-h">The Spark org</h1>
+            <div class="org-eyebrow">Org Chart</div>
+            <h1 class="org-h">Org chart</h1>
+            <div class="org-tagline">Live from Microsoft 365 · reporting lines, titles &amp; groups stay in sync with your directory</div>
           </div>
           <div class="org-controls">
             <input type="search" id="orgSearch" class="org-search" placeholder="Find someone…" oninput="orgHighlight()" />
@@ -5982,6 +6011,19 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           <div class="org-world" id="orgWorld"></div>
         </div>
         <div class="org-legend" id="orgLegend"></div>
+        <div class="org-detail" id="orgDetail" aria-hidden="true">
+          <button class="od-close" onclick="orgCloseDetail()" aria-label="Close">×</button>
+          <div class="od-avatar" id="odAvatar"></div>
+          <div class="od-name" id="odName"></div>
+          <div class="od-title" id="odTitle"></div>
+          <a class="od-email" id="odEmail" href="#"></a>
+          <div class="od-row" id="odDeptRow"><span class="od-label">Department</span><span id="odDept"></span></div>
+          <div class="od-row" id="odMgrRow"><span class="od-label">Reports to</span><span id="odMgr"></span></div>
+          <div class="od-groups-wrap" id="odGroupsWrap">
+            <div class="od-label" style="margin-bottom:6px;">Distribution &amp; groups</div>
+            <div class="od-groups" id="odGroups"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -8182,7 +8224,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       var col = orgColorFor(p.department);
       legendDepts[p.department || 'Other'] = col;
       var initials = (p.name||'?').split(/\s+/).map(function(s){return s[0];}).slice(0,2).join('').toUpperCase();
-      return '<div class="org-node" data-id="'+p.id+'" data-search="'+
+      return '<div class="org-node" data-id="'+p.id+'" onclick="orgOpenDetail(\''+p.id+'\')" style="cursor:pointer" data-search="'+
         (p.name+' '+p.email+' '+p.title+' '+p.department).toLowerCase().replace(/"/g,'')+'"'+
         ' style="left:'+pos.x+'px;top:'+pos.y+'px;--nc:'+col.c+';--ng:'+col.g+';">'+
         '<div class="on-avatar">'+initials+'</div>'+
@@ -8234,6 +8276,44 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       el.classList.toggle('match', hit);
       el.classList.toggle('dim', !hit);
     });
+  };
+
+  window.orgOpenDetail = function(id) {
+    var p = ORG_BY_ID[id];
+    if (!p) return;
+    var col = orgColorFor(p.department);
+    var panel = document.getElementById('orgDetail');
+    var initials = (p.name||'?').split(/\s+/).map(function(s){return s[0];}).slice(0,2).join('').toUpperCase();
+    var av = document.getElementById('odAvatar');
+    av.textContent = initials;
+    av.style.setProperty('--od-c', col.c);
+    av.style.setProperty('--od-g', col.g);
+    document.getElementById('odName').textContent = p.name || '—';
+    document.getElementById('odTitle').textContent = p.title || '—';
+    var em = document.getElementById('odEmail');
+    em.textContent = p.email || '';
+    em.href = p.email ? ('mailto:' + p.email) : '#';
+    em.style.display = p.email ? 'inline-block' : 'none';
+    document.getElementById('odDept').textContent = p.department || '—';
+    var mgr = (p.managerId && ORG_BY_ID[p.managerId]) ? ORG_BY_ID[p.managerId].name : '—';
+    document.getElementById('odMgr').textContent = mgr;
+    // groups
+    var gWrap = document.getElementById('odGroups');
+    var groups = p.groups || [];
+    if (groups.length) {
+      gWrap.innerHTML = groups.map(function(g){
+        return '<div class="od-group"><span class="gdot '+(g.distribution?'dist':'sec')+'"></span>'+
+          g.name + (g.distribution ? ' <span style="color:#6a6a82;font-size:10px;">· distribution</span>' : '') + '</div>';
+      }).join('');
+    } else {
+      gWrap.innerHTML = '<div class="od-group-empty">No groups found</div>';
+    }
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden','false');
+  };
+  window.orgCloseDetail = function() {
+    var panel = document.getElementById('orgDetail');
+    if (panel) { panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); }
   };
 
   // pan + wheel-zoom — toggles .dragging on stage so CSS strips glows mid-drag
