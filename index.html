@@ -5969,7 +5969,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v32</span>
+      <span class="ver-dot"></span><span>Spark HQ · v33</span>
     </div>
   </aside>
 
@@ -6632,9 +6632,6 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           <button class="admin-subnav-item" data-admin-tab="analytics">
             <span>Usage analytics</span>
           </button>
-          <button class="admin-subnav-item" data-admin-tab="ai-settings">
-            <span>AI settings</span><span class="badge-mini" id="aiSettingsBadge">DEMO</span>
-          </button>
           <button class="admin-subnav-item" data-admin-tab="knowledge">
             <span>Agent knowledge</span>
           </button>
@@ -6876,152 +6873,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
           <!-- PEOPLE & ROLES -->
           <!-- AI SETTINGS PANE (v7 multi-provider) -->
-          <div class="admin-pane" data-admin-pane="ai-settings" style="display: none;">
-            <div class="admin-hero">
-              <div class="eyebrow">Jarvis · AI settings</div>
-              <h2>Bring Jarvis to life. <span style="color: var(--muted-light);">Pick a provider.</span></h2>
-              <div class="dek">Spark HQ supports three providers. Same Claude/GPT models, different routing. Anthropic for quick demos, Bedrock for production-grade with AWS audit trails, Azure OpenAI for tenants standardized on Microsoft.</div>
-            </div>
-
-            <div class="ai-status-card" id="aiStatusCard">
-              <div class="ai-status-row">
-                <div class="ai-status-icon" id="aiStatusIcon">○</div>
-                <div style="flex: 1;">
-                  <div class="ai-status-title" id="aiStatusTitle">Demo mode</div>
-                  <div class="ai-status-desc" id="aiStatusDesc">Responses are mocked. Pick a provider below and add credentials to go live.</div>
-                </div>
-                <div id="aiStatusBadge"></div>
-              </div>
-
-              <!-- Provider tabs -->
-              <div class="provider-tabs" style="margin-top: 16px;">
-                <button class="provider-tab active" data-provider="anthropic" onclick="switchProvider('anthropic')">
-                  <div class="logo anthropic">A</div>
-                  <div class="pname">Anthropic</div>
-                  <div class="pdesc">Direct API · fastest setup</div>
-                </button>
-                <button class="provider-tab" data-provider="bedrock" onclick="switchProvider('bedrock')">
-                  <div class="logo bedrock">aws</div>
-                  <div class="pname">Bedrock</div>
-                  <div class="pdesc">AWS · production grade</div>
-                </button>
-                <button class="provider-tab" data-provider="azure" onclick="switchProvider('azure')">
-                  <div class="logo azure">⧉</div>
-                  <div class="pname">Azure OpenAI</div>
-                  <div class="pdesc">Microsoft · M365 native</div>
-                </button>
-              </div>
-
-              <!-- ANTHROPIC FORM -->
-              <div class="provider-form active" data-provider-form="anthropic">
-                <div class="field-group" style="margin-bottom: 8px;">
-                  <label>API key</label>
-                  <input type="password" id="anthropicKey" placeholder="sk-ant-api03-..." autocomplete="off" />
-                  <div class="field-help">From <code>console.anthropic.com</code> · API Keys section</div>
-                </div>
-                <div class="provider-recommended">
-                  <strong>Use when:</strong> demoing to small audience, prototyping, weekend builds. Set up in 10 minutes.
-                </div>
-              </div>
-
-              <!-- BEDROCK FORM -->
-              <div class="provider-form" data-provider-form="bedrock">
-                <div class="creds-grid-2">
-                  <div class="field-group">
-                    <label>AWS Access Key ID</label>
-                    <input type="text" id="bedrockAccessKey" placeholder="AKIA..." autocomplete="off" />
-                    <div class="field-help">From IAM user with Bedrock invoke permissions</div>
-                  </div>
-                  <div class="field-group">
-                    <label>AWS Region</label>
-                    <select id="bedrockRegion">
-                      <option value="us-east-1">us-east-1 · Virginia</option>
-                      <option value="us-west-2">us-west-2 · Oregon</option>
-                      <option value="us-east-2">us-east-2 · Ohio</option>
-                      <option value="eu-west-1">eu-west-1 · Ireland</option>
-                      <option value="ap-southeast-2">ap-southeast-2 · Sydney</option>
-                    </select>
-                    <div class="field-help">Where you enabled Claude in Bedrock</div>
-                  </div>
-                </div>
-                <div class="field-group" style="margin-top: 12px;">
-                  <label>AWS Secret Access Key</label>
-                  <input type="password" id="bedrockSecretKey" placeholder="wJalrXUtnFEMI/K7MDENG/..." autocomplete="off" />
-                  <div class="field-help">Paired with the Access Key ID. Stored in session memory only.</div>
-                </div>
-                <div class="provider-recommended">
-                  <strong>Use when:</strong> showing the team how production will work. Audit trail in CloudTrail. Data stays in your AWS account. <a href="#" onclick="openBedrockGuide(event)" style="color: var(--green); font-weight: 600;">Bedrock setup guide →</a>
-                </div>
-              </div>
-
-              <!-- AZURE FORM -->
-              <div class="provider-form" data-provider-form="azure">
-                <div class="creds-stacked">
-                  <div class="field-group">
-                    <label>Azure OpenAI endpoint</label>
-                    <input type="text" id="azureEndpoint" placeholder="https://your-resource.openai.azure.com" autocomplete="off" />
-                    <div class="field-help">From Azure Portal · your Azure OpenAI resource · Keys and Endpoint</div>
-                  </div>
-                  <div class="creds-grid-2">
-                    <div class="field-group">
-                      <label>Deployment name</label>
-                      <input type="text" id="azureDeployment" placeholder="gpt-5-deployment" autocomplete="off" />
-                      <div class="field-help">The deployment you created in Azure AI Foundry</div>
-                    </div>
-                    <div class="field-group">
-                      <label>API version</label>
-                      <input type="text" id="azureApiVersion" value="2024-10-21" autocomplete="off" />
-                      <div class="field-help">Default is usually fine</div>
-                    </div>
-                  </div>
-                  <div class="field-group">
-                    <label>API key</label>
-                    <input type="password" id="azureKey" placeholder="abc123..." autocomplete="off" />
-                    <div class="field-help">From the same Keys and Endpoint page</div>
-                  </div>
-                </div>
-                <div class="provider-recommended">
-                  <strong>Use when:</strong> your org is M365-first and IT prefers everything in Azure. Same AD tenant as Spark HQ login. <a href="#" onclick="openAzureGuide(event)" style="color: var(--green); font-weight: 600;">Azure OpenAI setup guide →</a>
-                </div>
-              </div>
-
-              <!-- Action buttons -->
-              <div style="display: flex; gap: 8px; margin-top: 16px;">
-                <button class="btn-add" onclick="connectProvider()">CONNECT</button>
-                <button class="btn-secondary" onclick="testConnection()">TEST CONNECTION</button>
-                <button class="btn-secondary" onclick="clearProvider()" id="clearProviderBtn" style="display: none; margin-left: auto;">DISCONNECT</button>
-              </div>
-
-              <div class="test-result" id="testResult"></div>
-
-              <div class="key-info-banner" style="margin-top: 14px;">
-                <strong>Where credentials live:</strong> saved in this browser on this device (localStorage) — survives refresh and restart. Never sent anywhere except the provider you select. Use Disconnect to remove it. <a href="#" onclick="openKeyGuide(event)" style="color: var(--gold-dark); font-weight: 600;">Anthropic guide →</a>
-              </div>
-
-              <div class="danger-banner">
-                <strong>Demo environment only.</strong> Production keys go in Azure Key Vault or AWS Secrets Manager and are called server-side. For Spark HQ production, the recommended pattern is: Browser → Azure Function → Bedrock (or your chosen provider). The artifact mode is for testing UX and showing the team how it should feel.
-              </div>
-            </div>
-
-            <div class="admin-section">
-              <div class="admin-section-head">
-                <h3>Model settings</h3>
-                <span style="font-size: 11px; color: var(--muted-light);" id="modelHint">Anthropic · Claude models</span>
-              </div>
-              <div style="background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                  <div class="field-group" style="margin-bottom: 0;">
-                    <label>Model</label>
-                    <select id="modelSelect" onchange="saveModelChoice()"></select>
-                  </div>
-                  <div class="field-group" style="margin-bottom: 0;">
-                    <label>Max tokens per response</label>
-                    <input type="number" id="maxTokensInput" value="1024" min="256" max="4096" step="128" onchange="saveModelChoice()" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- AI settings pane removed: API key is a server-side Worker secret -->
 
 
           <!-- KNOWLEDGE PANE -->
@@ -10516,7 +10368,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'ai-settings', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
       navItems: ['home','jarvis','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
@@ -10561,7 +10413,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   ];
   const ALL_ADMIN_TABS = [
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
-    ['ai-settings','AI settings'], ['knowledge','Agent knowledge'], ['role','Your role'],
+    ['knowledge','Agent knowledge'], ['role','Your role'],
     ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
     ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin'], ['docs-admin','Documents admin']
