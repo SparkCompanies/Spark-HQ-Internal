@@ -5492,7 +5492,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .org-node .on-name { letter-spacing:-.1px; }
 
 
-.org-tagline { font-size:11px; color:#7a7a92; margin-top:4px; max-width:420px; line-height:1.4; }
+.org-tagline { font-size:11px; color:#7a7a92; margin-top:3px; max-width:min(420px, 55vw); line-height:1.35; }
 
 
 .org-detail { position:absolute; top:0; right:0; width:300px; height:100%; background:#12121e;
@@ -5535,13 +5535,29 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .um-action:hover { background:var(--paper); }
 .um-signin { color:var(--gold-dark); font-weight:600; }
 
+
+/* v17 — Teams chat card on home */
+.teams-card { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:16px; }
+.teams-card-main { display:flex; align-items:center; gap:14px; min-width:0; }
+.teams-ico { width:44px; height:44px; border-radius:11px; background:linear-gradient(135deg,var(--gold),var(--gold-dark));
+  color:var(--ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.teams-txt { min-width:0; }
+.teams-title { font-size:15px; font-weight:700; color:var(--ink); line-height:1.2; }
+.teams-sub { font-size:12.5px; color:var(--muted); margin-top:2px; }
+.teams-btn { flex-shrink:0; padding:10px 20px; border-radius:9px; background:var(--ink); color:#fff;
+  font-size:13px; font-weight:600; text-decoration:none; border:1px solid var(--ink); transition:opacity .15s, transform .12s; }
+.teams-btn:hover { opacity:.9; transform:translateY(-1px); }
+
 /* v15b — People tab full-bleed dark (overrides centered light column) */
 #view-people { background:#08080f; }
 #view-people .tab-body { max-width:none !important; margin:0 !important; padding:0 !important; background:#08080f; }
 .tab-page#view-people { min-height:0; }
 
 /* ==================== V15 — NEON ORG CHART ==================== */
-.org-head { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; justify-content:space-between; align-items:flex-start; padding:18px 26px; pointer-events:none; }
+.org-head { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; justify-content:space-between; align-items:flex-start; gap:18px; padding:18px 26px; pointer-events:none; }
+.org-head > div:first-child { min-width:0; flex:1; }
+.org-controls { flex-shrink:0; }
 .org-head > div, .org-controls { pointer-events:auto; }
 .org-eyebrow { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold); margin-bottom:5px; }
 .org-h { font-size:23px; font-weight:600; color:#FAF9F5; margin:0; letter-spacing:-.4px; }
@@ -5554,7 +5570,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .org-legend { position:absolute; bottom:16px; left:26px; z-index:5; display:flex; gap:14px; flex-wrap:wrap; max-width:70%; pointer-events:none; }
 .org-legend .lg-item { display:flex; align-items:center; gap:6px; font-size:10.5px; color:#9a9ab0; }
 .org-legend .lg-dot { width:9px; height:9px; border-radius:50%; box-shadow:0 0 6px currentColor; }
-.org-status { position:absolute; top:70px; left:26px; z-index:5; font-size:12px; color:#9a9ab0; }
+.org-status { position:absolute; top:96px; left:26px; z-index:5; font-size:12px; color:#9a9ab0; }
 .org-status.err { color:#ff7a7a; }
 .org-stage { position:absolute; inset:0; overflow:hidden; cursor:grab;
   background:radial-gradient(1200px 800px at 50% 25%, #16162a 0%, #0e0e1c 55%, #08080f 100%); }
@@ -5684,7 +5700,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v16d</span>
+      <span class="ver-dot"></span><span>Spark HQ · v17a</span>
     </div>
   </aside>
 
@@ -5868,6 +5884,21 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             </div>
           </div>
 
+          <div class="teams-card">
+            <div class="teams-card-main">
+              <div class="teams-ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 12h.01M12 12h.01M16 12h.01"/>
+                  <path d="M21 12c0 4.418-4.03 8-9 8a9.7 9.7 0 0 1-4-.85L3 20l1.35-4A7.8 7.8 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+              </div>
+              <div class="teams-txt">
+                <div class="teams-title">Spark Portfolio — All Team</div>
+                <div class="teams-sub">Jump into the company-wide Teams chat</div>
+              </div>
+            </div>
+            <a class="teams-btn" href="https://teams.microsoft.com/l/chat/19:fcd57349346e49e7abe48951e12d659e@thread.v2/conversations?context=%7B%22contextType%22%3A%22chat%22%7D" target="_blank" rel="noopener">Open in Teams</a>
+          </div>
           <div class="pulse-board" id="pulseBoard"></div>
           <div class="pulse-feed" id="pulseFeed"></div>
           <div class="spark-links">
