@@ -5684,7 +5684,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v16c</span>
+      <span class="ver-dot"></span><span>Spark HQ · v16d</span>
     </div>
   </aside>
 
@@ -8445,6 +8445,16 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     var wrap = e.target.closest && e.target.closest('.avatar-wrap');
     if (!wrap) window.closeUserMenu();
   });
+  // initial sync in case auth resolved before these functions were defined
+  try {
+    if (window.SPARK_SB) {
+      var cu = window.SPARK_SB.whoami ? window.SPARK_SB.whoami() : null;
+      window.updateUserAvatar(cu);
+      // also re-sync shortly after load once the session settles
+      setTimeout(function(){ try { window.updateUserAvatar(window.SPARK_SB.whoami()); } catch(e){} }, 1500);
+    }
+  } catch(e){}
+
   window.userSignOut = function() {
     window.closeUserMenu();
     if (window.SPARK_SB && SPARK_SB.signOut) {
@@ -8505,6 +8515,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
   // React to auth state: update pill, pull shared data on sign-in
   window.SPARK_SB.onChange(function(u) {
+    try { window.updateUserAvatar(u); } catch(e){}
     var pill = document.getElementById('sbAuthPill');
     var dot = document.getElementById('sbDot');
     var label = document.getElementById('sbAuthLabel');
