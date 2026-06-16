@@ -5537,11 +5537,13 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 /* v17 — Teams chat card on home */
-.teams-card { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+.teams-card { display:flex; align-items:center; justify-content:flex-start; gap:16px; flex-wrap:wrap;
   background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:16px; }
+.teams-card .teams-card-main { margin-right:auto; }  /* push the button to the right, content to the LEFT */
 .teams-card-main { display:flex; align-items:center; gap:14px; min-width:0; }
 .teams-ico { width:44px; height:44px; border-radius:11px; background:linear-gradient(135deg,var(--gold),var(--gold-dark));
   color:var(--ink); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.teams-ico-ms { background:linear-gradient(135deg,#5b5fc7,#4348a8) !important; }
 .teams-txt { min-width:0; }
 .teams-title { font-size:15px; font-weight:700; color:var(--ink); line-height:1.2; }
 .teams-sub { font-size:12.5px; color:var(--muted); margin-top:2px; }
@@ -5732,6 +5734,39 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .jv-route-btn { background:#22d3ee; color:#0a0c10; border:none; border-radius:7px; padding:5px 12px; font-family:inherit; font-size:11.5px; font-weight:600; cursor:pointer; }
 .jv-route-btn:hover { background:#67e8f9; }
 
+
+
+
+/* v37 — onboarding calendar on home */
+.onb-cal { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
+.onb-cal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+.onb-cal-title { font-size:15px; font-weight:700; color:var(--ink); }
+.onb-cal-nav { display:flex; align-items:center; gap:10px; }
+.onb-cal-month { font-size:13px; font-weight:600; color:var(--ink); min-width:130px; text-align:center; }
+.onb-nav-btn { width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:18px; line-height:1; color:var(--ink); }
+.onb-nav-btn:hover { border-color:var(--gold); background:#fffdf5; }
+.onb-cal-dow { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px; }
+.onb-cal-dow span { font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); text-align:center; font-weight:700; }
+.onb-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.onb-day { min-height:62px; border:1px solid var(--line); border-radius:8px; padding:5px 6px; background:#fcfcfb; display:flex; flex-direction:column; gap:3px; overflow:hidden; }
+.onb-day.other { background:#f6f6f4; opacity:.5; }
+.onb-day.today { border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
+.onb-day-num { font-size:11px; font-weight:700; color:var(--ink); }
+.onb-day.today .onb-day-num { color:var(--gold-dark); }
+.onb-ev { font-size:9.5px; line-height:1.25; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--ink); border-radius:4px; padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; font-weight:600; }
+.onb-ev.more { background:transparent; color:var(--muted); font-weight:700; padding:0 4px; }
+.onb-cal-foot { font-size:11.5px; color:var(--muted); margin-top:12px; text-align:center; }
+.onb-cal-foot.err { color:#dc2626; }
+@media (max-width:600px){ .onb-day { min-height:48px; } .onb-ev { font-size:8.5px; } }
+
+/* v36 — per-agent neon colors in the roster (override the cyan-everything dark theme) */
+.jv-rost { position:relative; }
+.jv-rost-dot { background: var(--ag, #00E5FF) !important; box-shadow:0 0 8px var(--ag, #00E5FF) !important; }
+.jv-rost:hover { border-color: var(--ag, #00E5FF) !important; }
+.jv-rost.active { border-color: var(--ag) !important; background: color-mix(in srgb, var(--ag) 14%, transparent) !important; box-shadow:0 0 0 1px var(--ag), 0 0 16px color-mix(in srgb, var(--ag) 35%, transparent) !important; }
+.jv-rost.active .jv-rost-name { color: var(--ag) !important; text-shadow:0 0 10px color-mix(in srgb, var(--ag) 60%, transparent); }
+.jv-rost.active .jv-rost-state { color: var(--ag) !important; }
+.jv-rost-name { color:#fff; transition:color .15s; }
 
 /* v34 — language dropdown */
 .jtc-share { border-color:rgba(34,211,238,0.4) !important; }
@@ -5977,7 +6012,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v35</span>
+      <span class="ver-dot"></span><span>Spark HQ · v37</span>
     </div>
   </aside>
 
@@ -6163,10 +6198,12 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
           <div class="teams-card">
             <div class="teams-card-main">
-              <div class="teams-ico" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 12h.01M12 12h.01M16 12h.01"/>
-                  <path d="M21 12c0 4.418-4.03 8-9 8a9.7 9.7 0 0 1-4-.85L3 20l1.35-4A7.8 7.8 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+              <div class="teams-ico teams-ico-ms" aria-hidden="true">
+                <svg viewBox="0 0 32 32" width="26" height="26" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="23" cy="7.5" r="3.4" fill="#ffffff" opacity="0.9"/>
+                  <rect x="14.5" y="11.5" width="13.5" height="11" rx="2.4" fill="#ffffff" opacity="0.85"/>
+                  <rect x="3.5" y="8" width="16" height="16" rx="2.6" fill="#ffffff"/>
+                  <text x="11.5" y="20.2" font-family="Century Gothic, Arial, sans-serif" font-size="12" font-weight="700" fill="#5b5fc7" text-anchor="middle">T</text>
                 </svg>
               </div>
               <div class="teams-txt">
@@ -6175,6 +6212,21 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
               </div>
             </div>
             <a class="teams-btn" href="https://teams.microsoft.com/l/chat/19:fcd57349346e49e7abe48951e12d659e@thread.v2/conversations?context=%7B%22contextType%22%3A%22chat%22%7D" target="_blank" rel="noopener">Open in Teams</a>
+          </div>
+          <div class="onb-cal" id="onbCal">
+            <div class="onb-cal-head">
+              <div class="onb-cal-title">Onboarding Calendar</div>
+              <div class="onb-cal-nav">
+                <button class="onb-nav-btn" onclick="onbCalPrev()" aria-label="Previous month">&#8249;</button>
+                <span class="onb-cal-month" id="onbCalMonth">—</span>
+                <button class="onb-nav-btn" onclick="onbCalNext()" aria-label="Next month">&#8250;</button>
+              </div>
+            </div>
+            <div class="onb-cal-dow">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="onb-cal-grid" id="onbCalGrid"></div>
+            <div class="onb-cal-foot" id="onbCalFoot">Loading the onboarding calendar…</div>
           </div>
           <div class="pulse-board" id="pulseBoard"></div>
           <div class="pulse-feed" id="pulseFeed"></div>
@@ -7537,6 +7589,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
         });
+        if (tab === 'home') { try { onbCalLoad(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
           try { jvRenderHistory(); } catch(e){}
@@ -9003,17 +9056,17 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
   // ===== v21 — Jarvis agents (personas; same /ai endpoint, different system prompts) =====
   var JV_AGENTS = [
-    { id:'jarvis', name:'Jarvis', tag:'General assistant', color:'#F5C518', soon:false,
+    { id:'jarvis', name:'Jarvis', tag:'General assistant', color:'#FFE600', soon:false,
       blurb:"Your front door. Ask anything, or tell me what you need and I'll route you.", sys:"Keep formatting clean and minimal: short paragraphs, simple tables only when truly helpful, no emoji in headers. You are Jarvis, the general AI assistant inside Spark HQ, Spark Companies' internal hub (a multi-entity staffing & workforce-services firm). Be concise, friendly, practical. Help with drafting, summarizing, planning, and answering questions across the business." },
-    { id:'ops', name:'OPS', tag:'Pipeline & GP', color:'#2fbf71', soon:true,
+    { id:'ops', name:'OPS', tag:'Pipeline & GP', color:'#00FF9C', soon:true,
       blurb:"Live Salesforce pipeline, GP, and where to focus to close.", sys:"Keep formatting clean: a simple table is fine for numbers, but no emoji-decorated headers and no walls of markdown. You are OPS, Spark's pipeline and gross-profit analyst. You think like a sales-operations leader: weighted pipeline, win rates, GP per placement, week-over-week movement, at-risk deals. Be analytical and numbers-oriented. NOTE: live Salesforce data is not connected yet, so when asked for specific current figures, say so plainly and reason from whatever the user provides rather than inventing numbers." },
-    { id:'scout', name:'Scout', tag:'Research & search', color:'#22d3ee', soon:true,
+    { id:'scout', name:'Scout', tag:'Research & search', color:'#00E5FF', soon:true,
       blurb:"Research, market intel, and finding what you need.", sys:"You are Scout, Spark's research and search specialist. You help find, synthesize, and summarize information \u2014 documents, market/competitor research, candidates, and best practices. Be resourceful and cite what you're reasoning from. NOTE: live SharePoint/M365 and web search are not wired in yet; when asked to actually search internal files, say so and help structure the search instead." },
-    { id:'alfred', name:'Alfred', tag:'O365 super-assistant', color:'#c084fc', soon:true,
+    { id:'alfred', name:'Alfred', tag:'O365 super-assistant', color:'#C77DFF', soon:true,
       blurb:"Calendar, email, and Microsoft 365 help.", sys:"You are Alfred, Spark's Microsoft 365 super-assistant \u2014 calendar, email, meetings, and files. You think like a sharp executive assistant: anticipate needs, draft crisply, manage time well. NOTE: live calendar/mail/file access is being wired in; when asked to read actual O365 data you don't have yet, say so and help draft or plan instead." },
-    { id:'sniper', name:'Sniper', tag:'Sourcing & recruiting', color:'#ff8c52', soon:true,
+    { id:'sniper', name:'Sniper', tag:'Sourcing & recruiting', color:'#FF7A00', soon:true,
       blurb:"Sourcing, boolean searches, and candidate outreach.", sys:"You are Sniper, Spark's precision sourcing and recruiting specialist. You help write boolean searches, outreach messages, screen candidates, and target hard-to-fill roles. Be sharp, fast, and tactical about talent acquisition." },
-    { id:'rex', name:'Rex', tag:'Contracts & compliance', color:'#f472b6', soon:true,
+    { id:'rex', name:'Rex', tag:'Contracts & compliance', color:'#FF4FD8', soon:true,
       blurb:"Contracts, clauses, and compliance across states.", sys:"You are Rex, Spark's contracts and compliance assistant. You help review agreements, flag risks, explain clauses, and navigate employment/staffing compliance across multiple states. Be precise and risk-aware. You are not a lawyer and you remind users to confirm anything material with counsel." }
   ];
   var JV_LANG = '';
@@ -9091,6 +9144,73 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   };
 
 
+
+
+  // ===== v37 — Onboarding calendar (reads sterlingtmx shared calendar via Worker) =====
+  var ONB_VIEW = new Date(); ONB_VIEW.setDate(1);
+  var ONB_EVENTS = [];
+  function onbMonthLabel(d){ return d.toLocaleString('en-US',{month:'long',year:'numeric'}); }
+  window.onbCalPrev = function(){ ONB_VIEW = new Date(ONB_VIEW.getFullYear(), ONB_VIEW.getMonth()-1, 1); onbCalLoad(); };
+  window.onbCalNext = function(){ ONB_VIEW = new Date(ONB_VIEW.getFullYear(), ONB_VIEW.getMonth()+1, 1); onbCalLoad(); };
+
+  function onbCalLoad(){
+    var monthEl=document.getElementById('onbCalMonth'); if(monthEl) monthEl.textContent = onbMonthLabel(ONB_VIEW);
+    var foot=document.getElementById('onbCalFoot');
+    onbCalRender(); // render skeleton immediately
+    if(!window.SPARK_SB || !window.SPARK_SB.getToken){ if(foot){foot.textContent='Sign in to see the calendar.';} return; }
+    var first = new Date(ONB_VIEW.getFullYear(), ONB_VIEW.getMonth(), 1);
+    var last = new Date(ONB_VIEW.getFullYear(), ONB_VIEW.getMonth()+1, 0, 23,59,59);
+    if(foot){ foot.classList.remove('err'); foot.textContent='Loading the onboarding calendar\u2026'; }
+    window.SPARK_SB.getToken().then(function(tok){
+      if(!tok) return null;
+      var u = RP_WORKER + '/calendar-events?from=' + encodeURIComponent(first.toISOString()) + '&to=' + encodeURIComponent(last.toISOString());
+      return fetch(u, { headers:{ 'Authorization':'Bearer '+tok } }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); });
+    }).then(function(res){
+      if(!res){ return; }
+      if(!res.ok || res.d.error){
+        ONB_EVENTS=[]; onbCalRender();
+        if(foot){ foot.classList.add('err'); foot.textContent = 'Calendar unavailable: ' + ((res.d&&res.d.error)||'permission needed'); }
+        return;
+      }
+      ONB_EVENTS = res.d.events || [];
+      onbCalRender();
+      if(foot){ foot.classList.remove('err'); foot.textContent = ONB_EVENTS.length + ' event' + (ONB_EVENTS.length===1?'':'s') + ' this month \u00b7 sterlingtmx@sparktalentinc.com'; }
+    }).catch(function(err){
+      if(foot){ foot.classList.add('err'); foot.textContent='Calendar unavailable: '+(err.message||err); }
+    });
+  }
+
+  function onbCalRender(){
+    var grid=document.getElementById('onbCalGrid'); if(!grid) return;
+    var y=ONB_VIEW.getFullYear(), m=ONB_VIEW.getMonth();
+    var first=new Date(y,m,1); var startDow=first.getDay();
+    var daysInMonth=new Date(y,m+1,0).getDate();
+    var prevDays=new Date(y,m,0).getDate();
+    var today=new Date(); today.setHours(0,0,0,0);
+    // bucket events by yyyy-mm-dd
+    var byDay={};
+    ONB_EVENTS.forEach(function(e){
+      if(!e.start) return;
+      var ds=e.start.slice(0,10); // ISO date part
+      (byDay[ds]=byDay[ds]||[]).push(e);
+    });
+    var cells=[];
+    // 6 rows x 7 = 42 cells
+    for(var i=0;i<42;i++){
+      var dayNum, cls='onb-day', dateObj;
+      if(i<startDow){ dayNum=prevDays-startDow+1+i; cls+=' other'; dateObj=new Date(y,m-1,dayNum); }
+      else if(i>=startDow+daysInMonth){ dayNum=i-startDow-daysInMonth+1; cls+=' other'; dateObj=new Date(y,m+1,dayNum); }
+      else { dayNum=i-startDow+1; dateObj=new Date(y,m,dayNum); }
+      var key=dateObj.getFullYear()+'-'+String(dateObj.getMonth()+1).padStart(2,'0')+'-'+String(dateObj.getDate()).padStart(2,'0');
+      if(dateObj.getTime()===today.getTime()) cls+=' today';
+      var evs=byDay[key]||[];
+      var evHtml='';
+      evs.slice(0,2).forEach(function(e){ evHtml += '<div class="onb-ev" title="'+(e.subject||'').replace(/"/g,'&quot;')+'">'+(e.subject||'(event)').replace(/</g,'&lt;')+'</div>'; });
+      if(evs.length>2) evHtml += '<div class="onb-ev more">+'+(evs.length-2)+' more</div>';
+      cells.push('<div class="'+cls+'"><span class="onb-day-num">'+dayNum+'</span>'+evHtml+'</div>');
+    }
+    grid.innerHTML = cells.join('');
+  }
 
   // ===== v29 — Connections status, command log, targets =====
   function jvLoadConnections(){
@@ -16968,6 +17088,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
   })();
 
   init();
+  try { setTimeout(function(){ try{ onbCalLoad(); }catch(e){} }, 900); } catch(e){}
   // v26 — draw Jarvis agent pills on load (they only rendered on nav-click before,
   // so landing on the tab any other way left the bar empty). jvNewChat() renders them.
   try {
