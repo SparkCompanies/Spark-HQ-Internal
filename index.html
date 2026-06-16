@@ -5588,66 +5588,93 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
-/* ===== v29 — Mission Control DARK theme (overrides v22 light for Jarvis only) ===== */
-.jarvis-page { background:#0a0e1a !important; }
-.jarvis-tab-chrome { background:#0d1424 !important; border-bottom:1px solid rgba(245,197,24,0.18) !important; border-image:none !important; }
-.jtc-title { color:var(--gold) !important; letter-spacing:2px !important; }
-.jtc-sub { color:rgba(255,255,255,0.45) !important; }
-.jtc-status { background:#2fbf71 !important; box-shadow:0 0 8px rgba(47,191,113,.7) !important; }
-.jtc-btn { background:rgba(255,255,255,0.04) !important; border:1px solid rgba(245,197,24,0.25) !important; color:rgba(255,255,255,0.8) !important; }
-.jtc-btn:hover { border-color:var(--gold) !important; color:#fff !important; }
-.jv-agents { background:transparent; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:14px; }
-.jv-agent { background:rgba(255,255,255,0.04) !important; border:1px solid rgba(255,255,255,0.1) !important; color:rgba(255,255,255,0.6) !important; }
-.jv-agent:hover { border-color:var(--gold) !important; color:#fff !important; }
-.jv-agent.active { background:rgba(245,197,24,0.12) !important; border-color:var(--gold) !important; color:#fff !important; box-shadow:0 0 0 1px var(--gold), 0 0 14px rgba(245,197,24,0.25) !important; }
-.jv-shell { background:#0a0e1a; }
+/* ===== v30 — Mission Control: dark + teal/cyan glow (Fletcher-style) ===== */
+.jarvis-page { background:radial-gradient(ellipse 80% 60% at 50% 0%, #0b2230 0%, #071420 45%, #040c14 100%) !important; position:relative; }
+.jarvis-tab-chrome { background:rgba(8,20,30,0.85) !important; backdrop-filter:blur(8px); border-bottom:1px solid rgba(34,211,238,0.18) !important; border-image:none !important; }
+.jtc-title { color:#22d3ee !important; letter-spacing:3px !important; text-shadow:0 0 12px rgba(34,211,238,0.5); }
+.jtc-sub { color:rgba(255,255,255,0.4) !important; letter-spacing:.5px; }
+.jtc-status { background:#22d3ee !important; box-shadow:0 0 10px rgba(34,211,238,.9) !important; }
+.jtc-btn { background:rgba(34,211,238,0.06) !important; border:1px solid rgba(34,211,238,0.3) !important; color:rgba(255,255,255,0.85) !important; }
+.jtc-btn:hover { border-color:#22d3ee !important; color:#fff !important; box-shadow:0 0 12px rgba(34,211,238,0.3); }
+.jtc-wake.on { background:rgba(34,211,238,0.2) !important; border-color:#22d3ee !important; color:#fff !important; }
+.jv-agents { background:transparent; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:14px; }
+.jv-agent { background:rgba(255,255,255,0.03) !important; border:1px solid rgba(255,255,255,0.1) !important; color:rgba(255,255,255,0.55) !important; }
+.jv-agent:hover { border-color:rgba(34,211,238,0.6) !important; color:#fff !important; }
+.jv-agent.active { background:rgba(34,211,238,0.12) !important; border-color:#22d3ee !important; color:#fff !important; box-shadow:0 0 0 1px #22d3ee, 0 0 16px rgba(34,211,238,0.3) !important; }
+.jv-agent .ja-dot { background:var(--ag, #22d3ee) !important; }
+.jv-agent.active .ja-dot { box-shadow:0 0 8px #22d3ee !important; }
+.ja-state { color:rgba(255,255,255,0.35) !important; }
+.jv-agent.active .ja-state { color:#22d3ee !important; }
+.jv-shell { background:transparent; }
 .jv-messages { background:transparent; }
-.jv-empty-title { color:#fff !important; }
-.jv-empty-sub { color:rgba(255,255,255,0.5) !important; }
+.jv-empty-title { color:#fff !important; text-shadow:0 0 20px rgba(34,211,238,0.3); }
+.jv-empty-sub { color:rgba(255,255,255,0.45) !important; }
 .jv-bubble { color:rgba(255,255,255,0.92) !important; }
 .jv-msg.bot .jv-bubble { color:rgba(255,255,255,0.88) !important; }
-.jv-msg.user .jv-av { background:var(--gold) !important; color:#0a0e1a !important; }
-.jv-msg.bot .jv-av { background:linear-gradient(135deg,var(--gold),var(--gold-dark)) !important; color:#0a0e1a !important; }
-.jv-composer { background:rgba(255,255,255,0.05) !important; border:1px solid rgba(245,197,24,0.2) !important; box-shadow:none !important; }
-.jv-composer:focus-within { border-color:var(--gold) !important; box-shadow:0 0 0 3px rgba(245,197,24,.15) !important; }
+.jv-msg.user .jv-av { background:#22d3ee !important; color:#040c14 !important; box-shadow:0 0 12px rgba(34,211,238,0.4); }
+.jv-msg.bot .jv-av { background:linear-gradient(135deg,#22d3ee,#0e7490) !important; color:#040c14 !important; }
+.jv-composer { background:rgba(34,211,238,0.05) !important; border:1px solid rgba(34,211,238,0.25) !important; box-shadow:none !important; }
+.jv-composer:focus-within { border-color:#22d3ee !important; box-shadow:0 0 0 3px rgba(34,211,238,.15), 0 0 24px rgba(34,211,238,0.15) !important; }
 .jv-input { color:#fff !important; }
-.jv-input::placeholder { color:rgba(255,255,255,0.35) !important; }
-.jv-foot { color:rgba(255,255,255,0.35) !important; }
-.jv-mic { background:rgba(255,255,255,0.06) !important; border:1px solid rgba(245,197,24,0.3) !important; color:rgba(255,255,255,0.85) !important; }
-.jv-sug { background:rgba(255,255,255,0.04) !important; border:1px solid rgba(255,255,255,0.12) !important; color:rgba(255,255,255,0.6) !important; }
-.jv-sug:hover { border-color:var(--gold) !important; color:#fff !important; }
-.ja-state { color:rgba(255,255,255,0.4) !important; }
-.jv-agent.active .ja-state { color:var(--gold) !important; }
-/* markdown tables on dark */
-.jv-table th { background:rgba(245,197,24,0.1) !important; color:#fff !important; border-color:rgba(255,255,255,0.15) !important; }
-.jv-table td { border-color:rgba(255,255,255,0.12) !important; color:rgba(255,255,255,0.85) !important; }
+.jv-input::placeholder { color:rgba(255,255,255,0.3) !important; }
+.jv-foot { color:rgba(255,255,255,0.3) !important; }
+.jv-mic { background:rgba(34,211,238,0.08) !important; border:1px solid rgba(34,211,238,0.35) !important; color:#fff !important; }
+.jv-mic.on { background:#22d3ee !important; color:#040c14 !important; }
+.jv-send { background:#22d3ee !important; color:#040c14 !important; }
+.jv-send:hover { background:#67e8f9 !important; }
+.jv-sug { background:rgba(255,255,255,0.03) !important; border:1px solid rgba(34,211,238,0.18) !important; color:rgba(255,255,255,0.6) !important; }
+.jv-sug:hover { border-color:#22d3ee !important; color:#fff !important; }
+/* markdown on dark-teal */
+.jv-table th { background:rgba(34,211,238,0.12) !important; color:#fff !important; border-color:rgba(34,211,238,0.25) !important; }
+.jv-table td { border-color:rgba(255,255,255,0.1) !important; color:rgba(255,255,255,0.85) !important; }
 .jv-table tr:nth-child(even) td { background:rgba(255,255,255,0.03) !important; }
-.jv-bubble code { background:rgba(255,255,255,0.1) !important; color:#ffe89a !important; }
+.jv-bubble code { background:rgba(34,211,238,0.12) !important; color:#67e8f9 !important; }
 .jv-bubble strong { color:#fff !important; }
-.jv-bubble .jv-h { color:#fff !important; }
-.jv-bubble a { color:var(--gold) !important; }
-.jv-bubble .jv-hr { border-top-color:rgba(255,255,255,0.12) !important; }
+.jv-bubble .jv-h { color:#22d3ee !important; }
+.jv-bubble a { color:#67e8f9 !important; }
+.jv-bubble .jv-hr { border-top-color:rgba(255,255,255,0.1) !important; }
 
-/* orb as the voice button — bigger, clearly interactive */
-.jv-sphere { width:130px; height:130px; }
-.jv-sphere::after { content:'TAP TO SPEAK'; position:absolute; bottom:-22px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:1.5px; color:rgba(255,255,255,0.4); }
-.jv-sphere.listening::after { content:'LISTENING…'; color:var(--gold); }
+/* === the moving "brain" orb (neural, teal/cyan) === */
+.jv-sphere { position:relative; width:160px; height:160px; margin:0 auto 30px; cursor:pointer; }
+.jv-brain-core { position:absolute; inset:46px; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #a5f3fc, #22d3ee 50%, #0e7490);
+  box-shadow:0 0 40px rgba(34,211,238,.7), 0 0 80px rgba(34,211,238,.35), inset 0 0 24px rgba(8,40,55,.6);
+  animation:jvBreathe 3.4s ease-in-out infinite; }
+.jv-orbit { position:absolute; inset:0; border-radius:50%; border:1px solid rgba(34,211,238,.28); animation:jvSpin 11s linear infinite; }
+.jv-orbit2 { inset:18px; border-color:rgba(103,232,249,.22); animation-duration:7s; animation-direction:reverse; }
+.jv-orbit3 { inset:34px; border-color:rgba(34,211,238,.16); animation-duration:14s; }
+/* tilt the rings so they read as 3D orbits, not flat circles */
+.jv-orbit  { transform:rotateX(68deg); } .jv-orbit2 { transform:rotateX(20deg) rotateY(40deg); } .jv-orbit3 { transform:rotateX(74deg) rotateY(20deg); }
+.jv-node { position:absolute; width:6px; height:6px; border-radius:50%; background:#a5f3fc; box-shadow:0 0 8px #22d3ee; }
+.jv-node1 { top:8%; left:50%; animation:jvOrbitA 5s linear infinite; }
+.jv-node2 { top:50%; left:6%; animation:jvOrbitB 8s linear infinite; }
+.jv-node3 { bottom:10%; right:14%; animation:jvOrbitC 6.5s linear infinite; }
+.jv-sphere-glyph { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:30px; color:#04141c; text-shadow:0 0 10px rgba(165,243,252,.8); pointer-events:none; z-index:2; }
+.jv-sphere::after { content:'TAP TO SPEAK'; position:absolute; bottom:-26px; left:0; right:0; text-align:center; font-size:9px; letter-spacing:2px; color:rgba(34,211,238,0.55); }
+.jv-sphere.listening::after { content:'LISTENING…'; color:#67e8f9; }
+.jv-sphere.listening .jv-brain-core { animation:jvBreatheFast .9s ease-in-out infinite; box-shadow:0 0 60px rgba(34,211,238,.95), 0 0 110px rgba(34,211,238,.5); }
+@keyframes jvBreathe { 0%,100%{transform:scale(1);} 50%{transform:scale(1.07);} }
+@keyframes jvBreatheFast { 0%,100%{transform:scale(1);} 50%{transform:scale(1.15);} }
+@keyframes jvSpin { from{transform:rotate(0);} to{transform:rotate(360deg);} }
+@keyframes jvOrbitA { from{transform:rotate(0) translateX(72px) rotate(0);} to{transform:rotate(360deg) translateX(72px) rotate(-360deg);} }
+@keyframes jvOrbitB { from{transform:rotate(0) translateX(60px) rotate(0);} to{transform:rotate(-360deg) translateX(60px) rotate(360deg);} }
+@keyframes jvOrbitC { from{transform:rotate(0) translateX(50px) rotate(0);} to{transform:rotate(360deg) translateX(50px) rotate(-360deg);} }
 
-/* connections panel + command log + targets (mission-control widgets) */
+/* mission-control panels on dark-teal */
 .jv-mc-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:820px; margin:0 auto 4px; padding:14px 20px 0; }
 @media (max-width:680px){ .jv-mc-grid { grid-template-columns:1fr; } }
-.jv-panel { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px 16px; }
-.jv-panel-title { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); font-weight:700; margin-bottom:10px; }
+.jv-panel { background:rgba(8,28,40,0.5); border:1px solid rgba(34,211,238,0.15); border-radius:12px; padding:14px 16px; box-shadow:inset 0 0 30px rgba(34,211,238,0.04); }
+.jv-panel-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:#22d3ee; font-weight:700; margin-bottom:10px; text-shadow:0 0 8px rgba(34,211,238,0.4); }
 .jv-conn-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:12.5px; color:rgba(255,255,255,0.75); }
 .jv-conn-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:8px; }
-.jv-conn-dot.up { background:#2fbf71; box-shadow:0 0 7px rgba(47,191,113,.7); }
+.jv-conn-dot.up { background:#22d3ee; box-shadow:0 0 8px rgba(34,211,238,.9); }
 .jv-conn-dot.down, .jv-conn-dot.error { background:#ef4444; }
 .jv-conn-dot.not_connected { background:rgba(255,255,255,0.25); }
 .jv-conn-state { font-size:10px; letter-spacing:.5px; text-transform:uppercase; color:rgba(255,255,255,0.4); }
-.jv-conn-state.up { color:#2fbf71; }
+.jv-conn-state.up { color:#22d3ee; }
 .jv-target { display:flex; align-items:center; justify-content:space-between; padding:6px 0; font-size:12.5px; color:rgba(255,255,255,0.75); }
-.jv-target input { width:90px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#fff; padding:4px 8px; font-family:inherit; font-size:12px; text-align:right; }
-.jv-target input:focus { outline:none; border-color:var(--gold); }
+.jv-target input { width:90px; background:rgba(34,211,238,0.06); border:1px solid rgba(34,211,238,0.2); border-radius:6px; color:#fff; padding:4px 8px; font-family:inherit; font-size:12px; text-align:right; }
+.jv-target input:focus { outline:none; border-color:#22d3ee; }
 .jv-log { max-height:120px; overflow-y:auto; }
 .jv-log-item { font-size:11.5px; color:rgba(255,255,255,0.55); padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
 .jv-log-empty { font-size:11.5px; color:rgba(255,255,255,0.3); font-style:italic; }
@@ -5916,7 +5943,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v29</span>
+      <span class="ver-dot"></span><span>Spark HQ · v30</span>
     </div>
   </aside>
 
@@ -6170,9 +6197,13 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         <div class="jv-messages" id="jvMessages">
           <div class="jv-empty" id="jvEmpty">
             <div class="jv-sphere" id="jvSphere" onclick="jvToggleMic()" role="button" aria-label="Tap to speak">
-              <div class="jv-sphere-core"></div>
-              <div class="jv-sphere-ring jv-sphere-ring1"></div>
-              <div class="jv-sphere-ring jv-sphere-ring2"></div>
+              <div class="jv-orbit jv-orbit1"></div>
+              <div class="jv-orbit jv-orbit2"></div>
+              <div class="jv-orbit jv-orbit3"></div>
+              <div class="jv-brain-core"></div>
+              <div class="jv-node jv-node1"></div>
+              <div class="jv-node jv-node2"></div>
+              <div class="jv-node jv-node3"></div>
               <div class="jv-sphere-glyph">⬡</div>
             </div>
             <div class="jv-empty-title">How can I help?</div>
@@ -9272,7 +9303,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     JV_HISTORY = []; JV_CONV_ID = null;
     try { jvRenderAgents(); } catch(e){}
     var box=document.getElementById('jvMessages');
-    if(box) box.innerHTML='<div class="jv-empty" id="jvEmpty"><div class="jv-sphere" id="jvSphere" onclick="jvToggleMic()" role="button" aria-label="Tap to speak"><div class="jv-sphere-core"></div><div class="jv-sphere-ring jv-sphere-ring1"></div><div class="jv-sphere-ring jv-sphere-ring2"></div><div class="jv-sphere-glyph">\u2b21</div></div><div class="jv-empty-title">How can I help?</div><div class="jv-empty-sub">Tap the sphere, type below, or use the mic. Switch agents above for specialized help.</div><div class="jv-suggest" id="jvSuggest"></div></div>';
+    if(box) box.innerHTML='<div class="jv-empty" id="jvEmpty"><div class="jv-sphere" id="jvSphere" onclick="jvToggleMic()" role="button" aria-label="Tap to speak"><div class="jv-orbit jv-orbit1"></div><div class="jv-orbit jv-orbit2"></div><div class="jv-orbit jv-orbit3"></div><div class="jv-brain-core"></div><div class="jv-node jv-node1"></div><div class="jv-node jv-node2"></div><div class="jv-node jv-node3"></div><div class="jv-sphere-glyph">\u2b21</div></div><div class="jv-empty-title">How can I help?</div><div class="jv-empty-sub">Tap the sphere, type below, or use the mic. Switch agents above for specialized help.</div><div class="jv-suggest" id="jvSuggest"></div></div>';
     try { jvRenderSuggestions(); } catch(e){}
   };
   function jvInitials(){
