@@ -5482,6 +5482,22 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+
+.org-node { width:182px; }
+.org-node .on-email { font-size:9.5px; color:#6f6f88; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+
+
+.org-stage { background:radial-gradient(1300px 850px at 50% 22%, #18182e 0%, #0e0e1c 55%, #07070d 100%); }
+.org-world { backface-visibility:hidden; }
+.org-node { -webkit-font-smoothing:antialiased; }
+.org-node .on-name { letter-spacing:-.1px; }
+
+/* v15b — People tab full-bleed dark (overrides centered light column) */
+#view-people { background:#08080f; }
+#view-people .tab-body { max-width:none !important; margin:0 !important; padding:0 !important; background:#08080f; }
+.tab-page#view-people { min-height:0; }
+
 /* ==================== V15 — NEON ORG CHART ==================== */
 .org-head { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; justify-content:space-between; align-items:flex-start; padding:18px 26px; pointer-events:none; }
 .org-head > div, .org-controls { pointer-events:auto; }
@@ -5623,7 +5639,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v15</span>
+      <span class="ver-dot"></span><span>Spark HQ · v15b</span>
     </div>
   </aside>
 
@@ -5954,13 +5970,13 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
             <h1 class="org-h">The Spark org</h1>
           </div>
           <div class="org-controls">
-            <input type="search" id="orgSearch" class="org-search" placeholder="Find someone\u2026" oninput="orgHighlight()" />
+            <input type="search" id="orgSearch" class="org-search" placeholder="Find someone…" oninput="orgHighlight()" />
             <button class="org-btn" onclick="orgZoom(1.15)">+</button>
-            <button class="org-btn" onclick="orgZoom(0.87)">\u2212</button>
+            <button class="org-btn" onclick="orgZoom(0.87)">−</button>
             <button class="org-btn" onclick="orgResetView()">Reset</button>
           </div>
         </div>
-        <div class="org-status" id="orgStatus">Loading the directory\u2026</div>
+        <div class="org-status" id="orgStatus">Loading the directory…</div>
         <div class="org-stage" id="orgStage">
           <div class="org-world" id="orgWorld"></div>
         </div>
@@ -8116,7 +8132,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     Object.keys(children).forEach(function(k){ children[k].sort(function(a,b){ return a.name.localeCompare(b.name); }); });
     roots.sort(function(a,b){ return a.name.localeCompare(b.name); });
 
-    var NODE_W = 164, NODE_H = 52, H_GAP = 22, V_GAP = 58, TREE_GAP = 64;
+    var NODE_W = 182, NODE_H = 64, H_GAP = 24, V_GAP = 62, TREE_GAP = 70;
     var positions = {};
     var cursorX = 0;
 
@@ -8170,7 +8186,8 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
         ' style="left:'+pos.x+'px;top:'+pos.y+'px;--nc:'+col.c+';--ng:'+col.g+';">'+
         '<div class="on-avatar">'+initials+'</div>'+
         '<div class="on-txt"><div class="on-name">'+(p.name||'\u2014')+'</div>'+
-        '<div class="on-title">'+(p.title||'\u2014')+'</div></div>'+
+        '<div class="on-title">'+(p.title||'\u2014')+'</div>'+
+        '<div class="on-email">'+(p.email||'')+'</div></div>'+
         '</div>';
     }).join('');
     world.insertAdjacentHTML('beforeend', htmlNodes);
@@ -8200,7 +8217,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   window.orgResetView = function() {
     var stage = document.getElementById('orgStage');
     orgView.scale = 0.7;
-    orgView.x = (stage ? stage.clientWidth/2 : 500) - 82;
+    orgView.x = (stage ? stage.clientWidth/2 : 500) - 91;
     orgView.y = 120;
     orgApplyTransform();
   };
