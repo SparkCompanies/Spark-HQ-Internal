@@ -8168,7 +8168,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     // children map; multi-tree: each person whose manager isn't in the set is a root
     var children = {}, roots = [];
     ORG_PEOPLE.forEach(function(p){
-      var mid = (p.managerId && ORG_BY_ID[p.managerId]) ? p.managerId : null;
+      var mid = (p.managerId && ORG_BY_ID[p.managerId] && p.managerId !== p.id) ? p.managerId : null;
       if (mid) (children[mid] = children[mid] || []).push(p);
       else roots.push(p);
     });
@@ -8178,9 +8178,12 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     var NODE_W = 182, NODE_H = 64, H_GAP = 24, V_GAP = 62, TREE_GAP = 70;
     var positions = {};
     var cursorX = 0;
+    var placed = {}; // guard against cycles / a person reachable via two paths
 
     function layout(node, depth) {
-      var kids = children[node.id] || [];
+      if (placed[node.id]) { return positions[node.id] ? positions[node.id].x : cursorX * (NODE_W + H_GAP); }
+      placed[node.id] = true;
+      var kids = (children[node.id] || []).filter(function(k){ return !placed[k.id]; });
       if (!kids.length) {
         positions[node.id] = { x: cursorX * (NODE_W + H_GAP), y: depth * (NODE_H + V_GAP) };
         cursorX += 1;
@@ -8192,6 +8195,10 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     }
     // multi-tree: lay each root's tree, leaving a gap between trees
     roots.forEach(function(r){ layout(r, 0); cursorX += TREE_GAP / (NODE_W + H_GAP); });
+    // safety net: any person not placed (orphaned by a cycle) gets laid out as its own root
+    ORG_PEOPLE.forEach(function(p){
+      if (!placed[p.id]) { layout(p, 0); cursorX += TREE_GAP / (NODE_W + H_GAP); }
+    });
 
     // edges — single SVG, drawn once
     var svgNS = 'http://www.w3.org/2000/svg';
@@ -8224,9 +8231,9 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       var col = orgColorFor(p.department);
       legendDepts[p.department || 'Other'] = col;
       var initials = (p.name||'?').split(/\s+/).map(function(s){return s[0];}).slice(0,2).join('').toUpperCase();
-      return '<div class="org-node" data-id="'+p.id+'" onclick="orgOpenDetail(\''+p.id+'\')" style="cursor:pointer" data-search="'+
+      return '<div class="org-node" data-id="'+p.id+'" onclick="orgOpenDetail(\''+p.id+'\')" data-search="'+
         (p.name+' '+p.email+' '+p.title+' '+p.department).toLowerCase().replace(/"/g,'')+'"'+
-        ' style="left:'+pos.x+'px;top:'+pos.y+'px;--nc:'+col.c+';--ng:'+col.g+';">'+
+        ' style="cursor:pointer;left:'+pos.x+'px;top:'+pos.y+'px;--nc:'+col.c+';--ng:'+col.g+';">'+
         '<div class="on-avatar">'+initials+'</div>'+
         '<div class="on-txt"><div class="on-name">'+(p.name||'\u2014')+'</div>'+
         '<div class="on-title">'+(p.title||'\u2014')+'</div>'+
