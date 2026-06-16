@@ -5772,8 +5772,21 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .onb-day.today { border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
 .onb-day-num { font-size:11px; font-weight:700; color:var(--ink); }
 .onb-day.today .onb-day-num { color:var(--gold-dark); }
-.onb-ev { font-size:9.5px; line-height:1.25; background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--ink); border-radius:4px; padding:2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:default; font-weight:600; }
-.onb-ev.more { background:transparent; color:var(--muted); font-weight:700; padding:0 4px; }
+.onb-ev { display:flex; align-items:center; gap:4px; font-size:9.5px; line-height:1.2; background:#fffaf0; border-left:3px solid var(--gold); color:var(--ink); border-radius:3px; padding:2px 5px; white-space:nowrap; overflow:hidden; cursor:pointer; transition:background .12s; }
+.onb-ev:hover { background:#fff3d6; }
+.onb-ev .onb-ev-time { font-weight:700; color:var(--gold-dark); flex-shrink:0; }
+.onb-ev .onb-ev-name { overflow:hidden; text-overflow:ellipsis; }
+.onb-ev.more { background:transparent; border:none; color:var(--muted); font-weight:700; padding:1px 5px; justify-content:center; cursor:pointer; }
+.onb-ev.more:hover { color:var(--ink); }
+/* event detail popup */
+.onb-pop { position:fixed; inset:0; background:rgba(10,12,16,0.45); display:flex; align-items:center; justify-content:center; z-index:9998; padding:20px; }
+.onb-pop-card { background:#fff; border-radius:14px; padding:22px 24px; width:100%; max-width:400px; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+.onb-pop-date { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gold-dark); }
+.onb-pop-title { font-size:17px; font-weight:700; color:var(--ink); margin:4px 0 12px; }
+.onb-pop-row { display:flex; gap:8px; font-size:13px; color:var(--ink); margin:6px 0; }
+.onb-pop-row .k { color:var(--muted); min-width:64px; }
+.onb-pop-close { margin-top:16px; width:100%; padding:10px; border-radius:9px; border:1px solid var(--line); background:#fff; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink); }
+.onb-pop-close:hover { border-color:var(--gold); }
 .onb-cal-foot { font-size:11.5px; color:var(--muted); margin-top:12px; text-align:center; }
 .onb-cal-foot.err { color:#dc2626; }
 @media (max-width:600px){ .onb-day { min-height:48px; } .onb-ev { font-size:8.5px; } }
@@ -6031,7 +6044,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v39</span>
+      <span class="ver-dot"></span><span>Spark HQ · v40</span>
     </div>
   </aside>
 
@@ -9225,6 +9238,52 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     });
   };
 
+
+  function onbFmtTime(e){
+    if(!e || !e.start) return '';
+    if(e.allDay) return 'All day';
+    try {
+      var d=new Date(e.start);
+      var h=d.getHours(), mn=d.getMinutes();
+      var ap=h>=12?'p':'a'; var hh=h%12; if(hh===0)hh=12;
+      return hh+(mn?(':'+String(mn).padStart(2,'0')):'')+ap;
+    } catch(_){ return ''; }
+  }
+  function onbFmtRange(e){
+    if(!e) return '';
+    if(e.allDay) return 'All day';
+    var s=onbFmtTime(e); var en='';
+    if(e.end){ try{ var d=new Date(e.end); var h=d.getHours(),mn=d.getMinutes(); var ap=h>=12?'p':'a'; var hh=h%12; if(hh===0)hh=12; en=hh+(mn?(':'+String(mn).padStart(2,'0')):'')+ap; }catch(_){} }
+    return s + (en?(' \u2013 '+en):'');
+  }
+  window.onbShowEvent = function(idx){
+    var e = ONB_EVENTS[idx]; if(!e) return;
+    var dateStr=''; try{ dateStr=new Date(e.start).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }catch(_){}
+    var pop=document.getElementById('onbPop');
+    if(!pop){ pop=document.createElement('div'); pop.id='onbPop'; pop.className='onb-pop'; document.body.appendChild(pop); }
+    pop.innerHTML = '<div class="onb-pop-card">'
+      + '<div class="onb-pop-date">'+dateStr+'</div>'
+      + '<div class="onb-pop-title">'+(e.subject||'(event)').replace(/</g,'&lt;')+'</div>'
+      + '<div class="onb-pop-row"><span class="k">Time</span><span>'+onbFmtRange(e)+'</span></div>'
+      + (e.location?'<div class="onb-pop-row"><span class="k">Location</span><span>'+e.location.replace(/</g,'&lt;')+'</span></div>':'')
+      + '<button class="onb-pop-close" onclick="onbClosePop()">Close</button>'
+      + '</div>';
+    pop.style.display='flex';
+    pop.onclick=function(ev){ if(ev.target===pop) onbClosePop(); };
+  };
+  window.onbClosePop = function(){ var p=document.getElementById('onbPop'); if(p) p.style.display='none'; };
+  window.onbShowDay = function(key){
+    var evs = ONB_EVENTS.filter(function(e){ return e.start && e.start.slice(0,10)===key; });
+    if(!evs.length) return;
+    var dateStr=''; try{ dateStr=new Date(key+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }catch(_){}
+    var pop=document.getElementById('onbPop');
+    if(!pop){ pop=document.createElement('div'); pop.id='onbPop'; pop.className='onb-pop'; document.body.appendChild(pop); }
+    var rows = evs.map(function(e){ return '<div class="onb-pop-row"><span class="k">'+onbFmtRange(e)+'</span><span>'+(e.subject||'(event)').replace(/</g,'&lt;')+'</span></div>'; }).join('');
+    pop.innerHTML='<div class="onb-pop-card"><div class="onb-pop-date">'+dateStr+'</div><div class="onb-pop-title">'+evs.length+' appointments</div>'+rows+'<button class="onb-pop-close" onclick="onbClosePop()">Close</button></div>';
+    pop.style.display='flex';
+    pop.onclick=function(ev){ if(ev.target===pop) onbClosePop(); };
+  };
+
   // ===== v37 — Onboarding calendar (reads sterlingtmx shared calendar via Worker) =====
   // Onboarding calendar source. Set to 'group:<id>' or 'user:<email>' once discovered.
   // Empty string = let the Worker use its default/configured source.
@@ -9288,8 +9347,17 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       if(dateObj.getTime()===today.getTime()) cls+=' today';
       var evs=byDay[key]||[];
       var evHtml='';
-      evs.slice(0,2).forEach(function(e){ evHtml += '<div class="onb-ev" title="'+(e.subject||'').replace(/"/g,'&quot;')+'">'+(e.subject||'(event)').replace(/</g,'&lt;')+'</div>'; });
-      if(evs.length>2) evHtml += '<div class="onb-ev more">+'+(evs.length-2)+' more</div>';
+      evs.slice(0,2).forEach(function(e){
+        var idx = ONB_EVENTS.indexOf(e);
+        var tm = onbFmtTime(e);
+        evHtml += '<div class="onb-ev" onclick="onbShowEvent('+idx+')" title="'+(e.subject||'').replace(/"/g,'&quot;')+'">'
+          + (tm?'<span class="onb-ev-time">'+tm+'</span>':'')
+          + '<span class="onb-ev-name">'+(e.subject||'(event)').replace(/</g,'&lt;')+'</span></div>';
+      });
+      if(evs.length>2){
+        var firstIdx = ONB_EVENTS.indexOf(evs[0]);
+        evHtml += '<div class="onb-ev more" onclick="onbShowDay(\''+key+'\')">+'+(evs.length-2)+' more</div>';
+      }
       cells.push('<div class="'+cls+'"><span class="onb-day-num">'+dayNum+'</span>'+evHtml+'</div>');
     }
     grid.innerHTML = cells.join('');
