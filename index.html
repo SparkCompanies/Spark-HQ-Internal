@@ -5553,6 +5553,14 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .re-wrap.re-wrap-top { margin-top:0; padding-top:0; border-top:none; }
 .rp-section-label { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dark); font-weight:700; margin:30px 0 12px; padding-top:24px; border-top:2px solid var(--line); }
 
+/* ===== v21 — Jarvis agent switcher ===== */
+.jv-agents { display:flex; gap:8px; flex-wrap:wrap; max-width:820px; margin:0 auto; width:100%; box-sizing:border-box; padding:14px 20px 0; }
+.jv-agent { display:flex; align-items:center; gap:7px; padding:7px 13px; border:1px solid var(--line); border-radius:999px; background:#fff; cursor:pointer; font-family:inherit; font-size:12.5px; color:var(--muted); transition:border-color .15s, color .15s, background .15s; }
+.jv-agent:hover { border-color:var(--gold); color:var(--ink); }
+.jv-agent.active { border-color:var(--gold); background:#fffdf5; color:var(--ink); font-weight:600; box-shadow:0 0 0 1px var(--gold); }
+.jv-agent .ja-dot { width:7px; height:7px; border-radius:50%; background:var(--ag, var(--gold)); flex-shrink:0; }
+.jv-agent .ja-soon { font-size:9px; letter-spacing:.5px; text-transform:uppercase; color:var(--gold-dark); background:#fff8e1; padding:1px 5px; border-radius:6px; margin-left:2px; }
+
 /* ===== v20 — Jarvis real chat ===== */
 .jv-shell { display:flex; flex-direction:column; height:calc(100vh - 56px - 58px); max-width:820px; margin:0 auto; width:100%; box-sizing:border-box; padding:0 20px; }
 .jv-messages { flex:1; overflow-y:auto; padding:24px 0 16px; display:flex; flex-direction:column; gap:16px; }
@@ -5781,7 +5789,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v20</span>
+      <span class="ver-dot"></span><span>Spark HQ · v21</span>
     </div>
   </aside>
 
@@ -6004,13 +6012,14 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <div class="jarvis-tab-chrome">
         <div class="jtc-l">
           <span class="jtc-status"></span>
-          <span class="jtc-title">JARVIS</span>
-          <span class="jtc-sub">Spark HQ assistant · powered by Claude</span>
+          <span class="jtc-title" id="jvTitle">JARVIS</span>
+          <span class="jtc-sub" id="jvSub">Spark HQ assistant · powered by Claude</span>
         </div>
         <div class="jtc-actions">
           <button class="jtc-btn" onclick="jvNewChat()" title="Start a fresh conversation">New chat</button>
         </div>
       </div>
+      <div class="jv-agents" id="jvAgents"></div>
       <div class="jv-shell">
         <div class="jv-messages" id="jvMessages">
           <div class="jv-empty" id="jvEmpty">
@@ -8893,6 +8902,45 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+  // ===== v21 — Jarvis agents (personas; same /ai endpoint, different system prompts) =====
+  var JV_AGENTS = [
+    { id:'jarvis', name:'Jarvis', tag:'General assistant', color:'#F5C518', soon:false,
+      sys:"You are Jarvis, the general AI assistant inside Spark HQ, Spark Companies' internal hub (a multi-entity staffing & workforce-services firm). Be concise, friendly, practical. Help with drafting, summarizing, planning, and answering questions across the business." },
+    { id:'ops', name:'OPS', tag:'Pipeline & GP', color:'#2fbf71', soon:true,
+      sys:"You are OPS, Spark's pipeline and gross-profit analyst. You think like a sales-operations leader: weighted pipeline, win rates, GP per placement, week-over-week movement, at-risk deals. Be analytical and numbers-oriented. NOTE: live Salesforce data is not connected yet, so when asked for specific current figures, say so plainly and reason from whatever the user provides rather than inventing numbers." },
+    { id:'scout', name:'Scout', tag:'Research & search', color:'#22d3ee', soon:true,
+      sys:"You are Scout, Spark's research and search specialist. You help find, synthesize, and summarize information \u2014 documents, market/competitor research, candidates, and best practices. Be resourceful and cite what you're reasoning from. NOTE: live SharePoint/M365 and web search are not wired in yet; when asked to actually search internal files, say so and help structure the search instead." },
+    { id:'alfred', name:'Alfred', tag:'O365 super-assistant', color:'#c084fc', soon:true,
+      sys:"You are Alfred, Spark's Microsoft 365 super-assistant \u2014 calendar, email, meetings, and files. You think like a sharp executive assistant: anticipate needs, draft crisply, manage time well. NOTE: live calendar/mail/file access is being wired in; when asked to read actual O365 data you don't have yet, say so and help draft or plan instead." },
+    { id:'sniper', name:'Sniper', tag:'Sourcing & recruiting', color:'#ff8c52', soon:true,
+      sys:"You are Sniper, Spark's precision sourcing and recruiting specialist. You help write boolean searches, outreach messages, screen candidates, and target hard-to-fill roles. Be sharp, fast, and tactical about talent acquisition." },
+    { id:'rex', name:'Rex', tag:'Contracts & compliance', color:'#f472b6', soon:true,
+      sys:"You are Rex, Spark's contracts and compliance assistant. You help review agreements, flag risks, explain clauses, and navigate employment/staffing compliance across multiple states. Be precise and risk-aware. You are not a lawyer and you remind users to confirm anything material with counsel." }
+  ];
+  var JV_ACTIVE = 'jarvis';
+
+  function jvCurrentAgent(){ return JV_AGENTS.find(function(a){ return a.id===JV_ACTIVE; }) || JV_AGENTS[0]; }
+
+  function jvRenderAgents(){
+    var bar=document.getElementById('jvAgents'); if(!bar) return;
+    bar.innerHTML = JV_AGENTS.map(function(a){
+      return '<button class="jv-agent'+(a.id===JV_ACTIVE?' active':'')+'" style="--ag:'+a.color+'" onclick="jvSwitchAgent(\''+a.id+'\')">'
+        + '<span class="ja-dot"></span>' + a.name
+        + (a.soon ? '<span class="ja-soon">data soon</span>' : '') + '</button>';
+    }).join('');
+  }
+
+  window.jvSwitchAgent = function(id){
+    if(id===JV_ACTIVE) return;
+    JV_ACTIVE = id;
+    var a = jvCurrentAgent();
+    var t=document.getElementById('jvTitle'); if(t) t.textContent = a.name.toUpperCase();
+    var s=document.getElementById('jvSub'); if(s) s.textContent = a.tag + ' · powered by Claude';
+    jvRenderAgents();
+    jvNewChat();  // fresh conversation per agent
+  };
+
   // ===== v20 — Jarvis real chat (talks to Worker /ai -> Claude) =====
   var JV_HISTORY = [];
   var JV_BUSY = false;
@@ -8900,6 +8948,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
   window.jvKey = function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); jvSend(); } };
   window.jvNewChat = function(){
     JV_HISTORY = [];
+    try { jvRenderAgents(); } catch(e){}
     var box=document.getElementById('jvMessages');
     if(box) box.innerHTML='<div class="jv-empty" id="jvEmpty"><div class="jv-empty-mark">\u2b21</div><div class="jv-empty-title">How can I help?</div><div class="jv-empty-sub">Ask me anything \u2014 drafting, summarizing, quick questions, or thinking through a problem.</div></div>';
   };
@@ -8937,7 +8986,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       if(!tok) throw new Error('Not signed in');
       return fetch(RP_WORKER+'/ai', { method:'POST',
         headers:{ 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' },
-        body: JSON.stringify({ messages: JV_HISTORY }) });
+        body: JSON.stringify({ messages: JV_HISTORY, system: jvCurrentAgent().sys }) });
     }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, status:r.status, d:d}; }); })
     .then(function(res){
       if(typing) typing.remove();
@@ -14689,6 +14738,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   function loadJarvisFrame() { /* removed: Jarvis is now a native chat (jvSend) */ }
   window.reloadJarvisFrame = function() { /* removed */ };
   window.openJarvisTab = function() {
+    try { jvRenderAgents(); } catch(e){}
     if (typeof jnClose === 'function') { try { jnClose(); } catch(_){} }
     var btn = document.querySelector('.nav-item[data-tab="jarvis"]');
     if (btn) btn.click();
