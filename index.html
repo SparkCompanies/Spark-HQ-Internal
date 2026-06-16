@@ -5481,6 +5481,37 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+/* ==================== V14 — 3D ORG CHART ==================== */
+.org-head { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; justify-content:space-between; align-items:flex-start; padding:20px 28px; pointer-events:none; }
+.org-head > div, .org-controls { pointer-events:auto; }
+.org-eyebrow { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:5px; }
+.org-h { font-size:24px; font-weight:600; color:var(--ink); margin:0; letter-spacing:-.4px; }
+.org-controls { display:flex; gap:8px; align-items:center; }
+.org-search { padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; font-family:inherit; min-width:200px; background:#fff; color:var(--ink); }
+.org-search:focus { outline:none; border-color:var(--gold); }
+.org-btn { width:34px; height:34px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); font-size:15px; cursor:pointer; font-family:inherit; }
+.org-btn:hover { border-color:var(--gold); }
+.org-status { position:absolute; top:74px; left:28px; z-index:5; font-size:12px; color:var(--muted); }
+.org-status.err { color:#dc2626; }
+.org-stage { position:absolute; inset:0; overflow:hidden; cursor:grab;
+  background:radial-gradient(1100px 700px at 50% 20%, #fdfcf7 0%, var(--paper) 55%, #f1eee3 100%);
+  perspective:1600px; }
+.org-stage.dragging { cursor:grabbing; }
+.org-world { position:absolute; top:0; left:0; transform-origin:0 0; transform-style:preserve-3d; will-change:transform; }
+.org-node { position:absolute; width:172px; box-sizing:border-box; padding:12px 14px; border-radius:13px;
+  background:#fff; border:1px solid var(--line); box-shadow:0 6px 18px rgba(20,20,46,.07);
+  transition:box-shadow .18s, transform .18s, border-color .18s; cursor:default; }
+.org-node:hover { box-shadow:0 14px 36px rgba(20,20,46,.16); border-color:var(--gold); transform:translateY(-2px); z-index:50; }
+.org-node.dim { opacity:.28; }
+.org-node.match { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold), 0 14px 36px rgba(20,20,46,.18); }
+.org-node .on-name { font-size:13px; font-weight:600; color:var(--ink); letter-spacing:-.2px; line-height:1.2; }
+.org-node .on-title { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.3; }
+.org-node .on-dept { font-size:9.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--gold-dark); margin-top:7px; }
+.org-node .on-avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg, var(--gold), var(--gold-dark)); color:#1a1a2e; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; float:right; margin:-2px -2px 0 8px; }
+.org-edge { position:absolute; top:0; left:0; pointer-events:none; overflow:visible; z-index:1; }
+.org-edge path { fill:none; stroke:#d8d2bf; stroke-width:1.5; }
+
 /* ==================== V13 — ROLES PANEL ==================== */
 .rp-head { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; margin-bottom:18px; }
 .rp-eyebrow { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dark); margin-bottom:8px; }
@@ -5582,7 +5613,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v13</span>
+      <span class="ver-dot"></span><span>Spark HQ · v14</span>
     </div>
   </aside>
 
@@ -5905,33 +5936,23 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     </div>
 
     <!-- ==================== PEOPLE ==================== -->
-    <div id="view-people" class="tab-page cream" style="display: none;">
-      <div class="tab-body" style="padding:28px 32px;">
-        <div class="rp-head">
+    <div id="view-people" class="tab-page" style="display: none;">
+      <div class="tab-body" style="padding:0; height:calc(100vh - 56px); overflow:hidden; position:relative;">
+        <div class="org-head">
           <div>
-            <div class="rp-eyebrow">People &amp; Access</div>
-            <h1 class="rp-h">Team directory &amp; roles</h1>
-            <div class="rp-dek">Live from Microsoft 365. Assign each person's Spark HQ access level \u2014 changes apply the moment they sign in.</div>
+            <div class="org-eyebrow">People</div>
+            <h1 class="org-h">The Spark org</h1>
           </div>
-          <div class="rp-actions">
-            <input type="search" id="rpFilter" class="rp-filter" placeholder="Filter by name, email, department\u2026" oninput="rpRender()" />
-            <button class="rp-refresh" onclick="rpLoad()">Refresh</button>
+          <div class="org-controls">
+            <input type="search" id="orgSearch" class="org-search" placeholder="Find someone\u2026" oninput="orgHighlight()" />
+            <button class="org-btn" onclick="orgZoom(1.15)">+</button>
+            <button class="org-btn" onclick="orgZoom(0.87)">\u2212</button>
+            <button class="org-btn" onclick="orgResetView()">Reset</button>
           </div>
         </div>
-        <div class="rp-statusbar" id="rpStatus">Loading directory\u2026</div>
-        <div class="rp-table-wrap">
-          <table class="rp-table">
-            <thead><tr>
-              <th>Name</th><th>Email</th><th>Department</th><th>Title</th><th>HQ Role</th><th>Status</th>
-            </tr></thead>
-            <tbody id="rpBody"></tbody>
-          </table>
-        </div>
-        <div class="rp-gate" id="rpGate" style="display:none;">
-          <div class="rp-gate-inner">
-            <h2>Admins only</h2>
-            <p>The team directory and role assignment are available to Spark HQ admins. If you need access, ask an administrator to update your role.</p>
-          </div>
+        <div class="org-status" id="orgStatus">Loading the directory\u2026</div>
+        <div class="org-stage" id="orgStage">
+          <div class="org-world" id="orgWorld"></div>
         </div>
       </div>
     </div>
@@ -6767,12 +6788,28 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
           <div class="admin-pane" data-admin-pane="people-admin" style="display: none;">
             <div class="admin-hero">
-              <div class="eyebrow">Spark HQ · People & roles</div>
-              <h2>38 people. <span style="color: var(--muted-light);">3 roles, 7 entities.</span></h2>
-              <div class="dek">Manage who has access to what. Sourced from Microsoft 365 — adds and removes happen there. Role assignments happen here.</div>
+              <div class="eyebrow">Spark HQ · Access &amp; roles</div>
+              <h2>Team access. <span style="color: var(--muted-light);">Assign each person's role.</span></h2>
+              <div class="dek">Live from Microsoft 365. Set each person's Spark HQ access level — changes apply the moment they sign in. Disabled O365 accounts are excluded automatically.</div>
             </div>
-            <div style="background: #fff; border: 1px dashed var(--line); border-radius: 12px; padding: 40px; text-align: center; color: var(--muted);">
-              <div style="font-size: 13px; line-height: 1.6; max-width: 380px; margin: 0 auto;">Role management UI. Wires up to Azure AD groups for super_admin / manager / member. Built when access permissions become a real requirement (post-launch).</div>
+            <div class="rp-actions" style="margin-bottom:14px; display:flex; gap:10px;">
+              <input type="search" id="rpFilter" class="rp-filter" placeholder="Filter by name, email, department\u2026" oninput="rpRender()" />
+              <button class="rp-refresh" onclick="rpLoad()">Refresh</button>
+            </div>
+            <div class="rp-statusbar" id="rpStatus">Open this panel to load the directory.</div>
+            <div class="rp-table-wrap">
+              <table class="rp-table">
+                <thead><tr>
+                  <th>Name</th><th>Email</th><th>Department</th><th>Title</th><th>HQ Role</th><th>Status</th>
+                </tr></thead>
+                <tbody id="rpBody"></tbody>
+              </table>
+            </div>
+            <div class="rp-gate" id="rpGate" style="display:none;">
+              <div class="rp-gate-inner">
+                <h2>Admins only</h2>
+                <p>Role assignment is available to Spark HQ admins.</p>
+              </div>
             </div>
           </div>
           <div class="admin-pane" data-admin-pane="content" style="display: none;">
@@ -7627,6 +7664,7 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     document.querySelectorAll('.admin-subnav-item').forEach(b => b.classList.toggle('active', b.dataset.adminTab === tab));
     document.querySelectorAll('.admin-pane').forEach(p => p.style.display = (p.dataset.adminPane === tab) ? '' : 'none');
     if (tab === 'home-branding') { try { hbRenderPhotos(); } catch(e){} }
+    if (tab === 'people-admin') { try { window.rpLoad(); } catch(e){} }
   };
   document.querySelectorAll('.admin-subnav-item').forEach(b => {
     b.addEventListener('click', () => switchAdminTab(b.dataset.adminTab));
@@ -7710,8 +7748,25 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
       return import('https://esm.sh/@supabase/supabase-js@2')
         .then(function(m) {
           client = m.createClient(SB_URL, SB_KEY, {
-            auth: { persistSession: true, autoRefreshToken: true, storageKey: 'spark_hq_sb_auth' }
+            auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce', storageKey: 'spark_hq_sb_auth' }
           });
+          // If we came back from Microsoft with an auth code in the URL, exchange it
+          // explicitly for a session, then strip it from the URL so reloads are clean.
+          var href = window.location.href;
+          if (href.indexOf('code=') !== -1 && (href.indexOf('?') !== -1 || href.indexOf('#') !== -1)) {
+            return client.auth.exchangeCodeForSession(window.location.search ? new URLSearchParams(window.location.search).get('code') : '')
+              .then(function() {
+                try {
+                  var clean = window.location.origin + window.location.pathname;
+                  window.history.replaceState({}, document.title, clean);
+                } catch(e) {}
+                return client.auth.getSession();
+              })
+              .catch(function() {
+                // fall back to whatever detectSessionInUrl managed to do
+                return client.auth.getSession();
+              });
+          }
           return client.auth.getSession();
         })
         .then(function(res) {
@@ -7973,10 +8028,189 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
     });
   };
 
-  // load the panel whenever the People tab is opened
+  // (roles panel now lives in admin -> people-admin; loaded via switchAdminTab hook)
+  // load the 3D org chart whenever the People tab is opened
   document.querySelectorAll('.nav-item[data-tab="people"]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setTimeout(window.rpLoad, 80); });
+    btn.addEventListener('click', function(){ setTimeout(window.orgLoad, 80); });
   });
+
+
+  // ==================== V14 — 3D ORG CHART ENGINE ====================
+  var ORG_PEOPLE = [];           // from Worker
+  var ORG_BY_ID = {};            // id -> person
+  var ORG_NODES = {};            // id -> {x,y, el}
+  var orgView = { x: 80, y: 120, scale: 0.85 };
+  var orgLoaded = false;
+
+  window.orgLoad = function() {
+    if (!window.SPARK_SB || !window.SPARK_SB.whoami()) {
+      orgSetStatus('Sign in to view the org chart.', true); return;
+    }
+    if (orgLoaded) { return; } // already built this session
+    orgSetStatus('Loading the directory from Microsoft 365\u2026');
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER + '/directory', { headers: { 'Authorization': 'Bearer ' + tok } })
+        .then(function(res){
+          if (!res.ok) return res.json().then(function(e){ throw new Error(e.error || ('HTTP '+res.status)); });
+          return res.json();
+        });
+    }).then(function(d){
+      ORG_PEOPLE = d.people || [];
+      ORG_BY_ID = {};
+      ORG_PEOPLE.forEach(function(p){ ORG_BY_ID[p.id] = p; });
+      orgBuild();
+      orgLoaded = true;
+      orgSetStatus(ORG_PEOPLE.length + ' people \u00b7 drag to pan, scroll to zoom');
+    }).catch(function(err){
+      orgSetStatus('Could not load org chart: ' + (err.message||err), true);
+    });
+  };
+
+  function orgSetStatus(msg, isErr) {
+    var el = document.getElementById('orgStatus');
+    if (el) { el.textContent = msg||''; el.className = 'org-status' + (isErr?' err':''); }
+  }
+
+  // Build a tree from managerId, lay it out, render nodes + edges
+  function orgBuild() {
+    var world = document.getElementById('orgWorld');
+    if (!world) return;
+    world.innerHTML = '';
+    ORG_NODES = {};
+
+    // assemble children map; roots = people whose manager isn't in the set
+    var children = {};
+    var roots = [];
+    ORG_PEOPLE.forEach(function(p){
+      var mid = p.managerId && ORG_BY_ID[p.managerId] ? p.managerId : null;
+      if (mid) { (children[mid] = children[mid] || []).push(p); }
+      else { roots.push(p); }
+    });
+    // sort children by name for stable layout
+    Object.keys(children).forEach(function(k){ children[k].sort(function(a,b){ return a.name.localeCompare(b.name); }); });
+    roots.sort(function(a,b){ return a.name.localeCompare(b.name); });
+
+    // --- tidy tree layout: assign x by leaf order, y by depth ---
+    var NODE_W = 172, NODE_H = 86, H_GAP = 26, V_GAP = 70;
+    var cursorX = 0;
+    var positions = {};
+    var maxDepth = 0;
+
+    function layout(node, depth) {
+      maxDepth = Math.max(maxDepth, depth);
+      var kids = children[node.id] || [];
+      if (!kids.length) {
+        positions[node.id] = { x: cursorX * (NODE_W + H_GAP), y: depth * (NODE_H + V_GAP), depth: depth };
+        cursorX += 1;
+        return positions[node.id].x;
+      }
+      var xs = kids.map(function(k){ return layout(k, depth+1); });
+      var midX = (xs[0] + xs[xs.length-1]) / 2;
+      positions[node.id] = { x: midX, y: depth * (NODE_H + V_GAP), depth: depth };
+      return midX;
+    }
+    // virtual super-root if multiple roots, so the whole org is one tree visually
+    if (roots.length === 1) {
+      layout(roots[0], 0);
+    } else {
+      roots.forEach(function(r){ layout(r, 0); });
+    }
+
+    // --- draw edges (SVG) ---
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'org-edge');
+    svg.setAttribute('width', '6000'); svg.setAttribute('height', '4000');
+    var pathsHtml = '';
+    ORG_PEOPLE.forEach(function(p){
+      var mid = p.managerId && positions[p.managerId] ? p.managerId : null;
+      if (!mid) return;
+      var c = positions[p.id], m = positions[mid];
+      if (!c || !m) return;
+      var x1 = m.x + NODE_W/2, y1 = m.y + NODE_H;
+      var x2 = c.x + NODE_W/2, y2 = c.y;
+      var midY = (y1 + y2) / 2;
+      pathsHtml += '<path d="M'+x1+','+y1+' C'+x1+','+midY+' '+x2+','+midY+' '+x2+','+y2+'"/>';
+    });
+    svg.innerHTML = pathsHtml;
+    world.appendChild(svg);
+
+    // --- render nodes ---
+    ORG_PEOPLE.forEach(function(p){
+      var pos = positions[p.id];
+      if (!pos) return;
+      var initials = (p.name||'?').split(/\s+/).map(function(s){return s[0];}).slice(0,2).join('').toUpperCase();
+      var el = document.createElement('div');
+      el.className = 'org-node';
+      el.style.left = pos.x + 'px';
+      el.style.top = pos.y + 'px';
+      el.setAttribute('data-id', p.id);
+      el.setAttribute('data-search', (p.name+' '+p.email+' '+p.title+' '+p.department).toLowerCase());
+      el.innerHTML =
+        '<div class="on-avatar">'+initials+'</div>'
+        + '<div class="on-name">'+ (p.name||'\u2014') +'</div>'
+        + '<div class="on-title">'+ (p.title||'\u2014') +'</div>'
+        + (p.department ? '<div class="on-dept">'+p.department+'</div>' : '');
+      world.appendChild(el);
+      ORG_NODES[p.id] = el;
+    });
+
+    orgApplyTransform();
+    orgResetView();
+  }
+
+  function orgApplyTransform() {
+    var world = document.getElementById('orgWorld');
+    if (world) world.style.transform = 'translate('+orgView.x+'px,'+orgView.y+'px) scale('+orgView.scale+')';
+  }
+  window.orgZoom = function(f) {
+    orgView.scale = Math.max(0.25, Math.min(2.2, orgView.scale * f));
+    orgApplyTransform();
+  };
+  window.orgResetView = function() {
+    var stage = document.getElementById('orgStage');
+    orgView.scale = 0.7;
+    orgView.x = (stage ? stage.clientWidth/2 : 500) - 86;
+    orgView.y = 130;
+    orgApplyTransform();
+  };
+  window.orgHighlight = function() {
+    var q = (document.getElementById('orgSearch')||{}).value || '';
+    q = q.toLowerCase().trim();
+    Object.keys(ORG_NODES).forEach(function(id){
+      var el = ORG_NODES[id];
+      if (!q) { el.classList.remove('dim','match'); return; }
+      var hit = el.getAttribute('data-search').indexOf(q) >= 0;
+      el.classList.toggle('match', hit);
+      el.classList.toggle('dim', !hit);
+    });
+  };
+
+  // pan + wheel-zoom
+  (function orgInteractions(){
+    var stage = null, dragging = false, sx=0, sy=0, ox=0, oy=0;
+    function bind(){
+      stage = document.getElementById('orgStage');
+      if (!stage) { setTimeout(bind, 400); return; }
+      stage.addEventListener('mousedown', function(e){
+        if (e.target.closest('.org-node')) return;
+        dragging = true; stage.classList.add('dragging');
+        sx = e.clientX; sy = e.clientY; ox = orgView.x; oy = orgView.y;
+      });
+      window.addEventListener('mousemove', function(e){
+        if (!dragging) return;
+        orgView.x = ox + (e.clientX - sx); orgView.y = oy + (e.clientY - sy);
+        orgApplyTransform();
+      });
+      window.addEventListener('mouseup', function(){ dragging=false; if(stage) stage.classList.remove('dragging'); });
+      stage.addEventListener('wheel', function(e){
+        e.preventDefault();
+        orgZoom(e.deltaY < 0 ? 1.08 : 0.93);
+      }, { passive:false });
+    }
+    bind();
+  })();
+
 
   window.sbOpenAuth = function() {
     var back = document.getElementById('sbModalBack'); if (back) back.classList.add('show');
