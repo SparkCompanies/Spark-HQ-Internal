@@ -5778,6 +5778,74 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+/* v51 — Finance / Invoicing tab (dark shell, white invoice sheet) */
+#view-finance { background:#0b0d12; }
+.fin-wrap { max-width:1080px; margin:0 auto; padding:32px 28px 80px; }
+.fin-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:8px; }
+.fin-eyebrow { font-family:var(--font-display); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); }
+.fin-title { font-family:var(--font-display); font-size:30px; font-weight:700; color:#fff; margin:4px 0 0; }
+.fin-weeklab { font-size:12.5px; color:#7f8493; } .fin-weeklab b { color:#e4e6ec; font-weight:600; }
+.fin-tiles { display:flex; gap:30px; margin:22px 0 6px; flex-wrap:wrap; padding-bottom:18px; border-bottom:1px solid #21252f; }
+.fin-tile .k { font-family:var(--font-display); font-size:25px; font-weight:700; color:#fff; }
+.fin-tile .k.gold { color:var(--gold); }
+.fin-tile .l { font-size:11.5px; color:#7f8493; margin-top:3px; }
+.fin-bh { display:flex; align-items:baseline; gap:12px; margin:26px 0 12px; }
+.fin-bh h3 { font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; margin:0; color:#e4e6ec; }
+.fin-note { font-size:12px; color:#7f8493; }
+.fin-chips { display:flex; gap:7px; margin-left:auto; }
+.fin-chip { font-size:12px; border:1px solid #262b36; background:#13161d; border-radius:999px; padding:5px 12px; cursor:pointer; color:#9aa0ac; }
+.fin-chip.on { background:var(--gold); color:#111; border-color:var(--gold); font-weight:700; }
+.fin-tblwrap { background:#13161d; border:1px solid #21252f; border-radius:14px; overflow:hidden; }
+.fin-tbl { width:100%; border-collapse:collapse; }
+.fin-tbl thead th { font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#6b6f7d; text-align:left; padding:13px 18px; border-bottom:1px solid #21252f; background:#0f1217; }
+.fin-tbl th.r, .fin-tbl td.r { text-align:right; }
+.fin-tbl tbody tr { cursor:pointer; border-bottom:1px solid #181b22; transition:background .1s; }
+.fin-tbl tbody tr:last-child { border-bottom:0; }
+.fin-tbl tbody tr:hover { background:#161a22; }
+.fin-tbl td { padding:14px 18px; font-size:13.5px; vertical-align:middle; color:#cfd2dc; }
+.fin-cli { font-weight:600; color:#f0f1f4; }
+.fin-ent { display:inline-block; font-size:11px; color:#6b6f7d; margin-top:2px; }
+.fin-badge { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:#34d399; background:rgba(52,211,153,0.12); padding:4px 9px; border-radius:999px; }
+.fin-badge.sent { color:#111; background:var(--gold); }
+.fin-dot { width:6px; height:6px; border-radius:50%; background:#34d399; }
+.fin-sub { font-size:11.5px; color:#6b6f7d; }
+.fin-mono { font-variant-numeric:tabular-nums; }
+.fin-protonote { font-size:11.5px; color:#6b6f7d; margin-top:18px; line-height:1.5; padding:12px 14px; background:#0f1217; border:1px solid #1e222b; border-radius:10px; }
+/* drawer */
+.fin-scrim { position:fixed; inset:0; background:rgba(6,7,10,0.55); opacity:0; pointer-events:none; transition:opacity .22s; z-index:9998; }
+.fin-scrim.on { opacity:1; pointer-events:auto; }
+.fin-drawer { position:fixed; top:0; right:0; height:100%; width:min(620px,96vw); background:#0e1016; transform:translateX(102%); transition:transform .26s cubic-bezier(.4,0,.2,1); z-index:9999; overflow-y:auto; box-shadow:-12px 0 40px rgba(0,0,0,.4); }
+.fin-drawer.on { transform:none; }
+.fin-dhead { display:flex; align-items:center; gap:12px; padding:14px 22px; position:sticky; top:0; background:#0e1016; border-bottom:1px solid #21252f; z-index:2; }
+.fin-dhead .lbl { font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:#7f8493; }
+.fin-dhead .x { margin-left:auto; border:1px solid #262b36; background:#161a22; border-radius:8px; width:30px; height:30px; font-size:16px; cursor:pointer; color:#9aa0ac; }
+.fin-dhead .x:hover { color:#fff; border-color:var(--gold); }
+/* white invoice sheet (intentional paper look) */
+.fin-sheet { background:#fff; margin:22px; border-radius:10px; padding:30px 30px 26px; color:#1a1a17; box-shadow:0 10px 40px rgba(0,0,0,0.35); }
+.fin-sheet .r1 { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
+.fin-sheet h4 { font-size:27px; font-weight:300; letter-spacing:.18em; margin:0; color:#222; }
+.fin-sheet-logo { display:flex; flex-direction:column; background:var(--gold); color:#111; border-radius:7px; padding:7px 11px; line-height:1; }
+.fin-sheet-logo b { font-size:15px; font-weight:800; letter-spacing:.06em; } .fin-sheet-logo span { font-size:6.5px; font-weight:700; letter-spacing:.34em; margin-top:2px; opacity:.8; }
+.fin-billto { margin-top:20px; font-size:12.5px; line-height:1.55; }
+.fin-billto .nm { font-weight:700; font-size:13.5px; } .fin-billto .muted { color:#7a766c; }
+.fin-meta { margin-top:18px; display:grid; grid-template-columns:auto 1fr; gap:4px 18px; font-size:12.5px; }
+.fin-meta dt { color:#7a766c; } .fin-meta dd { margin:0; text-align:right; font-weight:600; }
+.fin-itbl { width:100%; border-collapse:collapse; margin-top:22px; }
+.fin-itbl th { font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#7a766c; text-align:left; padding:8px 0; border-bottom:1.5px solid #1a1a17; }
+.fin-itbl th.r, .fin-itbl td.r { text-align:right; }
+.fin-itbl td { padding:9px 0; font-size:12.5px; border-bottom:1px solid #efebe2; }
+.fin-tot { display:flex; justify-content:flex-end; margin-top:14px; }
+.fin-tot table { font-size:12.5px; } .fin-tot td { padding:3px 0 3px 30px; }
+.fin-tot .g td { font-weight:750; font-size:14px; border-top:1.5px solid #1a1a17; padding-top:8px; }
+.fin-foot { margin-top:18px; font-size:11px; color:#7a766c; border-top:1px solid #efebe2; padding-top:12px; display:flex; justify-content:space-between; }
+.fin-acts { display:flex; gap:10px; padding:0 22px 18px; }
+.fin-btn { flex:1; border-radius:9px; padding:12px; font-size:13px; font-weight:650; cursor:pointer; border:1px solid #262b36; font-family:inherit; }
+.fin-btn.primary { background:var(--gold); color:#111; border-color:var(--gold); } .fin-btn.primary.done { background:#34d399; border-color:#34d399; }
+.fin-btn.ghost { background:#161a22; color:#cfd2dc; } .fin-btn.ghost:hover { border-color:#3a3f4c; }
+.fin-foothint { font-size:11px; color:#6b6f7d; text-align:center; padding:0 22px 24px; }
+@media (max-width:620px){ .fin-title { font-size:24px; } .fin-tiles { gap:20px; } }
+
 /* v50 — job board viewer (kanban) */
 .sfx-board-meta { font-size:11.5px; color:#7f8493; font-weight:600; }
 .sfx-board-controls { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
@@ -6264,6 +6332,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item active" data-tab="home"><span class="ico">⌂</span>Home</button>
       <button class="nav-item nav-jarvis" data-tab="jarvis"><span class="ico">⬡</span>Jarvis<span class="nav-live-dot"></span></button>
       <button class="nav-item nav-salesforce" data-tab="salesforce"><span class="ico">◴</span>Salesforce</button>
+      <button class="nav-item nav-finance" data-tab="finance"><span class="ico">▦</span>Finance</button>
       <button class="nav-item" data-tab="training"><span class="ico">▤</span>Training</button>
       <button class="nav-item" data-tab="standard"><span class="ico">★</span>Spark Standard</button>
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
@@ -6274,7 +6343,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v50</span>
+      <span class="ver-dot"></span><span>Spark HQ · v51</span>
     </div>
   </aside>
 
@@ -6601,6 +6670,40 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         </div>
       </div>
     </div>
+
+    <!-- ==================== FINANCE TAB ==================== -->
+    <div id="view-finance" class="tab-page" style="display:none;">
+      <div class="fin-wrap">
+        <div class="fin-head">
+          <div>
+            <div class="fin-eyebrow">Finance · Invoicing</div>
+            <h2 class="fin-title">Invoicing Agent</h2>
+          </div>
+          <span class="fin-weeklab">Batch for week ending <b id="finWE">—</b></span>
+        </div>
+
+        <div class="fin-tiles" id="finTiles"></div>
+
+        <div class="fin-bh">
+          <h3>This week's batch</h3>
+          <span class="fin-note" id="finNote"></span>
+          <div class="fin-chips" id="finChips"></div>
+        </div>
+
+        <div class="fin-tblwrap">
+          <table class="fin-tbl">
+            <thead><tr><th>Client</th><th>Reference</th><th class="r">Contractors</th><th class="r">Hours</th><th class="r">Amount</th><th class="r">Due</th><th class="r">Status</th></tr></thead>
+            <tbody id="finRows"></tbody>
+          </table>
+        </div>
+
+        <div class="fin-protonote" id="finProtoNote">Prototype on a frozen snapshot of this week's real numbers. Live pull from Salesforce hours and Xero draft creation are the next phase — nothing here posts anywhere yet.</div>
+      </div>
+    </div>
+
+    <!-- finance drawer -->
+    <div class="fin-scrim" id="finScrim" onclick="finCloseD()"></div>
+    <aside class="fin-drawer" id="finDrawer" aria-label="Invoice preview"></aside>
 
     <!-- OTHER TABS -->
         <!-- ==================== TRAINING ==================== -->
@@ -7941,13 +8044,14 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
-        const allViews = ['home','jarvis','salesforce','training','standard','careers','people','tools','docs','leadership','admin'];
+        const allViews = ['home','jarvis','salesforce','finance','training','standard','careers','people','tools','docs','leadership','admin'];
         allViews.forEach(v => {
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
         });
         if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} try { hwLoadHeadcount(); } catch(e){} try { renderPulse(); renderPulseBoard(); } catch(e){} }
         if (tab === 'salesforce') { try { sfHubLoad(); } catch(e){} }
+        if (tab === 'finance') { try { finLoad(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
           try { jvRenderHistory(); } catch(e){}
@@ -9814,6 +9918,75 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     setTimeout(function(){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },400); }, err?4200:2400);
   }
 
+
+  // ===== v51 — Finance / Invoicing tab =====
+  var FIN_DATA = {"summary":{"weekEnding":"Jun 14, 2026","batchDate":"Jun 17, 2026","invoices":5,"employees":41,"entities":["Spark Packaging","Spark Talent"],"total":41291.38,"hours":1694.7},"invoices":[{"client":"Clarios - FDC","entity":"Spark Talent","emp":11,"invDate":"Jun 17, 2026","dueDate":"Jul 17, 2026","reference":"4500653917","account":"400.13","tax":"Tax Exempt (0%)","lines":[["Darius Wingate RT (2026-06-14)",40.0,23.8,952.0],["Darius Wingate OT (2026-06-14)",9.0,35.7,321.3],["Devonte Duffie RT (2026-06-14)",36.0,23.8,856.8],["Dexter Howard RT (2026-06-14)",40.0,22.95,918.0],["Dexter Howard OT (2026-06-14)",17.25,34.43,593.92],["Jamarus Calhoun RT (2026-06-14)",40.0,23.8,952.0],["Jamarus Calhoun OT (2026-06-14)",8.0,35.7,285.6],["Jamel Lesane RT (2026-06-14)",40.0,22.95,918.0],["Jamel Lesane OT (2026-06-14)",8.0,34.43,275.44],["John McCray RT (2026-06-14)",40.0,23.8,952.0],["John McCray OT (2026-06-14)",8.0,35.7,285.6],["Kimberly Greene RT (2026-06-14)",37.5,22.95,860.63],["Moses Lee RT (2026-06-14)",40.0,23.8,952.0],["Moses Lee OT (2026-06-14)",9.25,35.7,330.23],["O'neal Anderson RT (2026-06-14)",40.0,23.8,952.0],["O'neal Anderson OT (2026-06-14)",8.0,35.7,285.6],["Shena Wright RT (2026-06-14)",40.0,23.8,952.0],["Shena Wright OT (2026-06-14)",9.0,35.7,321.3],["Wayne Rembert RT (2026-06-14)",40.0,22.95,918.0],["Wayne Rembert OT (2026-06-14)",8.75,34.43,301.26]],"subtotal":13183.68},{"client":"Revere Plastics Systems","entity":"Spark Talent","emp":20,"invDate":"Jun 17, 2026","dueDate":"Jul 17, 2026","reference":"WE 6/14/26","account":"400.17","tax":"Tax Exempt (0%)","lines":[["Dashawn Coleman RT (2026-06-14)",24.0,23.1,554.4],["Donald Fredrick RT (2026-06-14)",36.0,21.7,781.2],["Donte Woodall RT (2026-06-14)",36.0,21.7,781.2],["Glenn Whitehead RT (2026-06-14)",40.0,21.7,868.0],["Glenn Whitehead OT (2026-06-14)",14.0,28.21,394.94],["Jacob Edwards RT (2026-06-14)",40.0,21.7,868.0],["Jacob Edwards OT (2026-06-14)",4.0,28.21,112.84],["JaJuan Moore RT (2026-06-14)",38.5,21.7,835.45],["Jamiah Harris RT (2026-06-14)",40.0,21.7,868.0],["Jamiah Harris OT (2026-06-14)",5.0,28.21,141.05],["Kamal Uddin RT (2026-06-14)",40.0,21.0,840.0],["Kenneth Whitehead RT (2026-06-14)",24.0,21.7,520.8],["Lykita Pounds RT (2026-06-14)",38.5,21.7,835.45],["Malik Whitehead RT (2026-06-14)",40.0,21.0,840.0],["Malik Whitehead OT (2026-06-14)",4.0,27.3,109.2],["Michael Person RT (2026-06-14)",22.0,21.0,462.0],["Nadine Hojna RT (2026-06-14)",36.0,21.0,756.0],["Raquel kirk RT (2026-06-14)",40.0,21.7,868.0],["Raquel kirk OT (2026-06-14)",4.0,28.21,112.84],["Ronell Brooks RT (2026-06-14)",40.0,21.7,868.0],["Ronell Brooks OT (2026-06-14)",4.0,28.21,112.84],["Rothus Stewart RT (2026-06-14)",36.0,21.7,781.2],["Rukshana Kamal RT (2026-06-14)",40.0,21.0,840.0],["Tena Williams RT (2026-06-14)",40.0,21.7,868.0],["Tena Williams OT (2026-06-14)",5.5,28.21,155.16],["Tomasz Pilch RT (2026-06-14)",40.0,21.0,840.0],["Tomasz Pilch OT (2026-06-14)",2.5,27.3,68.25],["Victoria Roberson RT (2026-06-14)",36.0,21.7,781.2]],"subtotal":16864.02},{"client":"Troy Laser & Fab","entity":"Spark Talent","emp":3,"invDate":"Jun 17, 2026","dueDate":"Jul 2, 2026","reference":"WE 6/14/26","account":"400","tax":"Tax Exempt (0%)","lines":[["Austin Schmall RT (2026-06-14)",40.0,28.12,1124.8],["Austin Schmall OT (2026-06-14)",16.54,42.18,697.66],["Brandon Wood RT (2026-06-14)",40.0,28.12,1124.8],["Brandon Wood OT (2026-06-14)",2.94,42.18,124.01],["William Lavallis RT (2026-06-14)",40.0,29.6,1184.0],["William Lavallis OT (2026-06-14)",15.27,44.4,677.99]],"subtotal":4933.26},{"client":"Autokiniton - Milan, MI","entity":"Spark Talent","emp":1,"invDate":"Jun 17, 2026","dueDate":"Aug 16, 2026","reference":"PO 80136248","account":"400","tax":"Tax Exempt (0%)","lines":[["Justin Radomski RT (2026-06-14)",40.0,28.29,1131.6],["Justin Radomski OT (2026-06-14)",8.1,38.47,311.61]],"subtotal":1443.21},{"client":"Universal Container","entity":"Spark Packaging","emp":6,"invDate":"Jun 17, 2026","dueDate":"Jul 17, 2026","reference":"WE 6/14/26","account":"400.11","tax":"Tax Exempt (0%)","lines":[["Emmanuel Mathis RT (2026-06-14)",31.75,22.95,728.66],["Jasmine Henderson RT (2026-06-14)",40.0,23.97,958.8],["Jasmine Henderson OT (2026-06-14)",2.71,35.96,97.45],["Javonte Sowell RT (2026-06-14)",25.66,23.97,615.07],["Jontai Willingham RT (2026-06-14)",30.93,23.97,741.39],["Latavia Warren RT (2026-06-14)",40.0,23.97,958.8],["Travis Hughes RT (2026-06-14)",32.0,23.97,767.04]],"subtotal":4867.21}]};
+  var FIN_STATE = { filter:'All', sent:{}, inited:false };
+  function finUSD(n){ return (n||0).toLocaleString('en-US',{style:'currency',currency:'USD'}); }
+  function finLoad(){
+    if(FIN_STATE.inited) { finRenderRows(); return; }
+    FIN_STATE.inited = true;
+    var s = FIN_DATA.summary;
+    var we=document.getElementById('finWE'); if(we) we.textContent=s.weekEnding;
+    var tiles=document.getElementById('finTiles');
+    if(tiles){
+      tiles.innerHTML = [
+        ['<span class="k gold fin-mono">'+finUSD(s.total)+'</span>','Total billed'],
+        ['<span class="k fin-mono">'+s.invoices+'</span>','Invoices ready'],
+        ['<span class="k fin-mono">'+s.employees+'</span>','Contractors'],
+        ['<span class="k fin-mono">'+s.hours.toLocaleString()+'</span>','Hours billed'],
+        ['<span class="k fin-mono">0</span>','Held for review']
+      ].map(function(t){ return '<div class="fin-tile">'+t[0]+'<div class="l">'+t[1]+'</div></div>'; }).join('');
+    }
+    var note=document.getElementById('finNote'); if(note) note.textContent='Built from Salesforce hours + client profiles — nothing held.';
+    var chipsEl=document.getElementById('finChips');
+    if(chipsEl){
+      var chips=['All'].concat(s.entities);
+      chipsEl.innerHTML = chips.map(function(c){ return '<div class="fin-chip '+(c===FIN_STATE.filter?'on':'')+'" data-f="'+c+'">'+c+'</div>'; }).join('');
+      chipsEl.querySelectorAll('.fin-chip').forEach(function(ch){ ch.onclick=function(){ FIN_STATE.filter=this.dataset.f; finLoad(); }; });
+    }
+    finRenderRows();
+  }
+  function finRenderRows(){
+    var body=document.getElementById('finRows'); if(!body) return;
+    var rows = FIN_DATA.invoices.map(function(inv,i){ return {inv:inv,i:i}; }).filter(function(o){ return FIN_STATE.filter==='All'||o.inv.entity===FIN_STATE.filter; });
+    body.innerHTML = rows.map(function(o){
+      var inv=o.inv, i=o.i;
+      var ot=inv.lines.filter(function(l){return l[0].indexOf(' OT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
+      var rt=inv.lines.filter(function(l){return l[0].indexOf(' RT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
+      var status=FIN_STATE.sent[i]?'<span class="fin-badge sent">Sent to Xero</span>':'<span class="fin-badge"><span class="fin-dot"></span>Ready</span>';
+      return '<tr data-i="'+i+'"><td><div class="fin-cli">'+inv.client+'</div><span class="fin-ent">'+inv.entity+'</span></td>'+
+        '<td class="fin-mono fin-sub">'+inv.reference+'</td>'+
+        '<td class="r fin-mono">'+inv.emp+'</td>'+
+        '<td class="r fin-mono">'+rt.toFixed(1)+'<span class="fin-sub"> + '+ot.toFixed(1)+' OT</span></td>'+
+        '<td class="r fin-mono" style="font-weight:600;color:#f0f1f4">'+finUSD(inv.subtotal)+'</td>'+
+        '<td class="r fin-mono fin-sub">'+inv.dueDate+'</td>'+
+        '<td class="r">'+status+'</td></tr>';
+    }).join('');
+    body.querySelectorAll('tr').forEach(function(tr){ tr.onclick=function(){ finOpenD(parseInt(this.dataset.i,10)); }; });
+  }
+  function finOpenD(i){
+    var inv=FIN_DATA.invoices[i]; if(!inv) return;
+    var lineRows=inv.lines.map(function(l){ return '<tr><td>'+l[0]+'</td><td class="r fin-mono">'+l[1].toFixed(2)+'</td><td class="r fin-mono">'+l[2].toFixed(2)+'</td><td class="r fin-mono">'+finUSD(l[3])+'</td></tr>'; }).join('');
+    var done=FIN_STATE.sent[i];
+    document.getElementById('finDrawer').innerHTML =
+      '<div class="fin-dhead"><span class="lbl">Invoice preview · '+inv.entity+'</span><button class="x" onclick="finCloseD()">&times;</button></div>'+
+      '<div class="fin-sheet"><div class="r1"><h4>INVOICE</h4><div class="fin-sheet-logo"><b>SPARK</b><span>TALENT ACQUISITION</span></div></div>'+
+      '<div class="fin-billto"><div class="nm">'+inv.client+'</div><div class="muted">Billing address on file in Xero</div></div>'+
+      '<dl class="fin-meta"><dt>Invoice date</dt><dd>'+inv.invDate+'</dd><dt>Invoice number</dt><dd>Assigned by Xero on approval</dd><dt>Reference</dt><dd class="fin-mono">'+inv.reference+'</dd><dt>Due date</dt><dd>'+inv.dueDate+'</dd></dl>'+
+      '<table class="fin-itbl"><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Unit</th><th class="r">Amount</th></tr></thead><tbody>'+lineRows+'</tbody></table>'+
+      '<div class="fin-tot"><table><tr><td>Subtotal</td><td class="r fin-mono">'+finUSD(inv.subtotal)+'</td></tr><tr><td>Tax</td><td class="r fin-mono">$0.00</td></tr><tr class="g"><td>Total USD</td><td class="r fin-mono">'+finUSD(inv.subtotal)+'</td></tr></table></div>'+
+      '<div class="fin-foot"><span>Revenue account '+inv.account+'</span><span>'+inv.tax+'</span></div></div>'+
+      '<div class="fin-acts"><button class="fin-btn primary '+(done?'done':'')+'" onclick="finToggleSend('+i+')">'+(done?'\u2713 Sent to Xero (draft)':'Approve &amp; send to Xero')+'</button><button class="fin-btn ghost" onclick="finCloseD()">Hold</button></div>'+
+      '<div class="fin-foothint">Prototype action — in the live agent, Approve creates this as a draft in Xero for final sign-off.</div>';
+    document.getElementById('finDrawer').classList.add('on');
+    document.getElementById('finScrim').classList.add('on');
+  }
+  window.finCloseD=function(){ var d=document.getElementById('finDrawer'),s=document.getElementById('finScrim'); if(d)d.classList.remove('on'); if(s)s.classList.remove('on'); };
+  window.finToggleSend=function(i){ FIN_STATE.sent[i]=!FIN_STATE.sent[i]; finRenderRows(); finOpenD(i); };
+  // expose finLoad for the nav hook
+  window.finLoad = finLoad;
+
   function sfxSpark(vals){
     if(!vals||vals.length<2) return '';
     var w=300,h=54,pad=4;
@@ -11346,14 +11519,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
-      navItems: ['home','jarvis','salesforce','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','salesforce','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','training','standard','careers','people','tools','docs','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
@@ -11382,6 +11555,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
             if (ji !== -1) ni.splice(ji + 1, 0, 'salesforce'); else ni.splice(1, 0, 'salesforce');
           }
         });
+        // v51 — ensure Finance nav exists for admin/manager saved sets (not members by default)
+        Object.keys(merged).forEach(k => {
+          if (k === 'member') return;
+          var ni = merged[k].navItems;
+          if (Array.isArray(ni) && ni.indexOf('finance') === -1 && ni.indexOf('salesforce') !== -1) {
+            ni.splice(ni.indexOf('salesforce') + 1, 0, 'finance');
+          }
+        });
         return merged;
       }
     } catch(e) {}
@@ -11392,7 +11573,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   }
 
   const ALL_NAV_ITEMS = [
-    ['home','Home'], ['jarvis','Jarvis'], ['salesforce','Salesforce'], ['training','Training'], ['standard','Spark Standard'],
+    ['home','Home'], ['jarvis','Jarvis'], ['salesforce','Salesforce'], ['finance','Finance'], ['training','Training'], ['standard','Spark Standard'],
     ['careers','Career Paths'], ['people','People'], ['tools','Software & Tools'],
     ['docs','Documents'], ['leadership','Leadership'], ['admin','Admin']
   ];
