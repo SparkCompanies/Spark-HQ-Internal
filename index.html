@@ -5775,7 +5775,65 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
-/* v46 — hub design pass + BU bars */
+
+/* v48 — dark exec command center */
+#view-salesforce { background:#0b0d12; }
+.sfx-wrap { max-width:1240px; margin:0 auto; padding:32px 28px 70px; }
+.sfx-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; gap:16px; flex-wrap:wrap; }
+.sfx-eyebrow { font-family:var(--font-display); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); }
+.sfx-title { font-family:var(--font-display); font-size:32px; font-weight:700; color:#fff; margin:4px 0 0; }
+.sfx-open-sf { font-size:12.5px; font-weight:700; color:#cfd2dc; text-decoration:none; border:1px solid #2a2e3a; border-radius:9px; padding:9px 16px; background:#14171f; transition:all .15s; }
+.sfx-open-sf:hover { border-color:var(--gold); color:#fff; background:#1a1e28; }
+
+/* KPI tiles */
+.sfx-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+.sfx-kpi { position:relative; overflow:hidden; background:linear-gradient(160deg,#15181f,#0f1217); border:1px solid #21252f; border-radius:16px; padding:18px 18px 16px; min-height:104px; }
+.sfx-kpi::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--gold),var(--gold-dark)); opacity:.85; }
+.sfx-kpi:hover { border-color:#2e3340; box-shadow:0 10px 30px rgba(0,0,0,0.35); }
+.sfx-kpi-label { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#7f8493; margin-bottom:8px; }
+.sfx-kpi-val { font-family:var(--font-display); font-size:34px; font-weight:700; color:#fff; line-height:1; }
+.sfx-kpi-sub { font-size:11px; color:#6b6f7d; margin-top:7px; }
+.sfx-kpi.accent .sfx-kpi-val { background:linear-gradient(90deg,var(--gold),#fde68a); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.sfx-kpi-loading { color:#4b4f5c; }
+
+/* detail grid */
+.sfx-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.sfx-card { background:linear-gradient(180deg,#13161d,#0f1217); border:1px solid #21252f; border-radius:16px; padding:20px 22px; transition:border-color .15s, box-shadow .15s; }
+.sfx-card:hover { border-color:#2e3340; box-shadow:0 8px 26px rgba(0,0,0,0.3); }
+.sfx-span2 { grid-column:1 / -1; }
+.sfx-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.sfx-card-title { display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold); }
+.sfx-card-title::before { content:""; width:7px; height:7px; border-radius:2px; background:var(--gold); transform:rotate(45deg); }
+.sfx-link { font-size:10.5px; font-weight:700; color:#7f8493; text-decoration:none; border:1px solid #2a2e3a; border-radius:6px; padding:2px 8px; transition:all .12s; }
+.sfx-link:hover { color:#fff; border-color:var(--gold); }
+.sfx-loading { font-size:12.5px; color:#4b4f5c; padding:8px 0; }
+.sfx-err { font-size:12px; color:#f87171; }
+.sfx-pending { font-size:12.5px; color:#7f8493; padding:8px 0; line-height:1.5; }
+
+/* dark rows + bars */
+.sfx-row { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid #1e222b; }
+.sfx-row:last-child { border-bottom:none; }
+.sfx-row-name { font-size:13px; font-weight:600; color:#e4e6ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sfx-row-sub { font-size:11px; color:#6b6f7d; margin-top:1px; }
+.sfx-row-val { font-size:14px; font-weight:700; color:#fff; white-space:nowrap; }
+.sfx-bu-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px 28px; }
+.sfx-bu-row { display:grid; grid-template-columns:110px 1fr auto; align-items:center; gap:10px; }
+.sfx-bu-name { font-size:12px; font-weight:600; color:#cfd2dc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sfx-bu-track { height:8px; border-radius:5px; background:#1c1f27; overflow:hidden; }
+.sfx-bu-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,#F5C518,#b45309); animation:sfxGrow .6s ease-out; }
+.sfx-bu-val { font-size:12px; font-weight:700; color:#fff; white-space:nowrap; }
+.sfx-bu-n { color:#6b6f7d; font-weight:600; font-size:11px; }
+@keyframes sfxGrow { from { width:0 !important; } }
+/* headcount sparkline (dark) */
+.sfx-hc-top { display:flex; gap:28px; align-items:flex-end; margin-bottom:10px; }
+.sfx-hc-big { font-family:var(--font-display); font-size:38px; font-weight:700; color:#fff; line-height:1; }
+.sfx-hc-delta { font-size:13px; font-weight:700; padding:3px 9px; border-radius:20px; }
+.sfx-hc-delta.up { color:#34d399; background:rgba(52,211,153,0.12); } .sfx-hc-delta.down { color:#f87171; background:rgba(248,113,113,0.12); } .sfx-hc-delta.flat { color:#7f8493; background:#1c1f27; }
+.sfx-hc-sub { font-size:12px; color:#7f8493; }
+.sfx-spark { width:100%; height:54px; display:block; margin-top:6px; }
+@media (max-width:980px){ .sfx-kpis { grid-template-columns:repeat(2,1fr); } .sfx-grid { grid-template-columns:1fr; } .sfx-span2 { grid-column:auto; } .sfx-bu-grid { grid-template-columns:1fr; } }
+
+/* v46 — hub design pass + BU bars (legacy, unused) */
 .sfh-wrap { background:radial-gradient(1200px 400px at 50% -100px, rgba(245,197,24,0.06), transparent 70%); }
 .sfh-title { background:linear-gradient(90deg,var(--ink),#3a3a55); -webkit-background-clip:text; background-clip:text; }
 .sfh-card { position:relative; overflow:hidden; background:linear-gradient(180deg,#ffffff,#fdfcf8); border:1px solid var(--line); }
@@ -6155,7 +6213,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v47</span>
+      <span class="ver-dot"></span><span>Spark HQ · v48</span>
     </div>
   </aside>
 
@@ -6438,43 +6496,44 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     </div>
 
     <!-- ==================== SALESFORCE HUB TAB ==================== -->
-    <div id="view-salesforce" class="tab-page cream" style="display: none;">
-      <div class="sfh-wrap">
-        <div class="sfh-head">
+    <div id="view-salesforce" class="tab-page" style="display: none;">
+      <div class="sfx-wrap">
+        <div class="sfx-head">
           <div>
-            <div class="eyebrow">Company Data · Live from Salesforce</div>
-            <h2 class="sfh-title">Salesforce Hub</h2>
+            <div class="sfx-eyebrow">Spark Capital · Live from Salesforce</div>
+            <h2 class="sfx-title">Command Center</h2>
           </div>
-          <a class="sfh-open-sf" href="https://spark-companies.lightning.force.com" target="_blank" rel="noopener">Open Salesforce ↗</a>
+          <a class="sfx-open-sf" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000000wtLtMAI/view" target="_blank" rel="noopener">Open in Salesforce ↗</a>
         </div>
-        <div class="sfh-grid">
-          <div class="sfh-card sfh-span2" id="sfhByBu">
-            <div class="sfh-card-head"><span class="sfh-card-title">Open pipeline by business unit</span><a class="sfh-link" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list" target="_blank" rel="noopener">View ↗</a></div>
-            <div class="sfh-card-body" id="sfhByBuBody"><div class="sfh-loading">Loading…</div></div>
+
+        <!-- KPI TILES -->
+        <div class="sfx-kpis" id="sfxKpis"></div>
+
+        <!-- DETAIL SECTIONS -->
+        <div class="sfx-grid">
+          <div class="sfx-card sfx-span2" id="sfxHeadcountCard">
+            <div class="sfx-card-head"><span class="sfx-card-title">Headcount — week over week</span><a class="sfx-link" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000001IOuXMAW/view" target="_blank" rel="noopener">Dashboard ↗</a></div>
+            <div class="sfx-card-body" id="sfxHeadcountBody"><div class="sfx-loading">Loading…</div></div>
           </div>
-          <div class="sfh-card sfh-span2" id="sfhPipeline">
-            <div class="sfh-card-head"><span class="sfh-card-title">Pipeline</span><a class="sfh-link" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list" target="_blank" rel="noopener">View ↗</a></div>
-            <div class="sfh-card-body" id="sfhPipelineBody"><div class="sfh-loading">Loading…</div></div>
+          <div class="sfx-card sfx-span2" id="sfxBuCard">
+            <div class="sfx-card-head"><span class="sfx-card-title">Open pipeline by business unit</span><a class="sfx-link" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list" target="_blank" rel="noopener">View ↗</a></div>
+            <div class="sfx-card-body" id="sfxBuBody"><div class="sfx-loading">Loading…</div></div>
           </div>
-          <div class="sfh-card" id="sfhHeadcount">
-            <div class="sfh-card-head"><span class="sfh-card-title">Headcount · WoW</span><a class="sfh-link" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000001IOuXMAW/view" target="_blank" rel="noopener">Dashboard ↗</a></div>
-            <div class="sfh-card-body" id="sfhHeadcountBody"><div class="sfh-loading">Loading…</div></div>
+          <div class="sfx-card" id="sfxAccountsCard">
+            <div class="sfx-card-head"><span class="sfx-card-title">Accounts by unit</span></div>
+            <div class="sfx-card-body" id="sfxAccountsBody"><div class="sfx-loading">Loading…</div></div>
           </div>
-          <div class="sfh-card" id="sfhClosing">
-            <div class="sfh-card-head"><span class="sfh-card-title">Closing soon · 30 days</span><a class="sfh-link" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list" target="_blank" rel="noopener">View ↗</a></div>
-            <div class="sfh-card-body" id="sfhClosingBody"><div class="sfh-loading">Loading…</div></div>
+          <div class="sfx-card" id="sfxAgingCard">
+            <div class="sfx-card-head"><span class="sfx-card-title">Aging jobs · 30+ days</span></div>
+            <div class="sfx-card-body" id="sfxAgingBody"><div class="sfx-loading">Loading…</div></div>
           </div>
-          <div class="sfh-card" id="sfhWins">
-            <div class="sfh-card-head"><span class="sfh-card-title">Recent wins · 30 days</span><a class="sfh-link" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list" target="_blank" rel="noopener">View ↗</a></div>
-            <div class="sfh-card-body" id="sfhWinsBody"><div class="sfh-loading">Loading…</div></div>
+          <div class="sfx-card" id="sfxPlacementsCard">
+            <div class="sfx-card-head"><span class="sfx-card-title">Placements · last 4 weeks</span></div>
+            <div class="sfx-card-body" id="sfxPlacementsBody"><div class="sfx-loading">Loading…</div></div>
           </div>
-          <div class="sfh-card" id="sfhCustomers">
-            <div class="sfh-card-head"><span class="sfh-card-title">Top customers · by revenue</span><a class="sfh-link" href="https://spark-companies.lightning.force.com/lightning/o/Account/list" target="_blank" rel="noopener">View ↗</a></div>
-            <div class="sfh-card-body" id="sfhCustomersBody"><div class="sfh-loading">Loading…</div></div>
-          </div>
-          <div class="sfh-card" id="sfhLeaderboard">
-            <div class="sfh-card-head"><span class="sfh-card-title">Rep &amp; recruiter leaderboard</span></div>
-            <div class="sfh-card-body"><div class="sfh-pending">Coming soon — pending the business-unit / rep / recruiter report mapping (the dashboard work in progress).</div></div>
+          <div class="sfx-card" id="sfxTermsCard">
+            <div class="sfx-card-head"><span class="sfx-card-title">Terminations · last week</span></div>
+            <div class="sfx-card-body" id="sfxTermsBody"><div class="sfx-loading">Loading…</div></div>
           </div>
         </div>
       </div>
@@ -9470,98 +9529,134 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 
 
 
-  // ===== v45 — Salesforce Hub =====
-  var SF_HUB_LOADED = false;
-  function sfMoney(n){ n=n||0; if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); }
-  function sfDate(d){ if(!d) return ''; try{ return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}); }catch(_){ return d; } }
-  function sfGet(path){
+  // ===== v48 — Salesforce Command Center (dark exec dashboard) =====
+  var SFX_LOADED = false;
+  function sfxMoney(n){ n=n||0; if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); }
+  function sfxNum(n){ return (n==null?0:n).toLocaleString(undefined,{maximumFractionDigits:0}); }
+  function sfxGet(path){
     return window.SPARK_SB.getToken().then(function(tok){
       return fetch(RP_WORKER + path, { headers:{ 'Authorization':'Bearer '+tok } })
         .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); });
     });
   }
-  function sfErr(el,res){ if(el) el.innerHTML='<div class="sfh-err">'+((res&&res.d&&res.d.error)||'Unavailable')+'</div>'; }
+  function sfxErr(el,res){ if(el) el.innerHTML='<div class="sfx-err">'+((res&&res.d&&res.d.error)||'Unavailable')+'</div>'; }
+  // animated count-up for a KPI value element
+  function sfxCountUp(el, target, fmt){
+    if(!el) return; var start=0, dur=700, t0=null;
+    function step(ts){ if(!t0)t0=ts; var p=Math.min((ts-t0)/dur,1); var v=Math.round(start+(target-start)*(p*(2-p)));
+      el.textContent=fmt?fmt(v):sfxNum(v); if(p<1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  }
+
+  // KPI tiles: each pulls a report's grand total via /sf-report-summary
+  var SFX_KPIS = [
+    { id:'00OV5000003Fz6IMAS', label:'Headcount', accent:true, fmt:sfxNum },
+    { id:'00OV5000003EfCrMAK', label:'Open jobs · 7 days', fmt:sfxNum },
+    { id:'00OV5000003ExHpMAK', label:'Placements · 4 wks', fmt:sfxNum },
+    { id:'00OV5000003JQoHMAW', label:'Starting this week', fmt:sfxNum },
+    { id:'00OV5000003EfcfMAC', label:'Submittals · this wk', fmt:sfxNum },
+    { id:'00OV5000003EfUbMAK', label:'Pre-screens · this wk', fmt:sfxNum },
+    { id:'00OV5000003EfXpMAK', label:'Meetings done · wk', fmt:sfxNum },
+    { id:'00OV500000486M5MAI', label:'Fill ratio', fmt:function(v){return v+'%';} }
+  ];
+
   function sfHubLoad(){
-    if(!window.SPARK_SB || !window.SPARK_SB.getToken){ return; }
-    if(SF_HUB_LOADED) return; SF_HUB_LOADED = true;
+    if(!window.SPARK_SB || !window.SPARK_SB.getToken) return;
+    if(SFX_LOADED) return; SFX_LOADED = true;
 
-
-    // By business unit (open pipeline)
-    sfGet('/sf-by-bu?metric=pipeline').then(function(res){
-      var el=document.getElementById('sfhByBuBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfErr(el,res); }
-      var rows=res.d.rows||[];
-      if(!rows.length){ el.innerHTML='<div class="sfh-pending">No pipeline with a business unit set.</div>'; return; }
-      var max=Math.max.apply(null,rows.map(function(r){return r.total||0;}).concat([1]));
-      el.innerHTML='<div class="sfh-bu-grid">'+rows.map(function(r){
-        var pct=Math.round(((r.total||0)/max)*100);
-        return '<div class="sfh-bu-row"><div class="sfh-bu-name">'+(r.bu||'').replace(/</g,"&lt;")+'</div>'+
-          '<div class="sfh-bu-track"><div class="sfh-bu-fill" style="width:'+pct+'%"></div></div>'+
-          '<div class="sfh-bu-val">'+sfMoney(r.total)+' <span class="sfh-bu-n">· '+(r.count||0)+'</span></div></div>';
-      }).join('')+'</div>';
-    }).catch(function(){ sfErr(document.getElementById('sfhByBuBody')); });
-
-    // Pipeline
-    sfGet('/pipeline-snapshot').then(function(res){
-      var el=document.getElementById('sfhPipelineBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfErr(el,res); }
-      var d=res.d; var max=Math.max.apply(null,(d.topStages||[]).map(function(s){return s.amount||0;}).concat([1]));
-      var html='<div class="sfh-pipe-tot">'+
-        '<div class="sfh-pipe-stat"><div class="v">'+sfMoney(d.totalOpen)+'</div><div class="l">Open pipeline</div></div>'+
-        '<div class="sfh-pipe-stat"><div class="v">'+(d.openCount||0)+'</div><div class="l">Open opps</div></div></div>';
-      (d.topStages||[]).forEach(function(s){
-        var pct=Math.round(((s.amount||0)/max)*100);
-        html+='<div class="sfh-stage"><div class="sfh-stage-top"><span class="sfh-stage-name">'+(s.stage||'').replace(/</g,'&lt;')+'</span><span class="sfh-stage-amt">'+sfMoney(s.amount)+' · '+(s.count||0)+'</span></div><div class="sfh-bar"><div class="sfh-bar-fill" style="width:'+pct+'%"></div></div></div>';
+    // ---- KPI tiles ----
+    var kpiHost=document.getElementById('sfxKpis');
+    if(kpiHost){
+      kpiHost.innerHTML = SFX_KPIS.map(function(k,i){
+        return '<div class="sfx-kpi'+(k.accent?' accent':'')+'"><div class="sfx-kpi-label">'+k.label+'</div>'+
+          '<div class="sfx-kpi-val sfx-kpi-loading" id="sfxKpi'+i+'">—</div>'+
+          '<div class="sfx-kpi-sub" id="sfxKpiSub'+i+'"></div></div>';
+      }).join('');
+      SFX_KPIS.forEach(function(k,i){
+        sfxGet('/sf-report-summary?id='+k.id).then(function(res){
+          var el=document.getElementById('sfxKpi'+i), sub=document.getElementById('sfxKpiSub'+i);
+          if(!el) return;
+          if(!res.ok||res.d.error){ el.classList.remove('sfx-kpi-loading'); el.textContent='—'; if(sub) sub.textContent='unavailable'; return; }
+          el.classList.remove('sfx-kpi-loading');
+          var val = res.d.grandTotal;
+          if(val==null){ el.textContent='—'; }
+          else { sfxCountUp(el, val, k.fmt); }
+          if(sub && res.d.reportName) sub.textContent = res.d.reportName;
+        }).catch(function(){ var el=document.getElementById('sfxKpi'+i); if(el){el.classList.remove('sfx-kpi-loading'); el.textContent='—';} });
       });
-      el.innerHTML=html;
-    }).catch(function(){ sfErr(document.getElementById('sfhPipelineBody')); });
+    }
 
-    // Headcount
-    sfGet('/headcount-wow').then(function(res){
-      var el=document.getElementById('sfhHeadcountBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfErr(el,res); }
+    // ---- Headcount WoW (dark sparkline) ----
+    sfxGet('/headcount-wow').then(function(res){
+      var el=document.getElementById('sfxHeadcountBody'); if(!el) return;
+      if(!res.ok||res.d.error){ return sfxErr(el,res); }
       var weeks=(res.d.weeks||[]).filter(function(w){return w.headcount!=null;});
-      if(!weeks.length){ el.innerHTML='<div class="sfh-err">No data.</div>'; return; }
+      if(!weeks.length){ el.innerHTML='<div class="sfx-err">No data.</div>'; return; }
       var latest=weeks[weeks.length-1], prev=weeks.length>1?weeks[weeks.length-2]:null;
       var delta=prev?(latest.headcount-prev.headcount):0;
-      var dcls=delta>0?'pos':''; var dtxt=(delta>0?'▲ +':(delta<0?'▼ ':''))+(delta===0?'flat':Math.abs(delta));
-      el.innerHTML='<div class="sfh-pipe-tot"><div class="sfh-pipe-stat"><div class="v">'+latest.headcount+'</div><div class="l">on payroll · '+latest.label+'</div></div>'+
-        '<div class="sfh-pipe-stat"><div class="v '+(delta>0?'':'')+'" style="color:'+(delta>0?'#0f7a4d':(delta<0?'#b91c1c':'#777'))+'">'+dtxt+'</div><div class="l">vs prior week</div></div></div>'+
-        '<div class="sfh-row"><span class="sfh-row-name">Total hours logged</span><span class="sfh-row-val">'+(latest.hours||0).toLocaleString(undefined,{maximumFractionDigits:0})+'</span></div>';
-    }).catch(function(){ sfErr(document.getElementById('sfhHeadcountBody')); });
+      var dcls=delta>0?'up':(delta<0?'down':'flat');
+      var dtxt=(delta>0?'▲ +':(delta<0?'▼ ':''))+(delta===0?'flat':Math.abs(delta));
+      var series=weeks.slice(-16).map(function(w){return w.headcount;});
+      el.innerHTML='<div class="sfx-hc-top"><div class="sfx-hc-big">'+latest.headcount+'</div>'+
+        '<div><span class="sfx-hc-delta '+dcls+'">'+dtxt+'</span><div class="sfx-hc-sub" style="margin-top:6px;">on payroll · week of '+latest.label+'</div></div></div>'+
+        sfxSpark(series)+
+        '<div class="sfx-row" style="margin-top:8px;"><span class="sfx-row-name">Total hours logged</span><span class="sfx-row-val">'+sfxNum(latest.hours)+'</span></div>';
+    }).catch(function(){ sfxErr(document.getElementById('sfxHeadcountBody')); });
 
-    // Closing soon
-    sfGet('/sf-closing').then(function(res){
-      var el=document.getElementById('sfhClosingBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfErr(el,res); }
-      var deals=res.d.deals||[];
-      if(!deals.length){ el.innerHTML='<div class="sfh-pending">Nothing closing in the next 30 days.</div>'; return; }
-      el.innerHTML=deals.slice(0,8).map(function(o){
-        return '<div class="sfh-row"><div class="sfh-row-main"><div class="sfh-row-name">'+(o.account||o.name||'').replace(/</g,'&lt;')+'</div><div class="sfh-row-sub">'+(o.stage||'')+' · '+sfDate(o.closeDate)+'</div></div><span class="sfh-row-val">'+sfMoney(o.amount)+'</span></div>';
-      }).join('');
-    }).catch(function(){ sfErr(document.getElementById('sfhClosingBody')); });
+    // ---- Open pipeline by BU ----
+    sfxGet('/sf-by-bu?metric=pipeline').then(function(res){
+      var el=document.getElementById('sfxBuBody'); if(!el) return;
+      if(!res.ok||res.d.error){ return sfxErr(el,res); }
+      var rows=res.d.rows||[]; if(!rows.length){ el.innerHTML='<div class="sfx-pending">No pipeline with a business unit set.</div>'; return; }
+      var max=Math.max.apply(null,rows.map(function(r){return r.total||0;}).concat([1]));
+      el.innerHTML='<div class="sfx-bu-grid">'+rows.map(function(r){
+        var pct=Math.round(((r.total||0)/max)*100);
+        return '<div class="sfx-bu-row"><div class="sfx-bu-name">'+(r.bu||'').replace(/</g,"&lt;")+'</div><div class="sfx-bu-track"><div class="sfx-bu-fill" style="width:'+pct+'%"></div></div><div class="sfx-bu-val">'+sfxMoney(r.total)+' <span class="sfx-bu-n">· '+(r.count||0)+'</span></div></div>';
+      }).join('')+'</div>';
+    }).catch(function(){ sfxErr(document.getElementById('sfxBuBody')); });
 
-    // Recent wins
-    sfGet('/sf-wins').then(function(res){
-      var el=document.getElementById('sfhWinsBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfErr(el,res); }
-      var wins=res.d.wins||[];
-      if(!wins.length){ el.innerHTML='<div class="sfh-pending">No closed-won in the last 30 days.</div>'; return; }
-      el.innerHTML=wins.slice(0,8).map(function(o){
-        return '<div class="sfh-row"><div class="sfh-row-main"><div class="sfh-row-name">'+(o.account||o.name||'').replace(/</g,'&lt;')+'</div><div class="sfh-row-sub">'+sfDate(o.closeDate)+(o.owner?(' · '+o.owner):'')+'</div></div><span class="sfh-row-val pos">'+sfMoney(o.amount)+'</span></div>';
-      }).join('');
-    }).catch(function(){ sfErr(document.getElementById('sfhWinsBody')); });
+    // ---- Accounts by unit (report breakdown) ----
+    sfxReportRows('00OV5000003Ef9dMAC','sfxAccountsBody', sfxNum);
+    // ---- Aging jobs 30+ ----
+    sfxReportRows('00OV5000003EfG5MAK','sfxAgingBody', sfxNum);
+    // ---- Placements last 4 weeks ----
+    sfxReportRows('00OV5000003ExHpMAK','sfxPlacementsBody', sfxNum);
+    // ---- Terminations last week ----
+    sfxReportRows('00OV5000003FosQMAS','sfxTermsBody', sfxNum);
+  }
 
-    // Top customers
-    sfGet('/sf-top-customers').then(function(res){
-      var el=document.getElementById('sfhCustomersBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfErr(el,res); }
-      var cs=res.d.customers||[];
-      if(!cs.length){ el.innerHTML='<div class="sfh-pending">No revenue data.</div>'; return; }
-      el.innerHTML=cs.slice(0,8).map(function(c){
-        return '<div class="sfh-row"><div class="sfh-row-main"><div class="sfh-row-name">'+(c.account||'').replace(/</g,'&lt;')+'</div><div class="sfh-row-sub">'+(c.deals||0)+' won</div></div><span class="sfh-row-val">'+sfMoney(c.total)+'</span></div>';
-      }).join('');
-    }).catch(function(){ sfErr(document.getElementById('sfhCustomersBody')); });
+  // Generic: render a report's breakdown rows (label + value) into a card body
+  function sfxReportRows(reportId, bodyId, fmt){
+    sfxGet('/sf-report-summary?id='+reportId).then(function(res){
+      var el=document.getElementById(bodyId); if(!el) return;
+      if(!res.ok||res.d.error){ return sfxErr(el,res); }
+      var rows=(res.d.rows||[]).filter(function(r){return r.label!=null;});
+      var total=res.d.grandTotal;
+      if(!rows.length){
+        el.innerHTML='<div class="sfx-hc-top"><div class="sfx-hc-big">'+(fmt?fmt(total||0):sfxNum(total))+'</div><div class="sfx-hc-sub">total</div></div>';
+        return;
+      }
+      var max=Math.max.apply(null,rows.map(function(r){return r.value||0;}).concat([1]));
+      el.innerHTML = (total!=null?'<div class="sfx-hc-top" style="margin-bottom:12px;"><div class="sfx-hc-big">'+(fmt?fmt(total):sfxNum(total))+'</div><div class="sfx-hc-sub">total</div></div>':'')+
+        rows.slice(0,8).map(function(r){
+          var pct=Math.round(((r.value||0)/max)*100);
+          return '<div class="sfx-bu-row"><div class="sfx-bu-name">'+(r.label||'').replace(/</g,'&lt;')+'</div><div class="sfx-bu-track"><div class="sfx-bu-fill" style="width:'+pct+'%"></div></div><div class="sfx-bu-val">'+sfxNum(r.value)+'</div></div>';
+        }).join('');
+    }).catch(function(){ sfxErr(document.getElementById(bodyId)); });
+  }
+
+  function sfxSpark(vals){
+    if(!vals||vals.length<2) return '';
+    var w=300,h=54,pad=4;
+    var min=Math.min.apply(null,vals),max=Math.max.apply(null,vals),range=(max-min)||1;
+    var pts=vals.map(function(v,i){ var x=pad+(i/(vals.length-1))*(w-2*pad); var y=h-pad-((v-min)/range)*(h-2*pad); return x.toFixed(1)+','+y.toFixed(1); });
+    var area='M'+pad+','+(h-pad)+' L'+pts.join(' L')+' L'+(w-pad)+','+(h-pad)+' Z';
+    var last=pts[pts.length-1].split(',');
+    return '<svg class="sfx-spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'+
+      '<defs><linearGradient id="sfxg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="rgba(245,197,24,0.30)"/><stop offset="100%" stop-color="rgba(245,197,24,0)"/></linearGradient></defs>'+
+      '<path d="'+area+'" fill="url(#sfxg)"/>'+
+      '<polyline fill="none" stroke="#F5C518" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.join(' ')+'"/>'+
+      '<circle cx="'+last[0]+'" cy="'+last[1]+'" r="3" fill="#fff" stroke="#F5C518" stroke-width="2"/></svg>';
   }
 
   // ===== v43 — headcount week-over-week widget =====
