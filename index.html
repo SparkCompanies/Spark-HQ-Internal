@@ -6155,7 +6155,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v46</span>
+      <span class="ver-dot"></span><span>Spark HQ · v47</span>
     </div>
   </aside>
 
@@ -11082,21 +11082,21 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
-      navItems: ['home','jarvis','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','training','standard','careers','people','tools','docs','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: ['role'],
-      navItems: ['home','training','standard','careers','people','tools','docs']
+      navItems: ['home','salesforce','training','standard','careers','people','tools','docs']
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -11110,6 +11110,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           if (k === 'super_admin') return; // super_admin is locked — never overridden
           merged[k] = Object.assign({}, merged[k] || {}, saved[k]);
         });
+        // v47 — ensure the Salesforce nav exists even in older saved role sets
+        Object.keys(merged).forEach(k => {
+          var ni = merged[k].navItems;
+          if (Array.isArray(ni) && ni.indexOf('salesforce') === -1) {
+            var ji = ni.indexOf('jarvis');
+            if (ji !== -1) ni.splice(ji + 1, 0, 'salesforce'); else ni.splice(1, 0, 'salesforce');
+          }
+        });
         return merged;
       }
     } catch(e) {}
@@ -11120,7 +11128,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   }
 
   const ALL_NAV_ITEMS = [
-    ['home','Home'], ['jarvis','Jarvis'], ['training','Training'], ['standard','Spark Standard'],
+    ['home','Home'], ['jarvis','Jarvis'], ['salesforce','Salesforce'], ['training','Training'], ['standard','Spark Standard'],
     ['careers','Career Paths'], ['people','People'], ['tools','Software & Tools'],
     ['docs','Documents'], ['leadership','Leadership'], ['admin','Admin']
   ];
