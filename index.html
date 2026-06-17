@@ -5776,6 +5776,27 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+/* v49 — BU command table + goal bar */
+.sfx-goalbar { height:6px; border-radius:4px; background:#1c1f27; overflow:hidden; margin:8px 0 6px; }
+.sfx-goalbar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--gold),#fde68a); animation:sfxGrow .7s ease-out; }
+.sfx-tbl { width:100%; font-size:13px; }
+.sfx-tbl-head, .sfx-tbl-row { display:grid; grid-template-columns:1.6fr .7fr .9fr .8fr .8fr .7fr .7fr; align-items:center; gap:8px; }
+.sfx-tbl-head { padding:0 6px 10px; border-bottom:1px solid #21252f; }
+.sfx-tbl-head span { font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#6b6f7d; text-align:right; }
+.sfx-tbl-head span:first-child { text-align:left; }
+.sfx-tbl-row { padding:9px 6px; border-bottom:1px solid #181b22; transition:background .12s; }
+.sfx-tbl-row:hover { background:#161a22; }
+.sfx-tbl-total { border-top:1px solid #2a2e3a; border-bottom:none; margin-top:4px; }
+.sfx-tbl-total .sfx-tbl-buname { color:var(--gold); font-weight:700; }
+.sfx-tbl-bu { position:relative; display:flex; align-items:center; min-width:0; padding-left:2px; }
+.sfx-tbl-hcbar { position:absolute; left:0; bottom:-3px; height:2px; background:linear-gradient(90deg,var(--gold),transparent); border-radius:2px; opacity:.5; }
+.sfx-tbl-buname { font-weight:600; color:#e4e6ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sfx-tbl-num { text-align:right; color:#cfd2dc; font-variant-numeric:tabular-nums; }
+.sfx-tbl-num.strong { color:#fff; font-weight:700; }
+.sfx-fill-chip { display:inline-block; font-weight:700; font-size:11.5px; border:1px solid; border-radius:20px; padding:1px 8px; }
+@media (max-width:980px){ .sfx-tbl-head, .sfx-tbl-row { grid-template-columns:1.4fr .6fr .7fr .7fr .8fr; } .sfx-tbl-head span:nth-child(6),.sfx-tbl-head span:nth-child(7),.sfx-tbl-row span:nth-child(6),.sfx-tbl-row span:nth-child(7){ display:none; } }
+
 /* v48 — dark exec command center */
 #view-salesforce { background:#0b0d12; }
 .sfx-wrap { max-width:1240px; margin:0 auto; padding:32px 28px 70px; }
@@ -6213,7 +6234,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v48</span>
+      <span class="ver-dot"></span><span>Spark HQ · v49</span>
     </div>
   </aside>
 
@@ -6509,31 +6530,20 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         <!-- KPI TILES -->
         <div class="sfx-kpis" id="sfxKpis"></div>
 
-        <!-- DETAIL SECTIONS -->
+        <!-- BU COMMAND TABLE (the spine) -->
+        <div class="sfx-card sfx-span2" id="sfxBuTableCard" style="margin-bottom:16px;">
+          <div class="sfx-card-head">
+            <span class="sfx-card-title">By business unit</span>
+            <a class="sfx-link" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000000wtLtMAI/view" target="_blank" rel="noopener">Dashboard ↗</a>
+          </div>
+          <div class="sfx-card-body" id="sfxBuTableBody"><div class="sfx-loading">Loading live from Salesforce…</div></div>
+        </div>
+
+        <!-- HEADCOUNT TREND -->
         <div class="sfx-grid">
           <div class="sfx-card sfx-span2" id="sfxHeadcountCard">
             <div class="sfx-card-head"><span class="sfx-card-title">Headcount — week over week</span><a class="sfx-link" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000001IOuXMAW/view" target="_blank" rel="noopener">Dashboard ↗</a></div>
             <div class="sfx-card-body" id="sfxHeadcountBody"><div class="sfx-loading">Loading…</div></div>
-          </div>
-          <div class="sfx-card sfx-span2" id="sfxBuCard">
-            <div class="sfx-card-head"><span class="sfx-card-title">Open pipeline by business unit</span><a class="sfx-link" href="https://spark-companies.lightning.force.com/lightning/o/Opportunity/list" target="_blank" rel="noopener">View ↗</a></div>
-            <div class="sfx-card-body" id="sfxBuBody"><div class="sfx-loading">Loading…</div></div>
-          </div>
-          <div class="sfx-card" id="sfxAccountsCard">
-            <div class="sfx-card-head"><span class="sfx-card-title">Accounts by unit</span></div>
-            <div class="sfx-card-body" id="sfxAccountsBody"><div class="sfx-loading">Loading…</div></div>
-          </div>
-          <div class="sfx-card" id="sfxAgingCard">
-            <div class="sfx-card-head"><span class="sfx-card-title">Aging jobs · 30+ days</span></div>
-            <div class="sfx-card-body" id="sfxAgingBody"><div class="sfx-loading">Loading…</div></div>
-          </div>
-          <div class="sfx-card" id="sfxPlacementsCard">
-            <div class="sfx-card-head"><span class="sfx-card-title">Placements · last 4 weeks</span></div>
-            <div class="sfx-card-body" id="sfxPlacementsBody"><div class="sfx-loading">Loading…</div></div>
-          </div>
-          <div class="sfx-card" id="sfxTermsCard">
-            <div class="sfx-card-head"><span class="sfx-card-title">Terminations · last week</span></div>
-            <div class="sfx-card-body" id="sfxTermsBody"><div class="sfx-loading">Loading…</div></div>
           </div>
         </div>
       </div>
@@ -9529,10 +9539,10 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 
 
 
-  // ===== v48 — Salesforce Command Center (dark exec dashboard) =====
+  // ===== v49 — Salesforce Command Center (BU-spine, accurate) =====
   var SFX_LOADED = false;
-  function sfxMoney(n){ n=n||0; if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3) return '$'+Math.round(n/1e3)+'K'; return '$'+Math.round(n); }
-  function sfxNum(n){ return (n==null?0:n).toLocaleString(undefined,{maximumFractionDigits:0}); }
+  function sfxNum(n){ return (n==null?0:Math.round(n)).toLocaleString(); }
+  function sfxPct(n){ return (n==null?0:Math.round(n))+'%'; }
   function sfxGet(path){
     return window.SPARK_SB.getToken().then(function(tok){
       return fetch(RP_WORKER + path, { headers:{ 'Authorization':'Bearer '+tok } })
@@ -9540,53 +9550,75 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     });
   }
   function sfxErr(el,res){ if(el) el.innerHTML='<div class="sfx-err">'+((res&&res.d&&res.d.error)||'Unavailable')+'</div>'; }
-  // animated count-up for a KPI value element
-  function sfxCountUp(el, target, fmt){
-    if(!el) return; var start=0, dur=700, t0=null;
+  function sfxCountUp(el, target, suffix){
+    if(!el) return; var start=0, dur=700, t0=null; suffix=suffix||'';
     function step(ts){ if(!t0)t0=ts; var p=Math.min((ts-t0)/dur,1); var v=Math.round(start+(target-start)*(p*(2-p)));
-      el.textContent=fmt?fmt(v):sfxNum(v); if(p<1) requestAnimationFrame(step); }
+      el.textContent=v.toLocaleString()+suffix; if(p<1) requestAnimationFrame(step); }
     requestAnimationFrame(step);
   }
-
-  // KPI tiles: each pulls a report's grand total via /sf-report-summary
-  var SFX_KPIS = [
-    { id:'00OV5000003Fz6IMAS', label:'Headcount', accent:true, fmt:sfxNum },
-    { id:'00OV5000003EfCrMAK', label:'Open jobs · 7 days', fmt:sfxNum },
-    { id:'00OV5000003ExHpMAK', label:'Placements · 4 wks', fmt:sfxNum },
-    { id:'00OV5000003JQoHMAW', label:'Starting this week', fmt:sfxNum },
-    { id:'00OV5000003EfcfMAC', label:'Submittals · this wk', fmt:sfxNum },
-    { id:'00OV5000003EfUbMAK', label:'Pre-screens · this wk', fmt:sfxNum },
-    { id:'00OV5000003EfXpMAK', label:'Meetings done · wk', fmt:sfxNum },
-    { id:'00OV500000486M5MAI', label:'Fill ratio', fmt:function(v){return v+'%';} }
-  ];
+  // color for a fill % (red→amber→green)
+  function sfxFillColor(p){ if(p>=75) return '#34d399'; if(p>=50) return '#fbbf24'; if(p>=35) return '#fb923c'; return '#f87171'; }
 
   function sfHubLoad(){
     if(!window.SPARK_SB || !window.SPARK_SB.getToken) return;
     if(SFX_LOADED) return; SFX_LOADED = true;
 
-    // ---- KPI tiles ----
-    var kpiHost=document.getElementById('sfxKpis');
-    if(kpiHost){
-      kpiHost.innerHTML = SFX_KPIS.map(function(k,i){
-        return '<div class="sfx-kpi'+(k.accent?' accent':'')+'"><div class="sfx-kpi-label">'+k.label+'</div>'+
-          '<div class="sfx-kpi-val sfx-kpi-loading" id="sfxKpi'+i+'">—</div>'+
-          '<div class="sfx-kpi-sub" id="sfxKpiSub'+i+'"></div></div>';
-      }).join('');
-      SFX_KPIS.forEach(function(k,i){
-        sfxGet('/sf-report-summary?id='+k.id).then(function(res){
-          var el=document.getElementById('sfxKpi'+i), sub=document.getElementById('sfxKpiSub'+i);
-          if(!el) return;
-          if(!res.ok||res.d.error){ el.classList.remove('sfx-kpi-loading'); el.textContent='—'; if(sub) sub.textContent='unavailable'; return; }
-          el.classList.remove('sfx-kpi-loading');
-          var val = res.d.grandTotal;
-          if(val==null){ el.textContent='—'; }
-          else { sfxCountUp(el, val, k.fmt); }
-          if(sub && res.d.reportName) sub.textContent = res.d.reportName;
-        }).catch(function(){ var el=document.getElementById('sfxKpi'+i); if(el){el.classList.remove('sfx-kpi-loading'); el.textContent='—';} });
-      });
-    }
+    // ---- Command dataset (accurate, BU-keyed) ----
+    sfxGet('/sf-command').then(function(res){
+      var kpiHost=document.getElementById('sfxKpis');
+      var tbody=document.getElementById('sfxBuTableBody');
+      if(!res.ok||res.d.error){ if(kpiHost) kpiHost.innerHTML='<div class="sfx-err">'+((res.d&&res.d.error)||'Unavailable')+'</div>'; if(tbody) sfxErr(tbody,res); return; }
+      var t=res.d.totals||{}, units=res.d.units||[];
 
-    // ---- Headcount WoW (dark sparkline) ----
+      // KPI TILES (each mapped to the correct, verified number)
+      if(kpiHost){
+        var hcPct = t.hcGoal ? Math.min(Math.round((t.headcount/t.hcGoal)*100),100) : 0;
+        var tiles = [
+          { label:'Headcount', big:true, html:
+            '<div class="sfx-kpi-val accent" id="sfxK_hc">0</div>'+
+            '<div class="sfx-goalbar"><div class="sfx-goalbar-fill" style="width:'+hcPct+'%"></div></div>'+
+            '<div class="sfx-kpi-sub">'+sfxNum(t.headcount)+' of '+sfxNum(t.hcGoal)+' goal · '+hcPct+'%</div>' },
+          { label:'Fill ratio', html:'<div class="sfx-kpi-val" id="sfxK_fill" style="color:'+sfxFillColor(t.fillRatio)+'">0%</div><div class="sfx-kpi-sub">'+sfxNum(t.filled)+' filled / '+sfxNum(t.openings)+' openings</div>' },
+          { label:'Open positions', html:'<div class="sfx-kpi-val" id="sfxK_open">0</div><div class="sfx-kpi-sub">across all units</div>' },
+          { label:'Net this period', html:'<div class="sfx-kpi-val" style="color:'+(t.net>=0?'#34d399':'#f87171')+'">'+(t.net>=0?'+':'')+sfxNum(t.net)+'</div><div class="sfx-kpi-sub">'+sfxNum(t.starts)+' starts · '+sfxNum(t.terms)+' terms</div>' }
+        ];
+        kpiHost.innerHTML = tiles.map(function(k){ return '<div class="sfx-kpi'+(k.big?' accent':'')+'"><div class="sfx-kpi-label">'+k.label+'</div>'+k.html+'</div>'; }).join('');
+        sfxCountUp(document.getElementById('sfxK_hc'), t.headcount);
+        sfxCountUp(document.getElementById('sfxK_fill'), Math.round(t.fillRatio), '%');
+        sfxCountUp(document.getElementById('sfxK_open'), t.openings);
+      }
+
+      // BU TABLE — the spine
+      if(tbody){
+        var maxHc=Math.max.apply(null,units.map(function(u){return u.headcount;}).concat([1]));
+        var head='<div class="sfx-tbl-head"><span>Business unit</span><span>HC</span><span>Openings</span><span>Filled</span><span>Fill %</span><span>Starts</span><span>Terms</span></div>';
+        var rows=units.map(function(u){
+          var fc=sfxFillColor(u.fillRatio);
+          var hcbar=Math.round((u.headcount/maxHc)*100);
+          return '<div class="sfx-tbl-row">'+
+            '<span class="sfx-tbl-bu"><span class="sfx-tbl-hcbar" style="width:'+hcbar+'%"></span><span class="sfx-tbl-buname">'+(u.bu||'').replace(/</g,"&lt;")+'</span></span>'+
+            '<span class="sfx-tbl-num strong">'+sfxNum(u.headcount)+'</span>'+
+            '<span class="sfx-tbl-num">'+sfxNum(u.openings)+'</span>'+
+            '<span class="sfx-tbl-num">'+sfxNum(u.filled)+'</span>'+
+            '<span class="sfx-tbl-num"><span class="sfx-fill-chip" style="color:'+fc+';border-color:'+fc+'33;background:'+fc+'14">'+sfxPct(u.fillRatio)+'</span></span>'+
+            '<span class="sfx-tbl-num" style="color:#34d399">'+(u.starts?'+'+u.starts:'0')+'</span>'+
+            '<span class="sfx-tbl-num" style="color:#f87171">'+(u.terms?'-'+u.terms:'0')+'</span>'+
+          '</div>';
+        }).join('');
+        var tot='<div class="sfx-tbl-row sfx-tbl-total">'+
+          '<span class="sfx-tbl-bu"><span class="sfx-tbl-buname">All units</span></span>'+
+          '<span class="sfx-tbl-num strong">'+sfxNum(t.headcount)+'</span>'+
+          '<span class="sfx-tbl-num">'+sfxNum(t.openings)+'</span>'+
+          '<span class="sfx-tbl-num">'+sfxNum(t.filled)+'</span>'+
+          '<span class="sfx-tbl-num"><span class="sfx-fill-chip" style="color:'+sfxFillColor(t.fillRatio)+';border-color:'+sfxFillColor(t.fillRatio)+'33;background:'+sfxFillColor(t.fillRatio)+'14">'+sfxPct(t.fillRatio)+'</span></span>'+
+          '<span class="sfx-tbl-num" style="color:#34d399">+'+sfxNum(t.starts)+'</span>'+
+          '<span class="sfx-tbl-num" style="color:#f87171">-'+sfxNum(t.terms)+'</span>'+
+        '</div>';
+        tbody.innerHTML='<div class="sfx-tbl">'+head+rows+tot+'</div>';
+      }
+    }).catch(function(e){ var k=document.getElementById('sfxKpis'); if(k) k.innerHTML='<div class="sfx-err">'+(e.message||e)+'</div>'; });
+
+    // ---- Headcount WoW trend (dark sparkline) ----
     sfxGet('/headcount-wow').then(function(res){
       var el=document.getElementById('sfxHeadcountBody'); if(!el) return;
       if(!res.ok||res.d.error){ return sfxErr(el,res); }
@@ -9598,51 +9630,9 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       var dtxt=(delta>0?'▲ +':(delta<0?'▼ ':''))+(delta===0?'flat':Math.abs(delta));
       var series=weeks.slice(-16).map(function(w){return w.headcount;});
       el.innerHTML='<div class="sfx-hc-top"><div class="sfx-hc-big">'+latest.headcount+'</div>'+
-        '<div><span class="sfx-hc-delta '+dcls+'">'+dtxt+'</span><div class="sfx-hc-sub" style="margin-top:6px;">on payroll · week of '+latest.label+'</div></div></div>'+
-        sfxSpark(series)+
-        '<div class="sfx-row" style="margin-top:8px;"><span class="sfx-row-name">Total hours logged</span><span class="sfx-row-val">'+sfxNum(latest.hours)+'</span></div>';
+        '<div><span class="sfx-hc-delta '+dcls+'">'+dtxt+'</span><div class="sfx-hc-sub" style="margin-top:6px;">timesheet headcount · week of '+latest.label+'</div></div></div>'+
+        sfxSpark(series);
     }).catch(function(){ sfxErr(document.getElementById('sfxHeadcountBody')); });
-
-    // ---- Open pipeline by BU ----
-    sfxGet('/sf-by-bu?metric=pipeline').then(function(res){
-      var el=document.getElementById('sfxBuBody'); if(!el) return;
-      if(!res.ok||res.d.error){ return sfxErr(el,res); }
-      var rows=res.d.rows||[]; if(!rows.length){ el.innerHTML='<div class="sfx-pending">No pipeline with a business unit set.</div>'; return; }
-      var max=Math.max.apply(null,rows.map(function(r){return r.total||0;}).concat([1]));
-      el.innerHTML='<div class="sfx-bu-grid">'+rows.map(function(r){
-        var pct=Math.round(((r.total||0)/max)*100);
-        return '<div class="sfx-bu-row"><div class="sfx-bu-name">'+(r.bu||'').replace(/</g,"&lt;")+'</div><div class="sfx-bu-track"><div class="sfx-bu-fill" style="width:'+pct+'%"></div></div><div class="sfx-bu-val">'+sfxMoney(r.total)+' <span class="sfx-bu-n">· '+(r.count||0)+'</span></div></div>';
-      }).join('')+'</div>';
-    }).catch(function(){ sfxErr(document.getElementById('sfxBuBody')); });
-
-    // ---- Accounts by unit (report breakdown) ----
-    sfxReportRows('00OV5000003Ef9dMAC','sfxAccountsBody', sfxNum);
-    // ---- Aging jobs 30+ ----
-    sfxReportRows('00OV5000003EfG5MAK','sfxAgingBody', sfxNum);
-    // ---- Placements last 4 weeks ----
-    sfxReportRows('00OV5000003ExHpMAK','sfxPlacementsBody', sfxNum);
-    // ---- Terminations last week ----
-    sfxReportRows('00OV5000003FosQMAS','sfxTermsBody', sfxNum);
-  }
-
-  // Generic: render a report's breakdown rows (label + value) into a card body
-  function sfxReportRows(reportId, bodyId, fmt){
-    sfxGet('/sf-report-summary?id='+reportId).then(function(res){
-      var el=document.getElementById(bodyId); if(!el) return;
-      if(!res.ok||res.d.error){ return sfxErr(el,res); }
-      var rows=(res.d.rows||[]).filter(function(r){return r.label!=null;});
-      var total=res.d.grandTotal;
-      if(!rows.length){
-        el.innerHTML='<div class="sfx-hc-top"><div class="sfx-hc-big">'+(fmt?fmt(total||0):sfxNum(total))+'</div><div class="sfx-hc-sub">total</div></div>';
-        return;
-      }
-      var max=Math.max.apply(null,rows.map(function(r){return r.value||0;}).concat([1]));
-      el.innerHTML = (total!=null?'<div class="sfx-hc-top" style="margin-bottom:12px;"><div class="sfx-hc-big">'+(fmt?fmt(total):sfxNum(total))+'</div><div class="sfx-hc-sub">total</div></div>':'')+
-        rows.slice(0,8).map(function(r){
-          var pct=Math.round(((r.value||0)/max)*100);
-          return '<div class="sfx-bu-row"><div class="sfx-bu-name">'+(r.label||'').replace(/</g,'&lt;')+'</div><div class="sfx-bu-track"><div class="sfx-bu-fill" style="width:'+pct+'%"></div></div><div class="sfx-bu-val">'+sfxNum(r.value)+'</div></div>';
-        }).join('');
-    }).catch(function(){ sfxErr(document.getElementById(bodyId)); });
   }
 
   function sfxSpark(vals){
