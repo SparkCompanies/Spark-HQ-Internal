@@ -5777,6 +5777,46 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 
 
 
+
+/* v50 — job board viewer (kanban) */
+.sfx-board-meta { font-size:11.5px; color:#7f8493; font-weight:600; }
+.sfx-board-controls { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.sfx-job-search { flex:1; min-width:200px; background:#0e1117; border:1px solid #262b36; border-radius:9px; padding:9px 13px; color:#e4e6ec; font-family:inherit; font-size:13px; }
+.sfx-job-search:focus { outline:none; border-color:var(--gold); }
+.sfx-job-select { min-width:280px; background:#0e1117; border:1px solid #262b36; border-radius:9px; padding:9px 13px; color:#e4e6ec; font-family:inherit; font-size:13px; cursor:pointer; }
+.sfx-job-select:focus { outline:none; border-color:var(--gold); }
+.sfx-kanban { display:flex; gap:12px; overflow-x:auto; padding-bottom:10px; min-height:120px; }
+.sfx-kanban::-webkit-scrollbar { height:8px; } .sfx-kanban::-webkit-scrollbar-thumb { background:#2a2e3a; border-radius:4px; }
+.sfx-col { flex:0 0 220px; background:#0e1117; border:1px solid #1e222b; border-radius:12px; padding:10px; display:flex; flex-direction:column; transition:border-color .12s, background .12s; }
+.sfx-col.drop-target { border-color:var(--gold); background:#16161a; box-shadow:0 0 0 1px var(--gold) inset; }
+.sfx-col-head { display:flex; align-items:center; justify-content:space-between; padding:2px 4px 10px; border-bottom:1px solid #1e222b; margin-bottom:8px; }
+.sfx-col-name { font-size:12px; font-weight:700; color:#e4e6ec; letter-spacing:.3px; }
+.sfx-col-name.interview::after { content:"·"; color:#38bdf8; margin-left:4px; }
+.sfx-col-count { font-size:11px; font-weight:700; color:#7f8493; background:#1c1f27; border-radius:10px; padding:1px 8px; }
+.sfx-col-cards { display:flex; flex-direction:column; gap:7px; min-height:40px; flex:1; }
+.sfx-cardx { background:linear-gradient(180deg,#181b22,#13161d); border:1px solid #262b36; border-radius:9px; padding:9px 11px; cursor:grab; transition:transform .1s, box-shadow .1s, border-color .1s; }
+.sfx-cardx:hover { border-color:#39404f; box-shadow:0 4px 14px rgba(0,0,0,0.35); transform:translateY(-1px); }
+.sfx-cardx.dragging { opacity:.45; cursor:grabbing; }
+.sfx-cardx-name { font-size:12.5px; font-weight:600; color:#f0f1f4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sfx-cardx-meta { display:flex; align-items:center; gap:6px; margin-top:5px; }
+.sfx-cardx-days { font-size:10.5px; font-weight:700; color:#7f8493; }
+.sfx-cardx-days.warn { color:#fbbf24; } .sfx-cardx-days.stale { color:#f87171; }
+.sfx-cardx-rec { font-size:10px; color:#5f6470; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sfx-board-empty { font-size:12px; color:#5f6470; padding:14px 4px; text-align:center; }
+/* confirm dialog */
+.sfx-confirm { position:fixed; inset:0; background:rgba(6,7,10,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px; }
+.sfx-confirm-card { background:#13151d; border:1px solid #2a2e3a; border-radius:14px; padding:22px 24px; width:100%; max-width:380px; box-shadow:0 24px 70px rgba(0,0,0,0.6); }
+.sfx-confirm-title { font-size:16px; font-weight:700; color:#fff; margin-bottom:8px; }
+.sfx-confirm-body { font-size:13px; color:#cfd2dc; line-height:1.5; margin-bottom:18px; }
+.sfx-confirm-body b { color:var(--gold); }
+.sfx-confirm-btns { display:flex; gap:10px; }
+.sfx-confirm-btns button { flex:1; padding:10px; border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; border:1px solid #2c2f3a; }
+.sfx-confirm-cancel { background:#171a22; color:#cfd2dc; } .sfx-confirm-cancel:hover { border-color:#3a3f4c; }
+.sfx-confirm-ok { background:linear-gradient(135deg,var(--gold),var(--gold-dark)); color:var(--ink); border-color:var(--gold); } .sfx-confirm-ok:hover { filter:brightness(1.08); }
+.sfx-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#13151d; border:1px solid #2a2e3a; color:#e4e6ec; font-size:13px; font-weight:600; padding:11px 18px; border-radius:10px; z-index:10000; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+.sfx-toast.err { border-color:#f87171; color:#fca5a5; }
+@media (max-width:980px){ .sfx-col { flex-basis:180px; } }
+
 /* v49 — BU command table + goal bar */
 .sfx-goalbar { height:6px; border-radius:4px; background:#1c1f27; overflow:hidden; margin:8px 0 6px; }
 .sfx-goalbar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--gold),#fde68a); animation:sfxGrow .7s ease-out; }
@@ -6234,7 +6274,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v49</span>
+      <span class="ver-dot"></span><span>Spark HQ · v50</span>
     </div>
   </aside>
 
@@ -6545,6 +6585,19 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
             <div class="sfx-card-head"><span class="sfx-card-title">Headcount — week over week</span><a class="sfx-link" href="https://spark-companies.lightning.force.com/lightning/r/Dashboard/01ZV5000001IOuXMAW/view" target="_blank" rel="noopener">Dashboard ↗</a></div>
             <div class="sfx-card-body" id="sfxHeadcountBody"><div class="sfx-loading">Loading…</div></div>
           </div>
+        </div>
+
+        <!-- JOB BOARD VIEWER -->
+        <div class="sfx-card sfx-span2" id="sfxBoardCard" style="margin-top:16px;">
+          <div class="sfx-card-head">
+            <span class="sfx-card-title">Job board — candidate pipeline</span>
+            <span id="sfxBoardMeta" class="sfx-board-meta"></span>
+          </div>
+          <div class="sfx-board-controls">
+            <input type="text" id="sfxJobSearch" class="sfx-job-search" placeholder="Search jobs by name or account…" autocomplete="off" />
+            <select id="sfxJobSelect" class="sfx-job-select"><option value="">Loading jobs…</option></select>
+          </div>
+          <div id="sfxBoardArea"><div class="sfx-pending">Pick a job above to see its candidate pipeline.</div></div>
         </div>
       </div>
     </div>
@@ -9633,6 +9686,132 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         '<div><span class="sfx-hc-delta '+dcls+'">'+dtxt+'</span><div class="sfx-hc-sub" style="margin-top:6px;">timesheet headcount · week of '+latest.label+'</div></div></div>'+
         sfxSpark(series);
     }).catch(function(){ sfxErr(document.getElementById('sfxHeadcountBody')); });
+
+    // ---- Job board viewer ----
+    try { sfxBoardInit(); } catch(e){}
+  }
+
+
+  // ===== v50 — Job Board Viewer (kanban) =====
+  var SFX_JOBS = [];
+  var SFX_BOARD_STAGES = [];
+  var SFX_BOARD_JOBID = null;
+  var SFX_DRAG = null;
+
+  function sfxBoardInit(){
+    var sel=document.getElementById('sfxJobSelect'), search=document.getElementById('sfxJobSearch');
+    if(!sel) return;
+    if(!SFX_JOBS.length){
+      sfxGet('/sf-jobs').then(function(res){
+        if(!res.ok||res.d.error){ sel.innerHTML='<option value="">'+((res.d&&res.d.error)||'Failed to load jobs')+'</option>'; return; }
+        SFX_JOBS = res.d.jobs||[];
+        sfxRenderJobOptions('');
+      }).catch(function(){ sel.innerHTML='<option value="">Failed to load jobs</option>'; });
+    }
+    if(search && !search.__wired){ search.__wired=true; search.addEventListener('input', function(){ sfxRenderJobOptions(this.value); }); }
+    if(sel && !sel.__wired){ sel.__wired=true; sel.addEventListener('change', function(){ if(this.value) sfxLoadBoard(this.value); }); }
+  }
+  function sfxRenderJobOptions(q){
+    var sel=document.getElementById('sfxJobSelect'); if(!sel) return;
+    q=(q||'').toLowerCase();
+    var list = SFX_JOBS.filter(function(j){ return !q || (j.name+' '+j.account).toLowerCase().indexOf(q)>=0; });
+    // open jobs first
+    list.sort(function(a,b){ var ao=/open|active/i.test(a.status)?0:1, bo=/open|active/i.test(b.status)?0:1; return ao-bo; });
+    sel.innerHTML='<option value="">'+list.length+' job'+(list.length===1?'':'s')+' — pick one…</option>'+
+      list.slice(0,150).map(function(j){
+        var lbl=j.name+(j.account?(' · '+j.account):'')+(j.status?(' ['+j.status+']'):'');
+        return '<option value="'+j.id+'">'+lbl.replace(/</g,'&lt;')+'</option>';
+      }).join('');
+  }
+  function sfxLoadBoard(jobId){
+    SFX_BOARD_JOBID=jobId;
+    var area=document.getElementById('sfxBoardArea'), meta=document.getElementById('sfxBoardMeta');
+    if(area) area.innerHTML='<div class="sfx-loading">Loading the pipeline…</div>';
+    if(meta) meta.textContent='';
+    sfxGet('/sf-board?jobId='+encodeURIComponent(jobId)).then(function(res){
+      if(!res.ok||res.d.error){ if(area) area.innerHTML='<div class="sfx-err">'+((res.d&&res.d.error)||'Failed to load board')+'</div>'; return; }
+      SFX_BOARD_STAGES = res.d.stages||[];
+      sfxRenderBoard(res.d.stages||[], res.d.applicants||[]);
+      var job=SFX_JOBS.filter(function(j){return j.id===jobId;})[0];
+      if(meta) meta.textContent=(res.d.applicants||[]).length+' candidates · '+(res.d.stages||[]).length+' stages'+(job?(' · '+(job.openings||0)+' openings'):'');
+    }).catch(function(){ if(area) area.innerHTML='<div class="sfx-err">Failed to load board</div>'; });
+  }
+  function sfxRenderBoard(stages, applicants){
+    var area=document.getElementById('sfxBoardArea'); if(!area) return;
+    if(!stages.length){ area.innerHTML='<div class="sfx-pending">This job has no configured stages.</div>'; return; }
+    // group applicants by stageId (fallback to stage name match)
+    var byStage={};
+    stages.forEach(function(s){ byStage[s.id]=[]; });
+    applicants.forEach(function(a){
+      if(byStage[a.stageId]) byStage[a.stageId].push(a);
+      else { // match by name if id not in this job's stage set
+        var m=stages.filter(function(s){return s.name===a.stageName;})[0];
+        if(m) byStage[m.id].push(a); 
+      }
+    });
+    area.innerHTML='<div class="sfx-kanban">'+stages.map(function(s){
+      var cards=byStage[s.id]||[];
+      return '<div class="sfx-col" data-stage="'+s.id+'">'+
+        '<div class="sfx-col-head"><span class="sfx-col-name'+(s.isInterview?' interview':'')+'">'+(s.name||'').replace(/</g,'&lt;')+'</span><span class="sfx-col-count">'+cards.length+'</span></div>'+
+        '<div class="sfx-col-cards" data-stage="'+s.id+'">'+
+          (cards.length?cards.map(sfxCard).join(''):'<div class="sfx-board-empty">—</div>')+
+        '</div></div>';
+    }).join('')+'</div>';
+    sfxWireDnD();
+  }
+  function sfxCard(a){
+    var d=a.days==null?'':(a.days+'d');
+    var dcls=a.days>=60?'stale':(a.days>=21?'warn':'');
+    return '<div class="sfx-cardx" draggable="true" data-app="'+a.id+'" data-stage="'+a.stageId+'">'+
+      '<div class="sfx-cardx-name">'+(a.name||'').replace(/</g,'&lt;')+'</div>'+
+      '<div class="sfx-cardx-meta"><span class="sfx-cardx-days '+dcls+'">'+d+' in stage</span>'+
+      (a.recruiter?'<span class="sfx-cardx-rec">· '+a.recruiter.replace(/</g,'&lt;')+'</span>':'')+'</div></div>';
+  }
+  function sfxWireDnD(){
+    var cards=document.querySelectorAll('#sfxBoardArea .sfx-cardx');
+    var cols=document.querySelectorAll('#sfxBoardArea .sfx-col');
+    cards.forEach(function(c){
+      c.addEventListener('dragstart', function(e){ SFX_DRAG={app:c.dataset.app, from:c.dataset.stage, name:c.querySelector('.sfx-cardx-name').textContent}; c.classList.add('dragging'); });
+      c.addEventListener('dragend', function(){ c.classList.remove('dragging'); document.querySelectorAll('.sfx-col.drop-target').forEach(function(x){x.classList.remove('drop-target');}); });
+    });
+    cols.forEach(function(col){
+      col.addEventListener('dragover', function(e){ e.preventDefault(); col.classList.add('drop-target'); });
+      col.addEventListener('dragleave', function(){ col.classList.remove('drop-target'); });
+      col.addEventListener('drop', function(e){
+        e.preventDefault(); col.classList.remove('drop-target');
+        if(!SFX_DRAG) return;
+        var toStage=col.dataset.stage;
+        if(toStage===SFX_DRAG.from) return; // no-op
+        var stageObj=SFX_BOARD_STAGES.filter(function(s){return s.id===toStage;})[0];
+        sfxConfirmMove(SFX_DRAG.app, SFX_DRAG.name, toStage, stageObj?stageObj.name:'this stage');
+      });
+    });
+  }
+  function sfxConfirmMove(appId, name, stageId, stageName){
+    var ov=document.createElement('div'); ov.className='sfx-confirm';
+    ov.innerHTML='<div class="sfx-confirm-card"><div class="sfx-confirm-title">Move candidate?</div>'+
+      '<div class="sfx-confirm-body">Move <b>'+name.replace(/</g,'&lt;')+'</b> to <b>'+(stageName||'').replace(/</g,'&lt;')+'</b>? This updates the stage in Salesforce.</div>'+
+      '<div class="sfx-confirm-btns"><button class="sfx-confirm-cancel">Cancel</button><button class="sfx-confirm-ok">Move</button></div></div>';
+    document.body.appendChild(ov);
+    function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+    ov.querySelector('.sfx-confirm-cancel').onclick=close;
+    ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+    ov.querySelector('.sfx-confirm-ok').onclick=function(){
+      var btn=this; btn.textContent='Moving…'; btn.disabled=true;
+      window.SPARK_SB.getToken().then(function(tok){
+        return fetch(RP_WORKER+'/sf-update-stage', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({applicantId:appId, stageId:stageId}) })
+          .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); });
+      }).then(function(res){
+        close();
+        if(res.ok && res.d.ok){ sfxToast('Moved '+name+' to '+stageName); sfxLoadBoard(SFX_BOARD_JOBID); }
+        else sfxToast((res.d&&res.d.error)||'Move failed', true);
+      }).catch(function(e){ close(); sfxToast('Move failed: '+(e.message||e), true); });
+    };
+  }
+  function sfxToast(msg, err){
+    var t=document.createElement('div'); t.className='sfx-toast'+(err?' err':''); t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },400); }, err?4200:2400);
   }
 
   function sfxSpark(vals){
