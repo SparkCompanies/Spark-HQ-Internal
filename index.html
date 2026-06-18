@@ -5786,6 +5786,17 @@ input, select, textarea, button { font-family: 'Century Gothic', 'Questrial', 'J
 .fin-eyebrow { font-family:var(--font-display); font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); }
 .fin-title { font-family:var(--font-display); font-size:30px; font-weight:700; color:#fff; margin:4px 0 0; }
 .fin-weeklab { font-size:12.5px; color:#7f8493; } .fin-weeklab b { color:#e4e6ec; font-weight:600; }
+.fin-xero-btn { display:inline-flex; align-items:center; gap:6px; font-family:inherit; font-size:12.5px; font-weight:600; color:#cfd2dc; background:#13161d; border:1px solid #262b36; border-radius:8px; padding:7px 12px; cursor:pointer; }
+.fin-xero-btn:hover { border-color:var(--gold); color:#fff; }
+.fin-xero-wrap { background:#13161d; border:1px solid #21252f; border-radius:14px; padding:18px 20px; margin:18px 0 6px; }
+.fin-xero-wrap h4 { margin:0 0 4px; font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#e4e6ec; }
+.fin-xero-wrap .sub { font-size:12px; color:#7f8493; margin-bottom:14px; }
+.fin-xero-org { display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid #1e222b; }
+.fin-xero-org .nm { font-size:13.5px; font-weight:600; color:#f0f1f4; flex:1; }
+.fin-xero-org select { background:#0f1217; color:#cfd2dc; border:1px solid #262b36; border-radius:7px; padding:6px 10px; font-family:inherit; font-size:12.5px; }
+.fin-xero-connect { display:inline-flex; align-items:center; gap:7px; background:var(--gold); color:#111; border:none; border-radius:8px; padding:9px 16px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; margin-top:14px; }
+.fin-xero-connect:hover { filter:brightness(1.05); }
+.fin-xero-empty { font-size:12.5px; color:#7f8493; padding:8px 0; }
 .fin-tiles { display:flex; gap:30px; margin:22px 0 6px; flex-wrap:wrap; padding-bottom:18px; border-bottom:1px solid #21252f; }
 .fin-tile .k { font-family:var(--font-display); font-size:25px; font-weight:700; color:#fff; }
 .fin-tile .k.gold { color:var(--gold); }
@@ -6343,7 +6354,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
-      <span class="ver-dot"></span><span>Spark HQ · v52</span>
+      <span class="ver-dot"></span><span>Spark HQ · v54</span>
     </div>
   </aside>
 
@@ -6679,8 +6690,13 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
             <div class="fin-eyebrow">Finance · Invoicing</div>
             <h2 class="fin-title">Invoicing Agent</h2>
           </div>
-          <span class="fin-weeklab">Batch for week ending <b id="finWE">—</b></span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="fin-weeklab">Batch for week ending <b id="finWE">—</b></span>
+            <button class="fin-xero-btn" onclick="finXeroPanel()" title="Xero connection settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Xero</button>
+          </div>
         </div>
+
+        <div class="fin-xero-wrap" id="finXeroWrap" style="display:none"></div>
 
         <div class="fin-tiles" id="finTiles"></div>
 
@@ -8616,6 +8632,36 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
   })();
   
+  // ==================== XERO OAUTH CALLBACK HANDLER ====================
+  // When Xero redirects to /xero-callback?code=..., this catches it, posts the code
+  // to the Worker (which exchanges it + stores tokens per org), then returns to Finance.
+  (function(){
+    if (window.location.pathname.indexOf('/xero-callback') === -1) return;
+    var p = new URLSearchParams(window.location.search);
+    var code = p.get('code'); var err = p.get('error');
+    document.documentElement.innerHTML = '<body style="font-family:system-ui;background:#0b0d12;color:#e4e6ec;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><div style="font-size:18px;font-weight:600">Connecting Xero…</div><div id="xcb" style="margin-top:10px;color:#7f8493;font-size:13px">Exchanging authorization…</div></div></body>';
+    function done(msg, ok){ var e=document.getElementById('xcb'); if(e){ e.textContent=msg; e.style.color = ok?'#34d399':'#f87171'; } setTimeout(function(){ window.location.href = window.location.origin + '/?xero=' + (ok?'connected':'error'); }, ok?1400:3500); }
+    if (err) { done('Xero error: ' + err, false); return; }
+    if (!code) { done('No authorization code returned.', false); return; }
+    // need a Supabase token to call the Worker — wait for SPARK_SB
+    var tries = 0;
+    (function waitAuth(){
+      tries++;
+      if (window.SPARK_SB && window.SPARK_SB.getToken) {
+        window.SPARK_SB.getToken().then(function(tok){
+          if (!tok) { if (tries<40){ setTimeout(waitAuth,150); return; } done('Not signed in — open Spark HQ first, then reconnect Xero.', false); return; }
+          return fetch('https://spark-hq-worker.sparkcompanies.workers.dev/xero-callback-exchange', {
+            method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({code:code})
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if (d && d.ok) { done('Connected ' + (d.connected||[]).map(function(o){return o.tenant_name;}).join(', ') + '. Returning…', true); }
+            else { done('Connect failed: ' + ((d&&d.error)||'unknown'), false); }
+          });
+        }).catch(function(e){ done('Connect failed: ' + (e.message||e), false); });
+      } else if (tries < 40) { setTimeout(waitAuth, 150); }
+      else { done('Could not reach sign-in. Open Spark HQ first.', false); }
+    })();
+  })();
+
   // ==================== V10 — SUPABASE INTEGRATION ====================
   // Shared backend for Spark HQ. localStorage stays as the synchronous
   // fast-path + offline fallback; Supabase is the shared source of truth.
@@ -8637,8 +8683,11 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           });
           // If we came back from Microsoft with an auth code in the URL, exchange it
           // explicitly for a session, then strip it from the URL so reloads are clean.
+          // EXCEPTION: the /xero-callback path also carries ?code= but that's a XERO code,
+          // not a Supabase one — leave it for the Xero handler and don't consume it here.
           var href = window.location.href;
-          if (href.indexOf('code=') !== -1 && (href.indexOf('?') !== -1 || href.indexOf('#') !== -1)) {
+          var onXeroCallback = window.location.pathname.indexOf('/xero-callback') !== -1;
+          if (!onXeroCallback && href.indexOf('code=') !== -1 && (href.indexOf('?') !== -1 || href.indexOf('#') !== -1)) {
             return client.auth.exchangeCodeForSession(window.location.search ? new URLSearchParams(window.location.search).get('code') : '')
               .then(function() {
                 try {
@@ -9986,7 +10035,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       var inv=o.inv, i=o.i;
       var ot=inv.lines.filter(function(l){return l[0].indexOf(' OT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
       var rt=inv.lines.filter(function(l){return l[0].indexOf(' RT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
-      var status=FIN_STATE.sent[i]?'<span class="fin-badge sent">Sent to Xero</span>':'<span class="fin-badge"><span class="fin-dot"></span>Ready</span>';
+      var status=FIN_STATE.sent[i]?'<span class="fin-badge sent">Draft in Xero</span>':'<span class="fin-badge"><span class="fin-dot"></span>Ready</span>';
       return '<tr data-i="'+i+'"><td><div class="fin-cli">'+inv.client+'</div><span class="fin-ent">'+inv.entity+'</span></td>'+
         '<td class="fin-mono fin-sub">'+inv.reference+'</td>'+
         '<td class="r fin-mono">'+inv.emp+'</td>'+
@@ -10004,18 +10053,84 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     document.getElementById('finDrawer').innerHTML =
       '<div class="fin-dhead"><span class="lbl">Invoice preview · '+inv.entity+'</span><button class="x" onclick="finCloseD()">&times;</button></div>'+
       '<div class="fin-sheet"><div class="r1"><h4>INVOICE</h4><div class="fin-sheet-logo"><b>SPARK</b><span>TALENT ACQUISITION</span></div></div>'+
-      '<div class="fin-billto"><div class="nm">'+inv.client+'</div><div class="muted">Billing address on file in Xero</div></div>'+
+      '<div class="fin-billto"><div class="nm">'+inv.client+'</div><div class="muted">'+(inv.consolidatedFrom && inv.consolidatedFrom.length>1 ? ('Consolidated from '+inv.consolidatedFrom.length+' locations: '+inv.consolidatedFrom.join(', ')) : 'Billing address on file in Xero')+'</div></div>'+
       '<dl class="fin-meta"><dt>Invoice date</dt><dd>'+inv.invDate+'</dd><dt>Invoice number</dt><dd>Assigned by Xero on approval</dd><dt>Reference</dt><dd class="fin-mono">'+inv.reference+'</dd><dt>Due date</dt><dd>'+inv.dueDate+'</dd></dl>'+
       '<table class="fin-itbl"><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Unit</th><th class="r">Amount</th></tr></thead><tbody>'+lineRows+'</tbody></table>'+
       '<div class="fin-tot"><table><tr><td>Subtotal</td><td class="r fin-mono">'+finUSD(inv.subtotal)+'</td></tr><tr><td>Tax</td><td class="r fin-mono">$0.00</td></tr><tr class="g"><td>Total USD</td><td class="r fin-mono">'+finUSD(inv.subtotal)+'</td></tr></table></div>'+
       '<div class="fin-foot"><span>Revenue account '+inv.account+'</span><span>'+inv.tax+'</span></div></div>'+
-      '<div class="fin-acts"><button class="fin-btn primary '+(done?'done':'')+'" onclick="finToggleSend('+i+')">'+(done?'\u2713 Sent to Xero (draft)':'Approve &amp; send to Xero')+'</button><button class="fin-btn ghost" onclick="finCloseD()">Hold</button></div>'+
-      '<div class="fin-foothint">Prototype action — in the live agent, Approve creates this as a draft in Xero for final sign-off.</div>';
+      '<div class="fin-acts"><button class="fin-btn primary '+(done?'done':'')+'" '+(done?'disabled':'')+' onclick="finToggleSend('+i+')">'+(done?('\u2713 Draft in Xero'+(done.num&&done.num!=='(draft)'?' \u00b7 '+done.num:'')):'Approve &amp; send to Xero')+'</button><button class="fin-btn ghost" onclick="finCloseD()">'+(done?'Close':'Hold')+'</button></div>'+
+      '<div class="fin-foothint">'+(done?('Created as a DRAFT in '+(done.org||'Xero')+'. Review and approve it inside Xero. Nothing is finalized automatically.'):'Approve creates this as a DRAFT invoice in the mapped Xero org. You review and send it from inside Xero.')+'</div>';
     document.getElementById('finDrawer').classList.add('on');
     document.getElementById('finScrim').classList.add('on');
   }
   window.finCloseD=function(){ var d=document.getElementById('finDrawer'),s=document.getElementById('finScrim'); if(d)d.classList.remove('on'); if(s)s.classList.remove('on'); };
-  window.finToggleSend=function(i){ FIN_STATE.sent[i]=!FIN_STATE.sent[i]; finRenderRows(); finOpenD(i); };
+  window.finToggleSend=function(i){
+    var inv = finActive().invoices[i]; if(!inv) return;
+    if (FIN_STATE.sent[i]) return; // already sent; no un-send for real drafts
+    var btn = document.querySelector('#finDrawer .fin-btn.primary');
+    if (btn) { btn.textContent = 'Creating draft in Xero…'; btn.disabled = true; }
+    // convert the display invoice into the payload the Worker expects
+    var payload = { invoice: {
+      client: inv.client, entity: inv.entity, lines: inv.lines,
+      reference: inv.reference || '', account: inv.account || '',
+      invDateISO: inv.invDateISO || (FIN_LIVE && FIN_LIVE.summary && FIN_LIVE.summary.weekEndingRaw) || '',
+      dueDateISO: inv.dueDateISO || ''
+    }};
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER+'/xero-draft', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify(payload) })
+        .then(function(r){ return r.json(); });
+    }).then(function(d){
+      if (d && d.ok) {
+        FIN_STATE.sent[i] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org };
+        finRenderRows(); finOpenD(i);
+      } else {
+        if (btn) { btn.textContent = 'Approve & send to Xero'; btn.disabled = false; }
+        alert('Could not create Xero draft:\n' + ((d&&d.error)||'unknown error'));
+      }
+    }).catch(function(e){
+      if (btn) { btn.textContent = 'Approve & send to Xero'; btn.disabled = false; }
+      alert('Could not create Xero draft: ' + (e.message||e));
+    });
+  };
+  // ===== Xero connection settings (panel in Finance header) =====
+  var FIN_DIVISIONS = ['Spark Talent','Spark Packaging','Flex Workforce Solutions','JJP','Ignite Search','Spark Companies'];
+  window.finXeroPanel = function(){
+    var w = document.getElementById('finXeroWrap'); if(!w) return;
+    if (w.style.display !== 'none') { w.style.display='none'; return; }
+    w.style.display=''; w.innerHTML = '<div class="fin-xero-empty">Loading Xero connections…</div>';
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER+'/xero-orgs', { headers:{'Authorization':'Bearer '+tok} }).then(function(r){return r.json();});
+    }).then(function(d){
+      var orgs = (d && d.orgs) || [];
+      var html = '<h4>Xero connection</h4><div class="sub">Connect each Xero organisation once, then map it to the Spark entity it bills for. Invoices post as drafts to the mapped org.</div>';
+      if (!orgs.length) {
+        html += '<div class="fin-xero-empty">No Xero organisations connected yet.</div>';
+      } else {
+        orgs.forEach(function(o){
+          var opts = '<option value="">— map to entity —</option>' + FIN_DIVISIONS.map(function(dv){
+            return '<option value="'+dv+'"'+(o.entity_division===dv?' selected':'')+'>'+dv+'</option>';
+          }).join('');
+          html += '<div class="fin-xero-org"><span class="nm">'+o.tenant_name+'</span><select onchange="finMapEntity(\''+o.tenant_id+'\', this.value)">'+opts+'</select></div>';
+        });
+      }
+      html += '<button class="fin-xero-connect" onclick="finConnectXero()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>'+(orgs.length?'Connect another org':'Connect Xero')+'</button>';
+      w.innerHTML = html;
+    }).catch(function(e){ w.innerHTML = '<div class="fin-xero-empty">Could not load: '+(e.message||e)+'</div>'; });
+  };
+  window.finConnectXero = function(){
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER+'/xero-authorize', { headers:{'Authorization':'Bearer '+tok} }).then(function(r){return r.json();});
+    }).then(function(d){
+      if (d && d.authUrl) { window.location.href = d.authUrl; }
+      else { alert('Could not start Xero connect: '+((d&&d.error)||'unknown')); }
+    }).catch(function(e){ alert('Could not start Xero connect: '+(e.message||e)); });
+  };
+  window.finMapEntity = function(tenantId, division){
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER+'/xero-map-entity', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({tenantId:tenantId, division:division}) }).then(function(r){return r.json();});
+    }).then(function(d){ if(!(d&&d.ok)) alert('Could not save mapping: '+((d&&d.error)||'unknown')); });
+  };
+
   // expose finLoad for the nav hook
   window.finLoad = finLoad;
 
@@ -10461,6 +10576,23 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       if (!JV_CONV_ID) { jvSaveConversation(); setTimeout(doShare, 800); } else { doShare(); }
     } catch(e){ alert('Could not share.'); }
   };
+
+  // show a toast when returning from a Xero connect
+  (function(){
+    try {
+      var p = new URLSearchParams(location.search);
+      var x = p.get('xero');
+      if (x) {
+        setTimeout(function(){
+          var msg = x==='connected' ? 'Xero connected. Open Finance \u2192 Xero to map entities.' : 'Xero connection did not complete.';
+          var t=document.createElement('div'); t.textContent=msg;
+          t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:'+(x==='connected'?'#34d399':'#f87171')+';color:#111;padding:12px 20px;border-radius:10px;font-weight:600;font-size:13px;z-index:99999;box-shadow:0 8px 30px rgba(0,0,0,.3)';
+          document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 5000);
+          try { history.replaceState({}, document.title, location.origin+location.pathname); } catch(e){}
+        }, 1200);
+      }
+    } catch(e){}
+  })();
 
   // open a shared conversation if the URL has ?chat=ID
   window.jvOpenSharedFromUrl = function(){
