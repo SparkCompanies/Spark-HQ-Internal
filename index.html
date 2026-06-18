@@ -10735,7 +10735,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         box.appendChild(e); box.scrollTop=box.scrollHeight;
       } else {
         var reply=(res.d&&res.d.reply)?res.d.reply:'(no response)';
-        jvAppend('assistant', reply); JV_HISTORY.push({role:'assistant', content:reply}); jvSaveSoon();
+        jvAppend('assistant', reply); JV_HISTORY.push({role:'assistant', content:reply}); jvSaveSoon(); if(res.d&&res.d.draft){ try{ jvDraftCard(res.d.draft); }catch(e){} }
       }
     }).catch(function(err){
       if(typing) typing.remove();
@@ -18616,6 +18616,80 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
 })();
 </script>
 <!-- ===== END SPARK HQ COCKPIT HUD v1 ===== -->
+
+<!-- ===== SPARK HQ ALFRED CONFIRM CARD v1 — additive, safe to remove this whole block ===== -->
+<style id="sparkAlfredCard">
+.jv-draft-card { margin:10px 0 14px 46px; max-width:560px; background:rgba(255,255,255,0.04); border:1px solid rgba(245,197,24,0.35); border-radius:12px; padding:14px 16px; }
+.jv-draft-card .jdc-head { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#f5c518; margin-bottom:10px; }
+.jv-draft-card .jdc-dot { width:7px; height:7px; border-radius:50%; background:#f5c518; box-shadow:0 0 8px rgba(245,197,24,.8); flex:none; }
+.jv-draft-card .jdc-dot.ok { background:#22c55e; box-shadow:0 0 8px rgba(34,197,94,.8); }
+.jv-draft-card .jdc-l { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:rgba(255,255,255,0.5); margin:8px 0 3px; }
+.jv-draft-card .jdc-in, .jv-draft-card .jdc-ta { width:100%; box-sizing:border-box; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:#e8eaf0; font:inherit; font-size:13px; padding:8px 10px; }
+.jv-draft-card .jdc-ta { resize:vertical; line-height:1.5; }
+.jv-draft-card .jdc-in:focus, .jv-draft-card .jdc-ta:focus { outline:none; border-color:#f5c518; }
+.jv-draft-card .jdc-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+.jv-draft-card .jdc-cancel, .jv-draft-card .jdc-send { font:inherit; font-size:13px; font-weight:600; padding:8px 16px; border-radius:8px; cursor:pointer; border:1px solid; }
+.jv-draft-card .jdc-cancel { background:transparent; border-color:rgba(255,255,255,0.2); color:rgba(255,255,255,0.7); }
+.jv-draft-card .jdc-send { background:#f5c518; border-color:#f5c518; color:#0a0c10; }
+.jv-draft-card .jdc-send:disabled { opacity:.6; cursor:default; }
+.jv-draft-card .jdc-status { font-size:12px; color:#fca5a5; margin-top:8px; }
+</style>
+<script id="sparkAlfredCardJs">
+window.jvDraftCard = function(draft){
+  var WK = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+  var box = document.getElementById('jvMessages'); if(!box) return;
+  draft = draft || {};
+  var card = document.createElement('div');
+  card.className = 'jv-draft-card';
+  card.innerHTML =
+    '<div class="jdc-head"><span class="jdc-dot"></span>Email draft \u2014 review before sending</div>'
+    + '<label class="jdc-l">To</label><input class="jdc-in jdc-to" type="text">'
+    + '<label class="jdc-l">Subject</label><input class="jdc-in jdc-subject" type="text">'
+    + '<label class="jdc-l">Message</label><textarea class="jdc-ta" rows="6"></textarea>'
+    + '<div class="jdc-actions"><button class="jdc-cancel" type="button">Cancel</button><button class="jdc-send" type="button">Send as me</button></div>'
+    + '<div class="jdc-status"></div>';
+  // set values via .value (never innerHTML) so draft text can't inject markup
+  card.querySelector('.jdc-to').value = draft.to || '';
+  card.querySelector('.jdc-subject').value = draft.subject || '';
+  card.querySelector('.jdc-ta').value = draft.body || '';
+  box.appendChild(card); box.scrollTop = box.scrollHeight;
+  card.querySelector('.jdc-cancel').onclick = function(){ card.remove(); };
+  card.querySelector('.jdc-send').onclick = function(){
+    var btn = this;
+    var status = card.querySelector('.jdc-status');
+    var payload = {
+      to: card.querySelector('.jdc-to').value.trim(),
+      subject: card.querySelector('.jdc-subject').value,
+      body: card.querySelector('.jdc-ta').value
+    };
+    if(!payload.to){ status.textContent = 'Add a recipient first.'; return; }
+    btn.disabled = true; btn.textContent = 'Sending\u2026'; status.textContent = '';
+    window.SPARK_SB.getToken().then(function(tok){
+      if(!tok) throw new Error('Not signed in');
+      return fetch(WK + '/alfred-send', { method:'POST',
+        headers:{ 'Authorization':'Bearer '+tok, 'Content-Type':'application/json' },
+        body: JSON.stringify(payload) });
+    }).then(function(r){ return r.json().then(function(d){ return { ok:r.ok, d:d }; }); })
+    .then(function(res){
+      if(res.ok && res.d && res.d.ok){
+        var to = (res.d.to || payload.to);
+        card.innerHTML = '';
+        var h = document.createElement('div'); h.className = 'jdc-head';
+        var dot = document.createElement('span'); dot.className = 'jdc-dot ok';
+        h.appendChild(dot); h.appendChild(document.createTextNode('Sent to ' + to));
+        card.appendChild(h);
+      } else {
+        btn.disabled = false; btn.textContent = 'Send as me';
+        status.textContent = (res.d && res.d.error) ? res.d.error : 'Send failed.';
+      }
+    }).catch(function(err){
+      btn.disabled = false; btn.textContent = 'Send as me';
+      status.textContent = 'Could not send: ' + (err.message || err);
+    });
+  };
+};
+</script>
+<!-- ===== END SPARK HQ ALFRED CONFIRM CARD v1 ===== -->
 
 </body>
 </html>
