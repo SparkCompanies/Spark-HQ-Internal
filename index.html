@@ -18553,5 +18553,69 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
     </div>
   </div>
 </div>
+<!-- ===== SPARK HQ COCKPIT HUD v1 — additive, safe to remove this whole block ===== -->
+<style id="sparkCockpitHud">
+  /* ambient HUD layer injected into .jv-shell at runtime */
+  #jvHud { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; border-radius:inherit; }
+  #jvHud .hud-glow { position:absolute; left:50%; top:38%; width:680px; height:680px; transform:translate(-50%,-50%);
+    background:radial-gradient(circle, rgba(245,197,24,0.10) 0%, rgba(245,197,24,0.04) 30%, transparent 62%); }
+  #jvHud .hud-grid { position:absolute; inset:0; opacity:.06;
+    background-image:linear-gradient(rgba(245,197,24,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(245,197,24,.6) 1px, transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(circle at 50% 40%, #000 0%, transparent 70%);
+    mask-image:radial-gradient(circle at 50% 40%, #000 0%, transparent 70%); }
+  #jvHud .hud-radar { position:absolute; left:50%; top:38%; width:560px; height:560px; transform:translate(-50%,-50%); border-radius:50%;
+    background:conic-gradient(from 0deg, rgba(245,197,24,.16), transparent 28%); opacity:.45; animation:hudSweep 7s linear infinite; }
+  #jvHud .hud-ring { position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); border:1px solid rgba(245,197,24,.12); border-radius:50%; }
+  #jvHud .hud-ring.r1 { width:300px; height:300px; }
+  #jvHud .hud-ring.r2 { width:460px; height:460px; border-color:rgba(245,197,24,.08); }
+  #jvHud .hud-ring.r3 { width:620px; height:620px; border-color:rgba(245,197,24,.05); }
+  @keyframes hudSweep { to { transform:translate(-50%,-50%) rotate(360deg); } }
+  .jv-shell { position:relative; }
+  .jv-messages, .jv-composer, .jv-foot { position:relative; z-index:1; }
+
+  /* upgrade the existing empty-state sphere into a reactive gold core */
+  #jvSphere { filter:drop-shadow(0 0 14px rgba(245,197,24,.45)); transition:filter .3s, transform .3s; }
+  #jvSphere .jv-brain-core { box-shadow:0 0 22px rgba(245,197,24,.6), inset 0 0 10px rgba(245,197,24,.5); }
+  #jvSphere.is-listening { filter:drop-shadow(0 0 26px rgba(245,197,24,.95)); transform:scale(1.06); }
+  #jvSphere.is-listening .jv-brain-core { animation:hudCorePulse 1s ease-in-out infinite; }
+  @keyframes hudCorePulse {
+    0%,100% { box-shadow:0 0 22px rgba(245,197,24,.6), inset 0 0 10px rgba(245,197,24,.5); }
+    50%     { box-shadow:0 0 40px rgba(245,197,24,1), inset 0 0 16px rgba(245,197,24,.85); }
+  }
+
+  /* brand cleanup: stray cyan -> Spark gold */
+  .jtc-wake.on { background:rgba(245,197,24,.16) !important; border-color:var(--gold,#F5C518) !important; color:#fff !important; }
+  .jv-mic.on { background:var(--gold,#F5C518) !important; color:var(--ink,#0a0c10) !important; border-color:var(--gold,#F5C518) !important; }
+</style>
+<script id="sparkCockpitHudJs">
+(function(){
+  function boot(){
+    var shell = document.querySelector('.jv-shell');
+    if (shell && !document.getElementById('jvHud')) {
+      var hud = document.createElement('div');
+      hud.id = 'jvHud';
+      hud.innerHTML = '<div class="hud-glow"></div><div class="hud-grid"></div>'
+        + '<div class="hud-ring r1"></div><div class="hud-ring r2"></div><div class="hud-ring r3"></div>'
+        + '<div class="hud-radar"></div>';
+      shell.insertBefore(hud, shell.firstChild);
+    }
+    var mic = document.getElementById('jvMic');
+    var sphere = document.getElementById('jvSphere');
+    if (mic && sphere && !sphere.dataset.hudWired) {
+      sphere.dataset.hudWired = '1';
+      var sync = function(){ sphere.classList.toggle('is-listening', mic.classList.contains('on')); };
+      new MutationObserver(sync).observe(mic, { attributes:true, attributeFilter:['class'] });
+      sync();
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  setTimeout(boot, 800);
+  setTimeout(boot, 2500);
+})();
+</script>
+<!-- ===== END SPARK HQ COCKPIT HUD v1 ===== -->
+
 </body>
 </html>
