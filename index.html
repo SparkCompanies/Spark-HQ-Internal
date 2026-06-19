@@ -6693,11 +6693,71 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           </div>
           <div style="display:flex;align-items:center;gap:14px">
             <span class="fin-weeklab">Batch for week ending <b id="finWE">—</b></span>
+            <button class="fin-xero-btn" onclick="FINRULES.toggle()" title="Edit billing rules — clients, rates, POs, holds"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Billing Rules</button>
+
             <button class="fin-xero-btn" onclick="finXeroPanel()" title="Xero connection settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Xero</button>
           </div>
         </div>
 
         <div class="fin-xero-wrap" id="finXeroWrap" style="display:none"></div>
+        <style>
+#finRulesWrap{margin:0 0 22px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;position:relative;box-shadow:0 1px 2px rgba(26,26,46,.04)}
+#finRulesWrap .fr-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+#finRulesWrap .fr-eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin-bottom:3px}
+#finRulesWrap .fr-title{font-family:var(--font-display);font-size:21px;font-weight:700;color:var(--ink);line-height:1}
+#finRulesWrap .fr-nav{display:flex;gap:6px;margin-left:auto}
+#finRulesWrap .fr-pill{font:inherit;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:9px;border:1px solid var(--line);background:var(--paper);color:var(--muted);cursor:pointer;transition:.12s}
+#finRulesWrap .fr-pill:hover{border-color:var(--gold-deep);color:var(--ink)}
+#finRulesWrap .fr-pill.on{background:var(--gold-grad);border-color:var(--gold-deep);color:#3a2c05}
+#finRulesWrap .fr-tools{display:flex;align-items:center;gap:10px;width:100%}
+#finRulesWrap .fr-srch{display:flex;align-items:center;gap:7px;flex:1;max-width:320px;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--muted)}
+#finRulesWrap .fr-srch input{border:0;background:transparent;outline:none;font:inherit;font-size:13px;color:var(--ink);width:100%}
+#finRulesWrap .fr-add{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;font-weight:700;padding:8px 15px;border-radius:9px;border:1px solid var(--gold-deep);background:var(--gold-grad);color:#3a2c05;cursor:pointer}
+#finRulesWrap .fr-add:hover{filter:brightness(1.04)}
+#finRulesWrap .fr-romsg{font-size:12px;color:var(--muted);font-style:italic}
+#finRulesWrap .fr-note{font-size:12px;color:var(--muted);min-height:16px;margin-bottom:8px}
+#finRulesWrap .fr-note.err{color:#b91c1c}
+#finRulesWrap .fr-note.ok{color:var(--green)}
+#finRulesWrap .fr-tablewrap{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:60vh}
+#finRulesWrap table.fr-tbl{width:100%;border-collapse:collapse;font-size:13px}
+#finRulesWrap .fr-tbl thead th{position:sticky;top:0;background:var(--paper-warm);text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+#finRulesWrap .fr-tbl tbody td{padding:9px 12px;border-bottom:1px solid var(--line-light);color:var(--ink);vertical-align:middle}
+#finRulesWrap .fr-tbl tbody tr:last-child td{border-bottom:0}
+#finRulesWrap .fr-tbl tbody tr:hover{background:var(--line-light)}
+#finRulesWrap .fr-tbl td.r{text-align:right;white-space:nowrap}
+#finRulesWrap .fr-loading{padding:18px 12px;color:var(--muted);font-size:13px}
+#finRulesWrap .fr-hold{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#b91c1c;background:#fde8e8;border:1px solid #f5b5b5;border-radius:6px;padding:2px 7px}
+#finRulesWrap .fr-editbtn{font:inherit;font-size:12px;font-weight:600;padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+#finRulesWrap .fr-editbtn:hover{border-color:var(--gold-deep)}
+#finRulesWrap .fr-edit-scrim{display:none;position:fixed;inset:0;background:rgba(26,26,46,.32);z-index:80}
+#finRulesWrap .fr-edit-scrim.on{display:block}
+#finRulesWrap .fr-edit-card{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,92vw);max-height:88vh;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(26,26,46,.28);z-index:81;flex-direction:column;overflow:hidden}
+#finRulesWrap .fr-edit-card.on{display:flex}
+#finRulesWrap .fr-edit-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink)}
+#finRulesWrap .fr-x{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;display:inline-flex}
+#finRulesWrap .fr-x:hover{background:var(--line-light);color:var(--ink)}
+#finRulesWrap .fr-edit-body{padding:16px 20px;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:13px 16px}
+#finRulesWrap .fr-field{display:flex;flex-direction:column;gap:5px;min-width:0}
+#finRulesWrap .fr-field label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+#finRulesWrap .fr-lock{text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted-light);font-size:10px}
+#finRulesWrap .fr-field input,#finRulesWrap .fr-field select,#finRulesWrap .fr-field textarea{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);outline:none;width:100%}
+#finRulesWrap .fr-field input:focus,#finRulesWrap .fr-field select:focus,#finRulesWrap .fr-field textarea:focus{border-color:var(--gold-deep)}
+#finRulesWrap .fr-field textarea{resize:vertical;min-height:38px}
+#finRulesWrap .fr-roval{font-size:13px;color:var(--ink);padding:8px 10px;background:var(--line-light);border:1px solid var(--line);border-radius:8px;word-break:break-word}
+#finRulesWrap .fr-field.full,#finRulesWrap .fr-field:has(textarea){grid-column:1 / -1}
+#finRulesWrap .fr-tog{display:inline-flex;align-items:center;cursor:pointer;height:34px}
+#finRulesWrap .fr-tog input{display:none}
+#finRulesWrap .fr-slide{width:42px;height:23px;border-radius:13px;background:var(--line);position:relative;transition:.15s;border:1px solid var(--line)}
+#finRulesWrap .fr-slide::after{content:'';position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:.15s}
+#finRulesWrap .fr-tog input:checked + .fr-slide{background:var(--gold-deep);border-color:var(--gold-deep)}
+#finRulesWrap .fr-tog input:checked + .fr-slide::after{transform:translateX(19px)}
+#finRulesWrap .fr-eerr{padding:0 20px;font-size:12.5px;color:#b91c1c;min-height:0}
+#finRulesWrap .fr-edit-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line)}
+#finRulesWrap .fr-cancel{font:inherit;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+#finRulesWrap .fr-save{font:inherit;font-size:13px;font-weight:700;padding:9px 22px;border-radius:9px;border:1px solid var(--gold-deep);background:var(--gold-grad);color:#3a2c05;cursor:pointer}
+</style>
+<div class="fin-rules-wrap" id="finRulesWrap" style="display:none"></div>
+
 
         <div class="fin-tiles" id="finTiles"></div>
 
@@ -10114,6 +10174,245 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   var FIN_LIVE = null;              // populated from /fin-batch
   function finUSD(n){ return (n||0).toLocaleString('en-US',{style:'currency',currency:'USD'}); }
   function finActive(){ return FIN_LIVE || FIN_FROZEN; }
+/* ===== Spark HQ — Billing Rules editor (Finance tab) ===== */
+window.FINRULES = (function () {
+  var booted = false, isAdmin = false, active = 'profile', rows = [], filter = '';
+  var SPECS = {
+    profile: {
+      table: 'fin_client_profile', pk: 'xero_contact', title: 'Client Profiles',
+      list: ['xero_contact', 'invoicing_entity', 'account_code', 'due_net_days', 'review_flag'],
+      headers: ['Xero Contact', 'Entity', 'Acct', 'Net', 'Hold'],
+      cols: [
+        { k: 'xero_contact', label: 'Xero Contact', type: 'text', pkOnAdd: true },
+        { k: 'invoicing_entity', label: 'Invoicing Entity', type: 'select', opts: ['Spark Talent', 'Flex Workforce', 'Spark Packaging', 'JJP', 'Ignite Search', 'Spark Companies'] },
+        { k: 'account_code', label: 'Account Code', type: 'text' },
+        { k: 'due_net_days', label: 'Net Days', type: 'int' },
+        { k: 'tax_type', label: 'Tax Type', type: 'text' },
+        { k: 'line_order', label: 'Line Order', type: 'select', opts: ['alpha_first', 'alpha_last'] },
+        { k: 'static_po', label: 'Static PO?', type: 'bool' },
+        { k: 'static_po_value', label: 'Static PO Value', type: 'text' },
+        { k: 'weekly_po', label: 'Weekly PO (drop-in)?', type: 'bool' },
+        { k: 'splits', label: 'Splits?', type: 'bool' },
+        { k: 'split_method', label: 'Split Method', type: 'text' },
+        { k: 'holiday_multiplier', label: 'Holiday Multiplier', type: 'num' },
+        { k: 'shift_premium', label: 'Shift Premium?', type: 'bool' },
+        { k: 'attendance_bonus', label: 'Attendance Bonus $', type: 'num' },
+        { k: 'allows_expenses', label: 'Allows Expenses?', type: 'bool' },
+        { k: 'uses_client_timesheet', label: 'Uses Client Timesheet?', type: 'bool' },
+        { k: 'review_flag', label: 'Review Flag (sets a HOLD when filled)', type: 'text' },
+        { k: 'original_notes', label: 'Notes', type: 'textarea' }
+      ]
+    },
+    rules: {
+      table: 'fin_ot_dt_rules', pk: 'sf_account_name', title: 'Rate Rules',
+      list: ['sf_account_name', 'rate_mode', 'ot_multiplier', 'dt_multiplier'],
+      headers: ['SF Account', 'Mode', 'OT', 'DT'],
+      cols: [
+        { k: 'sf_account_name', label: 'SF Account Name', type: 'text', pkOnAdd: true },
+        { k: 'rate_mode', label: 'Rate Mode', type: 'select', opts: ['multiplier', 'set_rates', 'special_hold', 'unset'] },
+        { k: 'ot_multiplier', label: 'OT Multiplier', type: 'num' },
+        { k: 'dt_multiplier', label: 'DT Multiplier', type: 'num' },
+        { k: 'ot_raw', label: 'OT (from source)', type: 'text', ro: true },
+        { k: 'dt_raw', label: 'DT (from source)', type: 'text', ro: true }
+      ]
+    },
+    map: {
+      table: 'fin_client_map', pk: 'sf_account_name', title: 'Client Map',
+      list: ['sf_account_name', 'xero_contact', 'invoicing_entity'],
+      headers: ['SF Account', 'Xero Contact', 'Entity'],
+      cols: [
+        { k: 'sf_account_name', label: 'SF Account Name', type: 'text', pkOnAdd: true },
+        { k: 'xero_contact', label: 'Xero Contact', type: 'text' },
+        { k: 'invoicing_entity', label: 'Invoicing Entity', type: 'select', opts: ['Spark Talent', 'Flex Workforce', 'Spark Packaging', 'JJP', 'Ignite Search', 'Spark Companies'] },
+        { k: 'special_notes', label: 'Special Notes', type: 'textarea' }
+      ]
+    }
+  };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function getC() { return window.SPARK_SB ? window.SPARK_SB.init() : Promise.resolve(null); }
+  function wrap() { return document.getElementById('finRulesWrap'); }
+
+  function toggle() {
+    var w = wrap(); if (!w) return;
+    var open = w.style.display && w.style.display !== 'none';
+    if (open) { w.style.display = 'none'; return; }
+    var x = document.getElementById('finXeroWrap'); if (x) x.style.display = 'none';
+    w.style.display = 'block';
+    boot();
+  }
+
+  function boot() {
+    shell();
+    if (!booted) {
+      booted = true;
+      if (window.SPARK_SB && window.SPARK_SB.myRole) {
+        window.SPARK_SB.myRole().then(function (r) {
+          isAdmin = ['admin', 'superadmin', 'super_admin'].indexOf(r) !== -1;
+          shell();
+        });
+      }
+    }
+    load();
+  }
+
+  function shell() {
+    var w = wrap(); if (!w) return;
+    var pills = Object.keys(SPECS).map(function (k) {
+      return '<button class="fr-pill ' + (k === active ? 'on' : '') + '" onclick="FINRULES.go(\'' + k + '\')">' + esc(SPECS[k].title) + '</button>';
+    }).join('');
+    var addBtn = isAdmin ? '<button class="fr-add" onclick="FINRULES.edit(null)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>Add</button>' : '';
+    var ro = isAdmin ? '' : '<span class="fr-romsg">Read-only — sign in as an admin to edit.</span>';
+    w.innerHTML =
+      '<div class="fr-head">' +
+        '<div class="fr-titlewrap"><div class="fr-eyebrow">Finance · Knowledge</div><div class="fr-title">Billing Rules</div></div>' +
+        '<div class="fr-nav">' + pills + '</div>' +
+        '<div class="fr-tools">' +
+          '<div class="fr-srch"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>' +
+          '<input id="frSearch" type="text" placeholder="Filter…" oninput="FINRULES.search(this.value)" value="' + esc(filter) + '"></div>' +
+          addBtn + ro +
+        '</div>' +
+      '</div>' +
+      '<div class="fr-note" id="frNote"></div>' +
+      '<div class="fr-tablewrap"><table class="fr-tbl"><thead id="frHead"></thead><tbody id="frBody"><tr><td class="fr-loading">Loading…</td></tr></tbody></table></div>' +
+      '<div class="fr-edit-scrim" id="frScrim" onclick="FINRULES.cancel()"></div>' +
+      '<div class="fr-edit-card" id="frCard"></div>';
+  }
+
+  function note(msg, kind) {
+    var n = document.getElementById('frNote'); if (!n) return;
+    n.className = 'fr-note' + (kind ? ' ' + kind : '');
+    n.textContent = msg || '';
+  }
+
+  function load() {
+    var spec = SPECS[active];
+    getC().then(function (c) {
+      if (!c) { note('Not signed in.', 'err'); return; }
+      return c.from(spec.table).select('*').order(spec.pk, { ascending: true }).then(function (res) {
+        if (res.error) { note('Load failed: ' + res.error.message, 'err'); return; }
+        rows = res.data || [];
+        renderTable();
+      });
+    });
+  }
+
+  function renderTable() {
+    var spec = SPECS[active];
+    var head = document.getElementById('frHead'), body = document.getElementById('frBody');
+    if (!head || !body) return;
+    head.innerHTML = '<tr>' + spec.headers.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '<th></th></tr>';
+    var f = filter.trim().toLowerCase();
+    var view = rows.filter(function (r) {
+      if (!f) return true;
+      return spec.list.some(function (k) { return String(r[k] == null ? '' : r[k]).toLowerCase().indexOf(f) !== -1; });
+    });
+    note(view.length + ' of ' + rows.length + ' ' + spec.title.toLowerCase());
+    if (!view.length) { body.innerHTML = '<tr><td class="fr-loading">No matches.</td></tr>'; return; }
+    body.innerHTML = view.map(function (r) {
+      var cells = spec.list.map(function (k) {
+        var v = r[k];
+        if (k === 'review_flag') return '<td>' + (v ? '<span class="fr-hold">HOLD</span>' : '') + '</td>';
+        if (typeof v === 'boolean') return '<td>' + (v ? 'Yes' : '—') + '</td>';
+        return '<td>' + esc(v == null ? '' : v) + '</td>';
+      }).join('');
+      var pk = String(r[spec.pk]).replace(/'/g, "\\'");
+      var act = isAdmin ? '<button class="fr-editbtn" onclick="FINRULES.edit(\'' + esc(pk) + '\')">Edit</button>' : '';
+      return '<tr>' + cells + '<td class="r">' + act + '</td></tr>';
+    }).join('');
+  }
+
+  function search(v) { filter = v || ''; renderTable(); }
+  function go(k) { if (!SPECS[k]) return; active = k; filter = ''; shell(); load(); }
+
+  function fieldHtml(col, val) {
+    var id = 'frf_' + col.k;
+    if (col.ro) return '<div class="fr-roval">' + esc(val == null ? '—' : val) + '</div>';
+    if (col.type === 'bool') return '<label class="fr-tog"><input type="checkbox" id="' + id + '"' + (val ? ' checked' : '') + '><span class="fr-slide"></span></label>';
+    if (col.type === 'select') {
+      var opts = '<option value=""></option>' + col.opts.map(function (o) {
+        return '<option value="' + esc(o) + '"' + (String(val == null ? '' : val) === o ? ' selected' : '') + '>' + esc(o) + '</option>';
+      }).join('');
+      return '<select id="' + id + '">' + opts + '</select>';
+    }
+    if (col.type === 'textarea') return '<textarea id="' + id + '" rows="2">' + esc(val == null ? '' : val) + '</textarea>';
+    var t = (col.type === 'int' || col.type === 'num') ? 'number' : 'text';
+    var step = col.type === 'num' ? ' step="0.01"' : (col.type === 'int' ? ' step="1"' : '');
+    return '<input id="' + id + '" type="' + t + '"' + step + ' value="' + esc(val == null ? '' : val) + '">';
+  }
+
+  function edit(pk) {
+    if (!isAdmin) return;
+    var spec = SPECS[active];
+    var row = pk == null ? {} : rows.filter(function (r) { return String(r[spec.pk]) === String(pk); })[0] || {};
+    var editing = pk != null;
+    var fields = spec.cols.map(function (col) {
+      var ro = col.ro || (col.pkOnAdd && editing);
+      return '<div class="fr-field"><label>' + esc(col.label) + (ro ? ' <span class="fr-lock">(fixed)</span>' : '') + '</label>' +
+        (ro ? '<div class="fr-roval">' + esc(row[col.k] == null ? '—' : row[col.k]) + '</div>' : fieldHtml(col, row[col.k])) + '</div>';
+    }).join('');
+    var card = document.getElementById('frCard'), scrim = document.getElementById('frScrim');
+    card.innerHTML =
+      '<div class="fr-edit-head"><div>' + (editing ? 'Edit' : 'New') + ' · ' + esc(spec.title) + '</div>' +
+      '<button class="fr-x" onclick="FINRULES.cancel()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>' +
+      '<div class="fr-edit-body">' + fields + '</div>' +
+      '<div class="fr-eerr" id="frEerr"></div>' +
+      '<div class="fr-edit-foot">' +
+        '<button class="fr-cancel" onclick="FINRULES.cancel()">Cancel</button>' +
+        '<button class="fr-save" onclick="FINRULES.save(' + (editing ? '\'' + esc(String(pk).replace(/'/g, "\\'")) + '\'' : 'null') + ')">Save</button>' +
+      '</div>';
+    scrim.classList.add('on'); card.classList.add('on');
+  }
+
+  function cancel() {
+    var card = document.getElementById('frCard'), scrim = document.getElementById('frScrim');
+    if (card) card.classList.remove('on'); if (scrim) scrim.classList.remove('on');
+  }
+
+  function collect(spec, editing) {
+    var obj = {};
+    spec.cols.forEach(function (col) {
+      if (col.ro) return;
+      if (col.pkOnAdd && editing) return;
+      var el = document.getElementById('frf_' + col.k);
+      if (!el) return;
+      var v;
+      if (col.type === 'bool') { obj[col.k] = !!el.checked; return; }
+      v = el.value; if (typeof v === 'string') v = v.trim();
+      if (v === '' || v == null) { obj[col.k] = null; return; }
+      if (col.type === 'int') { v = parseInt(v, 10); if (isNaN(v)) v = null; }
+      else if (col.type === 'num') { v = parseFloat(v); if (isNaN(v)) v = null; }
+      obj[col.k] = v;
+    });
+    return obj;
+  }
+
+  function save(pk) {
+    if (!isAdmin) return;
+    var spec = SPECS[active], editing = pk != null;
+    var obj = collect(spec, editing);
+    var err = document.getElementById('frEerr');
+    if (!editing && (obj[spec.pk] == null || obj[spec.pk] === '')) { if (err) err.textContent = spec.pk + ' is required.'; return; }
+    if (err) err.textContent = 'Saving…';
+    getC().then(function (c) {
+      if (!c) { if (err) err.textContent = 'Not signed in.'; return; }
+      var u = (window.SPARK_SB.whoami && window.SPARK_SB.whoami()) || null;
+      obj.updated_at = new Date().toISOString();
+      if (u && u.id) obj.updated_by = u.id;
+      var q = editing
+        ? c.from(spec.table).update(obj).eq(spec.pk, pk)
+        : c.from(spec.table).insert(obj);
+      return q.then(function (res) {
+        if (res.error) { if (err) err.textContent = 'Save failed: ' + res.error.message; return; }
+        cancel(); note('Saved.', 'ok'); load();
+      });
+    });
+  }
+
+  return { toggle: toggle, go: go, search: search, edit: edit, cancel: cancel, save: save };
+})();
+
+
   function finLoad(){
     if(FIN_STATE.inited){ finPaint(); return; }
     FIN_STATE.inited = true;
