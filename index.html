@@ -6342,6 +6342,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     <nav id="navList">
       <button class="nav-item active" data-tab="home"><span class="ico">⌂</span>Home</button>
       <button class="nav-item nav-jarvis" data-tab="jarvis"><span class="ico">⬡</span>Jarvis<span class="nav-live-dot"></span></button>
+      <button class="nav-item nav-command" data-tab="command" style="display:none"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></span>Command Center</button>
       <button class="nav-item nav-salesforce" data-tab="salesforce"><span class="ico">◴</span>Salesforce</button>
       <button class="nav-item nav-finance" data-tab="finance"><span class="ico">▦</span>Finance</button>
       <button class="nav-item nav-headcount" data-tab="headcount"><span class="ico">▥</span>Headcount</button>
@@ -6911,6 +6912,17 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       </div>
     </div>
 
+    <div id="view-command" class="tab-page" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 16px;background:var(--ink,#1a1a2e);color:#fff;border-bottom:1px solid rgba(245,197,24,0.35);">
+        <div style="display:flex;align-items:baseline;gap:10px;min-width:0;">
+          <span style="font-family:'Century Gothic',sans-serif;font-weight:700;letter-spacing:1.5px;font-size:12px;color:var(--gold,#F5C518);">SPARK COMMAND CENTER</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Fletcher&#39;s ops cockpit &middot; live &middot; ZoomInfo &middot; M365</span>
+        </div>
+        <a href="https://spark-command.netlify.app" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.5px;color:var(--gold,#F5C518);text-decoration:none;border:1px solid rgba(245,197,24,0.45);border-radius:6px;padding:5px 10px;white-space:nowrap;">Open in new tab <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a>
+      </div>
+      <div style="font-size:11px;color:#8a8f98;padding:6px 16px;background:#0b0d12;border-bottom:1px solid #1a2330;">If this area stays blank, the Command Center is blocking embedding &mdash; use <strong style="color:#c9ced8;">Open in new tab</strong>, and Fletcher can allow it by adding a <code style="color:#c9ced8;">frame-ancestors</code> header on Netlify.</div>
+      <iframe id="ccFrame" src="https://spark-command.netlify.app" allow="microphone; clipboard-read; clipboard-write" referrerpolicy="no-referrer-when-downgrade" style="display:block;width:100%;height:calc(100vh - 56px - 44px - 30px);border:0;background:#070b13;"></iframe>
+    </div>
     <div id="view-training" class="tab-page cream" style="display: none;">
       <div id="lmsWelcomeBar" class="lms-welcome"></div>
 
@@ -8167,7 +8179,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
-        const allViews = ['home','jarvis','salesforce','finance','headcount','training','standard','careers','people','tools','docs','leadership','admin'];
+        const allViews = ['home','jarvis','command','salesforce','finance','headcount','training','standard','careers','people','tools','docs','leadership','admin'];
         allViews.forEach(v => {
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
@@ -19135,6 +19147,33 @@ window.jvDraftCard = function(draft){
 };
 </script>
 <!-- ===== END SPARK HQ ALFRED CONFIRM CARD v1 ===== -->
+<script>/* SPARK_HQ_CMD_EMBED_v1 */
+(function(){
+  // ===== Spark Command Center embed — leadership allowlist (EDIT THIS LIST) =====
+  var SPARK_CMD_ALLOW = [
+    'aspegel@sparkcompanies.com',
+    'aopalewski@sparkcompanies.com',
+    'fkundtz@sparkcompanies.com',
+    'dveres@sparkcompanies.com'
+  ];
+  function ccBtn(){ return document.querySelector('.nav-item[data-tab="command"]'); }
+  function ccHide(){ var b=ccBtn(); if(b) b.style.display='none';
+    var v=document.getElementById('view-command');
+    if(v && v.style.display!=='none'){ var h=document.querySelector('.nav-item[data-tab="home"]'); if(h) h.click(); } }
+  function ccShow(){ var b=ccBtn(); if(b) b.style.display=''; }
+  function ccApply(email){ email=(email||'').toLowerCase();
+    var ok = !!email && SPARK_CMD_ALLOW.map(function(e){return e.toLowerCase();}).indexOf(email)>=0;
+    if(ok) ccShow(); else ccHide(); }
+  function ccResolve(tries){ tries=tries||0;
+    try{ if(window.SPARK_SB && window.SPARK_SB.whoami){
+      window.SPARK_SB.whoami().then(function(u){ ccApply(u && u.email); })
+        .catch(function(){ if(tries<8) setTimeout(function(){ccResolve(tries+1);},700); else ccHide(); });
+      return; } }catch(e){}
+    if(tries<8) setTimeout(function(){ccResolve(tries+1);},700); else ccHide();
+  }
+  if(document.readyState!=='loading') ccResolve(); else document.addEventListener('DOMContentLoaded',function(){ccResolve();});
+})();
+</script>
 
 </body>
 </html>
