@@ -1,0 +1,33 @@
+name: CI
+
+# Validation only. This workflow never deploys — the production deploy lives in
+# azure-static-web-apps-*.yml and is intentionally left untouched so a build or
+# test failure here can never block a hotfix to the live site.
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Build & smoke test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (verifies the app compiles)
+        run: npm run build
+
+      - name: Smoke test (verifies the deployed index.html is intact)
+        run: node scripts/smoke-test.mjs
