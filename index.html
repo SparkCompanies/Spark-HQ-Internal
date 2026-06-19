@@ -6344,6 +6344,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item nav-jarvis" data-tab="jarvis"><span class="ico">⬡</span>Jarvis<span class="nav-live-dot"></span></button>
       <button class="nav-item nav-salesforce" data-tab="salesforce"><span class="ico">◴</span>Salesforce</button>
       <button class="nav-item nav-finance" data-tab="finance"><span class="ico">▦</span>Finance</button>
+      <button class="nav-item nav-headcount" data-tab="headcount"><span class="ico">▥</span>Headcount</button>
       <button class="nav-item" data-tab="training"><span class="ico">▤</span>Training</button>
       <button class="nav-item" data-tab="standard"><span class="ico">★</span>Spark Standard</button>
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
@@ -6724,6 +6725,52 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     <!-- OTHER TABS -->
         <!-- ==================== TRAINING ==================== -->
     <!-- ==================== JARVIS — COMMAND CENTER TAB ==================== -->
+    <div id="view-headcount" class="tab-page" style="display:none;">
+  <style>
+    #view-headcount .hc-head{ padding:4px 0 18px; }
+    #view-headcount .hc-head h1{ font-family:var(--font-display); font-size:24px; color:var(--ink); margin:0; letter-spacing:.3px; display:flex; align-items:center; gap:10px; }
+    #view-headcount .hc-head h1 svg{ width:22px; height:22px; color:var(--gold-deep); }
+    #view-headcount .hc-head p{ color:var(--muted); margin:5px 0 0; font-size:13px; max-width:760px; }
+    #view-headcount .hc-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+    #view-headcount .hc-kpi{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+    #view-headcount .hc-kpi-l{ font-size:10.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+    #view-headcount .hc-kpi-v{ font-family:var(--font-display); font-size:28px; font-weight:700; margin-top:6px; line-height:1.1; }
+    #view-headcount .hc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+    #view-headcount .hc-card{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+    #view-headcount .hc-card-h{ font-family:var(--font-display); font-size:14px; color:var(--ink); font-weight:700; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    #view-headcount .hc-card-h .hc-ic{ display:flex; align-items:center; gap:8px; }
+    #view-headcount .hc-card-h svg{ width:16px; height:16px; color:var(--gold-deep); }
+    #view-headcount .hc-card-sub{ font-size:11px; color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0; }
+    #view-headcount .hc-row{ display:grid; grid-template-columns:1fr 56px 56px 52px; gap:8px; padding:7px 0; border-bottom:1px solid var(--line-light); font-size:13px; }
+    #view-headcount .hc-row:last-child{ border-bottom:none; }
+    #view-headcount .hc-row-head{ font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); border-bottom:1px solid var(--line); }
+    #view-headcount .hc-row-l{ color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #view-headcount .hc-row-n{ text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); }
+    #view-headcount .hc-note{ font-size:11.5px; color:var(--muted); margin-top:4px; }
+    @media(max-width:880px){ #view-headcount .hc-kpis{ grid-template-columns:repeat(2,1fr); } #view-headcount .hc-grid{ grid-template-columns:1fr; } }
+  </style>
+  <div class="hc-head">
+    <h1><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Headcount</h1>
+    <p>Live from Salesforce &mdash; this week's projection against last week's actual, by business unit and client.</p>
+  </div>
+  <div id="hcHeadline" class="hc-kpis"><div class="sfx-loading">Loading headcount&hellip;</div></div>
+  <div class="hc-grid">
+    <div class="hc-card">
+      <div class="hc-card-h"><span class="hc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="4" height="9"/><rect x="10" y="6" width="4" height="14"/><rect x="17" y="3" width="4" height="17"/></svg>By Business Unit</span><span class="hc-card-sub">last &rarr; this</span></div>
+      <div id="hcBuBody"><div class="sfx-loading">&hellip;</div></div>
+    </div>
+    <div class="hc-card">
+      <div class="hc-card-h"><span class="hc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>Top 15 Clients</span><span id="hcClientsShare" class="hc-card-sub"></span></div>
+      <div id="hcClientsBody"><div class="sfx-loading">&hellip;</div></div>
+    </div>
+  </div>
+  <div class="hc-card">
+    <div class="hc-card-h"><span class="hc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg>13-Week Trend</span></div>
+    <div id="hcTrendBody"><div class="sfx-loading">&hellip;</div></div>
+  </div>
+  <div class="hc-note">Week-over-week compares this week's projection to last week's actual. Same-week projection-vs-actual variance turns on once weekly projections are being stored.</div>
+</div>
+
     <div id="view-jarvis" class="tab-page jarvis-page" style="display: none;">
       <div class="jarvis-tab-chrome">
         <div class="jtc-l">
@@ -8060,7 +8107,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
-        const allViews = ['home','jarvis','salesforce','finance','training','standard','careers','people','tools','docs','leadership','admin'];
+        const allViews = ['home','jarvis','salesforce','finance','headcount','training','standard','careers','people','tools','docs','leadership','admin'];
         allViews.forEach(v => {
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
@@ -8068,6 +8115,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} try { hwLoadHeadcount(); } catch(e){} try { renderPulse(); renderPulseBoard(); } catch(e){} }
         if (tab === 'salesforce') { try { sfHubLoad(); } catch(e){} }
         if (tab === 'finance') { try { finLoad(); } catch(e){} }
+        if (tab === 'headcount') { try { hcLoad(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
           try { jvRenderHistory(); } catch(e){}
@@ -9764,6 +9812,97 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   }
   // color for a fill % (red→amber→green)
   function sfxFillColor(p){ if(p>=75) return '#34d399'; if(p>=50) return '#fbbf24'; if(p>=35) return '#fb923c'; return '#f87171'; }
+
+  // ===== Headcount tab (reuses sfxGet/sfxNum/sfxSpark/sfxErr from the Salesforce toolkit) =====
+  var HC_PARENTS = [
+    ['Fanuc America', /^fanuc america/i],
+    ['Clarios', /^clarios/i],
+    ['Kuka Systems', /^kuka systems/i],
+    ['Paslin', /^paslin/i],
+    ['Penske', /^penske/i],
+    ['Revere Plastics', /^revere plastics/i],
+    ['Hirotec', /^hirotec/i],
+    ['Toyoda Gosei', /^toyoda gosei/i],
+    ['Mayco', /^mayco/i],
+    ['Rhino Tool House', /^rhino tool house/i],
+    ['DFM Solutions', /^dfm solutions/i],
+    ['MAHLE', /^mahle/i],
+    ['General Dynamics', /^general dynamics/i],
+    ['Bleichert', /^bleichert/i],
+    ['Universal Container', /^universal container/i]
+  ];
+  function hcParent(name){ for(var i=0;i<HC_PARENTS.length;i++){ if(HC_PARENTS[i][1].test(String(name||''))) return HC_PARENTS[i][0]; } return name; }
+  function hcEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function hcKpi(label,val,tone){
+    var color = tone==='gold'?'var(--gold-deep)':(tone==='up'?'#15803d':(tone==='down'?'#b91c1c':(tone==='flat'?'#64748b':'var(--ink)')));
+    return '<div class="hc-kpi"><div class="hc-kpi-l">'+label+'</div><div class="hc-kpi-v" style="color:'+color+'">'+val+'</div></div>';
+  }
+  function hcRows(items, labelKey){
+    var hdr='<div class="hc-row hc-row-head"><span class="hc-row-l">'+labelKey+'</span><span class="hc-row-n">Last</span><span class="hc-row-n">This</span><span class="hc-row-n">WoW</span></div>';
+    var rows=items.map(function(u){
+      var dc=u.delta>0?'#15803d':(u.delta<0?'#b91c1c':'#64748b');
+      var dt=(u.delta>0?'+':'')+u.delta;
+      return '<div class="hc-row"><span class="hc-row-l">'+hcEsc(u.label)+'</span>'+
+        '<span class="hc-row-n">'+sfxNum(u.last)+'</span>'+
+        '<span class="hc-row-n">'+sfxNum(u.cur)+'</span>'+
+        '<span class="hc-row-n" style="color:'+dc+'">'+dt+'</span></div>';
+    }).join('');
+    return hdr+rows;
+  }
+  function hcLoad(){
+    if(!window.SPARK_SB || !window.SPARK_SB.getToken) return;
+
+    sfxGet('/hc-snapshot').then(function(res){
+      var head=document.getElementById('hcHeadline');
+      if(!res.ok||res.d.error){ if(head) sfxErr(head,res); return; }
+      var d=res.d;
+      if(head){
+        var wowCls=d.wow>0?'up':(d.wow<0?'down':'flat');
+        var pct=Math.round((d.wowPct||0)*1000)/10;
+        var wowTxt=(d.wow>0?'+':'')+sfxNum(d.wow)+'  ('+(pct>=0?'+':'')+pct+'%)';
+        head.innerHTML=
+          hcKpi('This Week \u2014 Projected', sfxNum(d.projectedTotal), 'gold')+
+          hcKpi('Last Week \u2014 Actual', sfxNum(d.actualTotal), 'ink')+
+          hcKpi('Week-over-Week', wowTxt, wowCls)+
+          hcKpi('Hours Logged (last wk)', sfxNum(d.actualHours), 'ink');
+      }
+      var bu=document.getElementById('hcBuBody');
+      if(bu){
+        var items=(d.units||[]).map(function(u){ return {label:u.bu,last:u.lastWeekActual,cur:u.thisWeekProjected,delta:u.wow}; });
+        bu.innerHTML=hcRows(items,'Business Unit');
+      }
+    }).catch(function(e){ var h=document.getElementById('hcHeadline'); if(h) h.innerHTML='<div class="sfx-err">'+(e&&e.message||e)+'</div>'; });
+
+    sfxGet('/hc-clients').then(function(res){
+      var el=document.getElementById('hcClientsBody'); if(!el) return;
+      if(!res.ok||res.d.error){ return sfxErr(el,res); }
+      var raw=res.d.clients||[];
+      var byP={};
+      raw.forEach(function(c){
+        var p=hcParent(c.account);
+        if(!byP[p]) byP[p]={account:p,lastWeek:0,thisWeek:0};
+        byP[p].lastWeek+=c.lastWeek||0; byP[p].thisWeek+=c.thisWeek||0;
+      });
+      var list=Object.keys(byP).map(function(k){ var o=byP[k]; return {label:o.account,last:o.lastWeek,cur:o.thisWeek,delta:o.thisWeek-o.lastWeek}; })
+        .sort(function(a,b){ return (b.last||b.cur)-(a.last||a.cur); }).slice(0,15);
+      var total=res.d.rowTotals?res.d.rowTotals.actual:0;
+      var top15=list.reduce(function(s,c){ return s+(c.last||0); },0);
+      var share=total?Math.round(top15/total*100):0;
+      var shareEl=document.getElementById('hcClientsShare'); if(shareEl) shareEl.textContent='top 15 \u2248 '+share+'% of HC';
+      el.innerHTML=hcRows(list,'Client');
+    }).catch(function(){ sfxErr(document.getElementById('hcClientsBody')); });
+
+    sfxGet('/headcount-wow').then(function(res){
+      var el=document.getElementById('hcTrendBody'); if(!el) return;
+      if(!res.ok||res.d.error){ return sfxErr(el,res); }
+      var weeks=(res.d.weeks||[]).filter(function(w){ return w.headcount!=null; });
+      if(!weeks.length){ el.innerHTML='<div class="sfx-pending">No trend data yet.</div>'; return; }
+      var series=weeks.slice(-13).map(function(w){ return w.headcount; });
+      var latest=weeks[weeks.length-1];
+      el.innerHTML='<div class="sfx-hc-top"><div class="sfx-hc-big">'+latest.headcount+'</div>'+
+        '<div class="sfx-hc-sub" style="margin-top:6px;">timesheet headcount \u00b7 week of '+hcEsc(latest.label)+'</div></div>'+sfxSpark(series);
+    }).catch(function(){ sfxErr(document.getElementById('hcTrendBody')); });
+  }
 
   function sfHubLoad(){
     if(!window.SPARK_SB || !window.SPARK_SB.getToken) return;
