@@ -12311,7 +12311,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     // Hide/show nav items
     document.querySelectorAll('.nav-item').forEach(btn => {
       const tab = btn.dataset.tab;
-      btn.classList.toggle('hide-for-role', !perms.navItems.includes(tab));
+      btn.classList.toggle('hide-for-role', tab!=='command' && !perms.navItems.includes(tab));
     });
     // Hide/show admin sub-tabs
     document.querySelectorAll('.admin-subnav-item').forEach(btn => {
