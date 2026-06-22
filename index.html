@@ -10425,6 +10425,8 @@ window.FINRULES = (function () {
 })();
 
 
+  function FIN_WEEK(){ var dd = new Date(); dd.setDate(dd.getDate() - dd.getDay()); return dd.toISOString().slice(0,10); }
+  function FIN_ADAPT(d){ if(!d || !d.ok) return d; if(d.invoices) return d; var invoices = (d.ready||[]).map(function(inv){ return { client: inv.client, entity: inv.entity, reference: inv.reference, emp: inv.employees, lines: (inv.lines||[]).map(function(l){ return [l.desc, l.hours, l.rate, l.amount]; }), subtotal: inv.subtotal, dueDate: inv.dueDate, invDate: inv.invDate, account: inv.account, tax: inv.tax, flags: inv.flags||[], consolidatedFrom: inv.consolidatedFrom||null, invDateISO: (d.summary && d.summary.weekEndingRaw) || '' }; }); return { ok:true, invoices: invoices, held: d.held||[], summary: { weekEnding: (d.summary && d.summary.weekEnding) || '', weekEndingRaw: (d.summary && d.summary.weekEndingRaw) || '', invoices: invoices.length, total: (d.summary && d.summary.readyTotal) || 0, held: (d.held||[]).length } }; }
   function finLoad(){
     if(FIN_LIVE){ finPaint(); return; }
     FIN_STATE.inited = true;
@@ -10434,10 +10436,10 @@ window.FINRULES = (function () {
     if(note) note.textContent='Pulling live hours from Salesforce…';
     if(window.SPARK_SB && window.SPARK_SB.getToken){
       window.SPARK_SB.getToken().then(function(tok){
-        if(!tok){ throw new Error('auth-not-ready'); } return fetch(RP_WORKER+'/fin-batch?t='+Date.now(), { headers:{'Authorization':'Bearer '+tok}, cache:'no-store' })
+        if(!tok){ throw new Error('auth-not-ready'); } return fetch(RP_WORKER+'/fin-dryrun?weekEnding='+FIN_WEEK()+'&t='+Date.now(), { headers:{'Authorization':'Bearer '+tok}, cache:'no-store' })
           .then(function(r){ return r.json(); });
       }).then(function(d){
-        if(d && d.ok && d.invoices){
+        d = FIN_ADAPT(d); if(d && d.ok && d.invoices){
           FIN_LIVE = d;
           FIN_STATE.live = true;
           finPaint();
