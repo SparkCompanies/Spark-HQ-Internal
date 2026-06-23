@@ -6998,7 +6998,7 @@ const DEMO = [
 const DEMO_JOBS = [{"id":"djob0","name":"Machine Operator | H&H Tool","account":"H&H Tool","zip":"48446","bu":"Light Industrial","openings":8,"lat":43.1215,"lng":-83.3196},{"id":"djob1","name":"Mechanical Designer (BIW Tooling)","account":"Comau- Southfield","zip":"48033","bu":"Automation","openings":1,"lat":42.47,"lng":-83.29},{"id":"djob2","name":"Application Engineer","account":"Horiba Instruments - Ann Arbor","zip":"48108","bu":"MI Metro","openings":1,"lat":42.2233,"lng":-83.7293},{"id":"djob3","name":"Mechanical Design Engineer /Gages","account":"Jenoptik- Hommel-Etamic","zip":"48326","bu":"Automation","openings":1,"lat":42.6739,"lng":-83.2951},{"id":"djob4","name":"Mechanical Engineer FLUIDS","account":"Ace Automation - Howell,MI","zip":"48843","bu":"Automation","openings":1,"lat":42.6307,"lng":-83.9103},{"id":"djob5","name":"1st Shift Machine Operator","account":"Universal Container - Ferndale, MI","zip":"48220","bu":"Light Industrial","openings":2,"lat":42.4606,"lng":-83.1407},{"id":"djob6","name":"Tool & Die Maker","account":"Autokiniton - Holland MI","zip":"49423","bu":"Central","openings":1,"lat":42.8126,"lng":-86.0372},{"id":"djob7","name":"CNC Machinist","account":"Circor International- Massachusetts","zip":"01803","bu":"Spark Sales","openings":1,"lat":42.5048,"lng":-71.2015}];
 let CUSTOMERS=[], JOBS=[], isLive=false;
 let editMode=false, selTerr=null, searchTerm="", showJobs=true;
-let counties, statesMesh, path, projection, svg, g, gRegions, gDots, gJobs, zoom;
+let counties, statesMesh, countyMesh, path, projection, svg, g, gRegions, gDots, gJobs, zoom; let regionShapes=null;
 
 /* ---------- Region (territory) resolution for a county ---------- */
 function regionOf(fips){
@@ -7018,10 +7018,13 @@ function customerRegion(c){ return regionOf(customerFips(c)); }
 
 /* ---------- Render ---------- */
 function drawRegions(){
-  gRegions.selectAll("path.region")
-    .attr("fill",d=>{ const r=regionOf(d.id); return r? tById[r].color+"59" : "#16203355"; })
-    .attr("stroke",d=>{ const r=regionOf(d.id); return r? tById[r].color+"cc" : "#27324d"; })
-    .classed("nofill",d=>!regionOf(d.id));
+  buildRegionShapes();
+  const sel=gRegions.selectAll("path.sl-region").data(regionShapes||[], d=>d.id);
+  sel.exit().remove();
+  const ent=sel.enter().insert("path",":first-child").attr("class","sl-region");
+  ent.merge(sel).attr("d",d=>path(d.geom)).attr("fill",d=>d.color+"4d").attr("stroke",d=>d.color).attr("stroke-width",1).attr("stroke-linejoin","round");
+  // toggle hit layer interactivity with edit mode
+  gRegions.selectAll("path.sl-hit").attr("pointer-events", editMode?"all":"none");
 }
 function drawDots(){
   const data=CUSTOMERS;
@@ -7167,8 +7170,22 @@ function onRegionClick(ev,d){
 /* ---------- Boot ---------- */
 function loadGeo(){
   const topo=JSON.parse(document.getElementById("sl-usdata").textContent);
+  window.__SL_TOPOLOGY=topo;
   counties=topojson.feature(topo, topo.objects.counties);
   statesMesh=topojson.mesh(topo, topo.objects.states, (a,b)=>a!==b);
+  countyMesh=topojson.mesh(topo, topo.objects.counties, (a,b)=>a!==b);
+}
+function buildRegionShapes(){
+  const topo=window.__SL_TOPOLOGY; if(!topo) return;
+  const geoms=topo.objects.counties.geometries;
+  regionShapes=[];
+  TERRITORIES.forEach(t=>{
+    const members=geoms.filter(g=>regionOf(g.id)===t.id);
+    if(!members.length) return;
+    let merged=null;
+    try{ merged=topojson.merge(topo, members); }catch(e){ return; }
+    regionShapes.push({id:t.id, color:t.color, geom:merged});
+  });
 }
 function setupMap(){
   const wrap=document.getElementById("sl-mapwrap");
@@ -7181,9 +7198,18 @@ function setupMap(){
   gRegions=g.append("g");
   gDots=g.append("g");
   gJobs=g.append("g");
-  gRegions.selectAll("path.region").data(counties.features).enter().append("path")
-    .attr("class","region").attr("d",path).on("click",onRegionClick);
-  g.append("path").datum(statesMesh).attr("class","state-line").attr("d",path);
+  buildRegionShapes();
+  // merged region fills (one shape per territory) — no per-county fill artifacts
+  gRegions.selectAll("path.region").data(regionShapes||[]).enter().append("path")
+    .attr("class","sl-region").attr("d",d=>path(d.geom))
+    .attr("fill",d=>d.color+"4d").attr("stroke",d=>d.color).attr("stroke-width",1).attr("stroke-linejoin","round");
+  // thin county mesh for subtle definition
+  g.append("path").datum(countyMesh).attr("class","sl-county-line").attr("d",path);
+  // state borders on top
+  g.append("path").datum(statesMesh).attr("class","sl-state-line").attr("d",path);
+  // invisible county hit-layer for Edit mode (click to assign), drawn above fills but below dots
+  gRegions.selectAll("path.hit").data(counties.features).enter().append("path")
+    .attr("class","sl-hit").attr("d",path).attr("fill","transparent").attr("pointer-events",function(){return editMode?"all":"none";}).on("click",onRegionClick);
   zoom=d3.zoom().scaleExtent([1,9]).on("zoom",ev=>g.attr("transform",ev.transform));
   svg.call(zoom);
   document.getElementById("sl-zin").onclick=()=>svg.transition().call(zoom.scaleBy,1.6);
