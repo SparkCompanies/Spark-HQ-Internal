@@ -6346,6 +6346,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item nav-salesforce" data-tab="salesforce"><span class="ico">◴</span>Salesforce</button>
       <button class="nav-item nav-finance" data-tab="finance"><span class="ico">▦</span>Finance</button>
       <button class="nav-item nav-headcount" data-tab="headcount"><span class="ico">▥</span>Headcount</button>
+      <button class="nav-item nav-sparkline" data-tab="sparkline"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg></span>Territories</button>
       <button class="nav-item" data-tab="training"><span class="ico">▤</span>Training</button>
       <button class="nav-item" data-tab="standard"><span class="ico">★</span>Spark Standard</button>
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
@@ -6786,6 +6787,365 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     <!-- OTHER TABS -->
         <!-- ==================== TRAINING ==================== -->
     <!-- ==================== JARVIS — COMMAND CENTER TAB ==================== -->
+    
+    <!-- ===== Sparkline — Territory Map tab ===== -->
+    <div id="view-sparkline" class="tab-page" style="display:none;">
+      <style>#view-sparkline{
+  --bg:#0b111e; --bg2:#0f1623; --panel:#141d30; --panel2:#1a2438;
+  --line:#222e47; --line2:#2c3a58;
+  --ink:#e8edf7; --ink-dim:#9fb0cc; --ink-faint:#67789a;
+  --gold:#C9A84C; --gold-soft:rgba(201,168,76,.14);
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+}
+#view-sparkline{position:relative;height:calc(100vh - 0px);padding:0;overflow:hidden}
+#view-sparkline .app{height:100%}
+#view-sparkline *{box-sizing:border-box}#view-sparkline .app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:60px 1fr;height:100vh}#view-sparkline .topbar{grid-column:1/3;display:flex;align-items:center;gap:18px;padding:0 20px;
+  background:linear-gradient(180deg,#101829,#0d1320);border-bottom:1px solid var(--line);z-index:5}#view-sparkline .brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;letter-spacing:.3px}#view-sparkline .brand .mark svg{width:26px;height:26px;display:block}#view-sparkline .brand b{color:var(--gold)}#view-sparkline .crumb{color:var(--ink-faint);font-size:13px;font-weight:500;border-left:1px solid var(--line2);padding-left:18px}#view-sparkline .spacer{flex:1}#view-sparkline .search{position:relative}#view-sparkline .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--ink-faint)}#view-sparkline .search input{width:230px;padding:9px 12px 9px 34px;background:#0b1220;border:1px solid var(--line2);border-radius:9px;color:var(--ink);font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s}#view-sparkline .search input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-soft)}#view-sparkline .side{background:linear-gradient(180deg,#0f1727,#0c1320);border-right:1px solid var(--line);overflow-y:auto;padding:16px 14px}#view-sparkline .kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}#view-sparkline .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 8px;text-align:center}#view-sparkline .kpi .n{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:21px;line-height:1}#view-sparkline .kpi .l{font-size:9.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.6px;margin-top:5px;font-weight:600}#view-sparkline .kpi.placed .n{color:#34d399}#view-sparkline .kpi.flag .n{color:#fbbf24}#view-sparkline .kpi.none .n{color:#f87171}#view-sparkline .sec-h{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 9px}#view-sparkline .sec-h h3{font-family:'Space Grotesk',sans-serif;font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin:0;font-weight:600}#view-sparkline .editbtn{display:flex;align-items:center;gap:5px;padding:5px 9px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;color:var(--ink-dim);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}#view-sparkline .editbtn svg{width:12px;height:12px}#view-sparkline .editbtn.on{background:var(--gold);color:#10182a;border-color:var(--gold)}#view-sparkline .row{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:background .12s;margin-bottom:2px}#view-sparkline .row:hover{background:var(--panel)}#view-sparkline .row.sel{background:var(--panel2);border-color:var(--line2);box-shadow:inset 3px 0 0 var(--sel-c,var(--gold))}#view-sparkline .row .sw{width:12px;height:12px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.12)}#view-sparkline .row .sw.dot{border-radius:50%}#view-sparkline .row .nm{flex:1;font-size:12.5px;font-weight:500;color:var(--ink)}#view-sparkline .row .ct{font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--ink-dim);min-width:22px;text-align:right}#view-sparkline .row .ct.zero{color:var(--ink-faint);font-weight:500}#view-sparkline .divider{height:1px;background:var(--line);margin:16px 2px 14px}#view-sparkline .hint{margin-top:12px;padding:10px 11px;background:var(--gold-soft);border:1px solid rgba(201,168,76,.3);border-radius:9px;font-size:11.5px;color:#e7d6a4;line-height:1.5;display:none}#view-sparkline .hint.show{display:block}#view-sparkline .note{margin-top:14px;font-size:10.5px;color:var(--ink-faint);line-height:1.6;padding:0 2px}#view-sparkline .mapwrap{position:relative;background:radial-gradient(1200px 700px at 60% 38%,#101a2e 0%,#0b1220 55%,#090e18 100%)}#view-sparkline #map{width:100%;height:100%;display:block}#view-sparkline .region{stroke-width:.5px;transition:fill .12s,stroke .12s}#view-sparkline .region.nofill{fill:#16203355;stroke:#27324d}#view-sparkline .state-line{fill:none;stroke:#46577a;stroke-width:.7px;pointer-events:none}#view-sparkline .county-line{fill:none;stroke:#33415f;stroke-width:.35px;pointer-events:none;opacity:.5}#view-sparkline .editing .region{cursor:pointer}#view-sparkline .editing .region:hover{stroke:#fff;stroke-width:1.3px}#view-sparkline .dot{stroke:#fff;stroke-width:1.4px;cursor:pointer;transition:r .1s}#view-sparkline .dot:hover{stroke-width:2.2px}#view-sparkline .dot.dim{opacity:.08}#view-sparkline .job{cursor:pointer;transition:opacity .1s}#view-sparkline .job:hover{stroke:#fff;stroke-width:2px}#view-sparkline .job.dim{opacity:.08}#view-sparkline .tip{position:absolute;pointer-events:none;background:#0a1120;border:1px solid var(--line2);border-radius:10px;
+  padding:10px 13px;font-size:12.5px;box-shadow:var(--shadow);opacity:0;transition:opacity .12s;max-width:250px;z-index:9}#view-sparkline .tip .t{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;margin-bottom:3px}#view-sparkline .tip .s{color:var(--ink-dim);font-size:11.5px;margin-bottom:7px}#view-sparkline .tip .lns{display:grid;gap:3px}#view-sparkline .tip .ln{display:flex;align-items:center;gap:6px;font-size:11.5px}#view-sparkline .tip .ln .k{color:var(--ink-faint);width:54px}#view-sparkline .tip .ln .d{width:9px;height:9px;border-radius:50%;flex:none}#view-sparkline .tip .ln .v{font-weight:600}#view-sparkline .tip .mm{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);font-size:11px;font-weight:600;color:#fbbf24;display:flex;align-items:center;gap:5px}#view-sparkline .tip .mm svg{width:12px;height:12px}#view-sparkline .loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-faint);font-size:14px;font-family:'Space Grotesk',sans-serif}#view-sparkline .legend{position:absolute;left:18px;bottom:16px;display:flex;align-items:center;gap:14px;font-size:11px;color:var(--ink-dim);background:rgba(10,17,32,.72);border:1px solid var(--line);border-radius:9px;padding:8px 13px;backdrop-filter:blur(4px)}#view-sparkline .legend .item{display:flex;align-items:center;gap:6px}#view-sparkline .legend .reg{width:14px;height:10px;border-radius:2px;background:#9575cd66;border:1px solid #9575cdaa}#view-sparkline .legend .pin{width:10px;height:10px;border-radius:50%;background:#f97316;border:1.4px solid #fff}#view-sparkline .legend .jobpin{width:11px;height:11px;background:#3b82f6;border:1.4px solid #fff;transform:rotate(45deg);display:inline-block}#view-sparkline .legend .jobtog{cursor:pointer;user-select:none}#view-sparkline .legend .jobtog #jobtogstate{color:var(--gold);font-weight:700;margin-left:2px}#view-sparkline .legend .jobtog.off{opacity:.5}#view-sparkline .zoombar{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:1px;border-radius:9px;overflow:hidden;border:1px solid var(--line2)}#view-sparkline .zoombar button{width:34px;height:34px;background:#0e1626;border:none;color:var(--ink-dim);font-size:18px;cursor:pointer;display:grid;place-items:center}#view-sparkline .zoombar button:hover{background:#162136;color:var(--ink)}</style>
+      
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8.1 2 5 5.1 5 9c0 5 7 13 7 13s7-8 7-13c0-3.9-3.1-7-7-7z" stroke="#C9A84C" stroke-width="1.6"/><path d="M12 6.5l1.3 2.9 3.1.3-2.3 2.1.7 3-2.8-1.6-2.8 1.6.7-3-2.3-2.1 3.1-.3L12 6.5z" fill="#C9A84C"/></svg></span>
+      Spark<b>line</b>
+    </div>
+    <div class="crumb">Territory Map</div>
+    <div class="spacer"></div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="search" placeholder="Search customers…" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="kpis">
+      <div class="kpi placed"><div class="n" id="k-placed">—</div><div class="l">Placed</div></div>
+      <div class="kpi flag"><div class="n" id="k-flag">—</div><div class="l">Mismatch</div></div>
+      <div class="kpi none"><div class="n" id="k-none">—</div><div class="l">No BU</div></div>
+    </div>
+
+    <div class="sec-h">
+      <h3>Territories (regions)</h3>
+      <button class="editbtn" id="editbtn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="1.8"/></svg>
+        Edit
+      </button>
+    </div>
+    <div id="terrlist"></div>
+
+    <div class="divider"></div>
+    <div class="sec-h"><h3>Business Units (dots)</h3></div>
+    <div id="bulist"></div>
+
+    <div class="hint" id="hint"></div>
+    <div class="note" id="note"></div>
+  </div>
+
+  <div class="mapwrap" id="mapwrap">
+    <svg id="map"></svg>
+    <div class="loading" id="loading">Drawing map…</div>
+    <div class="legend">
+      <div class="item"><span class="reg"></span> Region = Mapline territory</div>
+      <div class="item"><span class="pin"></span> Customer (round)</div>
+      <div class="item jobtog" id="jobtog"><span class="jobpin"></span> Open job (diamond) <span id="jobtogstate">on</span></div>
+    </div>
+    <div class="zoombar"><button id="zin">+</button><button id="zout">−</button></div>
+    <div class="tip" id="tip"></div>
+  </div>
+
+    </div>
+
+    <script>
+
+const WORKER = "https://spark-hq-worker.sparkcompanies.workers.dev";
+
+/* FIPS state code -> 2-letter */
+const STATE_BY_FIPS = {"01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE","11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA","20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN","28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM","36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI","45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA","54":"WV","55":"WI","56":"WY"};
+
+/* ---------- TERRITORIES (regions) — from your Mapline pictures ---------- */
+const TERRITORIES = [
+  { id:"nnw",  name:"National North West", color:"#7cb342", states:["WA","OR","ID","MT","WY"], counties:[] },
+  { id:"ncen", name:"National Central",    color:"#ef9a3d", states:["ND","SD","NE","KS","MN","IA","MO","WI","IL","IN","OH"], counties:[] },
+  { id:"mi",   name:"Michigan",            color:"#e5736f", states:["MI"], counties:[] },
+  { id:"nne",  name:"National North East", color:"#4dd0e1", states:["PA","NY","NJ","ME","NH","VT","MA","RI","CT","MD","DE","WV","VA"], counties:[] },
+  { id:"nsw",  name:"National South West", color:"#9575cd", states:["CA","NV","UT","CO","AZ","NM","OK","TX"], counties:[] },
+  { id:"nse",  name:"National South East", color:"#fbd24e", states:["KY","TN","AR","LA","MS","AL","GA","FL","SC","NC"], counties:[] },
+  /* Detroit metro carve-outs (county-level; my best read of the zoom — editable) */
+  { id:"mnorth",name:"Metro North", color:"#7e57c2", states:[], counties:["26125"] },          // Oakland
+  { id:"meast", name:"Metro East",  color:"#e0524e", states:[], counties:["26099","26147"] },   // Macomb, St Clair
+  { id:"mwest", name:"Metro West",  color:"#5b8def", states:[], counties:["26161"] },           // Washtenaw
+  { id:"msouth",name:"Metro South", color:"#e0518f", states:[], counties:["26163","26115"] }, // Wayne, Monroe
+];
+const tById = Object.fromEntries(TERRITORIES.map(t=>[t.id,t]));
+
+/* ---------- BUSINESS UNITS (dot colors) — from Salesforce Subdivision__c ---------- */
+const BU_COLORS = {
+  "MI Metro":"#22c55e", "Automation":"#3b82f6", "Central":"#f59e0b", "Southeast":"#ef4444",
+  "Enterprise":"#6366f1", "Spark Sales":"#06b6d4", "JJP":"#a855f7", "Light Industrial":"#C9A84C",
+  "Northeast":"#14b8a6", "Ignite":"#f97316", "Southwest":"#ec4899", "BPO":"#84cc16"
+};
+const BU_NONE = "#6b7c9c";
+function buColor(bu){ return BU_COLORS[bu] || BU_NONE; }
+
+/* ---------- Demo customers (real geocoded + plausible BU tags for preview) ---------- */
+const DEMO = [
+  ["Paslin (Pontiac)","Pontiac","MI",42.6337,-83.2915,"MI Metro"],
+  ["Sonotronic","Novi","MI",42.4992,-83.4773,"Automation"],
+  ["Comau","Novi","MI",42.4636,-83.4666,"Automation"],
+  ["Fives Cinetic Automation","Farmington Hills","MI",42.4617,-83.4053,"Automation"],
+  ["Rhino Tool House","Livonia","MI",42.3694,-83.3718,"MI Metro"],
+  ["US Farathane","Port Huron","MI",42.984,-82.4675,"MI Metro"],
+  ["Prism Plastics","Chesterfield","MI",42.6015,-82.8219,"MI Metro"],
+  ["Dart Container","Mason","MI",42.5743,-84.4603,"Central"],
+  ["Michigan Tech University","Houghton","MI",47.1053,-88.5482,"Ignite"],
+  ["Hood Container","East York","PA",40.0016,-76.6899,"Northeast"],
+  ["Anatomy IT","White Plains","NY",41.1562,-73.8052,"JJP"],
+  ["Clarios","Middletown","DE",39.4857,-75.6775,"Northeast"],
+  ["Clarios FDC","Florence","SC",34.0615,-79.6222,"Southeast"],
+  ["IPS Packaging & Automation","Greenville","SC",34.9091,-82.3842,"Southeast"],
+  ["Independence Corrugated","Oak Creek","WI",42.8863,-87.892,"Central"],
+  ["Acieta","Waukesha","WI",42.9946,-88.2418,"Automation"],
+  ["AM General","South Bend","IN",41.6829,-86.2389,"Enterprise"],
+].map((r,i)=>({id:"demo"+i,name:r[0],city:r[1],state:r[2],lat:r[3],lng:r[4],bu:r[5],type:"Customer"}));
+
+const DEMO_JOBS = [{"id":"djob0","name":"Machine Operator | H&H Tool","account":"H&H Tool","zip":"48446","bu":"Light Industrial","openings":8,"lat":43.1215,"lng":-83.3196},{"id":"djob1","name":"Mechanical Designer (BIW Tooling)","account":"Comau- Southfield","zip":"48033","bu":"Automation","openings":1,"lat":42.47,"lng":-83.29},{"id":"djob2","name":"Application Engineer","account":"Horiba Instruments - Ann Arbor","zip":"48108","bu":"MI Metro","openings":1,"lat":42.2233,"lng":-83.7293},{"id":"djob3","name":"Mechanical Design Engineer /Gages","account":"Jenoptik- Hommel-Etamic","zip":"48326","bu":"Automation","openings":1,"lat":42.6739,"lng":-83.2951},{"id":"djob4","name":"Mechanical Engineer FLUIDS","account":"Ace Automation - Howell,MI","zip":"48843","bu":"Automation","openings":1,"lat":42.6307,"lng":-83.9103},{"id":"djob5","name":"1st Shift Machine Operator","account":"Universal Container - Ferndale, MI","zip":"48220","bu":"Light Industrial","openings":2,"lat":42.4606,"lng":-83.1407},{"id":"djob6","name":"Tool & Die Maker","account":"Autokiniton - Holland MI","zip":"49423","bu":"Central","openings":1,"lat":42.8126,"lng":-86.0372},{"id":"djob7","name":"CNC Machinist","account":"Circor International- Massachusetts","zip":"01803","bu":"Spark Sales","openings":1,"lat":42.5048,"lng":-71.2015}];
+let CUSTOMERS=[], JOBS=[], isLive=false;
+let editMode=false, selTerr=null, searchTerm="", showJobs=true;
+let counties, statesMesh, path, projection, svg, g, gRegions, gDots, gJobs, zoom;
+
+/* ---------- Region (territory) resolution for a county ---------- */
+function regionOf(fips){
+  if(!fips) return null;
+  const st=STATE_BY_FIPS[fips.slice(0,2)];
+  for(const t of TERRITORIES){ if(t.counties.includes(fips)) return t.id; }   // county overrides state
+  for(const t of TERRITORIES){ if(t.states.includes(st)) return t.id; }
+  return null;
+}
+function customerFips(c){
+  if(c._fips!==undefined) return c._fips;
+  let f=null;
+  for(const feat of counties.features){ if(d3.geoContains(feat,[c.lng,c.lat])){ f=feat.id; break; } }
+  c._fips=f; return f;
+}
+function customerRegion(c){ return regionOf(customerFips(c)); }
+
+/* ---------- Render ---------- */
+function drawRegions(){
+  gRegions.selectAll("path.region")
+    .attr("fill",d=>{ const r=regionOf(d.id); return r? tById[r].color+"59" : "#16203355"; })
+    .attr("stroke",d=>{ const r=regionOf(d.id); return r? tById[r].color+"cc" : "#27324d"; })
+    .classed("nofill",d=>!regionOf(d.id));
+}
+function drawDots(){
+  const data=CUSTOMERS;
+  const sel=gDots.selectAll("circle.dot").data(data,d=>d.id);
+  sel.exit().remove();
+  const ent=sel.enter().append("circle").attr("class","dot").attr("r",5.5);
+  ent.merge(sel)
+    .attr("cx",d=>{const p=projection([d.lng,d.lat]);return p?p[0]:-999;})
+    .attr("cy",d=>{const p=projection([d.lng,d.lat]);return p?p[1]:-999;})
+    .attr("r",5.5)
+    .attr("fill",d=>buColor(d.bu))
+    .style("filter",d=>`drop-shadow(0 0 5px ${buColor(d.bu)})`)
+    .classed("dim",d=>searchTerm && !(d.name.toLowerCase().includes(searchTerm)||(d.city||"").toLowerCase().includes(searchTerm)))
+    .on("mousemove",showTip).on("mouseleave",hideTip);
+}
+function recompute(){
+  let placed=0, noBU=0, flag=0;
+  const tCounts=Object.fromEntries(TERRITORIES.map(t=>[t.id,0]));
+  const bCounts={};
+  for(const c of CUSTOMERS){
+    placed++;
+    const reg=customerRegion(c);
+    if(reg) tCounts[reg]++;
+    const bu=c.bu||"";
+    if(!bu) noBU++; else bCounts[bu]=(bCounts[bu]||0)+1;
+    // mismatch heuristic: a customer carrying a GEOGRAPHIC BU that doesn't match its region's BU
+    if(bu && reg && GEO_BU_BY_REGION[reg] && isGeoBU(bu) && GEO_BU_BY_REGION[reg]!==bu) flag++;
+  }
+  document.getElementById("k-placed").textContent=placed;
+  document.getElementById("k-flag").textContent=flag;
+  document.getElementById("k-none").textContent=noBU;
+  TERRITORIES.forEach(t=>{ const el=document.getElementById("tc-"+t.id); if(el){ el.textContent=tCounts[t.id]; el.classList.toggle("zero",tCounts[t.id]===0);} });
+  // rebuild BU list from what's present
+  buildBUList(bCounts);
+}
+
+/* geographic-BU expectations (editable assumption; functional BUs excluded) */
+const GEO_BU_BY_REGION = { ncen:"Central", nse:"Southeast", nne:"Northeast", nsw:"Southwest", mi:"MI Metro", mnorth:"MI Metro", meast:"MI Metro", mwest:"MI Metro", msouth:"MI Metro" };
+const GEO_BUS = new Set(["Central","Southeast","Northeast","Southwest","MI Metro"]);
+function isGeoBU(bu){ return GEO_BUS.has(bu); }
+
+function drawJobs(){
+  const data = showJobs ? JOBS : [];
+  const sel=gJobs.selectAll("path.job").data(data,d=>d.id);
+  sel.exit().remove();
+  const ent=sel.enter().append("path").attr("class","job");
+  ent.merge(sel)
+    .attr("d",d=>{ const p=projection([d.lng,d.lat]); if(!p) return "M -999 -999"; const x=p[0],y=p[1],s=5.5;
+      return `M ${x} ${y-s} L ${x+s} ${y} L ${x} ${y+s} L ${x-s} ${y} Z`; })   // diamond
+    .attr("fill",d=>buColor(d.bu))
+    .attr("stroke","#0b111e").attr("stroke-width",1.3)
+    .style("filter",d=>`drop-shadow(0 0 4px ${buColor(d.bu)})`)
+    .classed("dim",d=>searchTerm && !(String(d.name).toLowerCase().includes(searchTerm)||String(d.account).toLowerCase().includes(searchTerm)))
+    .on("mousemove",showJobTip).on("mouseleave",hideTip);
+}
+function refresh(){ drawRegions(); drawDots(); drawJobs(); recompute(); }
+
+/* ---------- Tooltip (surfaces BU + region; flags mismatch) ---------- */
+const tip=document.getElementById("tip");
+function showTip(ev,d){
+  const reg=customerRegion(d);
+  const regName=reg?tById[reg].name:"— (no territory)";
+  const regCol=reg?tById[reg].color:"#6b7c9c";
+  const bu=d.bu||"(no BU)";
+  const buCol=buColor(d.bu);
+  const mism = d.bu && reg && GEO_BU_BY_REGION[reg] && isGeoBU(d.bu) && GEO_BU_BY_REGION[reg]!==d.bu;
+  tip.innerHTML=`<div class="t">${d.name}</div><div class="s">${d.city||""}${d.city?", ":""}${d.state||""}</div>`+
+    `<div class="lns">`+
+      `<div class="ln"><span class="k">Region</span><span class="d" style="background:${regCol}"></span><span class="v">${regName}</span></div>`+
+      `<div class="ln"><span class="k">BU (SF)</span><span class="d" style="background:${buCol}"></span><span class="v">${bu}</span></div>`+
+    `</div>`+
+    (mism?`<div class="mm"><svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>BU doesn't match territory</div>`:``);
+  const wrap=document.getElementById("mapwrap").getBoundingClientRect();
+  tip.style.left=(ev.clientX-wrap.left+14)+"px";
+  tip.style.top=(ev.clientY-wrap.top+14)+"px";
+  tip.style.opacity=1;
+}
+function hideTip(){ tip.style.opacity=0; }
+function jobFips(j){
+  if(j._fips!==undefined) return j._fips;
+  let f=null;
+  for(const feat of counties.features){ if(d3.geoContains(feat,[j.lng,j.lat])){ f=feat.id; break; } }
+  j._fips=f; return f;
+}
+function showJobTip(ev,d){
+  const reg=regionOf(jobFips(d));
+  const regName=reg?tById[reg].name:"— (no territory)";
+  const regCol=reg?tById[reg].color:"#6b7c9c";
+  const buCol=buColor(d.bu);
+  const mism = d.bu && reg && GEO_BU_BY_REGION[reg] && isGeoBU(d.bu) && GEO_BU_BY_REGION[reg]!==d.bu;
+  tip.innerHTML=`<div class="t">${d.name}</div><div class="s">${d.account||""}${d.openings?" · "+d.openings+" open":""}</div>`+
+    `<div class="lns">`+
+      `<div class="ln"><span class="k">Region</span><span class="d" style="background:${regCol}"></span><span class="v">${regName}</span></div>`+
+      `<div class="ln"><span class="k">BU owner</span><span class="d" style="background:${buCol}"></span><span class="v">${d.bu||"(none)"}</span></div>`+
+    `</div>`+
+    (mism?`<div class="mm"><svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>BU doesn't match territory</div>`:``);
+  const wrap=document.getElementById("mapwrap").getBoundingClientRect();
+  tip.style.left=(ev.clientX-wrap.left+14)+"px";
+  tip.style.top=(ev.clientY-wrap.top+14)+"px";
+  tip.style.opacity=1;
+}
+
+/* ---------- Sidebar ---------- */
+function buildTerrList(){
+  const list=document.getElementById("terrlist"); list.innerHTML="";
+  TERRITORIES.forEach(t=>{
+    const row=document.createElement("div");
+    row.className="row"; row.dataset.id=t.id; row.style.setProperty("--sel-c",t.color);
+    row.innerHTML=`<span class="sw" style="background:${t.color}"></span><span class="nm">${t.name}</span><span class="ct" id="tc-${t.id}">0</span>`;
+    row.onclick=()=>selectTerr(t.id);
+    list.appendChild(row);
+  });
+}
+function buildBUList(counts){
+  const list=document.getElementById("bulist"); list.innerHTML="";
+  const names=Object.keys(BU_COLORS).filter(n=>counts[n]).sort((a,b)=>counts[b]-counts[a]);
+  names.forEach(n=>{
+    const row=document.createElement("div"); row.className="row";
+    row.innerHTML=`<span class="sw dot" style="background:${BU_COLORS[n]}"></span><span class="nm">${n}</span><span class="ct">${counts[n]}</span>`;
+    list.appendChild(row);
+  });
+}
+function selectTerr(id){
+  selTerr=id;
+  document.querySelectorAll("#terrlist .row").forEach(r=>r.classList.toggle("sel",r.dataset.id===id));
+  updateHint();
+}
+function updateHint(){
+  const h=document.getElementById("hint");
+  if(editMode && selTerr){ h.classList.add("show"); h.innerHTML=`<b>Edit mode.</b> Click counties to add/remove them from <b style="color:${tById[selTerr].color}">${tById[selTerr].name}</b>.`; }
+  else if(editMode){ h.classList.add("show"); h.innerHTML=`<b>Edit mode.</b> Pick a territory above, then click counties to adjust its boundary.`; }
+  else h.classList.remove("show");
+}
+function onRegionClick(ev,d){
+  if(!editMode||!selTerr) return;
+  const t=tById[selTerr], f=d.id;
+  TERRITORIES.forEach(o=>{ if(o.id!==t.id) o.counties=o.counties.filter(x=>x!==f); });
+  if(t.counties.includes(f)) t.counties=t.counties.filter(x=>x!==f);
+  else t.counties.push(f);
+  refresh();
+}
+
+/* ---------- Boot ---------- */
+async function loadGeo(){
+  if(window.__SL_TOPO){ counties=window.__SL_TOPO.counties; statesMesh=window.__SL_TOPO.statesMesh; return; }
+  const topo=await fetch("https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json").then(r=>r.json());
+  counties=topojson.feature(topo, topo.objects.counties);
+  statesMesh=topojson.mesh(topo, topo.objects.states, (a,b)=>a!==b);
+  window.__SL_TOPO={counties,statesMesh};
+}
+function setupMap(){
+  const wrap=document.getElementById("mapwrap");
+  const W=wrap.clientWidth||1000, H=wrap.clientHeight||700;
+  projection=d3.geoAlbersUsa().fitSize([W,H],counties);
+  path=d3.geoPath(projection);
+  svg=d3.select("#map").attr("viewBox",`0 0 ${W} ${H}`).attr("width",W).attr("height",H);
+  svg.selectAll("*").remove();
+  g=svg.append("g");
+  gRegions=g.append("g");
+  gDots=g.append("g");
+  gJobs=g.append("g");
+  gRegions.selectAll("path.region").data(counties.features).enter().append("path")
+    .attr("class","region").attr("d",path).on("click",onRegionClick);
+  g.append("path").datum(statesMesh).attr("class","state-line").attr("d",path);
+  zoom=d3.zoom().scaleExtent([1,9]).on("zoom",ev=>g.attr("transform",ev.transform));
+  svg.call(zoom);
+  document.getElementById("zin").onclick=()=>svg.transition().call(zoom.scaleBy,1.6);
+  document.getElementById("zout").onclick=()=>svg.transition().call(zoom.scaleBy,1/1.6);
+  console.log("[Sparkline] map sized",W,"x",H,"| Detroit projects to",projection([-83.05,42.33]));
+}
+async function loadCustomers(){
+  try{
+    if(window.SPARK_SB && window.SPARK_SB.getToken){
+      const t=await window.SPARK_SB.getToken();
+      const j=await fetch(WORKER+"/terr-accounts",{headers:{Authorization:"Bearer "+t}}).then(r=>r.json());
+      if(j&&j.ok&&j.accounts){ CUSTOMERS=j.accounts.map(a=>({...a})); isLive=true; }
+      // jobs
+      const jr=await fetch(WORKER+"/terr-jobs",{headers:{Authorization:"Bearer "+t}}).then(r=>r.json()).catch(()=>null);
+      if(jr&&jr.ok){
+        JOBS=(jr.jobs||[]).map(x=>({...x}));
+        // account-location fallback for ZIP-less jobs: match account name to a loaded customer
+        const byName={}; CUSTOMERS.forEach(c=>{ byName[String(c.name).toLowerCase().trim()]=c; });
+        (jr.unplaceable||[]).forEach(u=>{
+          const c=byName[String(u.account).toLowerCase().trim()];
+          if(c && c.lat!=null){ JOBS.push({...u, lat:c.lat, lng:c.lng, via:"account"}); }
+        });
+      }
+    }
+  }catch(e){}
+  if(!CUSTOMERS.length){ CUSTOMERS=DEMO.slice(); isLive=false; }
+  if(!JOBS.length){ JOBS=DEMO_JOBS.slice(); }
+  document.getElementById("note").innerHTML = isLive
+    ? `Live — ${CUSTOMERS.length} customers, ${JOBS.length} open jobs from Salesforce. Regions = Mapline territories; dots & job pins colored by Subdivision__c.`
+    : `Preview — ${CUSTOMERS.length} sample customers + ${JOBS.length} sample open jobs. Deployed in Spark HQ this pulls all 117 customers & 100 open jobs live. Round = customer, diamond = open job.`;
+}
+async function boot(){
+  buildTerrList();
+  try{ await loadGeo(); } catch(e){ var ld=document.getElementById("loading"); if(ld) ld.textContent="Map data failed to load (network)."; console.error(e); return; }
+  setupMap();
+  await loadCustomers();
+  var ld2=document.getElementById("loading"); if(ld2) ld2.style.display="none";
+  selectTerr("mi");
+  refresh();
+}
+document.getElementById("editbtn").onclick=function(){ editMode=!editMode; this.classList.toggle("on",editMode); document.getElementById("mapwrap").classList.toggle("editing",editMode); updateHint(); };
+document.getElementById("search").oninput=function(){ searchTerm=this.value.toLowerCase().trim(); drawDots(); drawJobs(); };
+document.getElementById("jobtog").onclick=function(){ showJobs=!showJobs; this.classList.toggle("off",!showJobs); document.getElementById("jobtogstate").textContent=showJobs?"on":"off"; drawJobs(); };
+let rT; window.addEventListener("resize",()=>{ clearTimeout(rT); rT=setTimeout(()=>{ if(counties){ setupMap(); refresh(); } },200); });
+window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=true; boot(); };
+
+</script>
+
     <div id="view-headcount" class="tab-page" style="display:none;">
   <style>
     #view-headcount .hc-head{ padding:4px 0 18px; }
@@ -8179,7 +8539,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
-        const allViews = ['home','jarvis','command','salesforce','finance','headcount','training','standard','careers','people','tools','docs','leadership','admin'];
+        const allViews = ['home','jarvis','command','salesforce','finance','headcount','sparkline','training','standard','careers','people','tools','docs','leadership','admin'];
         allViews.forEach(v => {
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
@@ -8187,6 +8547,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} try { hwLoadHeadcount(); } catch(e){} try { renderPulse(); renderPulseBoard(); } catch(e){} }
         if (tab === 'salesforce') { try { sfHubLoad(); } catch(e){} }
         if (tab === 'finance') { try { finLoad(); } catch(e){} }
+        if (tab === 'sparkline') { try { window.SPARKLINE_INIT && window.SPARKLINE_INIT(); } catch(e){} }
         if (tab === 'headcount') { try { hcLoad(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
@@ -12135,14 +12496,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','training','standard','careers','people','tools','docs','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
