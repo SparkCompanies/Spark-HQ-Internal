@@ -6797,6 +6797,17 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 }
 #view-sparkline{position:relative;height:calc(100vh - 56px);overflow:hidden}
 #view-sparkline .sl-side, #view-sparkline .sl-side *{ color:#e8edf7; }
+#view-sparkline .sl-filters{margin:0 0 14px;padding:12px;background:#0c1424;border:1px solid #22304c;border-radius:12px}
+#view-sparkline .sl-f-h{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#67789a;font-weight:700;margin-bottom:9px}
+#view-sparkline .sl-f-chips{display:flex;flex-wrap:wrap;gap:6px}
+#view-sparkline .sl-chip{font:600 11px/1 'Space Grotesk',sans-serif;color:#9fb0cc;background:#16213a;border:1px solid #28385a;border-radius:20px;padding:6px 11px;cursor:pointer}
+#view-sparkline .sl-chip.sl-on{background:#FFC800;color:#10182a;border-color:#FFC800}
+#view-sparkline .sl-f-ck{display:flex;align-items:center;gap:8px;font-size:12px;color:#c7d2e6;margin-top:9px;cursor:pointer}
+#view-sparkline .sl-f-ck input{accent-color:#FFC800;width:14px;height:14px;flex:none}
+#view-sparkline .sl-f-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+#view-sparkline .sl-f-lab{font-size:11px;color:#67789a;min-width:24px}
+#view-sparkline .sl-f-sel{flex:1;background:#16213a;color:#e8edf7;border:1px solid #28385a;border-radius:8px;padding:6px 8px;font-size:12px}
+#view-sparkline .sl-fcount{margin-top:10px;font-size:11px;color:#67789a;font-weight:600}
 #view-sparkline .sl-kpi .sl-n{ color:inherit; }
 #view-sparkline .sl-kpi.sl-placed .sl-n{ color:#34d399 !important; }
 #view-sparkline .sl-kpi.sl-flag .sl-n{ color:#fbbf24 !important; }
@@ -7043,6 +7054,48 @@ const DEMO = [
 
 const DEMO_JOBS = [{"id":"djob0","name":"Machine Operator | H&H Tool","account":"H&H Tool","zip":"48446","bu":"Light Industrial","openings":8,"lat":43.1215,"lng":-83.3196},{"id":"djob1","name":"Mechanical Designer (BIW Tooling)","account":"Comau- Southfield","zip":"48033","bu":"Automation","openings":1,"lat":42.47,"lng":-83.29},{"id":"djob2","name":"Application Engineer","account":"Horiba Instruments - Ann Arbor","zip":"48108","bu":"MI Metro","openings":1,"lat":42.2233,"lng":-83.7293},{"id":"djob3","name":"Mechanical Design Engineer /Gages","account":"Jenoptik- Hommel-Etamic","zip":"48326","bu":"Automation","openings":1,"lat":42.6739,"lng":-83.2951},{"id":"djob4","name":"Mechanical Engineer FLUIDS","account":"Ace Automation - Howell,MI","zip":"48843","bu":"Automation","openings":1,"lat":42.6307,"lng":-83.9103},{"id":"djob5","name":"1st Shift Machine Operator","account":"Universal Container - Ferndale, MI","zip":"48220","bu":"Light Industrial","openings":2,"lat":42.4606,"lng":-83.1407},{"id":"djob6","name":"Tool & Die Maker","account":"Autokiniton - Holland MI","zip":"49423","bu":"Central","openings":1,"lat":42.8126,"lng":-86.0372},{"id":"djob7","name":"CNC Machinist","account":"Circor International- Massachusetts","zip":"01803","bu":"Spark Sales","openings":1,"lat":42.5048,"lng":-71.2015}];
 let CUSTOMERS=[], JOBS=[], isLive=false;
+
+// --- Sparkline filters (client-side) ---
+const SLF = { status:new Set(["Active","Signed"]), includeJobs:true, jobsOnly:false, bu:null };
+function visibleCustomers(){
+  return CUSTOMERS.filter(c=>{
+    if(SLF.bu && (c.bu||"")!==SLF.bu) return false;
+    if(SLF.jobsOnly) return !!c.hasJob;
+    const st = c.status || "(blank)";
+    let ok = SLF.status.has(st);
+    if(!ok && SLF.includeJobs && c.hasJob) ok = true;
+    return ok;
+  });
+}
+function slUpdateCount(){ const el=document.getElementById("sl-fcount"); if(el) el.textContent = visibleCustomers().length.toLocaleString() + " of " + CUSTOMERS.length.toLocaleString() + " shown"; }
+function slApplyFilters(){ drawDots(); drawJobs(); recompute(); slUpdateCount(); }
+function slRefreshBUOptions(){
+  const sel=document.getElementById("sl-f-bu"); if(!sel) return;
+  const cur=SLF.bu||"";
+  const bus=[...new Set(CUSTOMERS.map(c=>c.bu).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All</option>'+bus.map(x=>'<option value="'+x+'"'+(x===cur?" selected":"")+'>'+x+'</option>').join("");
+}
+function slBuildFilters(){
+  const side=document.getElementById("sl-side");
+  if(!side){ return; }
+  if(document.getElementById("sl-filters")){ slRefreshBUOptions(); slUpdateCount(); return; }
+  const box=document.createElement("div"); box.id="sl-filters"; box.className="sl-filters";
+  const STAT=["Active","Signed","Prospect","Former","(blank)"];
+  box.innerHTML =
+    '<div class="sl-f-h">Filters</div>'+
+    '<div class="sl-f-chips" id="sl-f-status">'+STAT.map(x=>'<button class="sl-chip'+(SLF.status.has(x)?" sl-on":"")+'" data-s="'+x+'">'+x+'</button>').join("")+'</div>'+
+    '<label class="sl-f-ck"><input type="checkbox" id="sl-f-incjobs"'+(SLF.includeJobs?" checked":"")+'> Include any account with open jobs</label>'+
+    '<label class="sl-f-ck"><input type="checkbox" id="sl-f-onlyjobs"'+(SLF.jobsOnly?" checked":"")+'> Only accounts with open jobs</label>'+
+    '<div class="sl-f-row"><span class="sl-f-lab">BU</span><select id="sl-f-bu" class="sl-f-sel"><option value="">All</option></select></div>'+
+    '<div class="sl-fcount" id="sl-fcount"></div>';
+  side.insertBefore(box, side.firstChild);
+  box.querySelectorAll("#sl-f-status .sl-chip").forEach(btn=>{ btn.onclick=function(){ const s=this.dataset.s; if(SLF.status.has(s)) SLF.status.delete(s); else SLF.status.add(s); this.classList.toggle("sl-on"); slApplyFilters(); }; });
+  document.getElementById("sl-f-incjobs").onchange=function(){ SLF.includeJobs=this.checked; slApplyFilters(); };
+  document.getElementById("sl-f-onlyjobs").onchange=function(){ SLF.jobsOnly=this.checked; slApplyFilters(); };
+  document.getElementById("sl-f-bu").onchange=function(){ SLF.bu=this.value||null; slApplyFilters(); };
+  slRefreshBUOptions();
+  slUpdateCount();
+}
 let editMode=false, selTerr=null, searchTerm="", showJobs=true;
 let counties, statesMesh, countyMesh, path, projection, svg, g, gRegions, gDots, gJobs, zoom; let regionShapes=null;
 
@@ -7073,7 +7126,7 @@ function drawRegions(){
   gRegions.selectAll("path.sl-hit").attr("pointer-events", editMode?"all":"none");
 }
 function drawDots(){
-  const data=CUSTOMERS;
+  const data=visibleCustomers();
   const sel=gDots.selectAll("circle.dot").data(data,d=>d.id);
   sel.exit().remove();
   const ent=sel.enter().append("circle").attr("class","dot").attr("r",5.5);
@@ -7090,7 +7143,7 @@ function recompute(){
   let placed=0, noBU=0, flag=0;
   const tCounts=Object.fromEntries(TERRITORIES.map(t=>[t.id,0]));
   const bCounts={};
-  for(const c of CUSTOMERS){
+  for(const c of visibleCustomers()){
     placed++;
     const reg=customerRegion(c);
     if(reg) tCounts[reg]++;
@@ -7113,7 +7166,7 @@ const GEO_BUS = new Set(["Central","Southeast","Northeast","Southwest","MI Metro
 function isGeoBU(bu){ return GEO_BUS.has(bu); }
 
 function drawJobs(){
-  const data = showJobs ? JOBS : [];
+  const data = (showJobs ? JOBS : []).filter(j=>!SLF.bu || (j.bu||"")===SLF.bu);
   const sel=gJobs.selectAll("path.job").data(data,d=>d.id);
   sel.exit().remove();
   const ent=sel.enter().append("path").attr("class","job");
@@ -7360,6 +7413,7 @@ function boot(){
     await loadCustomers();
     document.getElementById("sl-loading").style.display="none";
     selectTerr("mi");
+    slBuildFilters();
     refresh();
   });
 }
