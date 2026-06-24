@@ -6802,6 +6802,25 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 #view-sparkline .sl-kpi.sl-flag .sl-n{ color:#fbbf24 !important; }
 #view-sparkline .sl-kpi.sl-none .sl-n{ color:#f87171 !important; }
 #view-sparkline .sl-tip, #view-sparkline .sl-tip *{ color:#e8edf7 !important; }
+#view-sparkline .sl-detail{position:absolute;top:16px;right:16px;width:280px;max-height:calc(100% - 32px);overflow-y:auto;background:#0c1424;border:1px solid #2c3a58;border-radius:14px;padding:16px 16px 14px;box-shadow:0 12px 40px rgba(0,0,0,.55);opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .14s,transform .14s;z-index:12}
+#view-sparkline .sl-detail.sl-show{opacity:1;transform:none;pointer-events:auto}
+#view-sparkline .sl-d-x{position:absolute;top:10px;right:11px;width:24px;height:24px;border:none;background:#18233a;color:#9fb0cc;border-radius:7px;font-size:16px;line-height:1;cursor:pointer}
+#view-sparkline .sl-d-x:hover{background:#22304c;color:#fff}
+#view-sparkline .sl-d-kind{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#67789a;font-weight:700;margin-bottom:4px}
+#view-sparkline .sl-d-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#e8edf7;line-height:1.25;padding-right:24px}
+#view-sparkline .sl-d-sub{color:#9fb0cc;font-size:12px;margin-top:3px}
+#view-sparkline .sl-d-rows{margin-top:12px;display:grid;gap:7px}
+#view-sparkline .sl-d-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px}
+#view-sparkline .sl-d-k{color:#67789a}
+#view-sparkline .sl-d-v{color:#e8edf7;font-weight:600;display:flex;align-items:center;gap:6px;text-align:right}
+#view-sparkline .sl-d-dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+#view-sparkline .sl-d-warn{margin-top:11px;padding:8px 10px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);border-radius:9px;color:#fbbf24;font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+#view-sparkline .sl-d-jh{margin-top:13px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#9fb0cc;font-weight:700;border-top:1px solid #1f2940;padding-top:11px}
+#view-sparkline .sl-d-jobs{margin-top:7px;display:grid;gap:5px}
+#view-sparkline .sl-d-job{font-size:12px;color:#dfe6f2;display:flex;align-items:center;gap:7px;line-height:1.3}
+#view-sparkline .sl-d-job em{color:#67789a;font-style:normal;font-size:11px;margin-left:auto;white-space:nowrap}
+#view-sparkline .sl-d-empty{font-size:12px;color:#67789a}
+#view-sparkline .sl-d-id{margin-top:12px;font-size:10.5px;color:#54657f;font-family:ui-monospace,monospace;word-break:break-all}
 #view-sparkline .sl-tip .sl-s{ color:#9fb0cc !important; }
 #view-sparkline .sl-tip .sl-k{ color:#67789a !important; }
 #view-sparkline .sl-tip .sl-mm{ color:#fbbf24 !important; }
@@ -7063,9 +7082,9 @@ function drawDots(){
     .attr("cy",d=>{const p=projection([d.lng,d.lat]);return p?p[1]:-999;})
     .attr("r",5.5)
     .attr("fill",d=>buColor(d.bu))
-    .style("filter",d=>`drop-shadow(0 0 5px ${buColor(d.bu)})`)
+    .style("filter",null)
     .classed("dim",d=>searchTerm && !(d.name.toLowerCase().includes(searchTerm)||(d.city||"").toLowerCase().includes(searchTerm)))
-    .on("mousemove",showTip).on("mouseleave",hideTip);
+    .on("mousemove",showTip).on("mouseleave",hideTip).on("click",showDetail);
 }
 function recompute(){
   let placed=0, noBU=0, flag=0;
@@ -7103,9 +7122,9 @@ function drawJobs(){
       return `M ${x} ${y-s} L ${x+s} ${y} L ${x} ${y+s} L ${x-s} ${y} Z`; })   // diamond
     .attr("fill",d=>buColor(d.bu))
     .attr("stroke","#0b111e").attr("stroke-width",1.3)
-    .style("filter",d=>`drop-shadow(0 0 4px ${buColor(d.bu)})`)
+    .style("filter",null)
     .classed("dim",d=>searchTerm && !(String(d.name).toLowerCase().includes(searchTerm)||String(d.account).toLowerCase().includes(searchTerm)))
-    .on("mousemove",showJobTip).on("mouseleave",hideTip);
+    .on("mousemove",showJobTip).on("mouseleave",hideTip).on("click",showJobDetail);
 }
 function refresh(){ drawRegions(); drawDots(); drawJobs(); recompute(); }
 
@@ -7130,6 +7149,71 @@ function showTip(ev,d){
   tip.style.opacity=1;
 }
 function hideTip(){ tip.style.opacity=0; }
+
+function slCard(){
+  let c=document.getElementById("sl-detail");
+  if(!c){
+    c=document.createElement("div"); c.id="sl-detail"; c.className="sl-detail";
+    document.getElementById("sl-mapwrap").appendChild(c);
+  }
+  return c;
+}
+function slClose(){ const c=document.getElementById("sl-detail"); if(c) c.classList.remove("sl-show"); }
+function slJobsForAccount(name){
+  if(!name) return [];
+  const n=String(name).toLowerCase().trim();
+  return (JOBS||[]).filter(j=>{ const a=String(j.account||"").toLowerCase().trim(); return a && (a===n || a.includes(n) || n.includes(a)); });
+}
+function slRegionBits(fips){
+  const reg=regionOf(fips);
+  return { name: reg?tById[reg].name:"— (no territory)", color: reg?tById[reg].color:"#6b7c9c", reg };
+}
+function slMismatch(bu,reg){ return bu && reg && GEO_BU_BY_REGION[reg] && isGeoBU(bu) && GEO_BU_BY_REGION[reg]!==bu; }
+function slWarn(){ return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>'; }
+function showDetail(ev,d){
+  ev.stopPropagation();
+  const c=slCard();
+  const rb=slRegionBits(customerFips(d));
+  const bu=d.bu||"(no BU)"; const buCol=buColor(d.bu);
+  const mm=slMismatch(d.bu, rb.reg);
+  const jobs=slJobsForAccount(d.name);
+  const jobsHtml = jobs.length
+    ? jobs.slice(0,8).map(j=>'<div class="sl-d-job"><span class="sl-d-dot" style="background:'+buColor(j.bu)+'"></span>'+j.name+(j.openings?' <em>'+j.openings+' open</em>':'')+'</div>').join("")
+    : '<div class="sl-d-empty">No open jobs found for this account.</div>';
+  c.innerHTML =
+    '<button class="sl-d-x" onclick="slClose()" aria-label="Close">&times;</button>'+
+    '<div class="sl-d-kind">Customer</div>'+
+    '<div class="sl-d-name">'+(d.name||"")+'</div>'+
+    '<div class="sl-d-sub">'+(d.city||"")+(d.city?", ":"")+(d.state||"")+'</div>'+
+    '<div class="sl-d-rows">'+
+      '<div class="sl-d-row"><span class="sl-d-k">BU owner</span><span class="sl-d-v"><span class="sl-d-dot" style="background:'+buCol+'"></span>'+bu+'</span></div>'+
+      '<div class="sl-d-row"><span class="sl-d-k">Territory</span><span class="sl-d-v"><span class="sl-d-dot" style="background:'+rb.color+'"></span>'+rb.name+'</span></div>'+
+    '</div>'+
+    (mm?'<div class="sl-d-warn">'+slWarn()+' BU doesn\'t match territory</div>':'')+
+    '<div class="sl-d-jh">Open jobs ('+jobs.length+')</div>'+
+    '<div class="sl-d-jobs">'+jobsHtml+'</div>'+
+    '<div class="sl-d-id">SF ID: '+(d.id||"")+'</div>';
+  c.classList.add("sl-show");
+}
+function showJobDetail(ev,d){
+  ev.stopPropagation();
+  const c=slCard();
+  const rb=slRegionBits(jobFips(d));
+  const bu=d.bu||"(no BU)"; const buCol=buColor(d.bu);
+  const mm=slMismatch(d.bu, rb.reg);
+  c.innerHTML =
+    '<button class="sl-d-x" onclick="slClose()" aria-label="Close">&times;</button>'+
+    '<div class="sl-d-kind">Open Job</div>'+
+    '<div class="sl-d-name">'+(d.name||"")+'</div>'+
+    '<div class="sl-d-sub">'+(d.account||"")+(d.openings?' · '+d.openings+' open':'')+'</div>'+
+    '<div class="sl-d-rows">'+
+      '<div class="sl-d-row"><span class="sl-d-k">BU owner</span><span class="sl-d-v"><span class="sl-d-dot" style="background:'+buCol+'"></span>'+bu+'</span></div>'+
+      '<div class="sl-d-row"><span class="sl-d-k">Territory</span><span class="sl-d-v"><span class="sl-d-dot" style="background:'+rb.color+'"></span>'+rb.name+'</span></div>'+
+    '</div>'+
+    (mm?'<div class="sl-d-warn">'+slWarn()+' BU doesn\'t match territory</div>':'')+
+    '<div class="sl-d-id">SF ID: '+(d.id||"")+'</div>';
+  c.classList.add("sl-show");
+}
 function jobFips(j){
   if(j._fips!==undefined) return j._fips;
   let f=null;
