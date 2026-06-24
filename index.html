@@ -6819,6 +6819,8 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 #view-sparkline .sl-d-x:hover{background:#22304c;color:#fff}
 #view-sparkline .sl-d-kind{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#67789a;font-weight:700;margin-bottom:4px}
 #view-sparkline .sl-d-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#e8edf7;line-height:1.25;padding-right:24px}
+#view-sparkline .sl-d-link{color:#FFC800;text-decoration:none}
+#view-sparkline .sl-d-link:hover{text-decoration:underline}
 #view-sparkline .sl-d-sub{color:#9fb0cc;font-size:12px;margin-top:3px}
 #view-sparkline .sl-d-rows{margin-top:12px;display:grid;gap:7px}
 #view-sparkline .sl-d-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px}
@@ -7226,7 +7228,7 @@ function slWarn(){ return '<svg viewBox="0 0 24 24" width="13" height="13" fill=
 function showDetail(ev,d){
   ev.stopPropagation();
   const c=slCard();
-  const rb=slRegionBits(customerFips(d));
+  const rb=slRegionBits(customerFips(d)); const __o="Account";
   const bu=d.bu||"(no BU)"; const buCol=buColor(d.bu);
   const mm=slMismatch(d.bu, rb.reg);
   const jobs=slJobsForAccount(d.name);
@@ -7236,7 +7238,7 @@ function showDetail(ev,d){
   c.innerHTML =
     '<button class="sl-d-x" onclick="slClose()" aria-label="Close">&times;</button>'+
     '<div class="sl-d-kind">Customer</div>'+
-    '<div class="sl-d-name">'+(d.name||"")+'</div>'+
+    '<div class="sl-d-name"><a class="sl-d-link" href="https://spark-companies.lightning.force.com/lightning/r/'+__o+'/'+(d.id||"")+'/view" target="_blank" rel="noopener">'+(d.name||"")+'</a></div>'+
     '<div class="sl-d-sub">'+(d.city||"")+(d.city?", ":"")+(d.state||"")+'</div>'+
     '<div class="sl-d-rows">'+
       '<div class="sl-d-row"><span class="sl-d-k">BU owner</span><span class="sl-d-v"><span class="sl-d-dot" style="background:'+buCol+'"></span>'+bu+'</span></div>'+
@@ -7251,13 +7253,13 @@ function showDetail(ev,d){
 function showJobDetail(ev,d){
   ev.stopPropagation();
   const c=slCard();
-  const rb=slRegionBits(jobFips(d));
+  const rb=slRegionBits(jobFips(d)); const __o="bpats__Job__c";
   const bu=d.bu||"(no BU)"; const buCol=buColor(d.bu);
   const mm=slMismatch(d.bu, rb.reg);
   c.innerHTML =
     '<button class="sl-d-x" onclick="slClose()" aria-label="Close">&times;</button>'+
     '<div class="sl-d-kind">Open Job</div>'+
-    '<div class="sl-d-name">'+(d.name||"")+'</div>'+
+    '<div class="sl-d-name"><a class="sl-d-link" href="https://spark-companies.lightning.force.com/lightning/r/'+__o+'/'+(d.id||"")+'/view" target="_blank" rel="noopener">'+(d.name||"")+'</a></div>'+
     '<div class="sl-d-sub">'+(d.account||"")+(d.openings?' · '+d.openings+' open':'')+'</div>'+
     '<div class="sl-d-rows">'+
       '<div class="sl-d-row"><span class="sl-d-k">BU owner</span><span class="sl-d-v"><span class="sl-d-dot" style="background:'+buCol+'"></span>'+bu+'</span></div>'+
