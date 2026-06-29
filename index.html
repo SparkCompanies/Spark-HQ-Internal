@@ -11163,6 +11163,7 @@ window.FINRULES = (function () {
 
 
   function FIN_WEEK(){ var dd = new Date(); dd.setDate(dd.getDate() - dd.getDay()); return dd.toISOString().slice(0,10); }
+  function FIN_WEEK_DH(){ var dd = new Date(); var dow = dd.getDay(); var add = (dow===0) ? 0 : (7 - dow); dd.setDate(dd.getDate() + add); return dd.toISOString().slice(0,10); }
   function finSetMode(m){
     FIN_MODE = (m==='dh') ? 'dh' : 'hourly';
     FIN_STATE.view='ready'; FIN_STATE.filter='All';
@@ -11180,7 +11181,7 @@ window.FINRULES = (function () {
     FIN_DH_LIVE=null; finPaintLoading();
     var note=document.getElementById('finNote'); if(note) note.textContent='Pulling Direct Hire placements from Salesforce\u2026';
     if(!(window.SPARK_SB && window.SPARK_SB.getToken)){ if(note) note.textContent='Not signed in.'; return; }
-    window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/dh-batch?weekEnding='+FIN_WEEK()+'&t='+Date.now(), { headers:{'Authorization':'Bearer '+tok}, cache:'no-store' }).then(function(r){ return r.json(); }); })
+    window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/dh-batch?weekEnding='+FIN_WEEK_DH()+'&t='+Date.now(), { headers:{'Authorization':'Bearer '+tok}, cache:'no-store' }).then(function(r){ return r.json(); }); })
       .then(function(d){ var a=DH_ADAPT(d); if(a.ok){ FIN_DH_LIVE=a; finApprovalsLoad(function(){ finPaint(); }); if(note) note.textContent='Direct Hire placements \u00b7 week ending '+a.summary.weekEnding+' \u00b7 '+a.summary.employees+' placement(s).'; } else { if(note) note.textContent='Could not load Direct Hire batch ('+((d&&d.error)||'no data')+').'; } })
       .catch(function(){ if(note) note.textContent='Direct Hire pull failed.'; });
   }
