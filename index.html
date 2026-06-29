@@ -6761,6 +6761,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 <div class="fin-rules-wrap" id="finRulesWrap" style="display:none"></div>
 
 
+        <div class="fin-modetabs" id="finModeTabs" style="display:flex;gap:8px;margin:0 0 16px"><button class="fin-modetab on" data-mode="hourly" onclick="finSetMode('hourly')">Hourly</button><button class="fin-modetab" data-mode="dh" onclick="finSetMode('dh')">Direct Hire</button></div>
         <div class="fin-tiles" id="finTiles"></div>
 
         <div class="fin-bh">
@@ -6776,7 +6777,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           </table>
         </div>
 
-        <style>#finChips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fin-approveall{font:600 12px/1 'Space Grotesk',sans-serif;color:#10182a;background:#FFC800;border:1px solid #FFC800;border-radius:8px;padding:8px 14px;cursor:pointer}.fin-approveall:hover{filter:brightness(1.05)}.fin-approveall:disabled{opacity:.6;cursor:default}.fin-chip-held{border-color:#e0a23d!important;color:#e0a23d!important}.fin-chip-held.on{background:rgba(224,162,61,.18)!important}</style><div class="fin-protonote" id="finProtoNote">Prototype on a frozen snapshot of this week's real numbers. Live pull from Salesforce hours and Xero draft creation are the next phase — nothing here posts anywhere yet.</div>
+        <style>.fin-modetab{font:600 13px/1 'Space Grotesk',sans-serif;padding:9px 18px;border-radius:9px;border:1px solid var(--line);background:var(--paper);color:var(--muted);cursor:pointer}.fin-modetab:hover{border-color:var(--gold-deep);color:var(--ink)}.fin-modetab.on{background:var(--gold-grad);border-color:var(--gold-deep);color:#3a2c05}#finChips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fin-approveall{font:600 12px/1 'Space Grotesk',sans-serif;color:#10182a;background:#FFC800;border:1px solid #FFC800;border-radius:8px;padding:8px 14px;cursor:pointer}.fin-approveall:hover{filter:brightness(1.05)}.fin-approveall:disabled{opacity:.6;cursor:default}.fin-chip-held{border-color:#e0a23d!important;color:#e0a23d!important}.fin-chip-held.on{background:rgba(224,162,61,.18)!important}</style><div class="fin-protonote" id="finProtoNote">Prototype on a frozen snapshot of this week's real numbers. Live pull from Salesforce hours and Xero draft creation are the next phase — nothing here posts anywhere yet.</div>
       </div>
     </div>
 
@@ -10917,11 +10918,11 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   // ===== v51 — Finance / Invoicing tab =====
   var FIN_DATA = {"summary":{"weekEnding":"Jun 14, 2026","batchDate":"Jun 17, 2026","invoices":5,"employees":41,"entities":["Spark Packaging","Spark Talent"],"total":41291.38,"hours":1694.7},"invoices":[{"client":"Clarios - FDC","entity":"Spark Talent","emp":11,"invDate":"Jun 17, 2026","dueDate":"Jul 17, 2026","reference":"4500653917","account":"400.13","tax":"Tax Exempt (0%)","lines":[["Darius Wingate RT (2026-06-14)",40.0,23.8,952.0],["Darius Wingate OT (2026-06-14)",9.0,35.7,321.3],["Devonte Duffie RT (2026-06-14)",36.0,23.8,856.8],["Dexter Howard RT (2026-06-14)",40.0,22.95,918.0],["Dexter Howard OT (2026-06-14)",17.25,34.43,593.92],["Jamarus Calhoun RT (2026-06-14)",40.0,23.8,952.0],["Jamarus Calhoun OT (2026-06-14)",8.0,35.7,285.6],["Jamel Lesane RT (2026-06-14)",40.0,22.95,918.0],["Jamel Lesane OT (2026-06-14)",8.0,34.43,275.44],["John McCray RT (2026-06-14)",40.0,23.8,952.0],["John McCray OT (2026-06-14)",8.0,35.7,285.6],["Kimberly Greene RT (2026-06-14)",37.5,22.95,860.63],["Moses Lee RT (2026-06-14)",40.0,23.8,952.0],["Moses Lee OT (2026-06-14)",9.25,35.7,330.23],["O'neal Anderson RT (2026-06-14)",40.0,23.8,952.0],["O'neal Anderson OT (2026-06-14)",8.0,35.7,285.6],["Shena Wright RT (2026-06-14)",40.0,23.8,952.0],["Shena Wright OT (2026-06-14)",9.0,35.7,321.3],["Wayne Rembert RT (2026-06-14)",40.0,22.95,918.0],["Wayne Rembert OT (2026-06-14)",8.75,34.43,301.26]],"subtotal":13183.68},{"client":"Revere Plastics Systems","entity":"Spark Talent","emp":20,"invDate":"Jun 17, 2026","dueDate":"Jul 17, 2026","reference":"WE 6/14/26","account":"400.17","tax":"Tax Exempt (0%)","lines":[["Dashawn Coleman RT (2026-06-14)",24.0,23.1,554.4],["Donald Fredrick RT (2026-06-14)",36.0,21.7,781.2],["Donte Woodall RT (2026-06-14)",36.0,21.7,781.2],["Glenn Whitehead RT (2026-06-14)",40.0,21.7,868.0],["Glenn Whitehead OT (2026-06-14)",14.0,28.21,394.94],["Jacob Edwards RT (2026-06-14)",40.0,21.7,868.0],["Jacob Edwards OT (2026-06-14)",4.0,28.21,112.84],["JaJuan Moore RT (2026-06-14)",38.5,21.7,835.45],["Jamiah Harris RT (2026-06-14)",40.0,21.7,868.0],["Jamiah Harris OT (2026-06-14)",5.0,28.21,141.05],["Kamal Uddin RT (2026-06-14)",40.0,21.0,840.0],["Kenneth Whitehead RT (2026-06-14)",24.0,21.7,520.8],["Lykita Pounds RT (2026-06-14)",38.5,21.7,835.45],["Malik Whitehead RT (2026-06-14)",40.0,21.0,840.0],["Malik Whitehead OT (2026-06-14)",4.0,27.3,109.2],["Michael Person RT (2026-06-14)",22.0,21.0,462.0],["Nadine Hojna RT (2026-06-14)",36.0,21.0,756.0],["Raquel kirk RT (2026-06-14)",40.0,21.7,868.0],["Raquel kirk OT (2026-06-14)",4.0,28.21,112.84],["Ronell Brooks RT (2026-06-14)",40.0,21.7,868.0],["Ronell Brooks OT (2026-06-14)",4.0,28.21,112.84],["Rothus Stewart RT (2026-06-14)",36.0,21.7,781.2],["Rukshana Kamal RT (2026-06-14)",40.0,21.0,840.0],["Tena Williams RT (2026-06-14)",40.0,21.7,868.0],["Tena Williams OT (2026-06-14)",5.5,28.21,155.16],["Tomasz Pilch RT (2026-06-14)",40.0,21.0,840.0],["Tomasz Pilch OT (2026-06-14)",2.5,27.3,68.25],["Victoria Roberson RT (2026-06-14)",36.0,21.7,781.2]],"subtotal":16864.02},{"client":"Troy Laser & Fab","entity":"Spark Talent","emp":3,"invDate":"Jun 17, 2026","dueDate":"Jul 2, 2026","reference":"WE 6/14/26","account":"400","tax":"Tax Exempt (0%)","lines":[["Austin Schmall RT (2026-06-14)",40.0,28.12,1124.8],["Austin Schmall OT (2026-06-14)",16.54,42.18,697.66],["Brandon Wood RT (2026-06-14)",40.0,28.12,1124.8],["Brandon Wood OT (2026-06-14)",2.94,42.18,124.01],["William Lavallis RT (2026-06-14)",40.0,29.6,1184.0],["William Lavallis OT (2026-06-14)",15.27,44.4,677.99]],"subtotal":4933.26},{"client":"Autokiniton - Milan, MI","entity":"Spark Talent","emp":1,"invDate":"Jun 17, 2026","dueDate":"Aug 16, 2026","reference":"PO 80136248","account":"400","tax":"Tax Exempt (0%)","lines":[["Justin Radomski RT (2026-06-14)",40.0,28.29,1131.6],["Justin Radomski OT (2026-06-14)",8.1,38.47,311.61]],"subtotal":1443.21},{"client":"Universal Container","entity":"Spark Packaging","emp":6,"invDate":"Jun 17, 2026","dueDate":"Jul 17, 2026","reference":"WE 6/14/26","account":"400.11","tax":"Tax Exempt (0%)","lines":[["Emmanuel Mathis RT (2026-06-14)",31.75,22.95,728.66],["Jasmine Henderson RT (2026-06-14)",40.0,23.97,958.8],["Jasmine Henderson OT (2026-06-14)",2.71,35.96,97.45],["Javonte Sowell RT (2026-06-14)",25.66,23.97,615.07],["Jontai Willingham RT (2026-06-14)",30.93,23.97,741.39],["Latavia Warren RT (2026-06-14)",40.0,23.97,958.8],["Travis Hughes RT (2026-06-14)",32.0,23.97,767.04]],"subtotal":4867.21}]};
   var FIN_STATE = { filter:'All', sent:{}, inited:false };
-  var FIN_APPROVALS = {}; FIN_STATE.view = 'ready';
+  var FIN_APPROVALS = {}; FIN_STATE.view = 'ready'; var FIN_MODE = 'hourly'; var FIN_DH_LIVE = null;
   var FIN_FROZEN = FIN_DATA;        // keep the frozen snapshot as fallback
   var FIN_LIVE = null;              // populated from /fin-batch
   function finUSD(n){ return (n||0).toLocaleString('en-US',{style:'currency',currency:'USD'}); }
-  function finActive(){ return FIN_LIVE || FIN_FROZEN; }
+  function finActive(){ if(FIN_MODE==='dh'){ return FIN_DH_LIVE || { invoices:[], held:[], summary:{ invoices:0, total:0, placements:0, employees:0, entities:[], held:0 } }; } return FIN_LIVE || FIN_FROZEN; }
 /* ===== Spark HQ — Billing Rules editor (Finance tab) ===== */
 window.FINRULES = (function () {
   var booted = false, isAdmin = false, active = 'profile', rows = [], filter = '';
@@ -11162,6 +11163,27 @@ window.FINRULES = (function () {
 
 
   function FIN_WEEK(){ var dd = new Date(); dd.setDate(dd.getDate() - dd.getDay()); return dd.toISOString().slice(0,10); }
+  function finSetMode(m){
+    FIN_MODE = (m==='dh') ? 'dh' : 'hourly';
+    FIN_STATE.view='ready'; FIN_STATE.filter='All';
+    var tabs=document.querySelectorAll('#finModeTabs .fin-modetab'); tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-mode')===FIN_MODE); });
+    if(FIN_MODE==='dh'){ finLoadDH(); } else { finPaint(); }
+  }
+  function DH_ADAPT(d){
+    if(!d || !d.ok) return { ok:false };
+    var invoices=(d.invoices||[]).map(function(iv){
+      return { client: iv.client, entity: iv.entity || 'Spark Talent', reference: 'DH '+finShortRef('WE '+( (d.weekEnding||'').split('-').slice(1).join('/')+'/'+(d.weekEnding||'').slice(2,4) ), d.weekEnding), emp: iv.placements||iv.lines.length, lines: (iv.lines||[]).map(function(l){ return [l.desc, 1, l.amount, l.amount]; }), subtotal: iv.subtotal, dueDate: '', invDate: d.weekEnding, account: '', tax: 'Tax Exempt (0%)', flags: [], consolidatedFrom: null, invDateISO: d.weekEnding||'' };
+    });
+    return { ok:true, invoices: invoices, held: [], summary: { weekEnding: d.weekEnding||'', weekEndingRaw: d.weekEnding||'', invoices: invoices.length, total: (d.summary&&d.summary.total)||0, employees: (d.summary&&d.summary.placements)||0, entities: (function(){ var s={},o=[]; invoices.forEach(function(iv){ if(iv.entity&&!s[iv.entity]){s[iv.entity]=1;o.push(iv.entity);} }); return o; })(), hours: 0, held: 0 } };
+  }
+  function finLoadDH(){
+    FIN_DH_LIVE=null; finPaintLoading();
+    var note=document.getElementById('finNote'); if(note) note.textContent='Pulling Direct Hire placements from Salesforce\u2026';
+    if(!(window.SPARK_SB && window.SPARK_SB.getToken)){ if(note) note.textContent='Not signed in.'; return; }
+    window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/dh-batch?weekEnding='+FIN_WEEK()+'&t='+Date.now(), { headers:{'Authorization':'Bearer '+tok}, cache:'no-store' }).then(function(r){ return r.json(); }); })
+      .then(function(d){ var a=DH_ADAPT(d); if(a.ok){ FIN_DH_LIVE=a; finApprovalsLoad(function(){ finPaint(); }); if(note) note.textContent='Direct Hire placements \u00b7 week ending '+a.summary.weekEnding+' \u00b7 '+a.summary.employees+' placement(s).'; } else { if(note) note.textContent='Could not load Direct Hire batch ('+((d&&d.error)||'no data')+').'; } })
+      .catch(function(){ if(note) note.textContent='Direct Hire pull failed.'; });
+  }
   function finShortRef(ref, weekISO){ ref = String(ref||''); 
     if(/^WE\b/i.test(ref)){ 
       var m = ref.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/); 
