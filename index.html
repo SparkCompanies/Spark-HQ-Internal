@@ -11164,12 +11164,12 @@ window.FINRULES = (function () {
 
   function FIN_WEEK(){ var dd = new Date(); dd.setDate(dd.getDate() - dd.getDay()); return dd.toISOString().slice(0,10); }
   function FIN_WEEK_DH(){ var dd = new Date(); var dow = dd.getDay(); var add = (dow===0) ? 0 : (7 - dow); dd.setDate(dd.getDate() + add); return dd.toISOString().slice(0,10); }
-  function finSetMode(m){
+  window.finSetMode=function(m){
     FIN_MODE = (m==='dh') ? 'dh' : 'hourly';
     FIN_STATE.view='ready'; FIN_STATE.filter='All';
     var tabs=document.querySelectorAll('#finModeTabs .fin-modetab'); tabs.forEach(function(t){ t.classList.toggle('on', t.getAttribute('data-mode')===FIN_MODE); });
     if(FIN_MODE==='dh'){ finLoadDH(); } else { finPaint(); }
-  }
+  };
   function DH_ADAPT(d){
     if(!d || !d.ok) return { ok:false };
     var invoices=(d.invoices||[]).map(function(iv){
