@@ -11173,7 +11173,7 @@ window.FINRULES = (function () {
   function DH_ADAPT(d){
     if(!d || !d.ok) return { ok:false };
     var invoices=(d.invoices||[]).map(function(iv){
-      return { client: iv.client, entity: iv.entity || 'Spark Talent', reference: 'DH '+finShortRef('WE '+( (d.weekEnding||'').split('-').slice(1).join('/')+'/'+(d.weekEnding||'').slice(2,4) ), d.weekEnding), emp: iv.placements||iv.lines.length, lines: (iv.lines||[]).map(function(l){ return [l.desc, 1, l.amount, l.amount]; }), subtotal: iv.subtotal, dueDate: '', invDate: d.weekEnding, account: '', tax: 'Tax Exempt (0%)', flags: [], consolidatedFrom: null, invDateISO: d.weekEnding||'' };
+      return { client: iv.client, entity: iv.entity || 'Spark Talent', reference: iv.client, emp: iv.placements||iv.lines.length, lines: (iv.lines||[]).map(function(l){ return [l.desc, 1, l.amount, l.amount]; }), subtotal: iv.subtotal, dueDate: '', invDate: d.weekEnding, account: '', tax: 'Tax Exempt (0%)', flags: [], consolidatedFrom: null, invDateISO: d.weekEnding||'' };
     });
     return { ok:true, invoices: invoices, held: [], summary: { weekEnding: d.weekEnding||'', weekEndingRaw: d.weekEnding||'', invoices: invoices.length, total: (d.summary&&d.summary.total)||0, employees: (d.summary&&d.summary.placements)||0, entities: (function(){ var s={},o=[]; invoices.forEach(function(iv){ if(iv.entity&&!s[iv.entity]){s[iv.entity]=1;o.push(iv.entity);} }); return o; })(), hours: 0, held: 0 } };
   }
