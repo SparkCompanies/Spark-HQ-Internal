@@ -7223,19 +7223,53 @@ function drawRegions(){
   // toggle hit layer interactivity with edit mode
   gRegions.selectAll("path.sl-hit").attr("pointer-events", editMode?"all":"none");
 }
+/* ---------- clustering (bin visible points by current zoom k) ---------- */
+let SL_K = 1;
+function slBubbleR(n){ if(n<=1) return 5.5; return Math.max(9, Math.min(34, 6 + Math.sqrt(n)*3.2)); }
+function slCluster(points, k){
+  var CELL=42, cell=CELL/k, bins=new Map();
+  for(var i=0;i<points.length;i++){ var p=points[i];
+    var xy=projection([p.lng,p.lat]); if(!xy) continue;
+    var gx=Math.floor(xy[0]/cell), gy=Math.floor(xy[1]/cell), key=gx+":"+gy;
+    var b=bins.get(key); if(!b){ b={x:0,y:0,n:0,items:[],regions:{}}; bins.set(key,b); }
+    b.x+=xy[0]; b.y+=xy[1]; b.n++; b.items.push(p);
+    var rr=customerRegion(p)||"_none"; b.regions[rr]=(b.regions[rr]||0)+1;
+  }
+  var out=[];
+  bins.forEach(function(b){ var dR=null,dN=-1; for(var k2 in b.regions){ if(b.regions[k2]>dN){dN=b.regions[k2];dR=k2;} }
+    out.push({x:b.x/b.n,y:b.y/b.n,n:b.n,items:b.items,region:(dR==="_none"?null:dR)}); });
+  return out;
+}
+function slZoomToXY(x,y){ var k2=Math.min(9, SL_K*1.8); var W=(svg.attr("width")*1)||1000, H=(svg.attr("height")*1)||700;
+  svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2,H/2).scale(k2).translate(-x,-y)); }
 function drawDots(){
-  const data=visibleCustomers();
-  const sel=gDots.selectAll("circle.dot").data(data,d=>d.id);
+  const clusters=slCluster(visibleCustomers(), SL_K);
+  const singles=clusters.filter(c=>c.n===1).map(c=>c.items[0]);
+  const bubbles=clusters.filter(c=>c.n>1);
+  const sel=gDots.selectAll("circle.dot").data(singles,d=>d.id);
   sel.exit().remove();
-  const ent=sel.enter().append("circle").attr("class","dot").attr("r",5.5);
+  const ent=sel.enter().append("circle").attr("class","dot");
   ent.merge(sel)
     .attr("cx",d=>{const p=projection([d.lng,d.lat]);return p?p[0]:-999;})
     .attr("cy",d=>{const p=projection([d.lng,d.lat]);return p?p[1]:-999;})
-    .attr("r",5.5)
+    .attr("r",5.5/SL_K)
     .attr("fill",d=>dotRegionColor(d))
     .style("filter",null)
     .classed("dim",d=>searchTerm && !(d.name.toLowerCase().includes(searchTerm)||(d.city||"").toLowerCase().includes(searchTerm)))
     .on("mousemove",showTip).on("mouseleave",hideTip).on("click",showDetail);
+  const bsel=gDots.selectAll("g.bub-g").data(bubbles,d=>"b"+Math.round(d.x)+"_"+Math.round(d.y));
+  bsel.exit().remove();
+  const ben=bsel.enter().append("g").attr("class","bub-g").style("cursor","pointer");
+  ben.append("circle").attr("class","bub");
+  ben.append("text").attr("class","bub-label");
+  const bm=ben.merge(bsel);
+  bm.select("circle.bub").attr("cx",d=>d.x).attr("cy",d=>d.y).attr("r",d=>slBubbleR(d.n)/SL_K)
+    .attr("fill",d=>{var t=d.region&&tById[d.region];return t?t.color:"#6b7c9c";})
+    .attr("fill-opacity",0.92).attr("stroke","#0b111e").attr("stroke-width",1.4/SL_K);
+  bm.select("text.bub-label").attr("x",d=>d.x).attr("y",d=>d.y).attr("text-anchor","middle").attr("dominant-baseline","central")
+    .attr("fill","#0b111e").attr("font-weight","700").attr("font-size",(11/SL_K)+"px").style("pointer-events","none")
+    .text(d=>d.n>=1000?(d.n/1000).toFixed(1)+"k":d.n);
+  bm.on("click",(ev,d)=>slZoomToXY(d.x,d.y));
 }
 function recompute(){
   let placed=0, noBU=0, flag=0;
@@ -7472,7 +7506,7 @@ function setupMap(){
   // invisible county hit-layer for Edit mode (click to assign), drawn above fills but below dots
   gRegions.selectAll("path.hit").data(counties.features).enter().append("path")
     .attr("class","sl-hit").attr("d",path).attr("fill","transparent").attr("pointer-events",function(){return editMode?"all":"none";}).on("click",onRegionClick);
-  zoom=d3.zoom().scaleExtent([1,9]).on("zoom",ev=>g.attr("transform",ev.transform));
+  zoom=d3.zoom().scaleExtent([1,9]).on("zoom",ev=>{ g.attr("transform",ev.transform); SL_K=ev.transform.k; drawDots(); });
   svg.call(zoom);
   document.getElementById("sl-zin").onclick=()=>svg.transition().call(zoom.scaleBy,1.6);
   document.getElementById("sl-zout").onclick=()=>svg.transition().call(zoom.scaleBy,1/1.6);
