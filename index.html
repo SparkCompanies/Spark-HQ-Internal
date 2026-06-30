@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Questrial&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -7151,7 +7152,7 @@ const DEMO = [
 ].map((r,i)=>({id:"demo"+i,name:r[0],city:r[1],state:r[2],lat:r[3],lng:r[4],bu:r[5],type:"Customer"}));
 
 const DEMO_JOBS = [{"id":"djob0","name":"Machine Operator | H&H Tool","account":"H&H Tool","zip":"48446","bu":"Light Industrial","openings":8,"lat":43.1215,"lng":-83.3196},{"id":"djob1","name":"Mechanical Designer (BIW Tooling)","account":"Comau- Southfield","zip":"48033","bu":"Automation","openings":1,"lat":42.47,"lng":-83.29},{"id":"djob2","name":"Application Engineer","account":"Horiba Instruments - Ann Arbor","zip":"48108","bu":"MI Metro","openings":1,"lat":42.2233,"lng":-83.7293},{"id":"djob3","name":"Mechanical Design Engineer /Gages","account":"Jenoptik- Hommel-Etamic","zip":"48326","bu":"Automation","openings":1,"lat":42.6739,"lng":-83.2951},{"id":"djob4","name":"Mechanical Engineer FLUIDS","account":"Ace Automation - Howell,MI","zip":"48843","bu":"Automation","openings":1,"lat":42.6307,"lng":-83.9103},{"id":"djob5","name":"1st Shift Machine Operator","account":"Universal Container - Ferndale, MI","zip":"48220","bu":"Light Industrial","openings":2,"lat":42.4606,"lng":-83.1407},{"id":"djob6","name":"Tool & Die Maker","account":"Autokiniton - Holland MI","zip":"49423","bu":"Central","openings":1,"lat":42.8126,"lng":-86.0372},{"id":"djob7","name":"CNC Machinist","account":"Circor International- Massachusetts","zip":"01803","bu":"Spark Sales","openings":1,"lat":42.5048,"lng":-71.2015}];
-let CUSTOMERS=[], JOBS=[], isLive=false;
+let CUSTOMERS=[], JOBS=[], isLive=false; let CUST_BY_ID=new Map();
 
 // --- Sparkline filters (client-side) ---
 const SLF = { status:new Set(["Active","Signed"]), includeJobs:true, jobsOnly:false, bu:null };
@@ -7166,7 +7167,7 @@ function visibleCustomers(){
   });
 }
 function slUpdateCount(){ const el=document.getElementById("sl-fcount"); if(el) el.textContent = visibleCustomers().length.toLocaleString() + " of " + CUSTOMERS.length.toLocaleString() + " shown"; }
-function slApplyFilters(){ drawDots(); drawJobs(); recompute(); slUpdateCount(); }
+function slApplyFilters(){ slBuildIndex(); drawDots(); drawJobs(); recompute(); slUpdateCount(); }
 function slRefreshBUOptions(){
   const sel=document.getElementById("sl-f-bu"); if(!sel) return;
   const cur=SLF.bu||"";
@@ -7223,29 +7224,47 @@ function drawRegions(){
   // toggle hit layer interactivity with edit mode
   gRegions.selectAll("path.sl-hit").attr("pointer-events", editMode?"all":"none");
 }
-/* ---------- clustering (bin visible points by current zoom k) ---------- */
+/* ---------- supercluster engine (Mapbox-grade) bridged onto geoAlbersUsa ---------- */
 let SL_K = 1;
-function slBubbleR(n){ if(n<=1) return 5.5; return Math.max(9, Math.min(34, 6 + Math.sqrt(n)*3.2)); }
-function slCluster(points, k){
-  var CELL=42, cell=CELL/k, bins=new Map();
-  for(var i=0;i<points.length;i++){ var p=points[i];
-    var xy=projection([p.lng,p.lat]); if(!xy) continue;
-    var gx=Math.floor(xy[0]/cell), gy=Math.floor(xy[1]/cell), key=gx+":"+gy;
-    var b=bins.get(key); if(!b){ b={x:0,y:0,n:0,items:[],regions:{}}; bins.set(key,b); }
-    b.x+=xy[0]; b.y+=xy[1]; b.n++; b.items.push(p);
-    var rr=customerRegion(p)||"_none"; b.regions[rr]=(b.regions[rr]||0)+1;
+let slIndex = null;
+function kToZoom(k){ return Math.max(0, Math.min(16, Math.round(2.5 + 1.8*Math.log2(k)))); }
+function slBuildIndex(){
+  if(typeof Supercluster==="undefined") { slIndex=null; return; }
+  const feats=[];
+  for(const ccust of visibleCustomers()){
+    if(ccust.lng==null||ccust.lat==null) continue;
+    const reg=customerRegion(ccust)||"_none";
+    feats.push({type:"Feature", properties:{cid:ccust.id, region:reg}, geometry:{type:"Point", coordinates:[ccust.lng, ccust.lat]}});
   }
-  var out=[];
-  bins.forEach(function(b){ var dR=null,dN=-1; for(var k2 in b.regions){ if(b.regions[k2]>dN){dN=b.regions[k2];dR=k2;} }
-    out.push({x:b.x/b.n,y:b.y/b.n,n:b.n,items:b.items,region:(dR==="_none"?null:dR)}); });
-  return out;
+  slIndex = new Supercluster({ radius:60, maxZoom:16, minPoints:2,
+    map:p=>({regions:{[p.region]:1}}),
+    reduce:(acc,props)=>{ for(const r in props.regions){ acc.regions[r]=(acc.regions[r]||0)+props.regions[r]; } } });
+  slIndex.load(feats);
 }
-function slZoomToXY(x,y){ var k2=Math.min(9, SL_K*1.8); var W=(svg.attr("width")*1)||1000, H=(svg.attr("height")*1)||700;
-  svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2,H/2).scale(k2).translate(-x,-y)); }
+function slDomRegion(props){ if(!props.cluster) return props.region==="_none"?null:props.region; let dR=null,dN=-1,R=props.regions||{}; for(const r in R){ if(R[r]>dN){dN=R[r];dR=r;} } return dR==="_none"?null:dR; }
+function slZoomTo(lng,lat,z){ const p=projection([lng,lat]); if(!p) return; const k=Math.max(1,Math.min(9, Math.pow(2,(z-2.5)/1.8)));
+  const W=(svg.attr("width")*1)||1000, H=(svg.attr("height")*1)||700;
+  svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2,H/2).scale(k).translate(-p[0],-p[1])); }
 function drawDots(){
-  const clusters=slCluster(visibleCustomers(), SL_K);
-  const singles=clusters.filter(c=>c.n===1).map(c=>c.items[0]);
-  const bubbles=clusters.filter(c=>c.n>1);
+  // fallback: supercluster not loaded yet -> plain dots, no crash
+  if(!slIndex){
+    const data=visibleCustomers();
+    const sel=gDots.selectAll("circle.dot").data(data,d=>d.id);
+    sel.exit().remove();
+    const ent=sel.enter().append("circle").attr("class","dot");
+    ent.merge(sel).attr("cx",d=>{const p=projection([d.lng,d.lat]);return p?p[0]:-999;}).attr("cy",d=>{const p=projection([d.lng,d.lat]);return p?p[1]:-999;})
+      .attr("r",5.5/SL_K).attr("fill",d=>dotRegionColor(d)).style("filter",null)
+      .classed("dim",d=>searchTerm && !(d.name.toLowerCase().includes(searchTerm)||(d.city||"").toLowerCase().includes(searchTerm)))
+      .on("mousemove",showTip).on("mouseleave",hideTip).on("click",showDetail);
+    gDots.selectAll("g.bub-g").remove(); return;
+  }
+  const z=kToZoom(SL_K);
+  const feats=slIndex.getClusters([-130,22,-65,52], z);
+  const singles=[], bubbles=[];
+  for(const f of feats){ const xy=projection(f.geometry.coordinates); if(!xy) continue;
+    if(f.properties.cluster){ bubbles.push({x:xy[0],y:xy[1],n:f.properties.point_count,cid:f.properties.cluster_id,region:slDomRegion(f.properties),lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}); }
+    else { const cust=CUST_BY_ID.get(f.properties.cid); if(cust) singles.push(cust); } }
+  // singletons: real dots (same look/tooltip/click as before), constant screen size
   const sel=gDots.selectAll("circle.dot").data(singles,d=>d.id);
   sel.exit().remove();
   const ent=sel.enter().append("circle").attr("class","dot");
@@ -7257,19 +7276,20 @@ function drawDots(){
     .style("filter",null)
     .classed("dim",d=>searchTerm && !(d.name.toLowerCase().includes(searchTerm)||(d.city||"").toLowerCase().includes(searchTerm)))
     .on("mousemove",showTip).on("mouseleave",hideTip).on("click",showDetail);
-  const bsel=gDots.selectAll("g.bub-g").data(bubbles,d=>"b"+Math.round(d.x)+"_"+Math.round(d.y));
+  // clusters: soft filled circle + subtle ring + centered count, region color, CONSTANT screen size
+  const bsel=gDots.selectAll("g.bub-g").data(bubbles,d=>"c"+d.cid);
   bsel.exit().remove();
   const ben=bsel.enter().append("g").attr("class","bub-g").style("cursor","pointer");
+  ben.append("circle").attr("class","bub-halo");
   ben.append("circle").attr("class","bub");
   ben.append("text").attr("class","bub-label");
   const bm=ben.merge(bsel);
-  bm.select("circle.bub").attr("cx",d=>d.x).attr("cy",d=>d.y).attr("r",d=>slBubbleR(d.n)/SL_K)
-    .attr("fill",d=>{var t=d.region&&tById[d.region];return t?t.color:"#6b7c9c";})
-    .attr("fill-opacity",0.92).attr("stroke","#0b111e").attr("stroke-width",1.4/SL_K);
-  bm.select("text.bub-label").attr("x",d=>d.x).attr("y",d=>d.y).attr("text-anchor","middle").attr("dominant-baseline","central")
-    .attr("fill","#0b111e").attr("font-weight","700").attr("font-size",(11/SL_K)+"px").style("pointer-events","none")
-    .text(d=>d.n>=1000?(d.n/1000).toFixed(1)+"k":d.n);
-  bm.on("click",(ev,d)=>slZoomToXY(d.x,d.y));
+  const R=n=> 13 + Math.min(20, Math.sqrt(n)*1.6);  // constant px (NOT divided by k)
+  bm.attr("transform",d=>"translate("+(d.x/SL_K)+","+(d.y/SL_K)+") scale("+(1/SL_K)+")");
+  bm.select("circle.bub-halo").attr("r",d=>R(d.n)+5).attr("fill",d=>{var t=d.region&&tById[d.region];return t?t.color:"#6b7c9c";}).attr("fill-opacity",0.18);
+  bm.select("circle.bub").attr("r",d=>R(d.n)).attr("fill",d=>{var t=d.region&&tById[d.region];return t?t.color:"#6b7c9c";}).attr("fill-opacity",0.9).attr("stroke","#fff").attr("stroke-width",1.6).attr("stroke-opacity",0.55);
+  bm.select("text.bub-label").attr("text-anchor","middle").attr("dominant-baseline","central").attr("dy","0.5").attr("fill","#0b111e").attr("font-weight","700").attr("font-size",d=>(R(d.n)>22?14:12)+"px").style("pointer-events","none").text(d=>d.n>=1000?(d.n/1000).toFixed(1)+"k":d.n);
+  bm.on("click",(ev,d)=>{ const ez = slIndex.getClusterExpansionZoom(d.cid); slZoomTo(d.lng,d.lat, ez); });
 }
 function recompute(){
   let placed=0, noBU=0, flag=0;
@@ -7510,14 +7530,14 @@ function setupMap(){
   svg.call(zoom);
   document.getElementById("sl-zin").onclick=()=>svg.transition().call(zoom.scaleBy,1.6);
   document.getElementById("sl-zout").onclick=()=>svg.transition().call(zoom.scaleBy,1/1.6);
-  console.log("[Sparkline] map sized",W,"x",H,"| Detroit projects to",projection([-83.05,42.33]));
+  console.log("[Sparkline] map sized",W,"x",H,"| Detroit projects to",projection([-83.05,42.33])); slBuildIndex();
 }
 async function loadCustomers(){
   try{
     if(window.SPARK_SB && window.SPARK_SB.getToken){
       const t=await window.SPARK_SB.getToken();
       const j=await fetch(WORKER+"/terr-accounts",{headers:{Authorization:"Bearer "+t}}).then(r=>r.json());
-      if(j&&j.ok&&j.accounts){ CUSTOMERS=j.accounts.map(a=>({...a})); isLive=true; }
+      if(j&&j.ok&&j.accounts){ CUSTOMERS=j.accounts.map(a=>({...a})); isLive=true; } CUST_BY_ID=new Map(CUSTOMERS.map(c=>[c.id,c]));
       // jobs
       const jr=await fetch(WORKER+"/terr-jobs",{headers:{Authorization:"Bearer "+t}}).then(r=>r.json()).catch(()=>null);
       if(jr&&jr.ok){
@@ -7531,7 +7551,7 @@ async function loadCustomers(){
       }
     }
   }catch(e){}
-  if(!CUSTOMERS.length){ CUSTOMERS=DEMO.slice(); isLive=false; }
+  if(!CUSTOMERS.length){ CUSTOMERS=DEMO.slice(); isLive=false; } CUST_BY_ID=new Map(CUSTOMERS.map(c=>[c.id,c])); slBuildIndex();
   if(!JOBS.length){ JOBS=DEMO_JOBS.slice(); }
   document.getElementById("sl-note").innerHTML = isLive
     ? `Live — ${CUSTOMERS.length} customers, ${JOBS.length} open jobs from Salesforce. Regions = Mapline territories; dots & job pins colored by Subdivision__c.`
