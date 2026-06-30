@@ -7126,6 +7126,8 @@ const BU_COLORS = {
 };
 const BU_NONE = "#6b7c9c";
 function buColor(bu){ return BU_COLORS[bu] || BU_NONE; }
+function dotRegionColor(d){ try{ var f=customerFips(d); var r=f?regionOf(f):null; return (r&&tById[r])?tById[r].color:"#6b7c9c"; }catch(e){ return "#6b7c9c"; } }
+function jobRegionColor(d){ try{ var f=jobFips(d); var r=f?regionOf(f):null; return (r&&tById[r])?tById[r].color:"#6b7c9c"; }catch(e){ return "#6b7c9c"; } }
 
 /* ---------- Demo customers (real geocoded + plausible BU tags for preview) ---------- */
 const DEMO = [
@@ -7217,7 +7219,7 @@ function drawRegions(){
   const sel=gRegions.selectAll("path.sl-region").data(regionShapes||[], d=>d.id);
   sel.exit().remove();
   const ent=sel.enter().insert("path",":first-child").attr("class","sl-region");
-  ent.merge(sel).attr("d",d=>path(d.geom)).attr("fill",d=>d.color+"4d").attr("stroke",d=>d.color).attr("stroke-width",1).attr("stroke-linejoin","round");
+  ent.merge(sel).attr("d",d=>path(d.geom)).attr("fill",d=>d.color+"22").attr("stroke",d=>d.color).attr("stroke-width",1).attr("stroke-linejoin","round");
   // toggle hit layer interactivity with edit mode
   gRegions.selectAll("path.sl-hit").attr("pointer-events", editMode?"all":"none");
 }
@@ -7230,7 +7232,7 @@ function drawDots(){
     .attr("cx",d=>{const p=projection([d.lng,d.lat]);return p?p[0]:-999;})
     .attr("cy",d=>{const p=projection([d.lng,d.lat]);return p?p[1]:-999;})
     .attr("r",5.5)
-    .attr("fill",d=>buColor(d.bu))
+    .attr("fill",d=>dotRegionColor(d))
     .style("filter",null)
     .classed("dim",d=>searchTerm && !(d.name.toLowerCase().includes(searchTerm)||(d.city||"").toLowerCase().includes(searchTerm)))
     .on("mousemove",showTip).on("mouseleave",hideTip).on("click",showDetail);
@@ -7269,7 +7271,7 @@ function drawJobs(){
   ent.merge(sel)
     .attr("d",d=>{ const p=projection([d.lng,d.lat]); if(!p) return "M -999 -999"; const x=p[0],y=p[1],s=5.5;
       return `M ${x} ${y-s} L ${x+s} ${y} L ${x} ${y+s} L ${x-s} ${y} Z`; })   // diamond
-    .attr("fill",d=>buColor(d.bu))
+    .attr("fill",d=>jobRegionColor(d))
     .attr("stroke","#0b111e").attr("stroke-width",1.3)
     .style("filter",null)
     .classed("dim",d=>searchTerm && !(String(d.name).toLowerCase().includes(searchTerm)||String(d.account).toLowerCase().includes(searchTerm)))
@@ -7462,7 +7464,7 @@ function setupMap(){
   // merged region fills (one shape per territory) — no per-county fill artifacts
   gRegions.selectAll("path.region").data(regionShapes||[]).enter().append("path")
     .attr("class","sl-region").attr("d",d=>path(d.geom))
-    .attr("fill",d=>d.color+"4d").attr("stroke",d=>d.color).attr("stroke-width",1).attr("stroke-linejoin","round");
+    .attr("fill",d=>d.color+"22").attr("stroke",d=>d.color).attr("stroke-width",1).attr("stroke-linejoin","round");
   // thin county mesh for subtle definition
   g.append("path").datum(countyMesh).attr("class","sl-county-line").attr("d",path);
   // state borders on top
