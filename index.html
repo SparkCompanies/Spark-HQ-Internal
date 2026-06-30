@@ -6905,7 +6905,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 
 .sl-row{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:background .12s;margin-bottom:2px}
 .sl-row:hover{background:var(--panel)}
-.sl-row.sl-sel{background:var(--panel2);border-color:var(--line2);box-shadow:inset 3px 0 0 var(--sel-c,var(--gold))}
+.sl-row.sl-sel,.sl-terrlist .row.sl-sel,#sl-terrlist .row.sl-sel{background:var(--panel2);border-color:var(--line2);box-shadow:inset 3px 0 0 var(--sel-c,var(--gold))}
 .sl-row .sl-sw{width:12px;height:12px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
 .sl-row .sl-sw.sl-dot{border-radius:50%}
 .sl-row .sl-nm{flex:1;font-size:12.5px;font-weight:500;color:var(--ink)}
@@ -7155,9 +7155,10 @@ const DEMO_JOBS = [{"id":"djob0","name":"Machine Operator | H&H Tool","account":
 let CUSTOMERS=[], JOBS=[], isLive=false; let CUST_BY_ID=new Map();
 
 // --- Sparkline filters (client-side) ---
-const SLF = { status:new Set(["Active","Signed"]), includeJobs:true, jobsOnly:false, bu:null };
+const SLF = { status:new Set(["Active","Signed"]), includeJobs:true, jobsOnly:false, bu:null, region:null };
 function visibleCustomers(){
   return CUSTOMERS.filter(c=>{
+    if(SLF.region && customerRegion(c)!==SLF.region) return false;
     if(SLF.bu && (c.bu||"")!==SLF.bu) return false;
     if(SLF.jobsOnly) return !!c.hasJob;
     const st = c.status || "(blank)";
@@ -7450,7 +7451,8 @@ function buildTerrList(){
     const row=document.createElement("div");
     row.className="row"; row.dataset.id=t.id; row.style.setProperty("--sel-c",t.color);
     row.innerHTML=`<span class="sw" style="background:${t.color}"></span><span class="nm">${t.name}</span><span class="ct" id="sl-tc-${t.id}">0</span>`;
-    row.onclick=()=>selectTerr(t.id);
+    if(SLF.region===t.id) row.classList.add("sl-sel");
+    row.onclick=()=>{ SLF.region=(SLF.region===t.id?null:t.id); document.querySelectorAll("#sl-terrlist .row").forEach(r=>r.classList.toggle("sl-sel",r.dataset.id===SLF.region)); selectTerr(t.id); slApplyFilters(); };
     list.appendChild(row);
   });
 }
