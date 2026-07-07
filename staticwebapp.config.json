@@ -3,7 +3,9 @@
     "rewrite": "/index.html",
     "exclude": [
       "/assets/*",
-      "*.{css,scss,js,mjs,json,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf}"
+      "*.{css,scss,js,mjs,json,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf}",
+      "/spark-*.html",
+      "/sparkline.html"
     ]
   },
   "mimeTypes": {
@@ -23,7 +25,7 @@
   },
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    "X-Frame-Options": "SAMEORIGIN",
     "Referrer-Policy": "strict-origin-when-cross-origin"
   }
 }

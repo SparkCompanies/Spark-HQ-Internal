@@ -20053,5 +20053,25 @@ window.jvDraftCard = function(draft){
 })();
 </script>
 
+<script>
+/* ==================== ACADEMY_LEADERSHIP_TAKEOVER_V1 ====================
+   Spark Academy renders inside the Leadership tab (same-origin iframe,
+   localStorage shared with direct /spark-academy.html visits).
+   To restore the old leadership shelf: delete this whole script block. */
+(function () {
+  function mountAcademy() {
+    var v = document.getElementById("view-leadership");
+    if (!v || v.getAttribute("data-academy") === "1") return;
+    v.setAttribute("data-academy", "1");
+    v.innerHTML = '<iframe src="spark-academy.html" title="Spark Academy" ' +
+      'style="width:100%;height:calc(100vh - 96px);min-height:640px;border:0;display:block;background:#0B0B0C" ' +
+      'loading="lazy"></iframe>';
+    v.style.padding = "0";
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mountAcademy);
+  } else { mountAcademy(); }
+})();
+</script>
 </body>
 </html>
