@@ -6349,6 +6349,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item nav-headcount" data-tab="headcount"><span class="ico">▥</span>Headcount</button>
       <button class="nav-item nav-sparkline" data-tab="sparkline"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 21s-6-5.7-6-10a6 6 0 0 1 12 0c0 4.3-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg></span>Territories</button>
       <button class="nav-item" data-tab="boards" onclick="window.open('https://red-dune-014d74810.7.azurestaticapps.net/spark-boards.html','_blank','noopener'); return false;"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>Spark Boards</button>
+      <button class="nav-item" data-tab="match" onclick="window.open('https://red-dune-014d74810.7.azurestaticapps.net/spark-match.html','_blank','noopener'); return false;"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></span>Spark Match</button>
       <button class="nav-item" data-tab="training"><span class="ico">▤</span>Training</button>
       <button class="nav-item" data-tab="standard"><span class="ico">★</span>Spark Standard</button>
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
@@ -13022,21 +13023,21 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: ['role'],
-      navItems: ['home','boards','salesforce','training','standard','careers','people','tools','docs']
+      navItems: ['home','boards','match','salesforce','training','standard','careers','people','tools','docs']
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -13064,6 +13065,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           if (Array.isArray(ni) && ni.indexOf('boards') === -1) {
             var si = ni.indexOf('sparkline');
             if (si !== -1) ni.splice(si + 1, 0, 'boards'); else ni.splice(1, 0, 'boards');
+          }
+        });
+        // vMatch — ensure Spark Match nav exists in saved sets
+        Object.keys(merged).forEach(function(k){
+          var ni = merged[k].navItems;
+          if (ni && ni.indexOf('match') === -1) {
+            var bi = ni.indexOf('boards');
+            if (bi >= 0) ni.splice(bi + 1, 0, 'match'); else ni.push('match');
           }
         });
         // v51 — ensure Finance nav exists for admin/manager saved sets (not members by default)
@@ -13139,7 +13148,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     roleEditingId = roleId;
     const isNew = !roleId;
     const r = isNew
-      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','training','standard','careers','people','tools','docs'], adminTabs: [] }
+      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','match','training','standard','careers','people','tools','docs'], adminTabs: [] }
       : ROLE_PERMISSIONS[roleId];
     const modal = document.getElementById('roleEditorModal');
     if (!modal) return;
