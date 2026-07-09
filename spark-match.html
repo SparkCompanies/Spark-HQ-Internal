@@ -613,7 +613,7 @@ body{text-rendering:optimizeLegibility}
         <div class="ai-spark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg></div>
         <input id="nl-q" value="Find forklift operators within 25 miles of Detroit available for 2nd shift under $22/hour">
         <div class="mode-toggle"><button class="on">Smart</button><button onclick="toast('Boolean mode','Raw AND / OR / NOT syntax against indexed fields','info')">Boolean</button></div>
-        <button class="btn btn-gold btn-sm">Search</button>
+        <button class="btn btn-gold btn-sm" onclick="searchLive()">Search</button>
       </div>
       <div class="nl-suggest">
         <span style="font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--tx3);font-weight:600;align-self:center">Try</span>
@@ -1265,6 +1265,85 @@ function tableHTML(rows){
       `<td class="mono" style="color:${c.dq<80?'var(--amber)':'var(--tx2)'}">${c.dq}</td><td>${c.owner}</td></tr>`;
   }).join("")+`</tbody></table></div>`;
 }
+// ===== LIVE SEARCH (Scope B) — reads toggled filters, queries /match-search =====
+const MATCH_ENDPOINT = "https://spark-hq-worker.sparkcompanies.workers.dev/match-search";
+let LIVE_MODE = false; // true once a live search has run; flips C to live data
+
+function sbToken(){
+  try { const a = JSON.parse(localStorage.getItem("spark_hq_sb_auth")); return a && a.access_token ? a.access_token : null; }
+  catch(e){ return null; }
+}
+// read which filter options are toggled .on, by group heading
+function readFilters(){
+  const groups = {};
+  document.querySelectorAll("#view-search .f-group").forEach(g=>{
+    const h = g.querySelector("h4"); if(!h) return;
+    const key = h.textContent.replace(/Clear/,"").trim();
+    groups[key] = [...g.querySelectorAll(".f-opt.on")].map(o=>o.textContent.replace(/[0-9,]+$/,"").trim());
+  });
+  const body = {};
+  const skills = groups["Skill set"] || [];
+  if (skills.length === 1) body.skill = skills[0]; // single skill → filter; multi → broad
+  const shifts = groups["Shift preference"] || [];
+  if (shifts.length === 1 && shifts[0] !== "Any") body.shift = shifts[0];
+  const comp = groups["Compliance signals"] || [];
+  if (comp.some(x=>/Work-auth/i.test(x))) body.workAuth = true;
+  if (comp.some(x=>/drug/i.test(x))) body.drugTest = true;
+  if (comp.some(x=>/background/i.test(x))) body.background = true;
+  if (comp.some(x=>/transportation/i.test(x))) body.transport = true;
+  body.limit = 50;
+  return body;
+}
+function mapLive(a){
+  const stMap = { "Active":"ready", "Prospect":"prospect", "# DISCO":"unreached" };
+  const st = stMap[a.status] || "prospect";
+  let pay;
+  if (a.pay == null) pay = "Pay not set";
+  else if (a.pay > 200) pay = "$" + Number(a.pay).toLocaleString() + "/yr";
+  else pay = "$" + a.pay + "/hr";
+  const keyFields = [a.skillSet, a.shift, a.pay, a.city, a.yearsExp, a.phone, a.workAuth!=null?1:null];
+  const filled = keyFields.filter(x=>x!=null && x!=="" ).length;
+  const dq = Math.round((filled/keyFields.length)*100);
+  const certs = [a.skillSet, a.yearsExp!=null ? a.yearsExp+" yrs exp" : null].filter(Boolean);
+  const naMap = { "unreached":"Retry contact", "ready":"Review & submit", "prospect":"Screen & qualify" };
+  return {
+    n:a.name||"(unnamed)", s:a.score||0, st,
+    loc:(a.city||a.state)?((a.city||"")+(a.state?", "+a.state:"")):"Location unknown",
+    dist:a.distanceMi!=null ? a.distanceMi+" mi" : "\u2014",
+    pay, avail:"\u2014", shift:a.shift?a.shift+" shift":"\u2014",
+    owner:"Unassigned", oi:"\u2014", dq, skills:[], certs,
+    last:a.lastActivity?"Active "+a.lastActivity:"\u2014",
+    prior:(a.placements||0)>0, why:((a.why||[]).join(". ")+".").replace(/^\.$/,"Ranked on available fields."),
+    na:naMap[st]||"Review", phone:a.phone||"", id:a.id,
+    dna:[], prefs:[], flags:(a.flags||[]).map(f=>["amber",f]), tl:[], pipe:[]
+  };
+}
+async function searchLive(){
+  const host = document.getElementById("results");
+  const tok = sbToken();
+  if(!tok){ host.innerHTML='<div class="expand-hint" style="grid-column:1/-1">'+I.why+'<div><b>Not signed in to Spark HQ.</b> Open Spark Match from the HQ sidebar so it can use your session, then search again.</div></div>'; return; }
+  host.innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
+  const countEl = document.querySelector("#view-search .results-count");
+  if(countEl) countEl.innerHTML='<b>Searching live\u2026</b> querying Salesforce';
+  try{
+    const body = readFilters();
+    const r = await fetch(MATCH_ENDPOINT,{method:"POST",headers:{"Authorization":"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d = await r.json();
+    if(!d.ok){ host.innerHTML='<div class="expand-hint" style="grid-column:1/-1">'+I.why+'<div><b>Search error.</b> '+(d.error||"Unknown")+'</div></div>'; if(countEl) countEl.innerHTML='<b>Search failed</b>'; return; }
+    const cands = (d.candidates||[]).map(mapLive);
+    if(!cands.length){ host.innerHTML='<div class="expand-hint" style="grid-column:1/-1">'+I.why+'<div><b>No matches.</b> Loosen a filter \u2014 fewer compliance requirements, or a broader skill/shift \u2014 and search again.</div></div>'; if(countEl) countEl.innerHTML='<b>0 candidates</b>'; return; }
+    // flip the app onto live data and reuse the existing renderers
+    C.length = 0; cands.forEach(c=>C.push(c));
+    LIVE_MODE = true;
+    host.innerHTML = viewMode==="table" ? tableHTML(C.map((c,i)=>({c,i}))) : C.map((c,i)=>cardHTML(c,i,"search")).join("");
+    const geo = d.geocodeAvailable ? "" : " \u00b7 distance unavailable (ZIP not geocoded)";
+    if(countEl) countEl.innerHTML='<b>'+C.length+' live candidates</b> \u00b7 <span style="color:var(--tx3)">ranked from Salesforce'+geo+'</span>';
+  }catch(e){
+    host.innerHTML='<div class="expand-hint" style="grid-column:1/-1">'+I.why+'<div><b>Could not reach search service.</b> '+String(e.message||e)+'</div></div>';
+    if(countEl) countEl.innerHTML='<b>Search failed</b>';
+  }
+}
+
 function renderSearch(skel){
   const host=document.getElementById("results");
   if(skel){host.innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';setTimeout(()=>renderSearch(false),300);return;}
