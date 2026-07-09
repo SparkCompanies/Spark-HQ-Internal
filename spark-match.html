@@ -624,9 +624,11 @@ body{text-rendering:optimizeLegibility}
       </div>
       <div class="job-pick-row" style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap">
         <span style="font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--tx3);font-weight:600;display:flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>Or match to an open job</span>
+        <input id="job-filter" type="text" placeholder="Type to filter jobs…" oninput="filterJobs()" autocomplete="off" style="min-width:200px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:var(--pnl2,#12161c);color:var(--tx1)">
         <select id="job-pick" onchange="pickJob(this.value)" style="min-width:340px;max-width:560px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:var(--pnl2,#12161c);color:var(--tx1);cursor:pointer">
           <option value="">Loading open jobs…</option>
         </select>
+        <span id="job-count" style="font-size:11px;color:var(--tx3);white-space:nowrap"></span>
         <span id="job-banner" style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:6px"></span>
       </div>
       <div class="interp">
@@ -1297,6 +1299,24 @@ function parseJobShifts(name){
   if (n.indexOf("3rd")>=0 || n.indexOf("third shift")>=0 || n.indexOf("night")>=0) out.push("3rd");
   return out;
 }
+function jobOptLabel(j){
+  var fill = (j.openings!=null) ? (" (" + (j.filled||0) + "/" + j.openings + " filled)") : "";
+  var acct = j.account ? (" - " + j.account) : "";
+  return (j.name + acct + fill).split("<").join("&lt;");
+}
+function renderJobOpts(list){
+  var sel = document.getElementById("job-pick"); if (!sel) return;
+  var cur = sel.value;
+  sel.innerHTML = '<option value="">Select an open job…</option>' + list.map(function(j){ return '<option value="'+j.id+'">'+jobOptLabel(j)+'</option>'; }).join("");
+  if (cur && list.some(function(j){ return j.id===cur; })) sel.value = cur;
+}
+function filterJobs(){
+  var box = document.getElementById("job-filter"); var cnt = document.getElementById("job-count");
+  var q = (box && box.value ? box.value : "").trim().toLowerCase();
+  var list = !q ? JOBS_CACHE : JOBS_CACHE.filter(function(j){ return ((j.name||"")+" "+(j.account||"")).toLowerCase().indexOf(q) >= 0; });
+  renderJobOpts(list);
+  if (cnt) cnt.textContent = q ? (list.length + " of " + JOBS_CACHE.length) : (JOBS_CACHE.length + " open");
+}
 async function loadJobs(){
   const sel = document.getElementById("job-pick"); if (!sel) return;
   const tok = sbToken();
@@ -1308,12 +1328,7 @@ async function loadJobs(){
     jobs.sort(function(a,b){ return (a.name||"").localeCompare(b.name||""); });
     JOBS_CACHE = jobs;
     if (!jobs.length){ sel.innerHTML = '<option value="">No open jobs found</option>'; return; }
-    sel.innerHTML = '<option value="">Select an open job…</option>' + jobs.map(function(j){
-      const fill = (j.openings!=null) ? (" (" + (j.filled||0) + "/" + j.openings + " filled)") : "";
-      const acct = j.account ? (" - " + j.account) : "";
-      const label = (j.name + acct + fill).split("<").join("&lt;");
-      return '<option value="'+j.id+'">'+label+'</option>';
-    }).join("");
+    renderJobOpts(jobs); var jc = document.getElementById("job-count"); if (jc) jc.textContent = jobs.length + " open";
   } catch(e){ sel.innerHTML = '<option value="">Could not load jobs</option>'; }
 }
 function pickJob(id){
