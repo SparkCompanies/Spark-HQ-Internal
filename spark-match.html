@@ -663,6 +663,10 @@ body{text-rendering:optimizeLegibility}
           <div class="range-line"><span class="fill"></span><span class="knob" style="left:12%"></span><span class="knob" style="left:66%"></span></div>
           <div class="range-vals"><span>$16</span><span>$22/hr</span></div>
         </div>
+        <div class="f-group"><h4>Location</h4>
+          <input id="f-zip" placeholder="ZIP (e.g. 48174)" maxlength="5" inputmode="numeric" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:'IBM Plex Mono',monospace;margin-bottom:7px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)"><span>Within</span><input id="f-radius" type="range" min="5" max="100" value="30" style="flex:1;accent-color:var(--gold)"><span id="f-radius-val" class="mono" style="min-width:44px;text-align:right">30 mi</span></div>
+        </div>
         <div class="f-group"><h4>Compliance signals</h4>
           <div class="f-opt on"><span class="box"></span>Work-auth confirmed<span class="cnt">1,494</span></div>
           <div class="f-opt"><span class="box"></span>Willing: drug test<span class="cnt">1,301</span></div>
@@ -1282,17 +1286,41 @@ function readFilters(){
     groups[key] = [...g.querySelectorAll(".f-opt.on")].map(o=>o.textContent.replace(/[0-9,]+$/,"").trim());
   });
   const body = {};
-  const skills = groups["Skill set"] || [];
-  if (skills.length === 1) body.skill = skills[0]; // single skill → filter; multi → broad
-  const shifts = groups["Shift preference"] || [];
-  if (shifts.length === 1 && shifts[0] !== "Any") body.shift = shifts[0];
+  const skills = (groups["Skill set"] || []).filter(x=>x && x!=="Clear");
+  if (skills.length) body.skills = skills;              // multi-select OR
+  const shifts = (groups["Shift preference"] || []).filter(x=>x && x!=="Any");
+  if (shifts.length) body.shifts = shifts;              // multi-select OR
   const comp = groups["Compliance signals"] || [];
   if (comp.some(x=>/Work-auth/i.test(x))) body.workAuth = true;
   if (comp.some(x=>/drug/i.test(x))) body.drugTest = true;
   if (comp.some(x=>/background/i.test(x))) body.background = true;
   if (comp.some(x=>/transportation/i.test(x))) body.transport = true;
+  const hist = groups["History & status"] || [];
+  if (hist.some(x=>/Prior placements/i.test(x))) body.priorPlacements = true;
+  if (hist.some(x=>/Include Former/i.test(x))) body.includeFormer = true;
+  // pay from the slider vals (parse the range-vals display)
+  const pv = document.querySelectorAll("#view-search .range-vals span");
+  if (pv.length===2){ const lo=parseInt(pv[0].textContent.replace(/[^0-9]/g,""),10); const hi=parseInt(pv[1].textContent.replace(/[^0-9]/g,""),10); if(!isNaN(lo)) body.payMin=lo; if(!isNaN(hi)) body.payMax=hi; }
+  // location
+  const zip=(document.getElementById("f-zip")||{}).value; const rad=(document.getElementById("f-radius")||{}).value;
+  if (zip && /^[0-9]{5}$/.test(zip.trim())){ body.zip=zip.trim(); body.radiusMi=parseInt(rad,10)||30; }
   body.limit = 50;
   return body;
+}
+function wireFilters(){
+  // make every f-opt clickable (toggle .on + re-search), rail Clear buttons, radius label, zip Enter
+  document.querySelectorAll("#view-search .f-opt").forEach(o=>{
+    o.style.cursor="pointer";
+    o.addEventListener("click",()=>{ o.classList.toggle("on"); searchLive(); });
+  });
+  document.querySelectorAll("#view-search .f-group .clr").forEach(c=>{
+    c.style.cursor="pointer";
+    c.addEventListener("click",(e)=>{ e.stopPropagation(); c.closest(".f-group").querySelectorAll(".f-opt.on").forEach(o=>o.classList.remove("on")); searchLive(); });
+  });
+  const rad=document.getElementById("f-radius"), rv=document.getElementById("f-radius-val");
+  if(rad&&rv){ rad.addEventListener("input",()=>rv.textContent=rad.value+" mi"); rad.addEventListener("change",()=>{ if((document.getElementById("f-zip")||{}).value) searchLive(); }); }
+  const zip=document.getElementById("f-zip");
+  if(zip){ zip.addEventListener("keydown",e=>{ if(e.key==="Enter") searchLive(); }); }
 }
 function mapLive(a){
   const stMap = { "Active":"ready", "Prospect":"prospect", "# DISCO":"unreached" };
@@ -1354,6 +1382,7 @@ function renderSearch(skel){
 function renderMatch(){
   document.getElementById("match-results").innerHTML=ranked().map(({c,i},idx)=>withRank(cardHTML(c,i,"match"),idx+1)).join("");
 }
+wireFilters();
 document.querySelectorAll("#view-search .sort-pills button").forEach(b=>{
   b.addEventListener("click",()=>{
     document.querySelectorAll("#view-search .sort-pills button").forEach(x=>x.classList.toggle("on",x===b));
