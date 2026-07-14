@@ -7772,16 +7772,16 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         .tcc-refresh:hover{border-color:#FFC800;color:#FFC800;}
         .tcc-sub{color:#8b8b93;font-size:12.5px;margin:6px 0 16px;}
         .tcc-body{min-height:40px;}
-        .tc-loading,.tc-empty{color:#8b8b93;font-size:13px;line-height:1.55;padding:6px 0;}
+        .tc-loading,.tc-empty{color:#7a7a72;font-size:13px;line-height:1.55;padding:6px 0;}
         .tc-summary{color:#FFC800;font-size:11.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:12px;}
         .tc-list{display:flex;flex-direction:column;gap:12px;}
-        .tc-row{background:#161619;border:1px solid #232329;border-radius:10px;padding:12px 14px;}
+        .tc-row{background:#faf8f2;border:1px solid #eee8d8;border-radius:10px;padding:12px 14px;}
         .tc-row-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;}
-        .tc-name{font-size:14px;font-weight:600;color:#f4f4f5;}
+        .tc-name{font-size:14px;font-weight:600;color:#1a1a1a;}
         .tc-pill{font-size:10.5px;font-weight:700;letter-spacing:.6px;padding:3px 9px;border-radius:20px;text-transform:uppercase;white-space:nowrap;}
         .tc-pill-cert{background:#FFC800;color:#1a1a1a;}
-        .tc-pill-prog{background:#232329;color:#b8b8c0;border:1px solid #34343c;}
-        .tc-bar{height:6px;background:#232329;border-radius:6px;overflow:hidden;}
+        .tc-pill-prog{background:#f1ecdd;color:#6b6b70;border:1px solid #e2dbc6;}
+        .tc-bar{height:6px;background:#ece7d9;border-radius:6px;overflow:hidden;}
         .tc-bar-fill{height:100%;background:#5a5a63;border-radius:6px;transition:width .4s ease;}
         .tc-bar-fill.tc-bar-cert{background:#FFC800;}
         .tc-row-meta{display:flex;gap:14px;margin-top:8px;min-height:2px;}
@@ -18752,7 +18752,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
   /*SBX_ROSTER_v2a*/
     function tcG(i){return document.getElementById(i)}
     var tcT,tcC;(function(){var c=tcG("teamCertCard");if(c){tcT=c.outerHTML;var s=c.parentElement.querySelector("style");if(s)tcC=s.textContent;}})();
-    function tcEnsure(){var v=tcG("view-training");if(v&&tcT&&tcG("teamCertCard")==null){if(tcC&&tcG("tcRosterCSS")==null){var s=document.createElement("style");s.id="tcRosterCSS";s.textContent=tcC;document.head.appendChild(s);}var d=document.createElement("div");d.style.padding="18px 0 6px";d.innerHTML=tcT;v.appendChild(d);tcLoad(true);}}
+    function tcEnsure(){var v=tcG("view-training");if(v&&tcT&&tcG("teamCertCard")==null){if(tcC&&tcG("tcRosterCSS")==null){var s=document.createElement("style");s.id="tcRosterCSS";s.textContent=tcC;document.head.appendChild(s);}var d=document.createElement("div");d.style.padding="18px 0 6px";d.innerHTML=tcT;var __ls=v.querySelector(".lms-shell");if(__ls){v.insertBefore(d,__ls);}else{v.appendChild(d);}tcLoad(true);}}
   /*SBX_ROSTER_v2b*/
     setTimeout(tcEnsure,600);try{new MutationObserver(function(){if(tcG("teamCertCard")==null)setTimeout(tcEnsure,120);}).observe(tcG("view-training"),{childList:true,subtree:true});}catch(e){}
     window.tcLoadRoster = tcLoad;
