@@ -18746,6 +18746,12 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
         tcState("<div class=\"tc-empty\">Team progress is offline right now \u2014 the worker didn't respond. Training still works; this panel fills in once it's reachable.</div>");
       });
     }
+  /*SBX_ROSTER_v2a*/
+    function tcG(i){return document.getElementById(i)}
+    var tcT,tcC;(function(){var c=tcG("teamCertCard");if(c){tcT=c.outerHTML;var s=c.parentElement.querySelector("style");if(s)tcC=s.textContent;}})();
+    function tcEnsure(){var v=tcG("view-training");if(v&&tcT&&tcG("teamCertCard")==null){if(tcC&&tcG("tcRosterCSS")==null){var s=document.createElement("style");s.id="tcRosterCSS";s.textContent=tcC;document.head.appendChild(s);}var d=document.createElement("div");d.style.padding="18px 0 6px";d.innerHTML=tcT;v.appendChild(d);tcLoad(true);}}
+  /*SBX_ROSTER_v2b*/
+    setTimeout(tcEnsure,600);try{new MutationObserver(function(){if(tcG("teamCertCard")==null)setTimeout(tcEnsure,120);}).observe(tcG("view-training"),{childList:true,subtree:true});}catch(e){}
     window.tcLoadRoster = tcLoad;
     function tcInit(){
       var btn = document.querySelector('.nav-item[data-tab="training"]');
