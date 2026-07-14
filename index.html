@@ -7766,6 +7766,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         .team-cert-card{background:#0e0e10;border:1px solid #26262b;border-radius:14px;padding:22px 24px;color:#f4f4f5;max-width:720px;font-family:'Century Gothic','Jost',system-ui,sans-serif;box-shadow:0 1px 0 rgba(255,255,255,.02) inset;}
         .tcc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
         .tcc-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;letter-spacing:.2px;color:#fff;}
+        .tcc-launch{display:inline-block;background:#FFC800;color:#0e0e10;font-weight:700;font-size:12px;padding:6px 14px;border-radius:8px;text-decoration:none;margin-left:auto;font-family:inherit;}
+        .tcc-launch:hover{background:#e6b400;}
         .tcc-refresh{background:transparent;border:1px solid #3a3a42;color:#c9c9cf;font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;font-family:inherit;}
         .tcc-refresh:hover{border-color:#FFC800;color:#FFC800;}
         .tcc-sub{color:#8b8b93;font-size:12.5px;margin:6px 0 16px;}
@@ -7792,6 +7794,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFC800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8.5l1.1 2.6 2.8.2-2.1 1.8.7 2.7L12 14.3 9.5 15.6l.7-2.7-2.1-1.8 2.8-.2z"/></svg>
               Team Certification
             </div>
+            <a class="tcc-launch" href="ats-training.html" target="_blank" rel="noopener">Launch ATS Sandbox</a>
             <button type="button" class="tcc-refresh" onclick="tcLoadRoster(true)">Refresh</button>
           </div>
           <div class="tcc-sub">ATS sandbox progress across the team. Six missions to certify.</div>
