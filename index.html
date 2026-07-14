@@ -18740,7 +18740,7 @@ Rules: never invent data not in the resume; use empty strings/arrays for missing
       if(!document.getElementById("teamCertBody")) return;
       if(typeof workerFetch!=="function" || !tcWorkerConfigured()){ tcState("<div class=\"tc-empty\">Worker not connected \u2014 set it under Admin \u2192 Connections to see team certification progress here.</div>"); return; }
       tcLoading=true; tcState("<div class=\"tc-loading\">Loading team progress\u2026</div>");
-      workerFetch("/training-roster").then(function(r){ return r.json(); }).then(function(d){
+      /*SBX_ROSTER_v3auth*/(function(){var __cfg={};try{__cfg=JSON.parse(localStorage.getItem("spark_hq_worker_cfg")||"{}");}catch(e){}var __u=(__cfg.url||"").replace(/\/$/,"");var __t="";try{var __a=JSON.parse(localStorage.getItem("spark_hq_sb_auth")||"{}");__t=__a.access_token||(__a.currentSession&&__a.currentSession.access_token)||(__a.session&&__a.session.access_token)||"";}catch(e){}return fetch(__u+"/training-roster",{headers:{"Authorization":"Bearer "+__t}});})().then(function(r){ return r.json(); }).then(function(d){
         tcLoading=false; tcLoaded=true;
         if(d && d.ok && Array.isArray(d.roster)){ tcRender(d.roster); }
         else { tcState("<div class=\"tc-empty\">Couldn't load team progress right now."+(d&&d.error?" "+tcEsc(d.error):"")+"</div>"); }
