@@ -12750,7 +12750,8 @@ window.FINRULES = (function () {
   let maxTokens = parseInt(localStorage.getItem('spark_hq_max_tokens') || '1024');
   let agentKnowledge = {};
   let universalKnowledge = '';
-  let currentRole = localStorage.getItem('spark_hq_role') || 'super_admin';
+  if(localStorage.getItem('spark_hq_rolev2')!=='1'){try{localStorage.removeItem('spark_hq_role');localStorage.removeItem('spark_hq_roles');localStorage.setItem('spark_hq_rolev2','1');}catch(e){}}
+  let currentRole = localStorage.getItem('spark_hq_role') || 'member'; /* SPARK_REAL_ROLE_v1 boot */
 
   try {
     const storedK = localStorage.getItem('spark_hq_knowledge');
@@ -20152,7 +20153,7 @@ window.jvDraftCard = function(draft){
 };
 </script>
 <!-- ===== END SPARK HQ ALFRED CONFIRM CARD v1 ===== -->
-<script>/* SPARK_HQ_CMD_EMBED_v2 */ (function(){var ALLOW=['aspegel@sparkcompanies.com','aopalewski@sparkcompanies.com','fkundtz@sparkcompanies.com','dveres@sparkcompanies.com'].map(function(e){return e.toLowerCase();});function btn(){return document.querySelector('.nav-item[data-tab="command"]');}function hide(){var b=btn();if(b)b.style.display='none';var v=document.getElementById('view-command');if(v&&v.style.display!=='none'){var h=document.querySelector('.nav-item[data-tab="home"]');if(h)h.click();}}function show(){var b=btn();if(b)b.style.display='';}function go(t){t=t||0;var u=(window.SPARK_SB&&window.SPARK_SB.whoami)?window.SPARK_SB.whoami():null;if(u&&u.email){var ok=true;/*CMD_OPEN_ALL_v1*/try{console.log('[CmdCenter] you are:',u.email,'| allowed:',ok);}catch(e){}if(ok)show();else hide();return;}if(t<14)setTimeout(function(){go(t+1);},700);else show();}if(document.readyState!=='loading')go();else document.addEventListener('DOMContentLoaded',function(){go();});})(); if(0)
+<script>/* SPARK_HQ_CMD_EMBED_v2 */ (function(){var ALLOW=['aspegel@sparkcompanies.com','aopalewski@sparkcompanies.com','fkundtz@sparkcompanies.com','dveres@sparkcompanies.com'].map(function(e){return e.toLowerCase();});function btn(){return document.querySelector('.nav-item[data-tab="command"]');}function hide(){var b=btn();if(b)b.style.display='none';var v=document.getElementById('view-command');if(v&&v.style.display!=='none'){var h=document.querySelector('.nav-item[data-tab="home"]');if(h)h.click();}}function show(){var b=btn();if(b)b.style.display='';}function go(t){t=t||0;var u=(window.SPARK_SB&&window.SPARK_SB.whoami)?window.SPARK_SB.whoami():null;if(u&&u.email){var ok=ALLOW.indexOf((u.email||'').toLowerCase())>=0;/*CMD_ALLOWLIST_v3*/try{console.log('[CmdCenter] you are:',u.email,'| allowed:',ok);}catch(e){}if(ok)show();else hide();return;}if(t<14)setTimeout(function(){go(t+1);},700);else hide();/*CMD_FAILCLOSED_v3*/}if(document.readyState!=='loading')go();else document.addEventListener('DOMContentLoaded',function(){go();});})(); if(0)
 (function(){
   // ===== Spark Command Center embed — leadership allowlist (EDIT THIS LIST) =====
   var SPARK_CMD_ALLOW = [
@@ -20200,5 +20201,30 @@ window.jvDraftCard = function(draft){
   } else { mountAcademy(); }
 })();
 </script>
-<script>/*STD_UNDER_TRAINING_v1*/(function(){function go(){var n=document.querySelector(".nav-item[data-tab=standard]");if(n)n.style.display="none";var b=document.getElementById("lmsWelcomeBar");if(!b||document.getElementById("stdCard"))return;var d=document.createElement("div");d.id="stdCard";d.style.cssText="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e7e2d6;border-radius:14px;padding:15px 18px;margin:14px 0;cursor:pointer;box-shadow:0 2px 10px rgba(23,22,20,.06);transition:box-shadow .15s,transform .15s";d.onmouseenter=function(){d.style.boxShadow="0 8px 24px rgba(184,145,46,.2)";d.style.transform="translateY(-1px)"};d.onmouseleave=function(){d.style.boxShadow="0 2px 10px rgba(23,22,20,.06)";d.style.transform="none"};d.onclick=function(){var m=document.querySelector(".nav-item[data-tab=standard]");if(m)m.click()};var g=document.createElementNS("http://www.w3.org/2000/svg","svg");g.setAttribute("viewBox","0 0 24 24");g.setAttribute("width","30");g.setAttribute("height","30");var p=document.createElementNS("http://www.w3.org/2000/svg","path");p.setAttribute("d","M12 2l2.9 6.2 6.6.8-4.9 4.6 1.3 6.5-5.9-3.3-5.9 3.3 1.3-6.5-4.9-4.6 6.6-.8z");p.setAttribute("fill","#FFC800");p.setAttribute("stroke","#B8912E");g.appendChild(p);var w=document.createElement("div");w.style.cssText="flex:1";var t=document.createElement("div");t.textContent="The Spark Standard";t.style.cssText="font-weight:700;font-size:16px;color:#171614";var u=document.createElement("div");u.textContent="Eight core values. One unified standard. Open the handbook.";u.style.cssText="font-size:12.5px;color:#6f6a5e;margin-top:2px";w.appendChild(t);w.appendChild(u);d.appendChild(g);d.appendChild(w);b.parentNode.insertBefore(d,b.nextSibling);}if(document.readyState!=="loading")go();else document.addEventListener("DOMContentLoaded",go);})();</script></body>
+<script>/*STD_UNDER_TRAINING_v1*/(function(){function go(){var n=document.querySelector(".nav-item[data-tab=standard]");if(n)n.style.display="none";var b=document.getElementById("lmsWelcomeBar");if(!b||document.getElementById("stdCard"))return;var d=document.createElement("div");d.id="stdCard";d.style.cssText="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e7e2d6;border-radius:14px;padding:15px 18px;margin:14px 0;cursor:pointer;box-shadow:0 2px 10px rgba(23,22,20,.06);transition:box-shadow .15s,transform .15s";d.onmouseenter=function(){d.style.boxShadow="0 8px 24px rgba(184,145,46,.2)";d.style.transform="translateY(-1px)"};d.onmouseleave=function(){d.style.boxShadow="0 2px 10px rgba(23,22,20,.06)";d.style.transform="none"};d.onclick=function(){var m=document.querySelector(".nav-item[data-tab=standard]");if(m)m.click()};var g=document.createElementNS("http://www.w3.org/2000/svg","svg");g.setAttribute("viewBox","0 0 24 24");g.setAttribute("width","30");g.setAttribute("height","30");var p=document.createElementNS("http://www.w3.org/2000/svg","path");p.setAttribute("d","M12 2l2.9 6.2 6.6.8-4.9 4.6 1.3 6.5-5.9-3.3-5.9 3.3 1.3-6.5-4.9-4.6 6.6-.8z");p.setAttribute("fill","#FFC800");p.setAttribute("stroke","#B8912E");g.appendChild(p);var w=document.createElement("div");w.style.cssText="flex:1";var t=document.createElement("div");t.textContent="The Spark Standard";t.style.cssText="font-weight:700;font-size:16px;color:#171614";var u=document.createElement("div");u.textContent="Eight core values. One unified standard. Open the handbook.";u.style.cssText="font-size:12.5px;color:#6f6a5e;margin-top:2px";w.appendChild(t);w.appendChild(u);d.appendChild(g);d.appendChild(w);b.parentNode.insertBefore(d,b.nextSibling);}if(document.readyState!=="loading")go();else document.addEventListener("DOMContentLoaded",go);})();</script><script>/* SPARK_REAL_ROLE_v1 login */
+(function(){
+  var FLOOR=['aspegel','aopalewski','mpatrico','pmalani','eurisitti','bnamma'];
+  function mapRole(r){r=(r||'').toLowerCase();if(r==='superadmin'||r==='super_admin'||r==='admin')return 'super_admin';if(r==='manager')return 'manager';return 'member';}
+  function uname(e){return (e||'').toLowerCase().split('@')[0];}
+  function set(r){try{if(typeof window.setRole==='function'){window.setRole(r);return true;}}catch(e){}return false;}
+  var LOCK=false;
+  try{var q=new URLSearchParams(location.search);if(q.get('role')==='super_admin'){LOCK=true;try{localStorage.setItem('spark_hq_role','super_admin');}catch(e){}setTimeout(function(){set('super_admin');},80);}}catch(e){}
+  window.SPARK_RESCUE=function(){LOCK=true;try{localStorage.setItem('spark_hq_role','super_admin');}catch(e){}set('super_admin');return 'super_admin restored';};
+  function apply(){
+    if(LOCK)return true;
+    try{
+      if(!(window.SPARK_SB&&window.SPARK_SB.whoami))return false;
+      var u=window.SPARK_SB.whoami();
+      if(!u||!u.email)return false;
+      if(FLOOR.indexOf(uname(u.email))>=0){set('super_admin');return true;}
+      window.SPARK_SB.myRole().then(function(r){if(!LOCK)set(mapRole(r));}).catch(function(){if(!LOCK)set('member');});
+      return true;
+    }catch(e){return false;}
+  }
+  function tick(t){t=t||0;if(apply())return;if(t<20)setTimeout(function(){tick(t+1);},700);}
+  if(document.readyState!=='loading')tick();else document.addEventListener('DOMContentLoaded',function(){tick();});
+  try{if(window.SPARK_SB&&window.SPARK_SB.onChange)window.SPARK_SB.onChange(function(){setTimeout(function(){apply();},300);});}catch(e){}
+})();
+</script>
+</body>
 </html>
