@@ -174,6 +174,13 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
 .bnr-eyebrow{font-size:10.5px;letter-spacing:.22em;color:var(--gold);font-weight:600;margin-bottom:8px;}
 .bnr-title{font-size:21px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:8px;}
 .bnr-sub{font-size:12px;color:#9a99a8;margin-bottom:14px;}
+.cvfade{transition:opacity .35s ease;}
+.bnr-num{font-size:10px;letter-spacing:.2em;color:#666a85;}
+.newscomposer{display:none;background:linear-gradient(180deg,#fff,#fdfcf8);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:0 8px 22px -14px rgba(20,18,10,.25);}
+.newscomposer .crow{display:flex;gap:8px;margin-bottom:8px;}
+.newscomposer input,.newscomposer select,.newscomposer textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;}
+.newscomposer input{flex:1;}
+.newscomposer textarea{width:100%;min-height:52px;resize:vertical;margin-bottom:8px;}
 .bnr-left{display:flex;flex-direction:column;justify-content:center;}
 .bnr-left .btn{align-self:flex-start;}
 .bnr-video{position:relative;border-radius:14px;overflow:hidden;min-height:190px;cursor:pointer;box-shadow:0 18px 40px -16px rgba(0,0,0,.7);}
@@ -296,19 +303,19 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
       <div class="marquee"><div class="track" id="mtrack"></div></div>
       <div class="banner">
         <div class="bnr-left">
-          <p class="bnr-eyebrow">A MESSAGE FROM AARON</p>
-          <p class="bnr-title">"Q3 belongs to the team that out-serves everyone."</p>
-          <p class="bnr-sub">2 min video &middot; posted Monday</p>
-          <button class="btn">Watch now</button>
+          <p class="bnr-eyebrow">OUR CORE VALUES</p>
+          <p class="bnr-title cvfade" id="cvVal"></p>
+          <p class="bnr-sub cvfade" id="cvSub" style="min-height:18px;"></p>
+          <p class="bnr-num" id="cvNum"></p>
         </div>
-        <div class="bnr-video" role="button" aria-label="Play CEO message">
-          <img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkteam7/640/360" alt="Team message video">
+        <div class="bnr-video" role="button" aria-label="Core values video">
+          <img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkvalues1/640/360" alt="Core values video">
           <span class="play"><svg viewBox="0 0 24 24" width="26" height="26" fill="#111"><path d="M8 5v14l11-7z"/></svg></span>
-          <span class="bnr-tag">CEO MESSAGE</span>
+          <span class="bnr-tag">CORE VALUES &middot; VIDEO SLOT</span>
         </div>
         <div class="bnr-side">
           <div class="thumb"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/plantfloor3/300/150" alt=""><span>New hire class of 8 starts Aug 3 &mdash; meet them Friday</span></div>
-          <div class="thumb"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkoffice5/300/150" alt=""><span>Troy HQ refresh: the new training room is open</span></div>
+          <div class="thumb" id="thumbPulse"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkshout2/300/150" alt=""><span>See a value in action? Post a shout-out &darr;</span></div>
         </div>
       </div>
       <nav class="quicknav">
@@ -319,7 +326,7 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
         <a href="#pulse"><i style="background:#ff5aa0"></i>The Pulse</a>
         <a href="#"><i style="background:#FFC800"></i>Ask Jarvis</a>
       </nav>
-      <div class="ticker"><button class="demo" id="demoWin">SIMULATE A WIN · DEMO</button><div class="ttrack" id="ttrack"></div></div>
+      <div class="ticker"><div class="ttrack" id="ttrack"></div></div>
     </section>
     <section class="qa">
       <h2>QUICK ACTIONS</h2>
@@ -335,11 +342,11 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
       </div>
     </section>
     <section class="kpis">
-      <div class="kpi"><div class="kv"><span class="big">475</span><span class="arrow">&#9650; +3</span></div><div class="kl">ON PAYROLL &middot; THIS WEEK</div></div>
-      <div class="kpi"><div class="kv"><span class="big">$5.73M</span><span class="arrow">&#9650;</span></div><div class="kl">OPEN PIPELINE</div></div>
+      <div class="kpi"><div class="kv"><span class="big" id="kpiHc">475</span><span class="arrow">&#9650; +3</span></div><div class="kl">ON PAYROLL &middot; THIS WEEK</div></div>
+      <div class="kpi"><div class="kv"><span class="big" id="kpiPipe">$5.73M</span><span class="arrow">&#9650;</span></div><div class="kl">OPEN PIPELINE</div></div>
       <div class="kpi"><div class="kv"><span class="big">12</span><span class="arrow">&#9650; +4</span></div><div class="kl">PLACEMENTS &middot; THIS WEEK (SAMPLE)</div></div>
-      <div class="kpi"><div class="kv"><span class="big">18,269</span></div><div class="kl">HOURS LOGGED &middot; THIS WEEK</div></div>
-      <div class="kpi red"><div class="kv"><span class="big">$1.27M</span><span class="arrow">&#9660;</span></div><div class="kl">OVERDUE AR &middot; NEEDS ATTENTION</div></div>
+      <div class="kpi"><div class="kv"><span class="big" id="kpiHrs">18,269</span></div><div class="kl">HOURS LOGGED &middot; THIS WEEK</div></div>
+      <div class="kpi red"><div class="kv"><span class="big" id="kpiAr">$1.27M</span><span class="arrow">&#9660;</span></div><div class="kl">OVERDUE AR &middot; NEEDS ATTENTION</div></div>
     </section>
     <section class="dash" id="dashPage">
 
@@ -368,9 +375,7 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
         </div>
         <div class="crow">
           <input type="text" id="whoIn" placeholder="Who are you recognizing?">
-          <select id="valIn">
-            <option>Leading by Example</option><option>Do the Right Thing</option><option>Deliver Value</option><option>Mindset is the Foundation of Excellence</option><option>Be a Lifelong Student</option><option>White Glove Experience</option><option>People Driven</option><option>Service Focused</option>
-          </select>
+          <select id="valIn"></select>
         </div>
         <textarea id="msgIn" placeholder="What did they do? Tie it to the standard."></textarea>
         <button class="btn" id="postBtn">Post recognition</button>
@@ -399,21 +404,40 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
       <span style="font-size:11px;letter-spacing:.22em;color:#b08900;font-weight:600;">NEWS CENTER</span>
       <h2>Around Spark</h2>
       <div class="chips"><button class="on">All news</button><button>Announcements</button><button>People</button><button>Wins</button><button>Events</button></div>
-      <div class="newsgrid">
-        <div class="ncard"><div class="nimgwrap"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkclass8/460/280" alt=""></div><div class="nb"><div class="ncat">PEOPLE</div><h3>Meet the August class: 8 new recruiters join Spark Talent</h3><div class="nmeta"><span>Allie Spegel &middot; Jul 24</span><span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-9 8.4 8.5 8.5 0 01-7.6-4.7L3 21l1.9-5.7A8.38 8.38 0 1121 11.5z"/></svg> 6</span></div></div></div>
-        <div class="ncard"><div class="nimgwrap"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkwin12/460/280" alt=""></div><div class="nb"><div class="ncat">WINS</div><h3>Flex Workforce signs tier-1 automotive supplier (sample)</h3><div class="nmeta"><span>Aaron Opalewski &middot; Jul 22</span><span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-9 8.4 8.5 8.5 0 01-7.6-4.7L3 21l1.9-5.7A8.38 8.38 0 1121 11.5z"/></svg> 11</span></div></div></div>
-        <div class="ncard"><div class="nimgwrap"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkroom4/460/280" alt=""></div><div class="nb"><div class="ncat">ANNOUNCEMENTS</div><h3>The new training platform goes live August 3 &mdash; what changes</h3><div class="nmeta"><span>Mary Patrico &middot; Jul 21</span><span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-9 8.4 8.5 8.5 0 01-7.6-4.7L3 21l1.9-5.7A8.38 8.38 0 1121 11.5z"/></svg> 4</span></div></div></div>
-        <div class="ncard"><div class="nimgwrap"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkstory9/460/280" alt=""></div><div class="nb"><div class="ncat">PEOPLE</div><h3>Success stories: from the plant floor to team lead (sample)</h3><div class="nmeta"><span>The Pulse &middot; Jul 18</span><span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-9 8.4 8.5 8.5 0 01-7.6-4.7L3 21l1.9-5.7A8.38 8.38 0 1121 11.5z"/></svg> 9</span></div></div></div>
+      <div class="newscomposer" id="newsComposer">
+        <div class="crow"><input type="text" id="newsTitle" placeholder="Headline"><select id="newsCat"><option>Announcements</option><option>People</option><option>Wins</option><option>Events</option></select></div>
+        <textarea id="newsBody" placeholder="What's the story? (optional)"></textarea>
+        <div class="crow"><input type="text" id="newsImg" placeholder="Image URL (optional)"><button class="btn" id="newsPost">Publish</button></div>
       </div>
+      <div class="newsgrid" id="newsGrid"><div class="empty" style="grid-column:1/-1;padding:26px;text-align:center;">Loading news…</div></div>
     </section>
-    <div class="protonote">
-Hub concept — photos are placeholder imagery (swap for real Spark team and plant-floor photography); items marked (sample) are illustrative. Layout and options save in memory only here; names/metrics marked (sample) are placeholders. Production wiring: layouts per user via Supabase; Xero via worker /ar-overdue; Outlook via MSAL + Graph; win ticker + deal bell fed by Salesforce Closed Won through the worker; presence via Supabase realtime; leaderboard from SparkV7 commission data; birthdays from HR data.</div>
+    <div class="protonote">Live: shout-outs &amp; news (shared via Supabase), your dashboard layout (follows your login), overdue AR (Xero via Spark HQ Worker, 10-min refresh). Placeholder photos remain until real Spark photography is added; widgets marked (sample) connect in the next pass (Outlook, leaderboard, placements).</div>
   </div>
 </div>
 <script>
 /* ---------- values marquee ---------- */
 window.__meName=(function(){try{var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}');var t=a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||'';if(!t)return 'there';var p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));var nm=(p.user_metadata&&(p.user_metadata.full_name||p.user_metadata.name))||(p.email||'').split('@')[0];nm=(nm||'there').split(' ')[0];return nm.charAt(0).toUpperCase()+nm.slice(1);}catch(e){return 'there';}})();
-var VALUES=["DELIVER VALUE","MINDSET IS THE FOUNDATION OF EXCELLENCE","LEADING BY EXAMPLE","DO THE RIGHT THING","BE A LIFELONG STUDENT","WHITE GLOVE EXPERIENCE","PEOPLE DRIVEN","SERVICE FOCUSED"];
+var CORE_VALUES=[
+ {v:"Leading by example isn't just a way, it's the ONLY way!",s:"Behaviors are caught, not taught."},
+ {v:"Do the right thing",s:"Doing the right thing is not always the easy thing."},
+ {v:"Conquering adversity is the recipe to success",s:"Our biggest successes come from learning from failure."},
+ {v:"Be humble. Crave improvement",s:"Be a lifelong student."},
+ {v:"We are people driven and service focused",s:"We focus on creating win-win-win scenarios."},
+ {v:"Dominate the day, don't let the day dominate you!",s:"Have a short memory — good or bad."},
+ {v:"Find a way to deliver value",s:"A white glove experience, every time."},
+ {v:"Mindset is the foundation of excellence",s:"How you look at things sets the trajectory of your life."}
+];
+var VALUES=CORE_VALUES.map(function(c){return c.v.toUpperCase();});
+/* ---------- cloud data layer ---------- */
+var SB_URL="https://rdyzvohphrmkkowdsoam.supabase.co";
+var SB_KEY="sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5";
+window.__me=(function(){try{var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}');var t=a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||'';if(!t)return null;var p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return{jwt:t,email:(p.email||'').toLowerCase()};}catch(e){return null;}})();
+function sbHdr(extra){var h={apikey:SB_KEY,"Content-Type":"application/json"};if(window.__me)h.Authorization="Bearer "+window.__me.jwt;if(extra)for(var k in extra)h[k]=extra[k];return h;}
+function sbGet(q){return fetch(SB_URL+"/rest/v1/"+q,{headers:sbHdr()}).then(function(r){return r.ok?r.json():Promise.reject(r.status);});}
+function sbPost(t,body,extra){return fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbHdr(extra||{Prefer:"return=representation"}),body:JSON.stringify(body)}).then(function(r){return r.ok?r.json():Promise.reject(r.status);});}
+var WORKER_URL=(function(){try{var c=JSON.parse(localStorage.getItem('spark_hq_worker_cfg')||'{}');if(c.url)return c.url.replace(/\/$/,'');}catch(e){}return "https://spark-hq-worker.sparkcompanies.workers.dev";})();
+function wGet(p){var h={};if(window.__me)h.Authorization="Bearer "+window.__me.jwt;return fetch(WORKER_URL+p,{headers:h}).then(function(r){return r.json().then(function(d){if(!r.ok||d.error)return Promise.reject(d.error||r.status);return d;});});}
+
 var mt=document.getElementById('mtrack');
 mt.innerHTML=(VALUES.concat(VALUES)).map(function(v){return '<span>'+v+'</span>';}).join('');
 /* ---------- clock ---------- */
@@ -463,6 +487,9 @@ function countUp(scope){
 function head(t,icon,src){return '<div class="head"><span class="chip">'+icon+'</span> '+t+(src?'<span class="src">'+src+'</span>':'')+'<button class="gear" title="Widget options"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.2-1.6l2-1.6-2-3.4-2.4 1a7 7 0 00-2.8-1.6L13 2h-2l-.6 2.8a7 7 0 00-2.8 1.6l-2.4-1-2 3.4 2 1.6a7 7 0 000 3.2l-2 1.6 2 3.4 2.4-1a7 7 0 002.8 1.6L11 22h2l.6-2.8a7 7 0 002.8-1.6l2.4 1 2-3.4-2-1.6c.13-.52.2-1.05.2-1.6z"/></svg></button></div>';}
 var IC={pipe:'<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6"/></svg>',hc:'<svg viewBox="0 0 24 24"><path d="M17 20h5v-2a4 4 0 00-4-4M9 20H2v-2a4 4 0 014-4h6a4 4 0 014 4v2zM12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>',ar:'<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',cal:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',mail:'<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>',tr:'<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V4H6.5A2.5 2.5 0 004 6.5z"/></svg>',clk:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',tm:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12h8M12 8v8"/></svg>',lk:'<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg>',jv:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>'};
 var AR_ROWS=[{n:'Osirius Group – AMG · #42567',a:95276,d:261},{n:'Osirius Group – AMG · #60043',a:92464,d:247},{n:'Osirius Group – AMG · #45419',a:92374,d:254}];
+var AR_LIVE={entity:'Spark Talent',data:null,err:null};
+function fmtK(n){return n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+Math.round(n/1e3)+'K':'$'+Math.round(n);}
+
 var AR_FULL=[
  {c:'Osirius Group – AMG',inv:'#42567',a:95276,d:261,real:1},
  {c:'Osirius Group – AMG',inv:'#45419',a:92374,d:254,real:1},
@@ -493,13 +520,17 @@ headcount:{t:'Headcount',lock:false,
   if(o.hours)s+='<div class="row"><span>Total hours logged</span><b>18,269</b></div>';
   return s;}},
 ar:{t:'Overdue AR',lock:false,
- opts:[{k:'ent',label:'Entity',type:'select',c:['Spark Talent','Spark Companies','Flex Workforce','Spark Packaging','JJP','Ignite'],d:'Spark Talent'},{k:'min',label:'Min days late',type:'select',c:['Any','60+','120+','180+'],d:'Any'},{k:'rows',label:'Rows',type:'select',c:['3','5','10'],d:'3'}],
- render:function(o){var s=head('Overdue AR · '+o.ent,IC.ar,'Xero');
-  if(o.ent!=='Spark Talent'){return s+'<div class="sub" style="padding:14px 0;">'+ (['Flex Workforce','Spark Packaging','JJP'].indexOf(o.ent)>-1?'Custom Connection subscription required for this entity — add in Xero, then it lights up here.':'Connected — no live pull in this prototype.')+'</div>';}
-  var min=o.min==='Any'?0:parseInt(o.min);var rows=AR_ROWS.filter(function(r){return r.d>=min;}).slice(0,parseInt(o.rows));
-  s+='<div style="display:flex;align-items:baseline;gap:8px;"><span class="big" style="color:var(--red);">$1.27M</span><span class="sub">103 invoices overdue · $4.39M awaiting</span></div><div style="margin-top:6px;">';
-  s+=rows.map(function(r){return '<div class="row"><span>'+r.n+'</span><b style="color:var(--red);">$'+r.a.toLocaleString()+' · '+r.d+'d</b></div>';}).join('')||'<div class="sub" style="padding:8px 0;">No invoices past that threshold.</div>';
-  s+='</div><button class="arbtn" data-ardrawer><span>View all 103 overdue invoices</span><span>→</span></button>';
+ opts:[{k:'ent',label:'Entity',type:'select',c:['Spark Talent','Spark Companies','Flex Workforce','Spark Packaging','JJP','Ignite'],d:'Spark Talent'},{k:'rows',label:'Rows',type:'select',c:['3','5','10'],d:'3'}],
+ render:function(o){var s=head('Overdue AR · '+o.ent,IC.ar,'Xero · live');
+  if(o.ent!==AR_LIVE.entity){setTimeout(function(){loadAR(o.ent);},0);return s+'<div class="sub" style="padding:14px 0;">Loading '+o.ent+'…</div>';}
+  if(AR_LIVE.err){return s+'<div class="sub" style="padding:14px 0;">'+('Could not load: '+AR_LIVE.err).slice(0,140)+'<br>This entity may need its Custom Connection added in Xero.</div>';}
+  var d=AR_LIVE.data;
+  if(!d){return s+'<div class="sub" style="padding:14px 0;">Loading live receivables…</div>';}
+  var rows=d.invoices.slice(0,parseInt(o.rows));
+  s+='<div style="display:flex;align-items:baseline;gap:8px;"><span class="big" style="color:var(--red);">'+fmtK(d.overdueTotal)+'</span><span class="sub">'+d.overdueCount+' invoices overdue · '+fmtK(d.awaitingTotal)+' awaiting</span></div><div style="margin-top:6px;">';
+  s+=rows.map(function(r){return '<div class="row"><span></span><b style="color:var(--red);">$'+Math.round(r.amountDue).toLocaleString()+' · '+r.daysLate+'d</b></div>';}).join('')||'<div class="sub" style="padding:8px 0;">Nothing overdue. Beautiful.</div>';
+  s+='</div><button class="arbtn" data-ardrawer><span>View all '+d.overdueCount+' overdue invoices</span><span>→</span></button>';
+  setTimeout(function(){var w=document.querySelectorAll('[data-wid="ar"] .row span:first-child');rows.forEach(function(r,i){if(w[i])w[i].textContent=r.contact+' · #'+r.number;});},0);
   return s;}},
 today:{t:'Today · Outlook',lock:false,
  opts:[{k:'range',label:'Range',type:'select',c:['Work hours','Full day','Next 3 days'],d:'Work hours'},{k:'loc',label:'Show location',type:'toggle',d:true}],
@@ -580,7 +611,7 @@ function render(){
   layout.forEach(function(w,idx){
     var def=WIDGETS[w.id];if(!def||!def.render)return;
     var d=document.createElement('div');
-    d.className='wg s'+w.s;
+    d.className='wg s'+w.s;d.dataset.wid=w.id;
     d.innerHTML=def.render(w.o)+optsPanel(w)+'<div class="ctl"><button data-a="left" title="Move earlier">◀</button><button data-a="right" title="Move later">▶</button><button class="size" data-a="size" title="Resize">'+(w.s===2?'S':w.s===3?'M':'L')+'</button><button data-a="rm" title="Remove">✕</button></div>';
     var gear=d.querySelector('.gear');
     if(gear){if(!def.opts){gear.style.display='none';}else{gear.addEventListener('click',function(){d.classList.toggle('optsopen');});}}
@@ -608,6 +639,7 @@ function render(){
   countUp(grid);
   renderGallery();
   var bd=document.getElementById('briefDays');if(bd){bd.textContent=Math.max(0,Math.ceil((new Date('2026-08-03T09:00:00')-new Date())/86400000));}
+  if(typeof saveLayoutCloud==='function')saveLayoutCloud();
 }
 function renderGallery(){
   var g=document.getElementById('galgrid');g.innerHTML='';
@@ -661,16 +693,15 @@ function hqNav(tab){try{parent.postMessage({type:'spark-nav',tab:tab},window.loc
  var nmap={'Training':'training','Spark Standard':'standard','Tools':'tools','Documents':'docs','The Pulse':null,'Ask Jarvis':'jarvis'};
  document.querySelectorAll('.quicknav a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var k=a.textContent.trim();var t=nmap[k];if(t===null){document.getElementById('pulse').scrollIntoView({behavior:'smooth'});}else{hqNav(t||'home');}});});
 })();
-/* ---------- pulse composer (persists to spark_hq_pulse) ---------- */
-var PULSE={posts:[]};
-try{var _s=localStorage.getItem('spark_hq_pulse');if(_s){var _p=JSON.parse(_s);if(_p&&Array.isArray(_p.posts))PULSE=_p;}}catch(e){}
-function pKind(p){var t=String(p.type||p.kind||'').toLowerCase();
+/* ---------- pulse (Supabase-shared, localStorage fallback) ---------- */
+var PULSE={posts:[]};var PULSE_CLOUD=false;
+function pKind(p){var t=String(p.kind||p.type||'').toLowerCase();
  if(t.indexOf('recog')>-1)return 'Recognize';if(t.indexOf('news')>-1)return 'News';
  if(t.indexOf('mile')>-1)return 'Milestone';if(t.indexOf('poll')>-1)return 'Poll';return 'Recognize';}
-function pWho(p){return p.who||p.name||p.recipient||p.target||'Team member';}
-function pText(p){return p.text||p.message||p.body||'';}
-function pVal(p){return p.value||p.standard||p.tag||'';}
-function pAgo(p){var ts=p.ts||p.time||p.date||0;if(!ts)return '';var d=Math.floor((Date.now()-ts)/86400000);return d<1?'today':d+'d ago';}
+function pWho(p){return p.who||p.name||p.recipient||'Team member';}
+function pText(p){return p.body||p.text||p.message||'';}
+function pVal(p){return p.value||p.standard||'';}
+function pAgo(p){var ts=p.ts?(typeof p.ts==='number'?p.ts:Date.parse(p.ts)):0;if(!ts)return '';var d=Math.floor((Date.now()-ts)/86400000);return d<1?'today':d+'d ago';}
 var curTab='Recognize';
 var feedMap={Recognize:['fRec','cRec'],News:['fNews','cNews'],Milestone:['fMile','cMile'],Poll:['fPoll','cPoll']};
 var recTally={},valTally={};
@@ -682,10 +713,10 @@ function renderPulse(){
   var k=pKind(p);counts[k]++;
   var feed=document.getElementById(feedMap[k][0]);
   var el=document.createElement('div');el.className='post';
-  el.innerHTML='<span class="sub">'+pAgo(p)+'</span><div><span class="who"></span>'+(k==='Recognize'?' was recognized':'')+'</div>'+(k==='Recognize'&&pVal(p)?'<span class="tag"></span>':'')+(pText(p)?'<div class="sub" style="margin-top:4px;"></div>':'');
+  el.innerHTML='<span class="sub">'+pAgo(p)+'</span><div><span class="who"></span>'+(k==='Recognize'?' was recognized':'')+'</div>'+(k==='Recognize'&&pVal(p)?'<span class="tag"></span>':'')+(pText(p)?'<div class="sub ptext" style="margin-top:4px;"></div>':'');
   el.querySelector('.who').textContent=pWho(p);
   var tg=el.querySelector('.tag');if(tg)tg.textContent=pVal(p);
-  var tx=el.querySelector('div.sub:last-child');if(tx&&pText(p))tx.textContent=pText(p);
+  var tx=el.querySelector('.ptext');if(tx)tx.textContent=pText(p);
   feed.appendChild(el);
   if(k==='Recognize'){recTally[pWho(p)]=(recTally[pWho(p)]||0)+1;if(pVal(p))valTally[pVal(p)]=(valTally[pVal(p)]||0)+1;}
  });
@@ -697,7 +728,29 @@ function renderPulse(){
  document.getElementById('mostRec').innerHTML=mr.slice(0,3).map(function(k,i){var d=document.createElement('div');d.className='li';d.innerHTML='<span style="color:#b08900;font-weight:600;">'+(i+1)+'&nbsp;&nbsp;</span><span style="flex:1;"></span><b>'+recTally[k]+'</b>';d.children[1].textContent=k;return d.outerHTML;}).join('')||'<div class="li"><span class="sub">No recognitions yet</span></div>';
  var va=Object.keys(valTally).sort(function(a,b){return valTally[b]-valTally[a];});
  document.getElementById('valAct').innerHTML=va.slice(0,3).map(function(k){var d=document.createElement('div');d.className='li';d.innerHTML='<span></span><b>'+valTally[k]+'</b>';d.children[0].textContent=k;return d.outerHTML;}).join('')||'<div class="li"><span class="sub">Post the first one</span></div>';
- if(typeof render==='function')render(); /* refresh spotlight widget */
+ if(typeof render==='function')render();
+ if(typeof tickerFromPulse==='function')tickerFromPulse();
+}
+function loadPulse(){
+ sbGet("spark_hq_pulse_posts?select=*&order=ts.desc&limit=120").then(function(rows){
+  PULSE_CLOUD=true;PULSE.posts=rows||[];
+  /* one-time migrate local history into cloud */
+  try{
+   if(!localStorage.getItem('pulse_migrated_v1')){
+    var ls=JSON.parse(localStorage.getItem('spark_hq_pulse')||'{}');
+    var old=(ls&&ls.posts)||[];
+    if(old.length&&window.__me){
+     var payload=old.slice(0,50).map(function(p){return{kind:String(p.type||'recognition'),who:p.who||p.name||'Team member',value:p.value||'',body:p.text||p.message||'',posted_by:window.__me.email,ts:p.ts?new Date(p.ts).toISOString():new Date().toISOString()};});
+     sbPost("spark_hq_pulse_posts",payload).then(function(){localStorage.setItem('pulse_migrated_v1','1');loadPulse();}).catch(function(){localStorage.setItem('pulse_migrated_v1','1');});
+    } else localStorage.setItem('pulse_migrated_v1','1');
+   }
+  }catch(e){}
+  renderPulse();
+ }).catch(function(){
+  /* offline / RLS issue: fall back to local */
+  try{var _s=localStorage.getItem('spark_hq_pulse');if(_s){var _p=JSON.parse(_s);if(_p&&Array.isArray(_p.posts))PULSE.posts=_p.posts;}}catch(e){}
+  renderPulse();
+ });
 }
 document.getElementById('ctabs').addEventListener('click',function(e){
  if(e.target.tagName!=='BUTTON')return;
@@ -712,12 +765,157 @@ document.getElementById('postBtn').addEventListener('click',function(){
  var msg=document.getElementById('msgIn').value.trim();
  if(!who&&!msg)return;
  var val=document.getElementById('valIn').value;
- PULSE.posts.unshift({type:curTab.toLowerCase()==='recognize'?'recognition':curTab.toLowerCase(),who:who||'Spark Team',value:curTab==='Recognize'?val:'',text:msg,ts:Date.now(),by:window.__meName||''});
- try{localStorage.setItem('spark_hq_pulse',JSON.stringify(PULSE));}catch(e){}
+ var post={kind:curTab==='Recognize'?'recognition':curTab.toLowerCase(),who:who||'Spark Team',value:curTab==='Recognize'?val:'',body:msg,posted_by:(window.__me&&window.__me.email)||''};
+ var localMirror={type:post.kind,who:post.who,value:post.value,text:post.body,ts:Date.now()};
+ function localSave(){PULSE.posts.unshift(localMirror);try{var ls=JSON.parse(localStorage.getItem('spark_hq_pulse')||'{"posts":[]}');ls.posts=ls.posts||[];ls.posts.unshift(localMirror);localStorage.setItem('spark_hq_pulse',JSON.stringify(ls));}catch(e){}renderPulse();}
+ if(PULSE_CLOUD&&window.__me){
+  sbPost("spark_hq_pulse_posts",post).then(function(rows){PULSE.posts.unshift(rows[0]||post);renderPulse();}).catch(function(){localSave();});
+ } else localSave();
  document.getElementById('whoIn').value='';document.getElementById('msgIn').value='';
- renderPulse();
 });
-renderPulse();
+loadPulse();
+/* ---------- values spotlight rotation ---------- */
+(function(){
+ var i=0,vEl=document.getElementById('cvVal'),sEl=document.getElementById('cvSub'),nEl=document.getElementById('cvNum');
+ if(!vEl)return;
+ function show(){var c=CORE_VALUES[i];
+  vEl.style.opacity=0;sEl.style.opacity=0;
+  setTimeout(function(){vEl.textContent=c.v;sEl.textContent=c.s;nEl.textContent=(i+1)+' / '+CORE_VALUES.length;vEl.style.opacity=1;sEl.style.opacity=1;},350);
+  i=(i+1)%CORE_VALUES.length;}
+ show();setInterval(show,6500);
+})();
+/* ---------- news center (Supabase) ---------- */
+var NEWS_ROWS=[],NEWS_CAT='All news';
+function newsCard(n){
+ var d=document.createElement('div');d.className='ncard';
+ var img=n.image_url?'<div class="nimgwrap"><img onerror="this.style.display=\'none\'" src="'+String(n.image_url).replace(/"/g,'&quot;')+'" alt=""></div>':'<div class="nimgwrap"></div>';
+ d.innerHTML=img+'<div class="nb"><div class="ncat"></div><h3></h3><div class="nbody sub" style="margin:4px 0 6px;"></div><div class="nmeta"><span class="nby"></span></div></div>';
+ d.querySelector('.ncat').textContent=(n.category||'News').toUpperCase();
+ d.querySelector('h3').textContent=n.title||'';
+ var nb=d.querySelector('.nbody');if(n.body)nb.textContent=String(n.body).slice(0,120);else nb.remove();
+ var by=(n.posted_by||'').split('@')[0];by=by?by.charAt(0).toUpperCase()+by.slice(1):'Spark';
+ var dt=n.ts?new Date(n.ts):null;
+ d.querySelector('.nby').textContent=by+(dt?' · '+(dt.getMonth()+1)+'/'+dt.getDate():'');
+ return d;
+}
+function renderNews(){
+ var grid=document.getElementById('newsGrid');if(!grid)return;
+ grid.innerHTML='';
+ var rows=NEWS_CAT==='All news'?NEWS_ROWS:NEWS_ROWS.filter(function(n){return (n.category||'')===NEWS_CAT;});
+ if(!rows.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;padding:26px;text-align:center;">'+(NEWS_ROWS.length?'Nothing in '+NEWS_CAT+' yet.':'No news yet — post the first update.')+'</div>';return;}
+ rows.forEach(function(n){grid.appendChild(newsCard(n));});
+}
+function loadNews(){
+ sbGet("spark_hq_news?select=*&order=ts.desc&limit=12").then(function(rows){NEWS_ROWS=rows||[];renderNews();}).catch(function(){var g=document.getElementById('newsGrid');if(g)g.innerHTML='<div class="empty" style="grid-column:1/-1;padding:26px;text-align:center;">News feed unavailable.</div>';});
+}
+(function(){
+ var ch=document.querySelector('.chips');if(!ch)return;
+ ch.addEventListener('click',function(e){
+  if(e.target.tagName!=='BUTTON')return;
+  NEWS_CAT=e.target.textContent.trim();
+  ch.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b===e.target);});
+  renderNews();
+ });
+})();
+function initNewsComposer(){
+ if(!window.__me)return;
+ sbGet("spark_hq_user_access?select=role&email=eq."+encodeURIComponent(window.__me.email)).then(function(rows){
+  if(!rows||!rows[0]||rows[0].role!=='super_admin')return;
+  var box=document.getElementById('newsComposer');if(!box)return;
+  box.style.display='block';
+  document.getElementById('newsPost').addEventListener('click',function(){
+   var t=document.getElementById('newsTitle').value.trim();if(!t)return;
+   var post={title:t,category:document.getElementById('newsCat').value,body:document.getElementById('newsBody').value.trim(),image_url:document.getElementById('newsImg').value.trim()||null,posted_by:window.__me.email};
+   sbPost("spark_hq_news",post).then(function(){
+    document.getElementById('newsTitle').value='';document.getElementById('newsBody').value='';document.getElementById('newsImg').value='';
+    loadNews();
+   }).catch(function(e){alert('Post failed: '+e);});
+  });
+ }).catch(function(){});
+}
+loadNews();initNewsComposer();
+(function(){var t=document.getElementById('thumbPulse');if(t)t.addEventListener('click',function(){var p=document.getElementById('pulse');if(p)p.scrollIntoView({behavior:'smooth'});});})();
+/* ---------- layout persistence (Supabase) ---------- */
+var __layoutTimer=null;
+function saveLayoutCloud(){
+ if(!window.__me||window.__layoutLoading)return;
+ clearTimeout(__layoutTimer);
+ __layoutTimer=setTimeout(function(){
+  var body={email:window.__me.email,layout:{items:layout},updated_at:new Date().toISOString()};
+  fetch(SB_URL+"/rest/v1/spark_hq_home_layout?on_conflict=email",{method:"POST",headers:sbHdr({Prefer:"resolution=merge-duplicates"}),body:JSON.stringify(body)}).catch(function(){});
+ },800);
+}
+function loadLayoutCloud(){
+ if(!window.__me)return;
+ sbGet("spark_hq_home_layout?select=layout&email=eq."+encodeURIComponent(window.__me.email)).then(function(rows){
+  if(rows&&rows[0]&&rows[0].layout&&Array.isArray(rows[0].layout.items)){
+   window.__layoutLoading=true;
+   layout=rows[0].layout.items.filter(function(it){return WIDGETS[it.id];}).map(function(it){
+    var base=defOpts(it.id);var o=it.o||{};for(var k in o)base[k]=o[k];
+    return {id:it.id,s:it.s||3,o:base};
+   });
+   render();
+   window.__layoutLoading=false;
+  }
+ }).catch(function(){});
+}
+loadLayoutCloud();
+/* ---------- live AR (worker /ar-overdue) ---------- */
+function loadAR(entity){
+ AR_LIVE.entity=entity||AR_LIVE.entity;AR_LIVE.err=null;
+ wGet('/ar-overdue?entity='+encodeURIComponent(AR_LIVE.entity)).then(function(d){
+  AR_LIVE.data=d;render();updateDrawer();updateArKpi();
+ }).catch(function(e){AR_LIVE.err=String(e);AR_LIVE.data=null;render();updateDrawer();});
+}
+function updateArKpi(){
+ var el=document.getElementById('kpiAr');if(!el||!AR_LIVE.data)return;
+ el.textContent=fmtK(AR_LIVE.data.overdueTotal);el.dataset.counted='';
+}
+function updateDrawer(){
+ if(typeof dw==='undefined')return;
+ var d=AR_LIVE.data;
+ var sub=dw.querySelector('.dsub');
+ if(sub)sub.textContent=AR_LIVE.entity+' · live from Xero via Spark HQ Worker · no Xero login needed'+(d?' · as of '+new Date(d.asOf).toLocaleTimeString():'');
+ var bl=dw.querySelectorAll('.bucket .bv');
+ if(d&&bl.length===4){bl[0].textContent=fmtK(d.buckets.b30);bl[1].textContent=fmtK(d.buckets.b60);bl[2].textContent=fmtK(d.buckets.b90);bl[3].textContent=fmtK(d.buckets.b90p);}
+ AR_FULL=d?d.invoices.map(function(r){return{c:r.contact,inv:r.number,a:Math.round(r.amountDue),d:r.daysLate,real:1};}):[];
+ var foot=dw.querySelector('.dfoot');
+ if(foot)foot.innerHTML=d?('Total: <b>'+fmtK(d.overdueTotal)+' overdue · '+d.overdueCount+' invoices</b> · '+fmtK(d.awaitingTotal)+' awaiting payment overall · refreshed every 10 min'):(AR_LIVE.err?'Could not load: '+AR_LIVE.err+' — this entity may not have a Custom Connection yet.':'Loading…');
+ drawRows(dw.querySelector('.dsearch').value||'');
+}
+/* ---------- live KPIs (tolerant /sf-board probe) ---------- */
+function setKpi(id,val){var el=document.getElementById(id);if(el&&val!=null){el.textContent=val;el.dataset.counted='';countUp(el.parentElement.parentElement);}}
+function num(x){var n=Number(String(x).replace(/[^0-9.]/g,''));return isFinite(n)?n:null;}
+wGet('/sf-board').then(function(d){
+ try{console.log('[Home] /sf-board keys:',Object.keys(d));}catch(e){}
+ var pipe=d.pipelineTotal||d.openPipeline||d.pipeline||(d.totals&&(d.totals.pipeline||d.totals.openPipeline));
+ var hc=d.headcount||d.onPayroll||(d.totals&&d.totals.headcount);
+ var hrs=d.hours||d.weekHours||(d.totals&&d.totals.hours);
+ if(pipe!=null){var p=num(pipe);if(p!=null)setKpi('kpiPipe',p>=1e6?'$'+(p/1e6).toFixed(2)+'M':'$'+Math.round(p/1e3)+'K');}
+ if(hc!=null&&num(hc)!=null)setKpi('kpiHc',String(Math.round(num(hc))));
+ if(hrs!=null&&num(hrs)!=null)setKpi('kpiHrs',Math.round(num(hrs)).toLocaleString());
+}).catch(function(e){console.log('[Home] /sf-board unavailable:',e);});
+loadAR('Spark Talent');
+/* ---------- ticker from real activity ---------- */
+function tickerFromPulse(){
+ var t=document.getElementById('ttrack');if(!t)return;
+ var items=(typeof TICKS!=='undefined'?TICKS.slice(0,4):[]);
+ var esc=function(s){var d=document.createElement('span');d.textContent=s||'';return d.innerHTML;};
+ PULSE.posts.slice(0,6).forEach(function(p){
+  var k=pKind(p);
+  if(k==='Recognize')items.push('<span><b class="win">RECOGNITION</b> · '+esc(pWho(p))+(pVal(p)?' · '+esc(pVal(p)):'')+'</span>');
+  else if(k==='News')items.push('<span><b>NEWS</b> · '+esc(pWho(p))+(pText(p)?' — '+esc(pText(p).slice(0,60)):'')+'</span>');
+  else items.push('<span><b>'+k.toUpperCase()+'</b> · '+esc(pWho(p))+'</span>');
+ });
+ var kh=document.getElementById('kpiHc');
+ if(kh)items.push('<span><b>HEADCOUNT</b> · '+esc(kh.textContent)+' on payroll</span>');
+ items.push('<span><b>MILESTONE</b> · New hire class starts Aug 3</span>');
+ if(!items.length)items.push('<span><b>THE PULSE</b> · Post the first shout-out below</span>');
+ t.innerHTML=items.join('')+items.join('');
+}
+tickerFromPulse();
+/* populate Recognize dropdown from official values */
+(function(){var s=document.getElementById('valIn');if(!s)return;s.innerHTML=CORE_VALUES.map(function(c){var o=document.createElement('option');o.textContent=c.v;return o.outerHTML;}).join('');})();
 </script>
 <style id="lightplus">
 /* light theme keepers: 3D tilt + cursor border-beam */
