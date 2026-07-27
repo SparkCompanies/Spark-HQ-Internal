@@ -20226,5 +20226,27 @@ window.jvDraftCard = function(draft){
   try{if(window.SPARK_SB&&window.SPARK_SB.onChange)window.SPARK_SB.onChange(function(){setTimeout(function(){apply();},300);});}catch(e){}
 })();
 </script>
+
+<script>/*HOME_EMBED_v1*/
+(function(){
+function swap(){
+  var v=document.getElementById("view-home");if(!v)return;
+  if(document.getElementById("sparkHomeFrame"))return;
+  v.innerHTML='<iframe id="sparkHomeFrame" src="spark-home.html" title="Spark Home" style="border:0;width:100%;height:calc(100vh - 70px);display:block;background:#faf9f6;"></iframe>';
+}
+fetch("spark-home.html",{method:"HEAD"}).then(function(r){
+  if(!r.ok){console.warn("[HomeEmbed] spark-home.html missing ("+r.status+"), keeping classic home");return;}
+  swap();
+  var v=document.getElementById("view-home");
+  if(v){new MutationObserver(function(){if(!document.getElementById("sparkHomeFrame")){swap();}}).observe(v,{childList:true});}
+}).catch(function(e){console.warn("[HomeEmbed] check failed, keeping classic home",e);});
+window.addEventListener("message",function(e){
+  if(e.origin!==window.location.origin)return;
+  var d=e.data;if(!d||d.type!=="spark-nav"||!d.tab)return;
+  var b=document.querySelector('.nav-item[data-tab="'+String(d.tab).replace(/[^a-z]/g,"")+'"]');
+  if(b)b.click();
+});
+})();
+</script>
 </body>
 </html>
