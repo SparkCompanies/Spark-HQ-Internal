@@ -11271,7 +11271,7 @@ window.FINRULES = (function () {
 })();
 
 
-  function FIN_WEEK(){ var dd = new Date(); dd.setDate(dd.getDate() - dd.getDay() - 7); return dd.toISOString().slice(0,10); }
+  function FIN_WEEK(){ var dd = new Date(); dd.setDate(dd.getDate() - dd.getDay()); return dd.toISOString().slice(0,10); }
   function FIN_WEEK_DH(){ var dd = new Date(); var dow = dd.getDay(); var add = (dow===0) ? 0 : (7 - dow); dd.setDate(dd.getDate() + add); return dd.toISOString().slice(0,10); }
   window.finSetMode=function(m){
     FIN_MODE = (m==='dh') ? 'dh' : 'hourly';
