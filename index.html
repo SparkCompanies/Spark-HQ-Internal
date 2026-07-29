@@ -11457,7 +11457,7 @@ window.FINRULES = (function () {
   function finOpenD(i){
     var inv=finActive().invoices[i]; if(!inv) return;
     var lineRows=inv.lines.map(function(l){ return '<tr><td>'+l[0]+'</td><td class="r fin-mono">'+l[1].toFixed(2)+'</td><td class="r fin-mono">'+l[2].toFixed(2)+'</td><td class="r fin-mono">'+finUSD(l[3])+'</td></tr>'; }).join('');
-    var done=FIN_STATE.sent[i];
+    var done=FIN_STATE.sent[i] || FIN_APPROVALS[(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||'')];
     document.getElementById('finDrawer').innerHTML =
       '<div class="fin-dhead"><span class="lbl">Invoice preview · '+inv.entity+'</span><button class="x" onclick="finCloseD()">&times;</button></div>'+
       '<div class="fin-sheet"><div class="r1"><h4>INVOICE</h4><div class="fin-sheet-logo"><b>SPARK</b><span>TALENT ACQUISITION</span></div></div>'+
