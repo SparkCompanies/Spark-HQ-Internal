@@ -11489,7 +11489,6 @@ window.FINRULES = (function () {
         .then(function(r){ return r.json(); });
     }).then(function(d){
       if (d && d.ok) {
-        try{ alert('ACCOUNT DEBUG\nSent to Xero: '+(d.sentAccount||'(none)')+'\nXero stored: '+(d.xeroAccount||'(BLANK)')+(d.warnings?('\nWarnings: '+JSON.stringify(d.warnings).slice(0,300)):'')); }catch(_e){}
         FIN_STATE.sent[i] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.reference||'')+'|'+(inv.entity||'')] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv, d);
         finRenderRows(); finOpenD(i);
       } else {
