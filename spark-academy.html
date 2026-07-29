@@ -112,7 +112,24 @@ var SB="https://rdyzvohphrmkkowdsoam.supabase.co",
 var booted=false, auth=null, pushT=null;
 var origSet=Storage.prototype.setItem;
 
+function fromSession(s){
+  try{
+    if(!s||!s.access_token) return null;
+    var c=JSON.parse(atob(s.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+    if(c.exp&&c.exp*1e3<Date.now()) return null;
+    return {token:s.access_token,userId:c.sub,email:c.email||""};
+  }catch(e){ return null; }
+}
 function findAuth(){
+  try{
+    var raw=localStorage.getItem("spark_hq_sb_auth");
+    if(raw){
+      var a=JSON.parse(raw);
+      var s=a&&a.access_token?a:(a&&a.currentSession)||(a&&a.session)||null;
+      var got=fromSession(s);
+      if(got) return got;
+    }
+  }catch(e){}
   try{
     for(var i=0;i<localStorage.length;i++){
       var k=localStorage.key(i);
