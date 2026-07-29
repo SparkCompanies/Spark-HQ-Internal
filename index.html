@@ -13113,7 +13113,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
@@ -13196,6 +13196,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['docs','Documents'], ['leadership','Leadership'], ['admin','Admin']
   ];
   const ALL_ADMIN_TABS = [
+    ['team-progress','Team progress'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
     ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
