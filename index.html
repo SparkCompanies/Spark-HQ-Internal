@@ -11442,15 +11442,15 @@ window.FINRULES = (function () {
     var pending=all.filter(function(o){ var k=(o.inv.client||'')+'|'+(o.inv.reference||'')+'|'+(o.inv.entity||''); return !(FIN_STATE.sent[o.i]||FIN_APPROVALS[k]); });
     if(!pending.length){ alert('Nothing to approve — all invoices in this view are already drafts.'); return; }
     if(!confirm('Approve all '+pending.length+' ready invoice'+(pending.length>1?'s':'')+' in this view and create Xero drafts? This cannot be undone.')) return;
-    var aaBtn=document.getElementById('finApproveAll'); var done=0, failed=0;
+    var aaBtn=document.getElementById('finApproveAll'); var done=0, failed=0; var fails=[];
     function step(idx){
-      if(idx>=pending.length){ if(aaBtn){ aaBtn.disabled=false; aaBtn.textContent='Approve all ready'; } finRenderRows(); alert('Approve all complete: '+done+' draft'+(done!==1?'s':'')+' created'+(failed?(', '+failed+' failed'):'')+'.'); return; }
+      if(idx>=pending.length){ if(aaBtn){ aaBtn.disabled=false; aaBtn.textContent='Approve all ready'; } finRenderRows(); if(fails.length){ console.log('APPROVE-ALL FAILURES:', fails); } alert('Approve all complete: '+done+' draft'+(done!==1?'s':'')+' created'+(failed?(', '+failed+' failed'):'')+'.'+(fails.length?('\n\nFailed (client [entity] reason):\n'+fails.slice(0,20).join('\n')+(fails.length>20?('\n\u2026and '+(fails.length-20)+' more \u2014 see browser console'):'')):'')); return; }
       var inv=pending[idx].inv;
       if(aaBtn){ aaBtn.disabled=true; aaBtn.textContent='Approving '+(idx+1)+'/'+pending.length+'…'; }
       var payload={ invoice:{ client:inv.client, entity:inv.entity, lines:inv.lines, reference:inv.reference||'', account:inv.account||'', invDateISO:inv.invDateISO||'', dueDateISO:inv.dueDateISO||'' } };
       window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/xero-draft', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify(payload) }).then(function(r){return r.json();}); })
-        .then(function(d){ if(d&&d.ok){ done++; FIN_STATE.sent[pending[idx].i]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||'')]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv,d); } else { failed++; } step(idx+1); })
-        .catch(function(){ failed++; step(idx+1); });
+        .then(function(d){ if(d&&d.ok){ done++; FIN_STATE.sent[pending[idx].i]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||'')]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv,d); } else { failed++; fails.push((inv.client||'?')+' ['+(inv.entity||'?')+'] '+((d&&d.error)||'unknown error')); } step(idx+1); })
+        .catch(function(_e){ failed++; fails.push((inv.client||'?')+' ['+(inv.entity||'?')+'] '+((_e&&_e.message)||'network/timeout')); step(idx+1); });
     }
     step(0);
   }
