@@ -6698,6 +6698,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           </div>
           <div style="display:flex;align-items:center;gap:14px">
             <span class="fin-weeklab">Batch for week ending <b id="finWE">—</b></span>
+            <button id="finSyncBtn" class="fin-xero-btn" onclick="finSyncWeek()" title="Read this week timesheets from OneDrive and write them into the invoicing intake (Penske, Paslin, Methods, Fanuc, Bleichert/Hirotec)">Sync timesheets</button>
             <button class="fin-xero-btn" onclick="FINRULES.toggle()" title="Edit billing rules — clients, rates, POs, holds"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>Billing Rules</button>
 
             <button class="fin-xero-btn" onclick="finXeroPanel()" title="Xero connection settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Xero</button>
@@ -6775,7 +6776,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 
         <div class="fin-tblwrap">
           <table class="fin-tbl">
-            <thead><tr><th>Client</th><th>Reference</th><th class="r">Contractors</th><th class="r">Hours</th><th class="r">Amount</th><th class="r">Due</th><th class="r">Status</th></tr></thead>
+            <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="finSelAll" title="Select all" style="accent-color:#FFC800;cursor:pointer"></th><th>Client</th><th>Reference</th><th class="r">Contractors</th><th class="r">Hours</th><th class="r">Amount</th><th class="r">Due</th><th class="r">Status</th></tr></thead>
             <tbody id="finRows"></tbody>
           </table>
         </div>
@@ -11311,6 +11312,25 @@ window.FINRULES = (function () {
     window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/inv-approvals-save', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({ week:(FIN_MODE==='dh'?FIN_WEEK_DH():FIN_WEEK()), invoiceKey:key, xeroId:(d&&d.invoiceID)||'', xeroNum:(d&&d.invoiceNumber)||'', xeroOrg:(d&&d.org)||'' }) }); })
       .catch(function(){}); }
   function FIN_ADAPT(d){ if(!d || !d.ok) return d; if(d.invoices) return d; var invoices = (d.ready||[]).map(function(inv){ return { client: inv.client, entity: inv.entity, reference: inv.reference, emp: inv.employees, lines: (inv.lines||[]).map(function(l){ return [l.desc, l.hours, l.rate, l.amount]; }), subtotal: inv.subtotal, dueDate: inv.dueDate, invDate: inv.invDate, account: inv.account, tax: inv.tax, flags: inv.flags||[], consolidatedFrom: inv.consolidatedFrom||null, invDateISO: (d.summary && d.summary.weekEndingRaw) || '' }; }); invoices.forEach(function(_iv){ _iv.reference = finShortRef(_iv.reference, (d.summary && d.summary.weekEndingRaw) || _iv.invDateISO || ''); }); return { ok:true, invoices: invoices, held: d.held||[], summary: { weekEnding: (d.summary && d.summary.weekEnding) || '', weekEndingRaw: (d.summary && d.summary.weekEndingRaw) || '', invoices: invoices.length, total: (d.summary && d.summary.readyTotal) || 0, employees: invoices.reduce(function(s,iv){ return s + (iv.emp||0); }, 0), entities: (function(){ var seen={},out=[]; invoices.forEach(function(iv){ var e=iv.entity||''; if(e&&!seen[e]){ seen[e]=1; out.push(e); } }); return out; })(), hours: invoices.reduce(function(s,iv){ return s + (iv.lines||[]).reduce(function(h,l){ return h + (Number(l[1])||0); }, 0); }, 0), held: (d.held||[]).length } }; }
+  window.finSyncWeek=function(){
+    var wk=FIN_WEEK();
+    var btn=document.getElementById('finSyncBtn');
+    if(btn){ btn.disabled=true; btn.textContent='Syncing '+wk+'\u2026'; }
+    var url=RP_WORKER+'/intake/preview?key=e806542a-6df6-46ee-84c7-2c03e625e391&weekEnding='+encodeURIComponent(wk)+'&commit=true&t='+Date.now();
+    fetch(url,{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+      if(btn){ btn.disabled=false; btn.textContent='Sync timesheets'; }
+      if(!d || d.error){ alert('Sync failed: '+((d&&d.error)||'unknown error')); return; }
+      var L=[];
+      if(d.penske){ var pf=(d.penske.flagged||[]).length; L.push('Penske: '+((d.penske.intakeRowsPreview||[]).length)+' workers'+(pf?(' ('+pf+' flagged)'):'')); }
+      if(d.paslin){ var af=(d.paslin.flagged||[]).length; L.push('Paslin: '+((d.paslin.intakeRowsPreview||[]).length)+' matched'+(af?(' ('+af+' flagged)'):'')); }
+      if(d.methods){ L.push('Methods PO: '+(d.methods.po||'none found')); }
+      if(d.fanuc){ var ff=(d.fanuc.flagged||[]).length; L.push('Fanuc rates: '+((d.fanuc.intakeRowsPreview||[]).length)+(ff?(' ('+ff+' flagged)'):'')); }
+      if(d.fanucExpenses){ var fe=(d.fanucExpenses.rows||[]).filter(function(x){return x.status==='matched';}).length; L.push('Fanuc expenses: '+fe+' line'+(fe===1?'':'s')); }
+      if(d.reconcile && d.reconcile.rows){ d.reconcile.rows.forEach(function(x){ if(x.total!=null){ L.push(x.client+' total: $'+x.total+(x.contactMatched?'':' (no SF match yet)')); } }); }
+      alert('Timesheet sync \u2014 week ending '+d.weekEnding+'\n'+(d.committed?'Committed to intake \u2713':'NOT committed')+'\n\n'+L.join('\n')+'\n\nRefreshing the batch\u2026');
+      FIN_LIVE=null; if(typeof finLoad==='function'){ finLoad(); } else { location.reload(); }
+    }).catch(function(e){ if(btn){ btn.disabled=false; btn.textContent='Sync timesheets'; } alert('Sync error: '+e); });
+  };
   function finLoad(){
     if(FIN_LIVE){ finPaint(); return; }
     FIN_STATE.inited = true;
@@ -11341,7 +11361,7 @@ window.FINRULES = (function () {
   function finPaintLoading(){
     var tiles=document.getElementById('finTiles');
     if(tiles){ tiles.innerHTML = ['Total billed','Invoices ready','Contractors','Hours billed','Held for review'].map(function(l){ return '<div class="fin-tile"><span class="k fin-mono" style="opacity:.35">\u2014</span><div class="l">'+l+'</div></div>'; }).join(''); }
-    var body=document.getElementById('finRows'); if(body){ body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:28px;color:#67789a">Loading this week\u2019s batch from Salesforce\u2026</td></tr>'; }
+    var body=document.getElementById('finRows'); if(body){ body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:28px;color:#67789a">Loading this week\u2019s batch from Salesforce\u2026</td></tr>'; }
   }
   function finPaint(){
     var data = finActive(); var s = data.summary;
@@ -11373,6 +11393,12 @@ window.FINRULES = (function () {
       : 'Frozen snapshot of this weeks real numbers. Live Salesforce pull will replace this once the Worker is deployed.';
     finRenderRows();
   }
+  function finSyncSelAll(){
+    var body=document.getElementById('finRows'); var selAll=document.getElementById('finSelAll'); if(!body||!selAll) return;
+    var boxes=body.querySelectorAll('.fin-rowcheck'); var checked=body.querySelectorAll('.fin-rowcheck:checked');
+    selAll.checked = boxes.length>0 && checked.length===boxes.length;
+    selAll.indeterminate = checked.length>0 && checked.length<boxes.length;
+  }
   function finRenderRows(){
     var body=document.getElementById('finRows'); if(!body) return;
     if(FIN_STATE.view==='held'){ finRenderHeld(); return; }
@@ -11382,7 +11408,7 @@ window.FINRULES = (function () {
       var ot=inv.lines.filter(function(l){return l[0].indexOf(' OT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
       var rt=inv.lines.filter(function(l){return l[0].indexOf(' RT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
       var _akey=(inv.reference||'')+'|'+(inv.entity||''); var _sent=FIN_STATE.sent[i]||FIN_APPROVALS[_akey]; var status=_sent?'<span class="fin-badge sent">Draft in Xero</span>':'<span class="fin-badge"><span class="fin-dot"></span>Ready</span>';
-      return '<tr data-i="'+i+'"><td><div class="fin-cli">'+inv.client+'</div><span class="fin-ent">'+inv.entity+'</span></td>'+
+      return '<tr data-i="'+i+'"><td class="fin-checkcell" style="text-align:center"><input type="checkbox" class="fin-rowcheck" data-i="'+i+'" style="accent-color:#FFC800;cursor:pointer"></td><td><div class="fin-cli">'+inv.client+'</div><span class="fin-ent">'+inv.entity+'</span></td>'+
         '<td class="fin-mono fin-sub">'+inv.reference+'</td>'+
         '<td class="r fin-mono">'+inv.emp+'</td>'+
         '<td class="r fin-mono">'+rt.toFixed(1)+'<span class="fin-sub"> + '+ot.toFixed(1)+' OT</span></td>'+
@@ -11391,14 +11417,18 @@ window.FINRULES = (function () {
         '<td class="r">'+status+'</td></tr>';
     }).join('');
     body.querySelectorAll('tr').forEach(function(tr){ tr.onclick=function(){ finOpenD(parseInt(this.dataset.i,10)); }; });
+      body.querySelectorAll('.fin-checkcell').forEach(function(td){ td.onclick=function(e){ e.stopPropagation(); }; });
+      body.querySelectorAll('.fin-rowcheck').forEach(function(cb){ cb.onchange=function(){ finSyncSelAll(); }; });
+      var _sa=document.getElementById('finSelAll'); if(_sa){ _sa.onchange=function(){ var on=_sa.checked; body.querySelectorAll('.fin-rowcheck').forEach(function(cb){ cb.checked=on; }); _sa.indeterminate=false; }; }
+      finSyncSelAll();
   }
   function finRenderHeld(){
     var body=document.getElementById('finRows'); if(!body) return;
     var held=(finActive().held||[]).filter(function(h){ return FIN_STATE.filter==='All'||h.entity===FIN_STATE.filter; });
-    if(!held.length){ body.innerHTML='<tr><td colspan="7" style="text-align:center;padding:28px;color:#67789a">No held invoices'+(FIN_STATE.filter!=='All'?(' for '+FIN_STATE.filter):'')+'.</td></tr>'; return; }
+    if(!held.length){ body.innerHTML='<tr><td colspan="8" style="text-align:center;padding:28px;color:#67789a">No held invoices'+(FIN_STATE.filter!=='All'?(' for '+FIN_STATE.filter):'')+'.</td></tr>'; return; }
     body.innerHTML = held.map(function(h){
       var amt=(h.subtotal!=null)?finUSD(h.subtotal):''; var rsn=(h.flags&&h.flags.length)?h.flags.join('; '):(h.reason||h.holdReason||'Held');
-      return '<tr><td><div class="fin-cli">'+(h.client||'(unknown)')+'</div><span class="fin-ent">'+(h.entity||'')+'</span></td>'+
+      return '<tr><td></td><td><div class="fin-cli">'+(h.client||'(unknown)')+'</div><span class="fin-ent">'+(h.entity||'')+'</span></td>'+
         '<td class="fin-mono fin-sub">'+(h.reference||'')+'</td>'+
         '<td class="r fin-mono">'+(h.emp!=null?h.emp:'')+'</td>'+
         '<td class="fin-sub" style="color:#e0a23d">'+rsn+'</td>'+
