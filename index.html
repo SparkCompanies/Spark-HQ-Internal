@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- DOCS_TAB_REMOVE_v1 -->
+<head>
 <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6355,7 +6355,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
       <button class="nav-item" data-tab="people"><span class="ico">◍</span>Org Chart</button>
       <button class="nav-item" data-tab="tools"><span class="ico">⊕</span>Software & Tools</button>
-      
+      <button class="nav-item" data-tab="docs"><span class="ico">▢</span>Documents</button>
       <button class="nav-item nav-leadership" data-tab="leadership"><span class="ico">⛨</span>Leadership</button>
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
@@ -8169,11 +8169,11 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="training-admin">
             <span>Training</span>
           </button>
-          <button class="admin-subnav-item" data-admin-tab="team-progress">
-            <span>Team progress</span>
-          </button>
           <button class="admin-subnav-item" data-admin-tab="tools-admin">
             <span>Tools</span>
+          </button>
+          <button class="admin-subnav-item" data-admin-tab="docs-admin">
+            <span>Documents</span>
           </button>
           <button class="admin-subnav-item" data-admin-tab="people-admin">
             <span>People & roles</span><span class="badge-mini" id="peopleCountBadge"></span>
@@ -8546,25 +8546,6 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
             </div>
           </div>
 
-
-          <!-- TEAM PROGRESS PANE (ADMIN_PROGRESS_v1) -->
-          <div class="admin-pane" data-admin-pane="team-progress" style="display: none;">
-            <div class="admin-hero">
-              <div class="eyebrow">Content · Training</div>
-              <h2>Team progress. <span style="color: var(--muted-light);">Academy + Spark Circuit, per person.</span></h2>
-              <div class="dek">Live from Supabase: every team member’s Spark Academy lessons, Gauntlet bests, and Spark Circuit onboarding checks — synced to their login. A person’s row appears after they open either app while signed in.</div>
-            </div>
-            <div class="admin-section">
-              <div class="admin-section-head">
-                <h3>All team members</h3>
-                <div class="actions">
-                  <input id="tpFilter" placeholder="Filter by email…" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font:inherit;font-size:13px;width:220px">
-                  <button class="btn-secondary" onclick="tpLoad()">Refresh</button>
-                </div>
-              </div>
-              <div id="tpBody"><div style="color:#888;padding:18px 2px;font-size:13.5px">Loading…</div></div>
-            </div>
-          </div>
 
           <!-- SPARK STANDARD ADMIN PANE -->
           <div class="admin-pane" data-admin-pane="spark-standard-admin" style="display: none;">
@@ -11327,7 +11308,7 @@ window.FINRULES = (function () {
       .catch(function(){ if(cb) cb(); }); }
   function finApprovalSave(inv, d){ 
     if(!(window.SPARK_SB && window.SPARK_SB.getToken)) return; 
-    var key = (inv.reference||'') + '|' + (inv.entity||''); 
+    var key = (inv.client||'') + '|' + (inv.reference||'') + '|' + (inv.entity||''); 
     window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/inv-approvals-save', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({ week:(FIN_MODE==='dh'?FIN_WEEK_DH():FIN_WEEK()), invoiceKey:key, xeroId:(d&&d.invoiceID)||'', xeroNum:(d&&d.invoiceNumber)||'', xeroOrg:(d&&d.org)||'' }) }); })
       .catch(function(){}); }
   function FIN_ADAPT(d){ if(!d || !d.ok) return d; if(d.invoices) return d; var invoices = (d.ready||[]).map(function(inv){ return { client: inv.client, entity: inv.entity, reference: inv.reference, emp: inv.employees, lines: (inv.lines||[]).map(function(l){ return [l.desc, l.hours, l.rate, l.amount]; }), subtotal: inv.subtotal, dueDate: inv.dueDate, invDate: inv.invDate, account: inv.account, tax: inv.tax, flags: inv.flags||[], consolidatedFrom: inv.consolidatedFrom||null, invDateISO: (d.summary && d.summary.weekEndingRaw) || '' }; }); invoices.forEach(function(_iv){ _iv.reference = finShortRef(_iv.reference, (d.summary && d.summary.weekEndingRaw) || _iv.invDateISO || ''); }); return { ok:true, invoices: invoices, held: d.held||[], summary: { weekEnding: (d.summary && d.summary.weekEnding) || '', weekEndingRaw: (d.summary && d.summary.weekEndingRaw) || '', invoices: invoices.length, total: (d.summary && d.summary.readyTotal) || 0, employees: invoices.reduce(function(s,iv){ return s + (iv.emp||0); }, 0), entities: (function(){ var seen={},out=[]; invoices.forEach(function(iv){ var e=iv.entity||''; if(e&&!seen[e]){ seen[e]=1; out.push(e); } }); return out; })(), hours: invoices.reduce(function(s,iv){ return s + (iv.lines||[]).reduce(function(h,l){ return h + (Number(l[1])||0); }, 0); }, 0), held: (d.held||[]).length } }; }
@@ -11426,7 +11407,7 @@ window.FINRULES = (function () {
       var inv=o.inv, i=o.i;
       var ot=inv.lines.filter(function(l){return l[0].indexOf(' OT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
       var rt=inv.lines.filter(function(l){return l[0].indexOf(' RT ')>=0;}).reduce(function(s,l){return s+l[1];},0);
-      var _akey=(inv.reference||'')+'|'+(inv.entity||''); var _sent=FIN_STATE.sent[i]||FIN_APPROVALS[_akey]; var status=_sent?'<span class="fin-badge sent">Draft in Xero</span>':'<span class="fin-badge"><span class="fin-dot"></span>Ready</span>';
+      var _akey=(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||''); var _sent=FIN_STATE.sent[i]||FIN_APPROVALS[_akey]; var status=_sent?'<span class="fin-badge sent">Draft in Xero</span>':'<span class="fin-badge"><span class="fin-dot"></span>Ready</span>';
       return '<tr data-i="'+i+'"><td class="fin-checkcell" style="text-align:center"><input type="checkbox" class="fin-rowcheck" data-i="'+i+'" style="accent-color:#FFC800;cursor:pointer"></td><td><div class="fin-cli">'+inv.client+'</div><span class="fin-ent">'+inv.entity+'</span></td>'+
         '<td class="fin-mono fin-sub">'+inv.reference+'</td>'+
         '<td class="r fin-mono">'+inv.emp+'</td>'+
@@ -11458,7 +11439,7 @@ window.FINRULES = (function () {
   }
   function finApproveAll(){
     var all=finActive().invoices.map(function(inv,i){ return {inv:inv,i:i}; }).filter(function(o){ return (FIN_STATE.filter==='All'||o.inv.entity===FIN_STATE.filter); });
-    var pending=all.filter(function(o){ var k=(o.inv.reference||'')+'|'+(o.inv.entity||''); return !(FIN_STATE.sent[o.i]||FIN_APPROVALS[k]); });
+    var pending=all.filter(function(o){ var k=(o.inv.client||'')+'|'+(o.inv.reference||'')+'|'+(o.inv.entity||''); return !(FIN_STATE.sent[o.i]||FIN_APPROVALS[k]); });
     if(!pending.length){ alert('Nothing to approve — all invoices in this view are already drafts.'); return; }
     if(!confirm('Approve all '+pending.length+' ready invoice'+(pending.length>1?'s':'')+' in this view and create Xero drafts? This cannot be undone.')) return;
     var aaBtn=document.getElementById('finApproveAll'); var done=0, failed=0;
@@ -11468,7 +11449,7 @@ window.FINRULES = (function () {
       if(aaBtn){ aaBtn.disabled=true; aaBtn.textContent='Approving '+(idx+1)+'/'+pending.length+'…'; }
       var payload={ invoice:{ client:inv.client, entity:inv.entity, lines:inv.lines, reference:inv.reference||'', account:inv.account||'', invDateISO:inv.invDateISO||'', dueDateISO:inv.dueDateISO||'' } };
       window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/xero-draft', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify(payload) }).then(function(r){return r.json();}); })
-        .then(function(d){ if(d&&d.ok){ done++; FIN_STATE.sent[pending[idx].i]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.reference||'')+'|'+(inv.entity||'')]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv,d); } else { failed++; } step(idx+1); })
+        .then(function(d){ if(d&&d.ok){ done++; FIN_STATE.sent[pending[idx].i]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||'')]={ id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv,d); } else { failed++; } step(idx+1); })
         .catch(function(){ failed++; step(idx+1); });
     }
     step(0);
@@ -11485,15 +11466,16 @@ window.FINRULES = (function () {
       '<table class="fin-itbl"><thead><tr><th>Description</th><th class="r">Qty</th><th class="r">Unit</th><th class="r">Amount</th></tr></thead><tbody>'+lineRows+'</tbody></table>'+
       '<div class="fin-tot"><table><tr><td>Subtotal</td><td class="r fin-mono">'+finUSD(inv.subtotal)+'</td></tr><tr><td>Tax</td><td class="r fin-mono">$0.00</td></tr><tr class="g"><td>Total USD</td><td class="r fin-mono">'+finUSD(inv.subtotal)+'</td></tr></table></div>'+
       '<div class="fin-foot"><span>Revenue account '+inv.account+'</span><span>'+inv.tax+'</span></div></div>'+
-      '<div class="fin-acts"><button class="fin-btn primary '+(done?'done':'')+'" '+(done?'disabled':'')+' onclick="finToggleSend('+i+')">'+(done?('\u2713 Draft in Xero'+(done.num&&done.num!=='(draft)'?' \u00b7 '+done.num:'')):'Approve &amp; send to Xero')+'</button><button class="fin-btn ghost" onclick="finCloseD()">'+(done?'Close':'Hold')+'</button></div>'+
+      '<div class="fin-acts"><button class="fin-btn primary '+(done?'done':'')+'" '+(done?'disabled':'')+' onclick="finToggleSend('+i+')">'+(done?('\u2713 Draft in Xero'+(done.num&&done.num!=='(draft)'?' \u00b7 '+done.num:'')):'Approve &amp; send to Xero')+'</button>'+(done?('<button class="fin-btn" style="margin-left:8px;border-color:#e0a23d;color:#e0a23d" onclick="finForceSend('+i+')" title="Re-send to Xero even though it shows as already sent">Force re-send</button>'):'')+'<button class="fin-btn ghost" onclick="finCloseD()">'+(done?'Close':'Hold')+'</button></div>'+
       '<div class="fin-foothint">'+(done?('Created as a DRAFT in '+(done.org||'Xero')+'. Review and approve it inside Xero. Nothing is finalized automatically.'):'Approve creates this as a DRAFT invoice in the mapped Xero org. You review and send it from inside Xero.')+'</div>';
     document.getElementById('finDrawer').classList.add('on');
     document.getElementById('finScrim').classList.add('on');
   }
   window.finCloseD=function(){ var d=document.getElementById('finDrawer'),s=document.getElementById('finScrim'); if(d)d.classList.remove('on'); if(s)s.classList.remove('on'); };
-  window.finToggleSend=function(i){
+  window.finForceSend=function(i){ var inv = finActive().invoices[i]; if(!inv) return; if(!confirm('This invoice is already marked as sent in the agent. Force-send it to Xero anyway?\n\nThis creates a NEW draft in Xero \u2014 if a draft already exists there, delete it first or you will have a duplicate.')) return; var k=(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||''); FIN_STATE.sent[i]=null; try{ delete FIN_APPROVALS[k]; }catch(e){} finToggleSend(i, true); };
+  window.finToggleSend=function(i, force){
     var inv = finActive().invoices[i]; if(!inv) return;
-    if (FIN_STATE.sent[i] || FIN_APPROVALS[(inv.reference||'')+'|'+(inv.entity||'')]) return; // already sent (persisted)
+    if (!force && (FIN_STATE.sent[i] || FIN_APPROVALS[(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||'')])) return; // already sent (persisted)
     var btn = document.querySelector('#finDrawer .fin-btn.primary');
     if (btn) { btn.textContent = 'Creating draft in Xero…'; btn.disabled = true; }
     // convert the display invoice into the payload the Worker expects
@@ -11508,7 +11490,7 @@ window.FINRULES = (function () {
         .then(function(r){ return r.json(); });
     }).then(function(d){
       if (d && d.ok) {
-        FIN_STATE.sent[i] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.reference||'')+'|'+(inv.entity||'')] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv, d);
+        FIN_STATE.sent[i] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org }; FIN_APPROVALS[(inv.client||'')+'|'+(inv.reference||'')+'|'+(inv.entity||'')] = { id:d.invoiceID, num:d.invoiceNumber, org:d.org }; finApprovalSave(inv, d);
         finRenderRows(); finOpenD(i);
       } else {
         if (btn) { btn.textContent = 'Approve & send to Xero'; btn.disabled = false; }
@@ -13110,15 +13092,15 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','leadership','admin']
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
@@ -13190,15 +13172,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   const ALL_NAV_ITEMS = [
     ['home','Home'], ['jarvis','Jarvis'], ['salesforce','Salesforce'], ['finance','Finance'], ['headcount','Headcount'], ['training','Training'], ['standard','Spark Standard'],
     ['careers','Career Paths'], ['people','People'], ['tools','Software & Tools'],
-    ['leadership','Leadership'], ['admin','Admin']
+    ['docs','Documents'], ['leadership','Leadership'], ['admin','Admin']
   ];
   const ALL_ADMIN_TABS = [
-    ['team-progress','Team progress'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
     ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
-    ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
+    ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin'], ['docs-admin','Documents admin']
   ];
 
   window.setRole = function(role) {
@@ -13237,7 +13218,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     roleEditingId = roleId;
     const isNew = !roleId;
     const r = isNew
-      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','match','training','standard','careers','people','tools'], adminTabs: [] }
+      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','match','training','standard','careers','people','tools','docs'], adminTabs: [] }
       : ROLE_PERMISSIONS[roleId];
     const modal = document.getElementById('roleEditorModal');
     if (!modal) return;
@@ -20296,49 +20277,6 @@ window.addEventListener("message",function(e){
   var b=document.querySelector('.nav-item[data-tab="'+String(d.tab).replace(/[^a-z]/g,"")+'"]');
   if(b)b.click();
 });
-})();
-</script>
-<script>/* ADMIN_PROGRESS_v1 */
-(function(){
-  var SB="https://rdyzvohphrmkkowdsoam.supabase.co", KEY="sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5";
-  function tok(){ try{ var a=JSON.parse(localStorage.getItem("spark_hq_sb_auth")||"{}"); return a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||""; }catch(e){ return ""; } }
-  function cnt(o){ if(!o||typeof o!=="object")return 0; var n=0; for(var k in o){ if(o[k]) n++; } return n; }
-  function fg(g){ if(g==null)return "\u2014"; if(typeof g==="number")return String(g); if(typeof g==="object"){ var s=(g.score!=null)?g.score:((g.best!=null)?g.best:null); var t=(g.total!=null)?g.total:null; if(s!=null) return t?(s+"/"+t):String(s); } return String(g); }
-  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
-  window.tpLoad = function(){
-    var body=document.getElementById("tpBody"); if(!body) return;
-    var t=tok();
-    if(!t){ body.innerHTML='<div style="color:#a33;padding:16px 2px;font-size:13.5px">No Supabase session found \u2014 sign in to HQ first.</div>'; return; }
-    body.innerHTML='<div style="color:#888;padding:16px 2px;font-size:13.5px">Loading team progress\u2026</div>';
-    var H={apikey:KEY,Authorization:"Bearer "+t};
-    Promise.all([
-      fetch(SB+"/rest/v1/spark_academy_progress?select=email,progress,updated_at",{headers:H}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}),
-      fetch(SB+"/rest/v1/spark_onboarding_progress?select=email,progress,updated_at",{headers:H}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
-    ]).then(function(res){
-      var m={};
-      res[0].forEach(function(r){ var e=(r.email||"").toLowerCase(); if(!e)return; (m[e]=m[e]||{}).a=r; });
-      res[1].forEach(function(r){ var e=(r.email||"").toLowerCase(); if(!e)return; (m[e]=m[e]||{}).o=r; });
-      var rows=Object.keys(m).map(function(e){
-        var a=m[e].a, o=m[e].o, ap=(a&&a.progress)||{}, op=(o&&o.progress)||{};
-        var last=Math.max(a?(Date.parse(a.updated_at||0)||0):0, o?(Date.parse(o.updated_at||0)||0):0);
-        return { em:e, les:cnt(ap.lessons), gl:fg(ap.gauntletBest), gd:fg(ap.gauntletBestDirector), ac:ap.certName||"\u2014", ck:cnt(op.checks), oc:op.certName||"\u2014", last:last };
-      }).sort(function(x,y){ return y.last-x.last; });
-      if(!rows.length){ body.innerHTML='<div style="color:#888;padding:16px 2px;font-size:13.5px">No progress rows yet \u2014 they appear as team members open Academy or Spark Circuit while signed in. If you expected rows, confirm your account is super_admin.</div>'; return; }
-      var th='style="text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#999;padding:10px 10px;border-bottom:1px solid #e7e7e7;white-space:nowrap;text-transform:uppercase"';
-      var td='style="font-size:13px;color:#222;padding:9px 10px;border-bottom:1px solid #f1f1f1;white-space:nowrap"';
-      body.innerHTML='<div style="overflow:auto"><table style="border-collapse:collapse;width:100%;min-width:880px"><thead><tr>'
-        +'<th '+th+'>Team member</th><th '+th+'>Academy lessons</th><th '+th+'>Gauntlet L</th><th '+th+'>Gauntlet D</th><th '+th+'>Academy cert</th><th '+th+'>Circuit checks</th><th '+th+'>Circuit cert</th><th '+th+'>Last active</th>'
-        +'</tr></thead><tbody>'
-        +rows.map(function(r){ return '<tr data-em="'+esc(r.em)+'"><td '+td+'>'+esc(r.em)+'</td><td '+td+'>'+r.les+'</td><td '+td+'>'+esc(r.gl)+'</td><td '+td+'>'+esc(r.gd)+'</td><td '+td+'>'+esc(r.ac)+'</td><td '+td+'>'+r.ck+'</td><td '+td+'>'+esc(r.oc)+'</td><td '+td+'>'+(r.last?new Date(r.last).toLocaleString():"\u2014")+'</td></tr>'; }).join("")
-        +'</tbody></table></div>';
-      var f=document.getElementById("tpFilter");
-      if(f&&!f._tp){ f._tp=1; f.addEventListener("input",function(){ var q=this.value.toLowerCase(); document.querySelectorAll("#tpBody tbody tr").forEach(function(tr){ tr.style.display = tr.getAttribute("data-em").indexOf(q)>=0 ? "" : "none"; }); }); }
-    });
-  };
-  var prev=window.switchAdminTab;
-  if(typeof prev==="function"){
-    window.switchAdminTab=function(tab){ prev(tab); if(tab==="team-progress"){ try{ tpLoad(); }catch(e){} } };
-  }
 })();
 </script>
 </body>
