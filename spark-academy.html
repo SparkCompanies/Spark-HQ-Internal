@@ -220,6 +220,27 @@ function adminBtn(){
   document.body.appendChild(b);
 }
 
+function pickG(a,b){
+  if(a==null)return b; if(b==null)return a;
+  if(typeof a==="number"&&typeof b==="number")return Math.max(a,b);
+  var sa=(a&&typeof a==="object"&&a.score!=null)?a.score:null, sb=(b&&typeof b==="object"&&b.score!=null)?b.score:null;
+  if(sa!=null&&sb!=null)return sb>=sa?b:a;
+  return b||a;
+}
+function mergeProg(c,l){
+  c=c||{}; l=l||{};
+  var m={};
+  m.lessons=Object.assign({},c.lessons||{},l.lessons||{});
+  m.launchChecks=Object.assign({},c.launchChecks||{},l.launchChecks||{});
+  m.gauntletBest=pickG(c.gauntletBest,l.gauntletBest);
+  m.gauntletBestDirector=pickG(c.gauntletBestDirector,l.gauntletBestDirector);
+  m.certName=l.certName||c.certName||"";
+  m.lastVisit=(l.lastVisit&&c.lastVisit)?(l.lastVisit>c.lastVisit?l.lastVisit:c.lastVisit):(l.lastVisit||c.lastVisit||null);
+  m.team=(l.team&&l.team.length?l.team:(c.team||[]));
+  var ks=Object.keys(c).concat(Object.keys(l));
+  for(var i=0;i<ks.length;i++){ var k=ks[i]; if(!(k in m)) m[k]=(l[k]!==undefined?l[k]:c[k]); }
+  return m;
+}
 /* ---------- boot sequence ---------- */
 auth=findAuth();
 setTimeout(boot,4000); /* watchdog: never block the app */
@@ -228,13 +249,13 @@ else{
   fetch(SB+"/rest/v1/"+TAC+"?user_id=eq."+encodeURIComponent(auth.userId)+"&select=progress",{headers:hdr()})
   .then(function(r){ return r.ok?r.json():null; })
   .then(function(rows){
-    if(rows&&rows[0]&&rows[0].progress){
-      origSet.call(localStorage,LKEY,JSON.stringify(rows[0].progress));
-      badge("SYNCED TO YOUR LOGIN");
-    }else{
-      var local=localStorage.getItem(LKEY);
-      if(local) push(local);
-    }
+    var cloud=(rows&&rows[0]&&rows[0].progress)||null;
+    var local=null; try{ local=JSON.parse(localStorage.getItem(LKEY)||"null"); }catch(e){}
+    if(!cloud&&!local) return;
+    var m=mergeProg(cloud,local);
+    origSet.call(localStorage,LKEY,JSON.stringify(m));
+    if(!cloud||JSON.stringify(m)!==JSON.stringify(cloud)) push(JSON.stringify(m));
+    badge("SYNCED TO YOUR LOGIN");
   })
   .catch(function(){})
   .then(boot,boot);
