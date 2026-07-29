@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><!-- DOCS_TAB_REMOVE_v1 -->
 <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6355,7 +6355,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
       <button class="nav-item" data-tab="people"><span class="ico">◍</span>Org Chart</button>
       <button class="nav-item" data-tab="tools"><span class="ico">⊕</span>Software & Tools</button>
-      <button class="nav-item" data-tab="docs"><span class="ico">▢</span>Documents</button>
+      
       <button class="nav-item nav-leadership" data-tab="leadership"><span class="ico">⛨</span>Leadership</button>
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
@@ -8174,9 +8174,6 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           </button>
           <button class="admin-subnav-item" data-admin-tab="tools-admin">
             <span>Tools</span>
-          </button>
-          <button class="admin-subnav-item" data-admin-tab="docs-admin">
-            <span>Documents</span>
           </button>
           <button class="admin-subnav-item" data-admin-tab="people-admin">
             <span>People & roles</span><span class="badge-mini" id="peopleCountBadge"></span>
@@ -13113,15 +13110,15 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'docs-admin'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin'],
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','docs','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
@@ -13193,7 +13190,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   const ALL_NAV_ITEMS = [
     ['home','Home'], ['jarvis','Jarvis'], ['salesforce','Salesforce'], ['finance','Finance'], ['headcount','Headcount'], ['training','Training'], ['standard','Spark Standard'],
     ['careers','Career Paths'], ['people','People'], ['tools','Software & Tools'],
-    ['docs','Documents'], ['leadership','Leadership'], ['admin','Admin']
+    ['leadership','Leadership'], ['admin','Admin']
   ];
   const ALL_ADMIN_TABS = [
     ['team-progress','Team progress'],
@@ -13201,7 +13198,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['knowledge','Agent knowledge'], ['role','Your role'],
     ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
-    ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin'], ['docs-admin','Documents admin']
+    ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
   ];
 
   window.setRole = function(role) {
@@ -13240,7 +13237,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     roleEditingId = roleId;
     const isNew = !roleId;
     const r = isNew
-      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','match','training','standard','careers','people','tools','docs'], adminTabs: [] }
+      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','match','training','standard','careers','people','tools'], adminTabs: [] }
       : ROLE_PERMISSIONS[roleId];
     const modal = document.getElementById('roleEditorModal');
     if (!modal) return;
