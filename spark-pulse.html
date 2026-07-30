@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spark Weekly Sales Pulse</title>
+<style>
+:root{
+  --ink:#0A0A0B; --panel:#131418; --panel2:#1A1C21; --edge:rgba(255,255,255,.075);
+  --gold:#C9A227; --gold-lite:#E8C55A; --gold-dim:rgba(201,162,39,.18);
+  --paper:#EDEAE3; --dim:#8A8C93; --dimmer:#5C5E65;
+  --up:#2FB27C; --down:#E0574A;
+  --f:"Century Gothic","Questrial","Jost","Trebuchet MS",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--paper);font-family:var(--f);-webkit-font-smoothing:antialiased}
+body{padding:0 0 64px}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+.wrap{max-width:1280px;margin:0 auto;padding:0 24px}
+a{color:var(--gold-lite)}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:1px solid var(--edge);background:linear-gradient(180deg,#0E0F12,var(--ink));position:sticky;top:0;z-index:20;backdrop-filter:blur(6px)}
+.mast-in{max-width:1280px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:11px;min-width:0}
+.logo svg{flex:0 0 auto}
+.logo-t{font-size:15px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.logo-s{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-top:2px}
+.mast-sp{flex:1 1 auto}
+.ctrl{display:flex;align-items:center;gap:8px}
+.lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+select{appearance:none;background:var(--panel2);color:var(--paper);border:1px solid var(--edge);border-radius:7px;
+  padding:8px 30px 8px 11px;font-family:var(--f);font-size:13px;cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'><path d='M1 1l4 4 4-4' stroke='%238A8C93' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center}
+select:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- entity rail ---------- */
+.rail{border-bottom:1px solid var(--edge);background:#0D0E11}
+.rail-in{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.rail-in::-webkit-scrollbar{display:none}
+.ent{background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);font-family:var(--f);
+  font-size:12.5px;font-weight:600;padding:13px 15px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.ent:hover{color:var(--paper)}
+.ent[aria-selected="true"]{color:var(--paper);border-bottom-color:var(--gold)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--up);flex:0 0 auto}
+.dot.off{background:var(--dimmer)}
+
+/* ---------- spread hero ---------- */
+.hero{padding:38px 0 30px}
+.hero-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:20px}
+.hero-h{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:0 0 9px}
+.spread-v{font-size:clamp(40px,7vw,74px);font-weight:700;line-height:.92;letter-spacing:-.03em;
+  background:linear-gradient(180deg,#F6E9B8,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.spread-sub{font-size:13px;color:var(--dim);margin-top:9px;line-height:1.5}
+.spread-sub b{color:var(--paper);font-weight:600}
+.margin-chip{text-align:right;flex:0 0 auto}
+.margin-v{font-size:34px;font-weight:700;line-height:1}
+.bar{height:56px;border-radius:9px;overflow:hidden;display:flex;border:1px solid var(--edge);background:var(--panel)}
+.bar>div{position:relative;display:flex;align-items:center;padding:0 13px;min-width:0;transition:flex-basis .5s cubic-bezier(.3,.9,.3,1)}
+.seg-pay{background:repeating-linear-gradient(135deg,#22242A,#22242A 7px,#1B1D22 7px,#1B1D22 14px)}
+.seg-spr{background:linear-gradient(90deg,rgba(201,162,39,.30),rgba(232,197,90,.55));box-shadow:inset 1px 0 0 var(--gold)}
+.seg-t{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg-pay .seg-t{color:var(--dim)}
+.seg-spr .seg-t{color:#F6E9B8}
+.bar-legend{display:flex;gap:22px;margin-top:11px;font-size:11.5px;color:var(--dim);flex-wrap:wrap}
+.bar-legend b{color:var(--paper);font-weight:600}
+
+/* ---------- kpi ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px;background:var(--edge);
+  border:1px solid var(--edge);border-radius:10px;overflow:hidden;margin-bottom:34px}
+.kpi{background:var(--panel);padding:16px 17px 15px}
+.kpi-k{font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+.kpi-v{font-size:25px;font-weight:700;margin-top:8px;line-height:1.05;letter-spacing:-.02em}
+.kpi-d{font-size:11.5px;margin-top:6px;color:var(--dim);display:flex;align-items:center;gap:5px}
+.up{color:var(--up)} .down{color:var(--down)}
+
+/* ---------- panels ---------- */
+.grid{display:grid;gap:16px;margin-bottom:16px}
+.g2{grid-template-columns:1fr 1fr}
+.g53{grid-template-columns:1.55fr 1fr}
+.p{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:19px 21px 21px;min-width:0}
+.p-h{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:3px;flex-wrap:wrap}
+.p-t{font-size:14px;font-weight:700;margin:0;letter-spacing:.005em}
+.p-s{font-size:11.5px;color:var(--dimmer);margin:5px 0 16px;line-height:1.45}
+.legend{display:flex;gap:14px;font-size:10.5px;color:var(--dim);align-items:center;flex-wrap:wrap}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;overflow:visible}
+
+/* ---------- movers table ---------- */
+table{width:100%;border-collapse:collapse}
+th{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);font-weight:700;
+  text-align:right;padding:0 0 9px;border-bottom:1px solid var(--edge)}
+th:first-child{text-align:left}
+th.sortable{cursor:pointer;user-select:none} th.sortable:hover{color:var(--paper)}
+td{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.035);font-size:13px;text-align:right}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+.divname{display:flex;align-items:center;gap:9px}
+.tag{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 5px;border-radius:3px;
+  background:var(--gold-dim);color:var(--gold-lite);flex:0 0 auto}
+.tag.dh{background:rgba(93,138,214,.16);color:#93B4EE}
+.tag.new{background:rgba(47,178,124,.16);color:var(--up)}
+.tag.gone{background:rgba(224,87,74,.14);color:var(--down)}
+.dbar{height:5px;border-radius:3px;background:rgba(255,255,255,.055);overflow:hidden;margin-top:6px}
+.dbar>i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold-dim),var(--gold))}
+
+/* ---------- readout ---------- */
+.readout{background:linear-gradient(150deg,#16171B,#101115);border:1px solid var(--edge);border-left:2px solid var(--gold);
+  border-radius:11px;padding:22px 24px}
+.readout ul{margin:14px 0 0;padding:0;list-style:none}
+.readout li{position:relative;padding:0 0 0 20px;margin-bottom:11px;font-size:13.5px;line-height:1.55;color:#DAD7D0}
+.readout li:last-child{margin-bottom:0}
+.readout li:before{content:"";position:absolute;left:0;top:8px;width:7px;height:1px;background:var(--gold)}
+.readout li b{color:#fff;font-weight:600}
+.btn{background:var(--panel2);border:1px solid var(--edge);color:var(--paper);font-family:var(--f);font-size:12px;
+  font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:var(--gold);color:var(--gold-lite)}
+.btn.ok{border-color:var(--up);color:var(--up)}
+
+/* ---------- stepper ---------- */
+.step{display:flex;align-items:center;gap:1px}
+.step button{background:var(--panel2);border:1px solid var(--edge);color:var(--dim);width:29px;height:33px;
+  cursor:pointer;display:grid;place-items:center;padding:0}
+.step button:first-child{border-radius:7px 0 0 7px} .step button:last-child{border-radius:0 7px 7px 0}
+.step button:hover:not(:disabled){color:var(--gold);border-color:var(--gold)}
+.step button:disabled{opacity:.32;cursor:default}
+.seg{display:flex;border:1px solid var(--edge);border-radius:7px;overflow:hidden}
+.seg button{background:var(--panel2);border:0;color:var(--dim);font-family:var(--f);font-size:11.5px;font-weight:600;
+  padding:8px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--edge)}
+.seg button[aria-pressed="true"]{background:var(--gold-dim);color:var(--gold-lite)}
+
+/* ---------- composition bar ---------- */
+.comp{display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--edge);background:var(--panel2)}
+.comp>button{border:0;padding:0;cursor:pointer;position:relative;transition:opacity .18s,filter .18s;min-width:2px}
+.comp>button:hover{filter:brightness(1.28)}
+.comp>button .cl{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:700;
+  color:rgba(0,0,0,.62);letter-spacing:.02em;pointer-events:none;overflow:hidden;white-space:nowrap}
+.dim .comp>button:not(.sel){opacity:.22}
+.clegend{display:flex;flex-wrap:wrap;gap:5px;margin-top:12px}
+.clegend button{background:none;border:1px solid transparent;border-radius:20px;padding:4px 9px 4px 6px;cursor:pointer;
+  font-family:var(--f);font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.clegend button:hover{color:var(--paper);border-color:var(--edge)}
+.clegend button[aria-pressed="true"]{border-color:var(--gold);color:var(--paper);background:rgba(201,162,39,.09)}
+.sw{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
+
+/* ---------- attribution ---------- */
+.recon{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--edge);
+  border:1px solid var(--edge);border-radius:9px;overflow:hidden;margin-top:16px}
+.recon>div{background:var(--panel2);padding:13px 15px}
+.recon .rk{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+.recon .rv{font-size:22px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.recon .rn{font-size:10.5px;color:var(--dimmer);margin-top:4px}
+.recon>div.bad{background:rgba(224,87,74,.09)}
+.recon>div.bad .rv{color:var(--down)}
+.recon>div.good .rv{color:var(--up)}
+.ug{margin-top:16px}
+.ug h4{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:700;margin:0 0 8px}
+.ur{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.035)}
+.ur:last-child{border-bottom:0}
+.ur b{font-variant-numeric:tabular-nums}
+.ur.sub{border-top:1px solid var(--edge);border-bottom:0;margin-top:3px;padding-top:9px;font-weight:700}
+
+/* ---------- selection detail ---------- */
+.pick{border:1px solid var(--gold);background:linear-gradient(140deg,rgba(201,162,39,.11),rgba(201,162,39,.02));
+  border-radius:10px;padding:15px 17px;margin-top:15px;display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+.pick .pk{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+.pick .pv{font-size:19px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.pick .x{margin-left:auto;background:none;border:1px solid var(--edge);color:var(--dim);border-radius:6px;
+  width:26px;height:26px;cursor:pointer;font-family:var(--f);font-size:14px;line-height:1}
+.pick .x:hover{color:var(--gold);border-color:var(--gold)}
+.dim tbody tr:not(.sel){opacity:.3}
+tbody tr{cursor:pointer;transition:opacity .18s}
+tbody tr:hover{background:rgba(255,255,255,.022)}
+tbody tr.sel{background:rgba(201,162,39,.07)}
+th .sar{color:var(--gold);margin-left:3px}
+
+/* ---------- chart tooltip ---------- */
+.cw{position:relative}
+.hit{fill:transparent;cursor:crosshair}
+.hit:hover{fill:rgba(255,255,255,.035)}
+.tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;z-index:9;
+  background:#0A0B0D;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 11px;
+  box-shadow:0 8px 24px rgba(0,0,0,.6);min-width:132px}
+.tip.on{opacity:1}
+.tip-h{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer);font-weight:700;margin-bottom:6px}
+.tip-r{display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:11.5px;padding:2px 0}
+.tip-r span{display:flex;align-items:center;gap:6px;color:var(--dim)}
+.tip-r b{font-variant-numeric:tabular-nums;color:var(--paper);font-weight:600}
+.tip-r.d b{color:var(--gold-lite)}
+
+/* ---------- week summary block ---------- */
+.sum-r{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+.sum-l{min-width:0}
+.sum-v{white-space:nowrap;font-variant-numeric:tabular-nums}
+.sum-r.zero .sum-l,.sum-r.zero .sum-v{color:var(--dimmer)}
+.sum-r.tot{border-top:1px solid var(--edge);border-bottom:0;margin-top:3px;padding-top:11px;font-weight:700;font-size:14px}
+.sum-r.tot .sum-v{color:var(--gold-lite)}
+.sum-r.pay{border-bottom:0;padding:6px 0}
+.sum-r.pay .sum-l{font-style:italic;color:var(--dim)}
+.sum-r.payt{border-top:1px solid var(--edge);border-bottom:0;margin-top:3px;padding-top:11px;font-weight:700;font-size:14px}
+.sum-r.net{border-top:2px solid var(--gold);border-bottom:0;margin-top:9px;padding-top:12px;font-weight:700;font-size:16px}
+.sum-r.net .sum-v{color:var(--up)}
+.ath{margin-top:17px;padding-top:13px;border-top:1px solid var(--edge)}
+.ath-r{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--dimmer);padding:3.5px 0}
+.ath-r b{color:var(--dim);font-weight:600;font-variant-numeric:tabular-nums}
+.ath-r.beat b{color:var(--gold-lite)}
+.warn{background:rgba(224,87,74,.08);border:1px solid rgba(224,87,74,.28);border-radius:7px;padding:10px 13px;
+  font-size:11.5px;color:#EFA79E;margin-top:15px;line-height:1.55}
+.badge-q{font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;padding:2px 5px;
+  border-radius:3px;background:rgba(224,87,74,.16);color:#E0574A;margin-left:7px;vertical-align:2px}
+.thin{border:1px dashed rgba(255,255,255,.1);border-radius:9px;padding:26px 20px;text-align:center;
+  font-size:12.5px;color:var(--dimmer);line-height:1.6}
+
+/* ---------- empty state ---------- */
+.empty{border:1px dashed rgba(255,255,255,.12);border-radius:11px;padding:52px 28px;text-align:center}
+.empty h3{font-size:16px;margin:16px 0 8px;font-weight:700}
+.empty p{font-size:13px;color:var(--dim);margin:0 auto;max-width:460px;line-height:1.6}
+.empty .btn{margin-top:20px}
+.foot{font-size:11px;color:var(--dimmer);line-height:1.6;margin-top:26px;padding-top:18px;border-top:1px solid var(--edge)}
+.note{font-size:11px;color:var(--dimmer);margin-top:11px;line-height:1.5}
+@media(max-width:880px){.g2,.g53{grid-template-columns:1fr}.hero{padding:26px 0 22px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="mast-in">
+    <div class="logo">
+      <svg width="26" height="30" viewBox="0 0 26 30" fill="none" aria-hidden="true">
+        <path d="M14.2 1 3 17.4h7.3L9.1 29 22.4 11.3h-7.6L16.6 1z" fill="#C9A227"/>
+      </svg>
+      <div>
+        <div class="logo-t">Weekly Sales Pulse</div>
+        <div class="logo-s">Finance &middot; Spark HQ</div>
+      </div>
+    </div>
+    <div class="mast-sp"></div>
+    <div class="ctrl">
+      <span class="lbl">Week ending</span>
+      <div class="step">
+        <button id="wPrev" title="Previous week (left arrow)" aria-label="Previous week">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <select id="weekSel" aria-label="Week ending" style="border-radius:0;border-left:0;border-right:0"></select>
+        <button id="wNext" title="Next week (right arrow)" aria-label="Next week">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <span class="lbl">View</span>
+      <select id="viewSel" aria-label="Division view">
+        <option value="all">All divisions</option>
+        <option value="contract">Contract only</option>
+        <option value="dh">Direct hire only</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <div class="seg" role="group" aria-label="Units">
+        <button id="mAmt" aria-pressed="true">$</button>
+        <button id="mPct" aria-pressed="false">% of week</button>
+      </div>
+    </div>
+  </div>
+  <div class="rail"><div class="rail-in" id="rail" role="tablist" aria-label="Entity"></div></div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<script>
+const PULSE = {"generated":"2026-07-30","entities":[{"id":"talent","name":"Spark Talent Acquisition","short":"Talent","live":true},{"id":"flex","name":"Flex Workforce Solutions","short":"Flex","live":false},{"id":"packaging","name":"Spark Packaging","short":"Packaging","live":false},{"id":"jjp","name":"John Joseph Partners","short":"JJP","live":true},{"id":"ignite","name":"Ignite Search","short":"Ignite","live":false},{"id":"bolt","name":"Bolt Creative","short":"Bolt","live":false}],"byEntity":{"talent":{"sales":[{"we":"2026-01-04","assign":0,"dh":124380.61,"exp":0,"other":345,"total":130725.61},{"we":"2026-01-11","assign":489806.55,"dh":15802.61,"exp":3804.18,"other":0,"total":509413.33999999997},{"we":"2026-01-18","assign":467013.28,"dh":13231.28,"exp":6079.81,"other":270.6,"total":486594.97000000003},{"we":"2026-01-25","assign":438220.06,"dh":36969.23,"exp":0,"other":1386.83,"total":476576.12},{"we":"2026-02-01","assign":448603.58,"dh":27852.43,"exp":5625.18,"other":35,"total":482116.19},{"we":"2026-02-08","assign":449745.38,"dh":32973.5,"exp":3977.9,"other":0.1,"total":486696.88},{"we":"2026-02-15","assign":455140.79,"dh":108762.95,"exp":4626.2,"other":35,"total":568564.94},{"we":"2026-02-22","assign":445094.86,"dh":65035.38,"exp":3981.57,"other":842.67,"total":514954.48},{"we":"2026-03-01","assign":451335.77,"dh":29818.26,"exp":6320.18,"other":90.12,"total":487564.33},{"we":"2026-03-08","assign":463910.07,"dh":77934.67,"exp":0,"other":196.11,"total":542040.85},{"we":"2026-03-15","assign":469057.14,"dh":59549.18,"exp":8172.3,"other":157.17,"total":536935.7900000002},{"we":"2026-03-22","assign":486702.8,"dh":19915.69,"exp":6166.03,"other":28.8,"total":512813.32},{"we":"2026-03-29","assign":491421.79,"dh":24291.41,"exp":6009.73,"other":504.88,"total":522227.80999999994},{"we":"2026-04-05","assign":481811.95,"dh":76813.36,"exp":4133.47,"other":486.5,"total":563245.28},{"we":"2026-04-12","assign":496403.46,"dh":71880.01,"exp":5548.69,"other":70.8,"total":573902.96},{"we":"2026-04-19","assign":509535.96,"dh":81804.29,"exp":3438.79,"other":80.4,"total":594859.4400000001},{"we":"2026-04-26","assign":521570.22,"dh":54288.89,"exp":6967.04,"other":26808.98,"total":609635.13},{"we":"2026-05-03","assign":525092.99,"dh":8279.97,"exp":1393,"other":0,"total":534765.96},{"we":"2026-05-10","assign":534224.47,"dh":56155.2,"exp":5957.72,"other":57.6,"total":596394.9899999999},{"we":"2026-05-17","assign":529629.11,"dh":19692.8,"exp":2222.91,"other":306.98,"total":551851.8},{"we":"2026-05-24","assign":528497.91,"dh":10837.05,"exp":3837.31,"other":916.72,"total":544088.9900000001},{"we":"2026-05-31","assign":508283.61,"dh":-42272.55,"exp":2945.25,"other":6455.64,"total":475411.95},{"we":"2026-06-07","assign":531662.02,"dh":46235.77,"exp":839.2,"other":0,"total":578736.99},{"we":"2026-06-14","assign":561305.4,"dh":62318.21,"exp":7356.5,"other":140,"total":631120.11},{"we":"2026-06-21","assign":593053.73,"dh":70153.61,"exp":10019.3,"other":211.8,"total":673438.4400000001},{"we":"2026-06-28","assign":592780.21,"dh":22268.61,"exp":6397.54,"other":494.9,"total":621941.26},{"we":"2026-07-05","assign":502467.35,"dh":37155.81,"exp":5913.09,"other":170.68,"total":545706.9299999999},{"we":"2026-07-12","assign":585088.08,"dh":46083.74,"exp":1553.57,"other":129,"total":632854.3899999999},{"we":"2026-07-19","assign":601308.91,"dh":57921.13,"exp":3052.63,"other":0,"total":662282.67},{"we":"2026-07-26","assign":619800.44,"dh":67871.08,"exp":715.95,"other":202.11,"total":688589.5799999998}],"hours":[{"we":"2026-01-04","rt":5402.04,"ot":237.44,"dt":104.7,"total":5744.179999999999,"py":7051.96,"allHours":6306.67},{"we":"2026-01-11","rt":11349.88,"ot":1593.43,"dt":117.5,"total":13060.81,"py":13070.12,"allHours":13863.44},{"we":"2026-01-18","rt":11127.58,"ot":1400.95,"dt":72.25,"total":12600.78,"py":12191.76,"allHours":13470.2},{"we":"2026-01-25","rt":10552.18,"ot":1101.13,"dt":104.5,"total":11757.810000000001,"py":11881.54,"allHours":12311.8},{"we":"2026-02-01","rt":10329,"ot":1414,"dt":78,"total":11821,"py":11916.400000000001,"allHours":12658.31},{"we":"2026-02-08","rt":10820.97,"ot":1320.38,"dt":66,"total":12207.349999999999,"py":11853.59,"allHours":13106.42},{"we":"2026-02-15","rt":10786,"ot":1438,"dt":50,"total":12274,"py":11297.400000000001,"allHours":13426.56},{"we":"2026-02-22","rt":11036.84,"ot":1501.28,"dt":40,"total":12578.12,"py":11576.539999999999,"allHours":13529.62},{"we":"2026-03-01","rt":10756.73,"ot":1325.31,"dt":30.77,"total":12112.81,"py":10773.5,"allHours":13089.15},{"we":"2026-03-08","rt":11295.71,"ot":1443.39,"dt":19.75,"total":12758.849999999999,"py":10539.970000000001,"allHours":13758.1},{"we":"2026-03-15","rt":11184.53,"ot":1396.68,"dt":44.1,"total":12625.310000000001,"py":12409.3,"allHours":13823.9},{"we":"2026-03-22","rt":12201.38,"ot":1378.78,"dt":60.66,"total":13640.82,"py":15331.009999999998,"allHours":14572.29},{"we":"2026-03-29","rt":12219.2,"ot":1496.8,"dt":53.28,"total":13769.28,"py":14619.3,"allHours":15109.2},{"we":"2026-04-05","rt":13027.89,"ot":1143.13,"dt":17.7,"total":14188.720000000001,"py":14036.04,"allHours":14778.7},{"we":"2026-04-12","rt":12465.5,"ot":1469.25,"dt":67.48,"total":14002.23,"py":14200.8,"allHours":15148.98},{"we":"2026-04-19","rt":12496.7,"ot":1600.85,"dt":86.43,"total":14183.980000000001,"py":12513.63,"allHours":15363.84},{"we":"2026-04-26","rt":12843.76,"ot":1552.6,"dt":96.21,"total":14492.57,"py":13544.230000000001,"allHours":15938.2},{"we":"2026-05-03","rt":13638.83,"ot":1447.04,"dt":72.06,"total":15157.929999999998,"py":12390.81,"allHours":16256.17},{"we":"2026-05-10","rt":13481.68,"ot":1460.51,"dt":23.03,"total":14965.220000000001,"py":11564.52,"allHours":16286.56},{"we":"2026-05-17","rt":13499.97,"ot":1363.9,"dt":77.35,"total":14941.22,"py":11315.45,"allHours":16274.94},{"we":"2026-05-24","rt":13738.5,"ot":1433.21,"dt":43.9,"total":15215.609999999999,"py":11059.519999999999,"allHours":16656.03},{"we":"2026-05-31","rt":11879.16,"ot":930,"dt":616.81,"total":13425.97,"py":9272.9,"allHours":14565.57},{"we":"2026-06-07","rt":13523.88,"ot":1377.84,"dt":76.96,"total":14978.679999999998,"py":11553.720000000001,"allHours":16610.21},{"we":"2026-06-14","rt":13972.73,"ot":1506.03,"dt":64.73,"total":15543.49,"py":11222.59,"allHours":17155.28},{"we":"2026-06-21","rt":14731,"ot":1479.93,"dt":134.55,"total":16345.48,"py":11240.41,"allHours":18118.52},{"we":"2026-06-28","rt":15285.02,"ot":1397.89,"dt":54.95,"total":16737.86,"py":11354.61,"allHours":18572.03},{"we":"2026-07-05","rt":12678.76,"ot":286.96,"dt":491.08,"total":13456.8,"py":8026.87,"allHours":14803.6},{"we":"2026-07-12","rt":15059.02,"ot":1493.4139999999998,"dt":41.82,"total":16594.254,"py":11504.550000000001,"allHours":18319.15},{"we":"2026-07-19","rt":15127.28,"ot":1458.01,"dt":59.9,"total":16645.190000000002,"py":12150.11,"allHours":18269.08},{"we":"2026-07-26","rt":15877.65,"ot":1549.85,"dt":14.47,"total":17441.97,"py":12816.37,"paidTotal":17554.483333333344,"allHours":19178.94}],"hc":[{"we":"2026-01-04","hc":259,"py":282,"goal":315,"allHc":246},{"we":"2026-01-11","hc":315,"py":319,"goal":335,"allHc":335},{"we":"2026-01-18","hc":312,"py":299,"goal":355,"allHc":333},{"we":"2026-01-25","hc":301,"py":314,"goal":375,"allHc":317},{"we":"2026-02-01","hc":293,"py":293,"goal":395,"allHc":315},{"we":"2026-02-08","hc":299,"py":291,"goal":415,"allHc":320},{"we":"2026-02-15","hc":295,"py":285,"goal":435,"allHc":323},{"we":"2026-02-22","hc":299,"py":281,"goal":455,"allHc":321},{"we":"2026-03-01","hc":298,"py":259,"goal":475,"allHc":325},{"we":"2026-03-08","hc":316,"py":251,"goal":495,"allHc":338},{"we":"2026-03-15","hc":326,"py":323,"goal":515,"allHc":349},{"we":"2026-03-22","hc":345,"py":349,"goal":535,"allHc":371},{"we":"2026-03-29","hc":367,"py":338,"goal":555,"allHc":398},{"we":"2026-04-05","hc":371,"py":336,"goal":575,"allHc":400},{"we":"2026-04-12","hc":357,"py":346,"goal":595,"allHc":388},{"we":"2026-04-19","hc":354,"py":346,"goal":615,"allHc":384},{"we":"2026-04-26","hc":361,"py":335,"goal":635,"allHc":396},{"we":"2026-05-03","hc":383,"py":314,"goal":655,"allHc":420},{"we":"2026-05-10","hc":375,"py":285,"goal":675,"allHc":410},{"we":"2026-05-17","hc":376,"py":284,"goal":695,"allHc":409},{"we":"2026-05-24","hc":385,"py":283,"goal":715,"allHc":422},{"we":"2026-05-31","hc":382,"py":281,"goal":735,"allHc":415},{"we":"2026-06-07","hc":380,"py":285,"goal":755,"allHc":417},{"we":"2026-06-14","hc":389,"py":273,"goal":775,"allHc":427},{"we":"2026-06-21","hc":438,"py":273,"goal":795,"allHc":481},{"we":"2026-06-28","hc":436,"py":272,"goal":815,"allHc":478},{"we":"2026-07-05","hc":431,"py":263,"goal":835,"allHc":472},{"we":"2026-07-12","hc":430,"py":282,"goal":855,"allHc":472},{"we":"2026-07-19","hc":434,"py":292,"goal":875,"allHc":475},{"we":"2026-07-26","hc":443,"py":303,"goal":895,"allHc":483},{"we":"2026-08-02","hc":null,"py":305,"goal":915},{"we":"2026-08-09","hc":null,"py":314,"goal":935},{"we":"2026-08-16","hc":null,"py":318,"goal":955},{"we":"2026-08-23","hc":null,"py":303,"goal":975},{"we":"2026-08-30","hc":null,"py":300,"goal":995},{"we":"2026-09-06","hc":null,"py":300,"goal":1015},{"we":"2026-09-13","hc":null,"py":305,"goal":1035},{"we":"2026-09-20","hc":null,"py":316,"goal":1055},{"we":"2026-09-27","hc":null,"py":310,"goal":1075},{"we":"2026-10-04","hc":null,"py":335,"goal":1095},{"we":"2026-10-11","hc":null,"py":350,"goal":1115},{"we":"2026-10-18","hc":null,"py":369,"goal":1135},{"we":"2026-10-25","hc":null,"py":401,"goal":1155},{"we":"2026-11-01","hc":null,"py":392,"goal":1175},{"we":"2026-11-08","hc":null,"py":386,"goal":1195},{"we":"2026-11-15","hc":null,"py":377,"goal":1215},{"we":"2026-11-22","hc":null,"py":374,"goal":1235},{"we":"2026-11-29","hc":null,"py":362,"goal":1255},{"we":"2026-12-06","hc":null,"py":358,"goal":1275},{"we":"2026-12-13","hc":null,"py":357,"goal":1295},{"we":"2026-12-20","hc":null,"py":337,"goal":1315},{"we":"2026-12-27","hc":null,"py":287,"goal":1335}],"yoy":[{"we":"2026-01-11","y26":509413.33999999997,"y25":783727.64},{"we":"2026-01-18","y26":486594.97000000003,"y25":585521.2899999999},{"we":"2026-01-25","y26":476576.12,"y25":554406.8099999999},{"we":"2026-02-01","y26":482116.19,"y25":602788.9299999999},{"we":"2026-02-08","y26":486696.88,"y25":856906.7600000001},{"we":"2026-02-15","y26":568564.94,"y25":553116.5900000001},{"we":"2026-02-22","y26":514954.48,"y25":598995.7200000001},{"we":"2026-03-01","y26":487564.33,"y25":644442.4600000001},{"we":"2026-03-08","y26":542040.85,"y25":747606.66},{"we":"2026-03-15","y26":536935.7900000002,"y25":666364.33},{"we":"2026-03-22","y26":512813.32,"y25":695126.4199999999},{"we":"2026-03-29","y26":522227.80999999994,"y25":696184.5900000001},{"we":"2026-04-05","y26":563245.28,"y25":655707.6300000001},{"we":"2026-04-12","y26":573902.96,"y25":818602.5299999999},{"we":"2026-04-19","y26":594859.4400000001,"y25":578365.5299999999},{"we":"2026-04-26","y26":609635.13,"y25":606043.2899999999},{"we":"2026-05-03","y26":534765.96,"y25":627089.9199999999},{"we":"2026-05-10","y26":596394.9899999999,"y25":771872.9},{"we":"2026-05-17","y26":551851.8,"y25":567874.38},{"we":"2026-05-24","y26":544088.99,"y25":535718.29},{"we":"2026-05-31","y26":475411.95,"y25":566156.6300000001},{"we":"2026-06-07","y26":578736.99,"y25":541269.58},{"we":"2026-06-14","y26":631120.11,"y25":709759.18},{"we":"2026-06-21","y26":673438.4400000001,"y25":502989.13},{"we":"2026-06-28","y26":621941.26,"y25":523391.12},{"we":"2026-07-05","y26":545706.9299999999,"y25":515160.98},{"we":"2026-07-12","y26":632854.3899999999,"y25":784962.68},{"we":"2026-07-19","y26":662282.67,"y25":604213.94},{"we":"2026-07-26","y26":688589.5799999998,"y25":616322.09},{"we":"2026-08-02","y26":null,"y25":653873.77},{"we":"2026-08-09","y26":null,"y25":541098.12},{"we":"2026-08-16","y26":null,"y25":586238.14},{"we":"2026-08-23","y26":null,"y25":613215.6299999999},{"we":"2026-08-30","y26":null,"y25":547291.58},{"we":"2026-09-06","y26":null,"y25":511155.86000000004},{"we":"2026-09-13","y26":null,"y25":584527.17},{"we":"2026-09-20","y26":null,"y25":613520.08},{"we":"2026-09-27","y26":null,"y25":595056.5900000001},{"we":"2026-10-04","y26":null,"y25":626496.17},{"we":"2026-10-11","y26":null,"y25":602498.7000000001},{"we":"2026-10-18","y26":null,"y25":649614.95},{"we":"2026-10-25","y26":null,"y25":673196.18},{"we":"2026-11-01","y26":null,"y25":669242.33},{"we":"2026-11-08","y26":null,"y25":666061.6700000002},{"we":"2026-11-15","y26":null,"y25":668400.63},{"we":"2026-11-22","y26":null,"y25":628659.78},{"we":"2026-11-29","y26":null,"y25":455714.91000000003},{"we":"2026-12-06","y26":null,"y25":646331.8},{"we":"2026-12-13","y26":null,"y25":646185.5599999999},{"we":"2026-12-20","y26":null,"y25":526009.05},{"we":"2026-12-27","y26":null,"y25":253399.73999999996}],"dhMonthly":[{"m":"Jan","y2026":190383.73,"y2025":355111.56,"y2024":460403.54,"y2023":635221.61,"y2022":360176.5},{"m":"Feb","y2026":234624.26,"y2025":406155.32,"y2024":448459.88,"y2023":578824.57,"y2022":169321.12},{"m":"March","y2026":211509.33,"y2025":588140.95,"y2024":618755.57,"y2023":419860.44,"y2022":315380.16},{"m":"April","y2026":284786.55,"y2025":303986.4,"y2024":551867.63,"y2023":450528.67,"y2022":360872.18},{"m":"May","y2026":94965.02,"y2025":443158.51,"y2024":429765.01,"y2023":588581.28,"y2022":454792.55},{"m":"June","y2026":158703.65,"y2025":470790.05,"y2024":604085.78,"y2023":531171.08,"y2022":324087.11},{"m":"July","y2026":209031.76,"y2025":606250.71,"y2024":419712.07,"y2023":698987.47,"y2022":353453.06},{"m":"Aug","y2026":null,"y2025":306341.28,"y2024":624499.9,"y2023":387153.03,"y2022":596200.79},{"m":"Sep","y2026":null,"y2025":350390.61,"y2024":503073.88,"y2023":445804.67,"y2022":494074.84},{"m":"Oct","y2026":null,"y2025":227631.56,"y2024":389511.93,"y2023":488344.14,"y2022":569700.45},{"m":"Nov","y2026":null,"y2025":198290.86,"y2024":367398.33,"y2023":580872.87,"y2022":529049.64},{"m":"Dec","y2026":null,"y2025":245792.24,"y2024":351550.33,"y2023":516417.39,"y2022":557271.33}],"divisions":{"2026-07-26":{"period":"2026-07-27 to 2026-08-02","contract":{"MI Metro":241027.15,"Spark Sales":179763.53,"Automation":95723.65,"Light Industrial":70710.38,"Northwest":14409.31,"Southeast":11708.74,"Central":3862.11,"Southwest":2595.57},"dh":{"Southeast":32500.0,"MI Metro":28520.0,"Southwest":5697.23,"Automation":1153.85},"other":{"Expense Reimbursement-External":715.95,"Client Late Fees":168.51,"Credit Card Fees":33.6},"payroll":{"internal":72494.19,"external":473351.32}},"2026-07-19":{"period":"2026-07-20 to 2026-07-26","contract":{"MI Metro":234935.37,"Spark Sales":185896.98,"Automation":79045.71,"Light Industrial":67696.84,"Northwest":13692.3,"Southwest":11269.13,"Southeast":6260.69,"Enterprise":2511.89},"dh":{"Southeast":19365.0,"Northeast":15462.72,"MI Metro":13882.33,"Southwest":8057.23,"Automation":1153.85},"other":{"Expense Reimbursement-External":3052.63},"payroll":null}},"detailWeeks":["2026-07-26","2026-07-19"],"cats":[{"k":"assign","l":"Assignment Sales"},{"k":"dh","l":"Direct Hire"},{"k":"exp","l":"Expense"},{"k":"other","l":"Other Income / Shared Services / BPO Services"}],"ath":{"assign":{"v":674537.17,"we":"WE 6/24/18"},"dh":{"v":345643.83,"we":"WE 8/11/24"},"total":{"v":856906.76,"we":"WE 2/9/25"}},"unconfirmed":false},"jjp":{"sales":[{"we":"2026-07-19","assign":5124.0,"dh":5000.0,"exp":0,"assist":0,"other":0,"total":10124.0}],"hours":[],"hc":[],"yoy":[],"dhMonthly":[],"divisions":{"2026-07-19":{"period":"2026-07-20 to 2026-07-26","contract":{},"dh":{},"other":{},"payroll":{"internal":1317.87,"external":4036.89}}},"detailWeeks":["2026-07-19"],"cats":[{"k":"assign","l":"Assignment Sales"},{"k":"dh","l":"Direct Hire"},{"k":"exp","l":"Expense"},{"k":"assist","l":"Sales Assist"},{"k":"other","l":"Other Income"}],"ath":{"assign":{"v":5124,"we":"WE 7/19/26"},"dh":{"v":42480,"we":"WE 11/16/25"},"total":{"v":42480,"we":"WE 11/16/25"}},"unconfirmed":true}},"report":{"source":"/sf-report-run (saved Salesforce report, Analytics API)","weekOf":"2026-07-20","weekEnding":"2026-07-26","allUnits":483,"expected":{"talent":443},"unitsSeen":9,"units":[{"unit":"Central","hc":35},{"unit":"Northeast","hc":12},{"unit":"Ignite Search","hc":8},{"unit":"Southeast","hc":7},{"unit":"Southwest","hc":6},{"unit":"John Joseph Partners","hc":2},{"unit":"BPO","hc":0},{"unit":"Northwest","hc":0},{"unit":"Spark Sales","hc":0}],"talentUnits":["MI Metro","Spark Sales","Automation","Light Industrial","Northwest","Southeast","Southwest","Central","Northeast","Enterprise","Fulfillment","National","VMS","RPO","Michigan","BPO","SOW","Shared Services","HR Services"],"reports":{"weekOverWeek":{"id":"00OV5000003Fz6IMAS","name":"Headcount - Week over Week","aggregates":["SUM(ASYMBL_Time__Total_Hours_Logged__c)","RowCount"],"groupBy":"ASYMBL_Time__Pay_Period_Start_Date__c","hasRtOtDt":false,"hasEntity":false,"weeks":43},"activeHc":{"id":"00OV50000038gEtMAI","name":"Active Headcount (Active HC, Hours)","aggregates":["RowCount"],"groupBy":"Placement.ATS_Job.Owner.Name","hasHours":false,"hasEntity":false}},"payPeriod":"Monday (WE minus 6) through Sunday (WE)","unitTableReport":"unknown \u2014 a third report, likely 'Copy of Headcount by Timesheet - BU' (00OV5000003McPtMAK)"}};
+
+/* ------------------------------------------------------------------ format */
+const usd = n => (n<0?"-":"")+"$"+Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});
+const usdc= n => (n<0?"-":"")+"$"+Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const k   = n => (n<0?"-":"")+"$"+(Math.abs(n)/1000).toFixed(Math.abs(n)<10000?1:0)+"K";
+const num = (n,d=0) => n==null?"—":n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = (n,d=1) => (n>0?"+":"")+n.toFixed(d)+"%";
+const mdy = s => {const [y,m,d]=s.split("-");return +m+"/"+ +d+"/"+y.slice(2);};
+const md  = s => {const [y,m,d]=s.split("-");return +m+"/"+ +d;};
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const arrow = n => n>0?'<span class="up">&#9650;</span>':n<0?'<span class="down">&#9660;</span>':'<span>&middot;</span>';
+const cls = n => n>0?"up":n<0?"down":"";
+
+/* ------------------------------------------------------------------ state */
+let ENT = "talent";
+let WE  = null;
+let VIEW= "all";
+
+/* ------------------------------------------------------------------ derive */
+const E   = () => PULSE.byEntity[ENT] || {sales:[],hours:[],hc:[],yoy:[],dhMonthly:[],divisions:{},detailWeeks:[],cats:[],ath:null};
+const meta= () => PULSE.entities.find(e=>e.id===ENT);
+function salesAt(we){ return E().sales.find(r=>r.we===we) || null; }
+function idxOf(we){ return E().sales.findIndex(r=>r.we===we); }
+function prevWe(we){ const i=idxOf(we); return i>0?E().sales[i-1].we:null; }
+function hoursAt(we){ return E().hours.find(r=>r.we===we) || null; }
+function hcAt(we){ return E().hc.find(r=>r.we===we) || null; }
+function yoyAt(we){ return E().yoy.find(r=>r.we===we) || null; }
+function divAt(we){ return E().divisions[we] || null; }
+function payAt(we){ const d=divAt(we); return d&&d.payroll ? d.payroll : null; }
+function hasDivDetail(we){ const d=divAt(we); return !!(d && (Object.keys(d.contract||{}).length || Object.keys(d.dh||{}).length)); }
+function defaultWeek(){ const dw=E().detailWeeks; return (dw&&dw.length)?dw[0]:(E().sales.length?E().sales[E().sales.length-1].we:null); }
+
+/* consecutive weeks a field has risen, ending at we */
+function streak(field, we){
+  const S=E().sales, i=idxOf(we); if(i<1) return 0;
+  let n=0;
+  for(let j=i;j>0;j--){
+    const a=S[j][field], b=S[j-1][field];
+    if(a==null||b==null) break;
+    if(a>b) n++; else break;
+  }
+  return n;
+}
+
+/* merge contract + dh into one division map with per-line detail */
+function divRows(we){
+  const cur=divAt(we), prv=divAt(prevWe(we));
+  if(!cur) return [];
+  const rows=new Map();
+  const add=(name,kind,val,isPrev)=>{
+    const key=name+"|"+kind;
+    if(!rows.has(key)) rows.set(key,{div:name,kind:kind,now:0,was:0});
+    rows.get(key)[isPrev?"was":"now"] += val;
+  };
+  Object.entries(cur.contract||{}).forEach(([n,v])=>add(n,"contract",v,false));
+  Object.entries(cur.dh||{}).forEach(([n,v])=>add(n,"dh",v,false));
+  if(prv){
+    Object.entries(prv.contract||{}).forEach(([n,v])=>add(n,"contract",v,true));
+    Object.entries(prv.dh||{}).forEach(([n,v])=>add(n,"dh",v,true));
+  }
+  return [...rows.values()]
+    .filter(r=>r.now>0||r.was>0)
+    .map(r=>({...r, delta:r.now-r.was, dpct: r.was>0 ? (r.now-r.was)/r.was*100 : (r.now>0?null:0)}));
+}
+
+/* ------------------------------------------------------------------ week window (Sunday -> Saturday) */
+/* WE dates in the tracker are Sundays. Verified against Xero: Sunday 7/26 is zero across all 241
+   accounts, so [WE, WE+6] and [WE+1, WE+7] return identical money. Sun->Sat is the stated convention. */
+function weekWindow(we){
+  const s=new Date(we+"T12:00:00"), e=new Date(s); e.setDate(e.getDate()+6);
+  const iso=d=>d.toISOString().slice(0,10);
+  return {start:iso(s), end:iso(e), label:"Sun "+md(iso(s))+" through Sat "+md(iso(e))};
+}
+
+/* ------------------------------------------------------------------ division colour scale */
+const PAL=["#C9A227","#E8A33D","#C2703C","#5D8AD6","#2E7D74","#8E4A63","#5F8A5A","#4C5B8C","#C86A7E","#8A8A3C","#B4573F","#6B7280"];
+let COLMAP={};
+function buildColours(){
+  const names=new Set();
+  Object.values(E().divisions||{}).forEach(d=>{
+    Object.keys(d.contract||{}).forEach(n=>names.add(n));
+    Object.keys(d.dh||{}).forEach(n=>names.add(n));
+  });
+  COLMAP={}; [...names].sort().forEach((n,i)=>{ COLMAP[n]=PAL[i%PAL.length]; });
+}
+const colOf = n => COLMAP[n] || "#6B7280";
+
+/* ------------------------------------------------------------------ charts */
+let TIPS={};   /* chart id -> {rows:[{label,color,val}], head:string} per index */
+
+function hitLayer(id,n,x,W,H,T,B,bw){
+  let s="";
+  for(let i=0;i<n;i++){
+    const cx=x(i), w=bw||((W)/n);
+    s+='<rect class="hit" data-c="'+id+'" data-i="'+i+'" x="'+(cx-w/2).toFixed(1)+'" y="'+T+'" width="'+w.toFixed(1)+'" height="'+(H-T-B)+'"/>';
+  }
+  return s;
+}
+
+function lineChart(pts, opts){
+  const W=opts.w||660, H=opts.h||190, L=52, R=8, T=10, B=24;
+  const all=pts.flatMap(s=>s.vals.filter(v=>v!=null));
+  if(!all.length) return "";
+  let max=Math.max(...all), min=opts.zero?0:Math.min(...all);
+  const pad=(max-min)*0.12||1; max+=pad; if(!opts.zero) min=Math.max(0,min-pad);
+  const n=opts.labels.length;
+  const x=i=>L+(W-L-R)*(n<2?0:i/(n-1));
+  const y=v=>T+(H-T-B)*(1-(v-min)/(max-min));
+  const id=opts.id||("c"+Math.random().toString(36).slice(2,7));
+  TIPS[id]={labels:opts.labels, fmt:opts.fmtTip||usd,
+    series:pts.filter(p=>p.name).map(p=>({name:p.name,color:p.color,vals:p.vals})), delta:opts.delta};
+  let s='<div class="cw"><svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(opts.aria||"chart")+'">';
+  for(let g=0;g<=3;g++){
+    const v=min+(max-min)*g/3, yy=y(v);
+    s+='<line x1="'+L+'" y1="'+yy+'" x2="'+(W-R)+'" y2="'+yy+'" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
+    s+='<text x="'+(L-9)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9.5" fill="#5C5E65" font-family="inherit">'+esc(opts.fmtY?opts.fmtY(v):k(v))+'</text>';
+  }
+  pts.forEach(ser=>{
+    let d="",started=false;
+    ser.vals.forEach((v,i)=>{ if(v==null){started=false;return;} d+=(started?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" "; started=true; });
+    if(ser.area){
+      const seg=ser.vals.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);
+      if(seg.length>1) s+='<path d="M'+seg[0][0].toFixed(1)+' '+(H-B)+' '+seg.map(p=>"L"+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")+' L'+seg[seg.length-1][0].toFixed(1)+' '+(H-B)+' Z" fill="'+ser.area+'"/>';
+    }
+    s+='<path d="'+d.trim()+'" fill="none" stroke="'+ser.color+'" stroke-width="'+(ser.w||2)+'" stroke-linecap="round" stroke-linejoin="round"'+(ser.dash?' stroke-dasharray="'+ser.dash+'"':'')+'/>';
+    if(ser.dots) ser.vals.forEach((v,i)=>{ if(v!=null) s+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="'+(ser.vals[i+1]==null?3.4:2)+'" fill="'+ser.color+'"/>'; });
+  });
+  opts.labels.forEach((lab,i)=>{
+    if(n>14 && i%Math.ceil(n/8)!==0 && i!==n-1) return;
+    s+='<text x="'+x(i).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="9.5" fill="#5C5E65" font-family="inherit">'+esc(lab)+'</text>';
+  });
+  s+='<line class="xh" x1="0" y1="'+T+'" x2="0" y2="'+(H-B)+'" stroke="var(--gold)" stroke-width="1" opacity="0"/>';
+  s+=hitLayer(id,n,x,W-L-R,H,T,B,(W-L-R)/Math.max(n,1));
+  return s+'</svg><div class="tip" data-tip="'+id+'"></div></div>';
+}
+
+function stackChart(rows, series, opts){
+  const W=opts.w||660, H=opts.h||200, L=52, R=8, T=10, B=24;
+  const tot=rows.map(r=>series.reduce((a,s)=>a+(r[s.key]||0),0));
+  const extra=opts.line?rows.map(r=>r[opts.line.key]||0):[];
+  let max=Math.max(...tot,...extra)*1.12||1;
+  const n=rows.length, bw=Math.min(30,(W-L-R)/n*0.62);
+  const x=i=>L+(W-L-R)*(n<2?0.5:(i+0.5)/n);
+  const y=v=>T+(H-T-B)*(1-v/max);
+  const id=opts.id||("s"+Math.random().toString(36).slice(2,7));
+  TIPS[id]={labels:opts.labels, fmt:opts.fmtTip||usd, total:true,
+    series:series.filter(s=>s.name).map(s=>({name:s.name,color:s.color,vals:rows.map(r=>r[s.key]||0)}))
+      .concat(opts.line&&opts.line.name?[{name:opts.line.name,color:opts.line.color,vals:rows.map(r=>r[opts.line.key])}]:[])};
+  let s='<div class="cw"><svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(opts.aria||"chart")+'">';
+  for(let g=0;g<=3;g++){
+    const v=max*g/3, yy=y(v);
+    s+='<line x1="'+L+'" y1="'+yy+'" x2="'+(W-R)+'" y2="'+yy+'" stroke="rgba(255,255,255,.06)"/>';
+    s+='<text x="'+(L-9)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9.5" fill="#5C5E65" font-family="inherit">'+esc(opts.fmtY?opts.fmtY(v):num(Math.round(v)))+'</text>';
+  }
+  rows.forEach((r,i)=>{
+    let acc=0;
+    series.forEach(ser=>{
+      const v=r[ser.key]||0; if(v<=0) return;
+      const y0=y(acc), y1=y(acc+v);
+      s+='<rect x="'+(x(i)-bw/2).toFixed(1)+'" y="'+y1.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0.8,y0-y1).toFixed(1)+'" fill="'+ser.color+'" rx="1.5"/>';
+      acc+=v;
+    });
+  });
+  if(opts.line){
+    let d="";
+    rows.forEach((r,i)=>{ const v=r[opts.line.key]; if(v==null) return; d+=(d?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" "; });
+    s+='<path d="'+d.trim()+'" fill="none" stroke="'+opts.line.color+'" stroke-width="1.8" stroke-dasharray="4 3" stroke-linejoin="round"/>';
+  }
+  rows.forEach((r,i)=>{
+    if(n>14 && i%Math.ceil(n/8)!==0 && i!==n-1) return;
+    s+='<text x="'+x(i).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="9.5" fill="#5C5E65" font-family="inherit">'+esc(opts.labels[i])+'</text>';
+  });
+  s+=hitLayer(id,n,x,W-L-R,H,T,B,(W-L-R)/Math.max(n,1));
+  return s+'</svg><div class="tip" data-tip="'+id+'"></div></div>';
+}
+
+/* bind tooltips after every render */
+function bindTips(root){
+  const tipEl=id=>root.querySelector('.tip[data-tip="'+id+'"]');
+  root.querySelectorAll(".hit").forEach(r=>{
+    const show=()=>{
+      const id=r.dataset.c, i=+r.dataset.i, cfg=TIPS[id], t=tipEl(id);
+      if(!cfg||!t) return;
+      let h='<div class="tip-h">'+esc(cfg.labels[i])+'</div>';
+      let tot=0, shown=[];
+      cfg.series.forEach(sr=>{
+        const v=sr.vals[i]; if(v==null) return;
+        shown.push(sr); tot+=v;
+        h+='<div class="tip-r"><span><i class="sw" style="background:'+sr.color+'"></i>'+esc(sr.name)+'</span><b>'+cfg.fmt(v)+'</b></div>';
+      });
+      if(cfg.total&&shown.length>1) h+='<div class="tip-r d" style="border-top:1px solid rgba(255,255,255,.1);margin-top:5px;padding-top:5px"><span>Total</span><b>'+cfg.fmt(tot)+'</b></div>';
+      if(cfg.delta&&shown.length===2){
+        const d=shown[0].vals[i]-shown[1].vals[i];
+        h+='<div class="tip-r d" style="border-top:1px solid rgba(255,255,255,.1);margin-top:5px;padding-top:5px"><span>Difference</span><b>'+(d>0?"+":"")+cfg.fmt(d)+'</b></div>';
+      }
+      t.innerHTML=h; t.classList.add("on");
+      const box=r.closest(".cw").getBoundingClientRect(), rb=r.getBoundingClientRect();
+      const cx=rb.left-box.left+rb.width/2;
+      t.style.left=Math.max(4,Math.min(box.width-t.offsetWidth-4,cx-t.offsetWidth/2))+"px";
+      t.style.top="4px";
+      const xh=r.closest("svg").querySelector(".xh");
+      if(xh){ xh.setAttribute("x1",cx*(660/box.width)); xh.setAttribute("x2",cx*(660/box.width)); xh.setAttribute("opacity",".5"); }
+    };
+    const hide=()=>{
+      const t=tipEl(r.dataset.c); if(t) t.classList.remove("on");
+      const xh=r.closest("svg").querySelector(".xh"); if(xh) xh.setAttribute("opacity","0");
+    };
+    r.addEventListener("mouseenter",show); r.addEventListener("mousemove",show); r.addEventListener("mouseleave",hide);
+  });
+}
+
+function mixBars(items, total){
+  const max=Math.max(...items.map(i=>i.v))||1;
+  return '<div style="display:flex;flex-direction:column;gap:12px">'+items.map(it=>
+    '<div><div style="display:flex;justify-content:space-between;gap:12px;font-size:12.5px;margin-bottom:5px">'+
+      '<span>'+esc(it.n)+'</span>'+
+      '<span class="num" style="color:'+(it.v?"#EDEAE3":"#5C5E65")+'">'+usd(it.v)+
+        ' <span style="color:#5C5E65;font-size:11px">'+(total?((it.v/total*100).toFixed(1)+"%"):"")+'</span></span>'+
+    '</div>'+
+    '<div class="dbar"><i style="width:'+(it.v/max*100).toFixed(1)+'%;background:'+(it.c||"linear-gradient(90deg,rgba(201,162,39,.18),#C9A227)")+'"></i></div></div>'
+  ).join("")+'</div>';
+}
+
+/* ------------------------------------------------------------------ interaction state */
+let PICK=null;                 /* selected division name, cross-filters the view */
+let UNITS="amt";               /* amt | pct */
+let SORT={col:"delta",dir:-1}; /* movers table sort */
+
+/* ------------------------------------------------------------------ readout */
+const andList = a => a.length<2 ? (a[0]||"") : a.length===2 ? a.join(" and ") : a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+
+function buildReadout(){
+  const s=salesAt(WE), p=salesAt(prevWe(WE)), h=hoursAt(WE), ph=hoursAt(prevWe(WE)),
+        c=hcAt(WE), y=yoyAt(WE), pay=payAt(WE), ath=E().ath;
+  const out=[];
+  if(!s) return out;
+  if(p){
+    const dl=s.total-p.total, dp=p.total?dl/p.total*100:null;
+    out.push("Total sales <b>"+usd(s.total)+"</b>, "+(dl>=0?"up":"down")+" <b>"+usd(Math.abs(dl))+"</b>"+(dp!=null?" ("+pct(dp)+")":"")+" on last week.");
+  } else {
+    out.push("Total sales <b>"+usd(s.total)+"</b> for the week. No prior week loaded for this entity yet.");
+  }
+  if(y&&y.y25) out.push("Against the same week in 2025 we are "+(y.y26>=y.y25?"ahead":"behind")+" by <b>"+usd(Math.abs(y.y26-y.y25))+"</b> ("+pct((y.y26-y.y25)/y.y25*100)+").");
+  const st=streak("total",WE), sd=streak("dh",WE);
+  if(st>=2) out.push("Total sales have climbed <b>"+st+" weeks running</b>.");
+  if(sd>=2) out.push("Direct hire has climbed <b>"+sd+" weeks running</b>, now at "+usd(s.dh)+".");
+  if(hasDivDetail(WE)){
+    const rows=divRows(WE).filter(r=>r.was>0&&r.now>0).sort((a,b)=>b.delta-a.delta);
+    if(rows.length){
+      const top=rows[0], bot=rows[rows.length-1];
+      if(top.delta>0) out.push("Biggest lift came from <b>"+esc(top.div)+"</b> "+(top.kind==="dh"?"direct hire":"contract")+", up "+usd(top.delta)+".");
+      if(bot.delta<0) out.push("Softest was <b>"+esc(bot.div)+"</b> "+(bot.kind==="dh"?"direct hire":"contract")+", down "+usd(Math.abs(bot.delta))+".");
+    }
+    const gone=divRows(WE).filter(r=>r.was>0&&r.now===0);
+    if(gone.length) out.push("No billing this week from <b>"+andList(gone.map(g=>esc(g.div)))+"</b>, which billed last week.");
+  }
+  if(pay){
+    const tp=pay.internal+pay.external, sp=s.total-tp;
+    out.push("Payroll cash requirement <b>"+usd(tp)+"</b> leaves a spread of <b>"+usd(sp)+"</b>, a "+(sp/s.total*100).toFixed(1)+"% margin on the week.");
+  }
+  if(h&&ph){
+    const dl=h.total-ph.total, otp=h.ot/h.total*100;
+    out.push("Hours <b>"+num(h.total,0)+"</b>, "+(dl>=0?"up":"down")+" "+num(Math.abs(dl),1)+" on the week. Overtime is <b>"+otp.toFixed(1)+"%</b> of the total"+(otp>10?", worth a look":"")+".");
+  }
+  if(c&&c.hc) out.push("Headcount <b>"+c.hc+"</b>, "+(c.hc-c.py>=0?"up":"down")+" "+Math.abs(c.hc-c.py)+" on this week last year and <b>"+Math.abs(c.hc-c.goal)+" short</b> of the "+c.goal+" trend goal.");
+  if(ath){
+    const near=[["Total",s.total,ath.total],["Assignment",s.assign,ath.assign],["Direct hire",s.dh,ath.dh]]
+      .filter(x=>x[2]&&x[2].v>0).map(([n,v,r])=>({n,v,r,p:v/r.v*100})).sort((x,z)=>z.p-x.p)[0];
+    if(near){
+      if(near.v>near.r.v) out.push("<b>New record.</b> "+esc(near.n)+" sales of "+usd(near.v)+" beat the previous high of "+usd(near.r.v)+" set "+esc(near.r.we)+".");
+      else if(near.v===near.r.v) out.push(esc(near.n)+" sales of <b>"+usd(near.v)+"</b> are the standing all-time high, set this week.");
+      else if(near.p>=85) out.push(esc(near.n)+" sales are at <b>"+near.p.toFixed(0)+"%</b> of the all-time high ("+usd(near.r.v)+", "+esc(near.r.we)+").");
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ headcount attribution */
+/* The Salesforce report groups by business unit, and that list mixes Talent's own divisions
+   with separate legal entities (Ignite Search, John Joseph Partners). Entity is therefore
+   derived from the unit name, and the result is checked against the numbers Chad publishes. */
+function entityOfUnit(u){
+  const hit = PULSE.entities.find(e => e.name === u || e.short === u);
+  if (hit) return hit.id;
+  if ((PULSE.report.talentUnits || []).indexOf(u) !== -1) return "talent";
+  return null;
+}
+function attribution(){
+  const R=PULSE.report; if(!R) return "";
+  const byEnt={}, unmapped=[];
+  R.units.forEach(u=>{
+    const id=entityOfUnit(u.unit);
+    if(!id){ unmapped.push(u); return; }
+    (byEnt[id]=byEnt[id]||[]).push(u);
+  });
+  const seen=R.units.reduce((a,u)=>a+u.hc,0);
+  const talSeen=(byEnt.talent||[]).reduce((a,u)=>a+u.hc,0);
+  const nonTal=Object.keys(byEnt).filter(k=>k!=="talent").reduce((a,k)=>a+byEnt[k].reduce((x,u)=>x+u.hc,0),0);
+  const gap=R.allUnits-R.expected.talent;
+  const missing=gap-nonTal;
+
+  let groups="";
+  Object.keys(byEnt).sort((a,b)=>a==="talent"?-1:b==="talent"?1:0).forEach(id=>{
+    const ent=PULSE.entities.find(e=>e.id===id)||{name:id};
+    const rows=byEnt[id].slice().sort((a,b)=>b.hc-a.hc);
+    groups+='<div class="ug"><h4>'+esc(ent.name)+'</h4>'+
+      rows.map(u=>'<div class="ur"><span>'+esc(u.unit)+'</span><b>'+u.hc+'</b></div>').join("")+
+      '<div class="ur sub"><span>Subtotal from units seen</span><b>'+rows.reduce((a,u)=>a+u.hc,0)+'</b></div></div>';
+  });
+  if(unmapped.length) groups+='<div class="ug"><h4 style="color:var(--down)">Not mapped to an entity</h4>'+
+    unmapped.map(u=>'<div class="ur"><span>'+esc(u.unit)+'</span><b>'+u.hc+'</b></div>').join("")+'</div>';
+
+  return '<div class="p"><div class="p-h"><h2 class="p-t">Headcount attribution</h2>'+
+    '<div class="legend"><span>'+R.unitsSeen+' units read &middot; week of '+mdy(R.weekOf)+'</span></div></div>'+
+    '<p class="p-s">The report groups by business unit, and that list mixes Talent divisions with separate entities. '+
+    'Entity is derived from the unit name, then checked against the numbers already being published.</p>'+
+    '<div class="recon">'+
+      '<div><div class="rk">All units</div><div class="rv">'+R.allUnits+'</div><div class="rn">what the report card shows</div></div>'+
+      '<div><div class="rk">Talent, published</div><div class="rv">'+R.expected.talent+'</div><div class="rn">ties to the Talent pay run</div></div>'+
+      '<div><div class="rk">Non-Talent, implied</div><div class="rv">'+gap+'</div><div class="rn">483 less 443</div></div>'+
+      '<div class="'+(missing===0?"good":"bad")+'"><div class="rk">Not yet accounted</div><div class="rv">'+missing+'</div>'+
+        '<div class="rn">'+(missing===0?"every unit is mapped":"non-Talent units still missing")+'</div></div>'+
+    '</div>'+
+    groups+
+    (missing!==0
+      ? '<div class="warn"><b>'+missing+' headcount of non-Talent units are not in view.</b> '+
+        'The '+R.unitsSeen+' units read account for '+seen+' of '+R.allUnits+
+        ', and the non-Talent ones found so far total '+nonTal+' against an implied '+gap+
+        '. Flex and Packaging most likely appear as their own unit rows. Send the full unit list and this reconciles to zero.</div>'
+      : '<p class="note">Every unit maps to an entity and the subtotals tie out.</p>')+
+  '</div>';
+}
+
+/* ------------------------------------------------------------------ composition bar */
+function compBar(){
+  let rows=divRows(WE).filter(r=>r.now>0);
+  if(VIEW!=="all") rows=rows.filter(r=>r.kind===VIEW);
+  if(!rows.length) return "";
+  const tot=rows.reduce((a,r)=>a+r.now,0);
+  rows.sort((a,b)=>b.now-a.now);
+  const segs=rows.map(r=>{
+    const pc=r.now/tot*100, sel=PICK===r.div;
+    return '<button class="'+(sel?"sel":"")+'" style="flex:0 0 '+pc.toFixed(3)+'%;background:'+colOf(r.div)+
+      ';opacity:'+(r.kind==="dh"?".62":"1")+'" data-pick="'+esc(r.div)+'" '+
+      'title="'+esc(r.div)+" "+(r.kind==="dh"?"direct hire":"contract")+" "+usdc(r.now)+" ("+pc.toFixed(1)+'%)">'+
+      (pc>7?'<span class="cl">'+pc.toFixed(0)+'%</span>':'')+'</button>';
+  }).join("");
+  const names=[...new Set(rows.map(r=>r.div))];
+  const leg=names.map(n=>{
+    const v=rows.filter(r=>r.div===n).reduce((a,r)=>a+r.now,0);
+    return '<button data-pick="'+esc(n)+'" aria-pressed="'+(PICK===n)+'"><i class="sw" style="background:'+colOf(n)+'"></i>'+
+      esc(n)+' <b style="color:var(--paper);font-weight:600;font-variant-numeric:tabular-nums">'+
+      (UNITS==="pct"?(v/tot*100).toFixed(1)+"%":k(v))+'</b></button>';
+  }).join("");
+  return '<div class="p"><div class="p-h"><h2 class="p-t">Composition of the week</h2>'+
+    '<div class="legend"><span>Solid is contract, faded is direct hire</span></div></div>'+
+    '<p class="p-s">Every division that billed, sized by share. Click a band to pull it through the whole page.</p>'+
+    '<div class="comp">'+segs+'</div><div class="clegend">'+leg+'</div>'+ pickCard(rows,tot) +'</div>';
+}
+
+function pickCard(rows,tot){
+  if(!PICK) return "";
+  const mine=rows.filter(r=>r.div===PICK);
+  if(!mine.length) return "";
+  const now=mine.reduce((a,r)=>a+r.now,0), was=mine.reduce((a,r)=>a+r.was,0), d=now-was;
+  const kinds=mine.map(r=>r.kind==="dh"?"direct hire":"contract");
+  return '<div class="pick">'+
+    '<div><div class="pk">Division</div><div class="pv" style="color:'+colOf(PICK)+'">'+esc(PICK)+'</div></div>'+
+    '<div><div class="pk">This week</div><div class="pv">'+usdc(now)+'</div></div>'+
+    '<div><div class="pk">Last week</div><div class="pv" style="color:var(--dim)">'+usdc(was)+'</div></div>'+
+    '<div><div class="pk">Change</div><div class="pv '+cls(d)+'">'+(d>0?"+":"")+usd(d)+'</div></div>'+
+    '<div><div class="pk">Share of week</div><div class="pv">'+(now/tot*100).toFixed(1)+'%</div></div>'+
+    '<div><div class="pk">Lines</div><div class="pv" style="font-size:13px">'+esc(kinds.join(" + "))+'</div></div>'+
+    '<button class="x" id="clearPick" title="Clear selection (Esc)">&times;</button></div>';
+}
+
+/* ------------------------------------------------------------------ week summary block */
+function summaryPanel(){
+  const s=salesAt(WE), pay=payAt(WE), cats=E().cats||[], ath=E().ath;
+  if(!s) return "";
+  let h='<div class="p"><h2 class="p-t">Week summary</h2>'+
+        '<p class="p-s">The block the exec team already reads, built from Xero instead of typed.</p>';
+  cats.forEach(c=>{
+    const v=s[c.k];
+    h+='<div class="sum-r'+(!v?" zero":"")+'"><span class="sum-l">'+esc(c.l)+'</span>'+
+       '<span class="sum-v">'+(v?usdc(v):"&ndash;")+'</span></div>';
+  });
+  h+='<div class="sum-r tot"><span class="sum-l">Total Sales</span><span class="sum-v">'+usdc(s.total)+'</span></div>';
+  if(pay){
+    const tp=pay.internal+pay.external;
+    h+='<div class="sum-r pay"><span class="sum-l">Payroll &mdash; Internal Cash Requirements</span><span class="sum-v">'+usdc(pay.internal)+'</span></div>'+
+       '<div class="sum-r pay"><span class="sum-l">Payroll &mdash; External Cash Requirements</span><span class="sum-v">'+usdc(pay.external)+'</span></div>'+
+       '<div class="sum-r payt"><span class="sum-l">Total Payroll</span><span class="sum-v">'+usdc(tp)+'</span></div>'+
+       '<div class="sum-r net"><span class="sum-l">Sales &minus; Payroll</span><span class="sum-v">'+usdc(s.total-tp)+'</span></div>';
+  } else {
+    h+='<div class="sum-r pay"><span class="sum-l">Payroll cash requirements</span><span class="sum-v">not loaded</span></div>';
+  }
+  if(ath){
+    h+='<div class="ath"><p class="eyebrow" style="margin-bottom:7px">All-time highs</p>';
+    [["Assignment sales",ath.assign,s.assign],["Direct hire sales",ath.dh,s.dh],["Total sales",ath.total,s.total]]
+      .filter(x=>x[1]).forEach(([lab,rec,cur])=>{
+        const beat = cur>rec.v, isNow = cur===rec.v;
+        h+='<div class="ath-r'+(beat||isNow?" beat":"")+'"><span>'+esc(lab)+' &middot; '+esc(rec.we)+'</span><b>'+usd(rec.v)+
+           (beat?"  &#9650; beaten this week":isNow?"  &#9650; this week":"")+'</b></div>';
+      });
+    h+='</div>';
+  }
+  if(meta().id && PULSE.byEntity[ENT].unconfirmed){
+    h+='<div class="warn"><b>Entity attribution unconfirmed.</b> These figures came from the summary block you sent on 7/30. '+
+       'They are wired to '+esc(meta().name)+' as a working assumption. Tell me the right entity and it is a one-line change.</div>';
+  }
+  return h+'</div>';
+}
+
+/* ------------------------------------------------------------------ render */
+function render(){
+  const ent = meta();
+  const main= document.getElementById("main");
+  buildColours();
+
+  if(!ent.live){
+    main.innerHTML =
+    '<div class="hero"><div class="empty">'+
+      '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#5C5E65" stroke-width="1.4" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"/></svg>'+
+      '<h3>'+esc(ent.name)+' is not reading from Xero yet</h3>'+
+      '<p>This entity needs the <b>accounting.reports.read</b> scope on its Xero connection before the pulse can pull a weekly profit and loss. '+
+      'Its revenue categories and all-time highs are configured per entity, so nothing else has to change once the scope is live.</p>'+
+    '</div></div>';
+    return;
+  }
+
+  const s=salesAt(WE), pw=prevWe(WE), p=salesAt(pw), h=hoursAt(WE), ph=hoursAt(pw),
+        c=hcAt(WE), y=yoyAt(WE), d=divAt(WE), payo=payAt(WE);
+  if(!s){ main.innerHTML='<div class="hero"><div class="empty"><h3>No week loaded</h3><p>Pick a different week ending.</p></div></div>'; return; }
+  const pay = payo ? payo.internal+payo.external : null;
+  const spread = pay!=null ? s.total-pay : null;
+  const html=[];
+
+  /* --- hero: the spread --- */
+  html.push('<section class="hero">');
+  if(spread!=null){
+    const payPct=pay/s.total*100, sprPct=spread/s.total*100;
+    html.push(
+    '<div class="hero-top"><div>'+
+      '<p class="hero-h">'+esc(ent.short)+' &middot; the spread &middot; week ending '+mdy(WE)+'</p>'+
+      '<div class="spread-v num">'+usd(spread)+'</div>'+
+      '<p class="spread-sub">Billed <b>'+usdc(s.total)+'</b> against a payroll cash requirement of <b>'+usdc(pay)+'</b>.</p>'+
+    '</div><div class="margin-chip">'+
+      '<p class="eyebrow">Margin on the week</p>'+
+      '<div class="margin-v num" style="color:var(--gold-lite)">'+sprPct.toFixed(1)+'%</div>'+
+    '</div></div>'+
+    '<div class="bar">'+
+      '<div class="seg-pay" style="flex:0 0 '+payPct.toFixed(2)+'%"><span class="seg-t">Payroll '+k(pay)+'</span></div>'+
+      '<div class="seg-spr" style="flex:0 0 '+sprPct.toFixed(2)+'%"><span class="seg-t">Spread '+k(spread)+'</span></div>'+
+    '</div>'+
+    '<div class="bar-legend">'+
+      '<span>Internal cash requirement <b class="num">'+usdc(payo.internal)+'</b></span>'+
+      '<span>External cash requirement <b class="num">'+usdc(payo.external)+'</b></span>'+
+      '<span>Xero period <b>'+esc(weekWindow(WE).label)+'</b></span>'+
+    '</div>');
+  } else {
+    html.push(
+    '<div class="hero-top"><div>'+
+      '<p class="hero-h">'+esc(ent.short)+' &middot; week ending '+mdy(WE)+'</p>'+
+      '<div class="spread-v num">'+usd(s.total)+'</div>'+
+      '<p class="spread-sub">Total sales. Payroll cash requirement is not loaded for this week, so no spread yet.</p>'+
+    '</div></div>');
+  }
+  html.push('</section>');
+
+  /* --- kpis --- */
+  const dTot = p? s.total-p.total : null;
+  const dYoY = y&&y.y25? y.y26-y.y25 : null;
+  const otp  = h? h.ot/h.total*100 : null;
+  const kpi=(kk,vv,dd)=>'<div class="kpi"><div class="kpi-k">'+kk+'</div><div class="kpi-v num">'+vv+'</div>'+(dd?'<div class="kpi-d">'+dd+'</div>':'')+'</div>';
+  html.push('<div class="kpis">'+
+    kpi("Total sales", usd(s.total), dTot!=null? arrow(dTot)+'<span class="'+cls(dTot)+'">'+usd(Math.abs(dTot))+' ('+pct(dTot/p.total*100)+')</span> vs '+md(pw) : "single week loaded")+
+    kpi("Assignment", usd(s.assign), p&&p.assign? arrow(s.assign-p.assign)+'<span class="'+cls(s.assign-p.assign)+'">'+pct((s.assign-p.assign)/p.assign*100)+'</span> WoW':"")+
+    kpi("Direct hire", usd(s.dh), p&&p.dh? arrow(s.dh-p.dh)+'<span class="'+cls(s.dh-p.dh)+'">'+pct((s.dh-p.dh)/p.dh*100)+'</span> WoW':"")+
+    kpi("Spread", spread!=null? usd(spread):"&ndash;", spread!=null? (spread/s.total*100).toFixed(1)+"% margin":"payroll not loaded")+
+    kpi("vs 2025", dYoY!=null? (dYoY>=0?"+":"")+usd(dYoY) : "&ndash;", dYoY!=null? '<span class="'+cls(dYoY)+'">'+pct(dYoY/y.y25*100)+'</span> on '+usd(y.y25):"no 2025 series")+
+    kpi("Hours", h? num(h.total,0):"&ndash;", h&&ph? arrow(h.total-ph.total)+'<span class="'+cls(h.total-ph.total)+'">'+num(Math.abs(h.total-ph.total),1)+'</span> WoW':(h?"":"no timesheet series"))+
+    kpi("Overtime", otp!=null? otp.toFixed(1)+"%":"&ndash;", h? num(h.ot,1)+" of "+num(h.total,0)+" hrs":"")+
+    kpi("Headcount", c&&c.hc? c.hc:"&ndash;", c&&c.hc? arrow(c.hc-c.py)+'<span class="'+cls(c.hc-c.py)+'">'+Math.abs(c.hc-c.py)+'</span> vs 2025':"no timesheet series")+
+  '</div>');
+
+  /* --- attribution: how the report's units roll up to entities --- */
+  if(PULSE.report) html.push('<div class="grid">'+attribution()+'</div>');
+
+  /* --- composition --- */
+  if(hasDivDetail(WE)) html.push('<div class="grid">'+compBar()+'</div>');
+
+  /* --- summary block + what moved --- */
+  html.push('<div class="grid '+(hasDivDetail(WE)?'g53':'')+'">');
+  if(hasDivDetail(WE)){
+    let rows=divRows(WE);
+    if(VIEW!=="all") rows=rows.filter(r=>r.kind===VIEW);
+    const key=r=>({div:r.div,now:r.now,was:r.was,delta:r.delta,dpct:r.dpct==null?-1e9:r.dpct}[SORT.col]);
+    rows.sort((a,b)=>{ const x=key(a),y=key(b);
+      return (typeof x==="string"? x.localeCompare(y) : x-y) * SORT.dir; });
+    const maxAbs=Math.max(...rows.map(r=>Math.abs(r.delta)),1);
+    const tot=rows.reduce((a,r)=>a+r.now,0)||1;
+    const sar=c=>SORT.col===c?'<span class="sar">'+(SORT.dir>0?"\u25B2":"\u25BC")+'</span>':"";
+    const th=(c,lab)=>'<th class="sortable" data-sort="'+c+'">'+lab+sar(c)+'</th>';
+    html.push('<div class="p'+(PICK?" dim":"")+'" id="movers">'+
+      '<div class="p-h"><h2 class="p-t">What moved</h2><div class="legend">'+
+        '<span>'+rows.length+' revenue accounts</span><span>Click a row to select</span></div></div>'+
+      '<p class="p-s">Every revenue account in Xero for this week against last week. This split does not exist in the current report.</p>'+
+      '<table><thead><tr>'+th("div","Division")+th("now","This week")+th("was","Last week")+th("delta","Change")+th("dpct","%")+'</tr></thead><tbody>'+
+      rows.map(r=>{
+        const tag = r.was===0 ? '<span class="tag new">New</span>' : r.now===0 ? '<span class="tag gone">Off</span>'
+                  : '<span class="tag'+(r.kind==="dh"?" dh":"")+'">'+(r.kind==="dh"?"DH":"CT")+'</span>';
+        const shown = UNITS==="pct" ? (r.now/tot*100).toFixed(1)+"%" : usdc(r.now);
+        return '<tr data-pick="'+esc(r.div)+'" class="'+(PICK===r.div?"sel":"")+'">'+
+          '<td><div class="divname"><i class="sw" style="background:'+colOf(r.div)+';opacity:'+(r.kind==="dh"?".62":"1")+'"></i>'+
+          tag+'<span>'+esc(r.div)+'</span></div>'+
+          '<div class="dbar" style="max-width:190px"><i style="width:'+(Math.abs(r.delta)/maxAbs*100).toFixed(1)+'%;background:'+
+            (r.delta<0?"linear-gradient(90deg,rgba(224,87,74,.2),#E0574A)":"linear-gradient(90deg,"+colOf(r.div)+"33,"+colOf(r.div)+")")+'"></i></div></td>'+
+          '<td class="num">'+shown+'</td><td class="num" style="color:var(--dim)">'+usdc(r.was)+'</td>'+
+          '<td class="num '+cls(r.delta)+'">'+(r.delta>0?"+":"")+usd(r.delta)+'</td>'+
+          '<td class="num '+cls(r.delta)+'">'+(r.dpct==null?"new":pct(r.dpct,0))+'</td></tr>';
+      }).join("")+
+      '</tbody></table>'+
+      '<p class="note">Source: Xero profit and loss, '+esc(weekWindow(WE).label)+'. Reconciles to the tracker total of '+usdc(s.total)+' to the penny.</p>'+
+    '</div>');
+  }
+  html.push(summaryPanel());
+  if(!hasDivDetail(WE)){
+    html.push('<div class="p"><h2 class="p-t">What moved</h2>'+
+      '<p class="p-s">Division detail comes from the Xero account names.</p>'+
+      '<div class="thin">No account-level detail cached for '+esc(ent.short)+'.<br>Once the reports scope is live this fills in the same way Talent does.</div></div>');
+  }
+  html.push('</div>');
+
+  /* --- yoy + mix --- */
+  const yrows=E().yoy;
+  html.push('<div class="grid '+(yrows.length?'g53':'')+'">');
+  if(yrows.length){
+    html.push('<div class="p"><div class="p-h"><h2 class="p-t">2026 against 2025</h2><div class="legend">'+
+      '<span><i style="background:var(--gold)"></i>2026</span><span><i style="background:#4C5058"></i>2025</span></div></div>'+
+      '<p class="p-s">Weekly total sales, every week of both years.</p>'+
+      lineChart([
+        {name:"2025", vals:yrows.map(r=>r.y25), color:"#4C5058", w:1.8},
+        {name:"2026", vals:yrows.map(r=>r.y26), color:"#C9A227", w:2.4, dots:true, area:"rgba(201,162,39,.07)"}
+      ], {id:"yoy", labels:yrows.map(r=>"WE "+md(r.we)), h:216, delta:true, aria:"Weekly sales 2026 versus 2025"})+
+    '</div>');
+  }
+  html.push('<div class="p"><h2 class="p-t">Where the week came from</h2>'+
+    '<p class="p-s">Sales mix for week ending '+mdy(WE)+'.</p>'+
+    mixBars((E().cats||[]).map((cc,i)=>({n:cc.l, v:s[cc.k]||0,
+      c:i===1?"linear-gradient(90deg,rgba(93,138,214,.18),#5D8AD6)":i>1?"linear-gradient(90deg,rgba(138,140,147,.18),#8A8C93)":null})), s.total)+
+  '</div></div>');
+
+  /* --- hours + headcount --- */
+  const hr=E().hours, hcr=E().hc;
+  if(hr.length||hcr.length){
+    html.push('<div class="grid g2">');
+    if(hr.length) html.push('<div class="p"><div class="p-h"><h2 class="p-t">Hours</h2><div class="legend">'+
+      '<span><i style="background:#C9A227"></i>Regular</span><span><i style="background:#E8C55A"></i>Overtime</span>'+
+      '<span><i style="background:#E0574A"></i>Double</span><span><i style="background:#8E4A63"></i>All entities</span></div></div>'+
+      '<p class="p-s">Regular, overtime and double time stacked for '+esc(ent.short)+', with the all-entity total dashed. '+
+      'The split comes from ASYMBL_Time__Time_Entry__c; the all-entity total comes from the Week over Week report, which carries no split.</p>'+
+      stackChart(hr, [{key:"rt",color:"#C9A227",name:"Regular"},{key:"ot",color:"#E8C55A",name:"Overtime"},{key:"dt",color:"#E0574A",name:"Double time"}],
+        {id:"hrs", labels:hr.map(r=>"WE "+md(r.we)), line:{key:"allHours",color:"#8E4A63",name:"All entities"}, h:216,
+         fmtY:v=>num(Math.round(v/1000))+"K", fmtTip:v=>num(v,1)+" hrs", aria:"Weekly hours by type against all entities"})+
+      (h&&h.paidTotal!=null
+        ? '<p class="note">Timesheet hours '+num(h.total,2)+' against '+num(h.paidTotal,2)+' paid on the run, a gap of '+num(Math.abs(h.paidTotal-h.total),2)+' hours from edits landing after the snapshot.</p>'
+        : '<p class="note">Timesheet basis. Paid hours from the run can differ slightly where edits land after the snapshot.</p>')+
+    '</div>');
+    if(hcr.length) html.push('<div class="p"><div class="p-h"><h2 class="p-t">Headcount</h2><div class="legend">'+
+      '<span><i style="background:#C9A227"></i>'+esc(ent.short)+'</span><span><i style="background:#8E4A63"></i>All entities</span>'+
+      '<span><i style="background:#4C5058"></i>2025</span><span><i style="background:#E0574A"></i>Trend goal</span></div></div>'+
+      '<p class="p-s">Distinct people with hours in the week, against last year and the 2026 trend goal. '+
+      'Source: distinct candidates on ASYMBL_Time__Time_Entry__c for the same pay period.</p>'+
+      lineChart([
+        {name:"Trend goal", vals:hcr.map(r=>r.goal), color:"#E0574A", w:1.5, dash:"4 3"},
+        {name:"All entities", vals:hcr.map(r=>r.allHc==null?null:r.allHc), color:"#8E4A63", w:1.8, dash:"2 3"},
+        {name:"2025", vals:hcr.map(r=>r.py), color:"#4C5058", w:1.8},
+        {name:esc(ent.short), vals:hcr.map(r=>r.hc), color:"#C9A227", w:2.4, dots:true}
+      ], {id:"hc", labels:hcr.map(r=>"WE "+md(r.we)), h:216, zero:true, fmtY:v=>num(Math.round(v)),
+          fmtTip:v=>num(v,0)+" people", aria:"Headcount versus prior year, goal and all entities"})+
+      (function(){
+        const f=hcr.filter(r=>r.hc!=null); if(f.length<2) return "";
+        const yr=f[f.length-1].hc-f[0].hc, rec=f.slice(-8), recD=rec[rec.length-1].hc-rec[0].hc;
+        let out='<p class="note">Headcount is '+(yr>=0?"up":"down")+' '+Math.abs(yr)+' since January and '+
+          (recD>=0?"up":"down")+' '+Math.abs(recD)+' over the last '+rec.length+' weeks, while the trend goal adds 20 every week. '+
+          'The gap is widening because of the goal curve, not because headcount is falling.</p>';
+        const withAll=f.filter(r=>r.allHc!=null);
+        if(withAll.length){
+          const gaps=withAll.map(r=>({we:r.we,g:r.allHc-r.hc}));
+          const neg=gaps.filter(x=>x.g<0);
+          const clean=gaps.filter(x=>x.g>=20).map(x=>x.g);
+          if(clean.length) out+='<p class="note">The all-entity line is the Salesforce report total, so the space between it and '+
+            esc(ent.short)+' is every other entity. Across '+clean.length+' settled weeks it holds between '+
+            Math.min.apply(null,clean)+' and '+Math.max.apply(null,clean)+', averaging '+
+            (clean.reduce((a,b)=>a+b,0)/clean.length).toFixed(0)+'. A block that steady is a structural difference, not drift.</p>';
+          if(neg.length) out+='<div class="warn"><b>'+neg.map(x=>mdy(x.we)).join(", ")+
+            ' does not behave.</b> The all-entity headcount comes out '+Math.abs(neg[0].g)+' below '+esc(ent.short)+
+            ', which cannot be true if one contains the other. Hours for that week run the right way round, so the two headcount '+
+            'definitions part company over the New Year pay-period boundary. Do not read a week-over-week move across it.</div>';
+        }
+        return out;
+      })()+
+    '</div>');
+    html.push('</div>');
+  }
+
+  /* --- direct hire by month --- */
+  const dhr=E().dhMonthly;
+  if(dhr.length){
+    html.push('<div class="grid"><div class="p">'+
+      '<div class="p-h"><h2 class="p-t">Direct hire by month</h2><div class="legend">'+
+        '<span><i style="background:#C9A227"></i>2026</span><span><i style="background:#4C5058"></i>2025</span></div></div>'+
+      '<p class="p-s">Monthly direct hire revenue against 2025. Prior-year totals below are cut to the same months so the comparison is like for like.</p>'+
+      stackChart(dhr, [{key:"y2026",color:"#C9A227",name:"2026"}], {id:"dhm", labels:dhr.map(r=>r.m), h:200, fmtY:v=>k(v),
+        line:{key:"y2025",color:"#4C5058",name:"2025"}, aria:"Direct hire revenue by month"})+
+      (function(){
+        const n=dhr.filter(r=>r.y2026!=null).length;          /* months of 2026 actuals */
+        const thru=n?dhr[n-1].m:"";
+        const same=yk=>dhr.slice(0,n).reduce((a,r)=>a+(r[yk]||0),0);
+        const base=same("y2026");
+        return '<p class="eyebrow" style="margin-top:16px">Jan through '+esc(thru)+', same period each year</p>'+
+        '<div style="display:flex;gap:26px;margin-top:9px;flex-wrap:wrap;font-size:12px;color:var(--dim)">'+
+        ["y2026","y2025","y2024","y2023","y2022"].map(yk=>{
+          const v=same(yk); if(!v) return "";
+          const d=yk==="y2026"?null:(base-v)/v*100;
+          return '<span>'+yk.slice(1)+' <b class="num" style="color:'+(yk==="y2026"?"var(--gold-lite)":"var(--paper)")+'">'+usd(v)+'</b>'+
+                 (d!=null?' <span class="'+cls(d)+'">'+pct(d,0)+'</span>':'')+'</span>';
+        }).join("")+'</div>';
+      })()+
+      '</div></div>');
+  }
+
+  /* --- readout --- */
+  const pts=buildReadout();
+  html.push('<div class="readout">'+
+    '<div class="p-h"><h2 class="p-t">The read-out</h2>'+
+      '<button class="btn" id="copyBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h8"/></svg>Copy for email</button></div>'+
+    '<p class="p-s" style="margin-bottom:0">Written from the numbers above. No one types this.</p>'+
+    '<ul>'+pts.map(t=>'<li>'+t+'</li>').join("")+'</ul>'+
+  '</div>');
+
+  html.push('<p class="foot">Prototype on real data. Figures for '+esc(ent.name)+' pulled from Xero on '+mdy(PULSE.generated)+'. '+
+    'One week ending, two clocks, both keyed to the same Sunday: Salesforce holds the work week that ended '+mdy(WE)+
+    ', Xero holds the invoices raised for it over '+esc(weekWindow(WE).label)+'. The offset is how billing works, not a mismatch. '+
+    'Payroll cash requirement is a weekly input from the pay run.</p>');
+
+  main.innerHTML = html.join("");
+  document.getElementById("copyBtn").addEventListener("click", copyForEmail);
+  bindTips(main);
+  main.querySelectorAll("[data-pick]").forEach(el=>el.addEventListener("click",()=>{
+    PICK = (PICK===el.dataset.pick) ? null : el.dataset.pick; render();
+  }));
+  const cp=document.getElementById("clearPick");
+  if(cp) cp.addEventListener("click",ev=>{ ev.stopPropagation(); PICK=null; render(); });
+  main.querySelectorAll("th.sortable").forEach(th=>th.addEventListener("click",()=>{
+    const c=th.dataset.sort;
+    SORT = SORT.col===c ? {col:c,dir:-SORT.dir} : {col:c,dir:c==="div"?1:-1};
+    render();
+  }));
+}
+
+/* ------------------------------------------------------------------ email export */
+function copyForEmail(){
+  const s=salesAt(WE), pw=prevWe(WE), p=salesAt(pw), d=divAt(WE), payo=payAt(WE), cats=E().cats||[], ath=E().ath;
+  const pay=payo? payo.internal+payo.external : null;
+  const F='font-family:Century Gothic,Trebuchet MS,sans-serif;';
+  const th='style="'+F+'font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;text-align:right;padding:6px 10px;border-bottom:2px solid #C9A227"';
+  const thL=th.replace('text-align:right','text-align:left');
+  const td='style="'+F+'font-size:13px;text-align:right;padding:7px 10px;border-bottom:1px solid #eee"';
+  const tdL=td.replace('text-align:right','text-align:left');
+  let h='<div style="'+F+'max-width:720px">';
+  h+='<p style="'+F+'font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#C9A227;margin:0 0 4px">'+esc(meta().name)+' &middot; Weekly Sales Pulse</p>';
+  h+='<h2 style="'+F+'margin:0 0 14px;font-size:20px">Week ending '+mdy(WE)+'</h2>';
+
+  /* the summary block, in the shape the exec team already reads */
+  h+='<table style="border-collapse:collapse;width:100%;margin:0 0 20px">';
+  cats.forEach(c=>{ h+='<tr><td '+tdL+'>'+esc(c.l)+'</td><td '+td+'>'+(s[c.k]?usdc(s[c.k]):"&ndash;")+'</td></tr>'; });
+  h+='<tr><td '+tdL.replace('border-bottom:1px solid #eee','border-top:2px solid #C9A227')+'><b>Total Sales</b></td>'+
+     '<td '+td.replace('border-bottom:1px solid #eee','border-top:2px solid #C9A227')+'><b>'+usdc(s.total)+'</b></td></tr>';
+  if(pay!=null){
+    h+='<tr><td '+tdL+'><i>Payroll &mdash; Internal Cash Requirements</i></td><td '+td+'>'+usdc(payo.internal)+'</td></tr>'+
+       '<tr><td '+tdL+'><i>Payroll &mdash; External Cash Requirements</i></td><td '+td+'>'+usdc(payo.external)+'</td></tr>'+
+       '<tr><td '+tdL+'><b>Total Payroll</b></td><td '+td+'><b>'+usdc(pay)+'</b></td></tr>'+
+       '<tr><td '+tdL.replace('border-bottom:1px solid #eee','border-top:2px solid #C9A227')+'><b>Sales &minus; Payroll</b></td>'+
+       '<td '+td.replace('border-bottom:1px solid #eee','border-top:2px solid #C9A227')+'><b style="color:#1a7f4f">'+usdc(s.total-pay)+'</b></td></tr>';
+  }
+  h+='</table>';
+  if(ath){
+    h+='<p style="'+F+'font-size:10.5px;color:#888;margin:0 0 18px;line-height:1.7">'+
+      [["ATH Assignment Sales",ath.assign],["ATH Direct Hire Sales",ath.dh],["ATH Total Sales",ath.total]]
+        .filter(x=>x[1]).map(([l,r])=>l+": "+esc(r.we)+" &ndash; "+usd(r.v)).join("<br>")+'</p>';
+  }
+  h+='<ul style="'+F+'font-size:13px;line-height:1.65;padding-left:18px;margin:0 0 20px">'+
+     buildReadout().map(t=>'<li>'+t.replace(/class="[^"]*"/g,'').replace(/<span[^>]*>|<\/span>/g,'')+'</li>').join('')+'</ul>';
+
+  if(hasDivDetail(WE)){
+    let rows=divRows(WE); if(VIEW!=="all") rows=rows.filter(r=>r.kind===VIEW);
+    rows.sort((a,b)=>b.now-a.now);
+    h+='<table style="border-collapse:collapse;width:100%"><tr>'+
+       '<th '+thL+'>Division</th><th '+th+'>This week</th><th '+th+'>Last week</th><th '+th+'>Change</th></tr>';
+    rows.forEach(r=>{
+      h+='<tr><td '+tdL+'>'+(r.kind==="dh"?"DH &middot; ":"")+esc(r.div)+'</td>'+
+         '<td '+td+'>'+usdc(r.now)+'</td><td '+td+'>'+usdc(r.was)+'</td>'+
+         '<td '+td+'><span style="color:'+(r.delta>=0?"#1a7f4f":"#b8392c")+'">'+(r.delta>0?"+":"")+usd(r.delta)+'</span></td></tr>';
+    });
+    h+='<tr><td '+tdL+'><b>Total</b></td><td '+td+'><b>'+usdc(s.total)+'</b></td>'+
+       '<td '+td+'>'+(p?usdc(p.total):"&ndash;")+'</td><td '+td+'><b>'+(p?((s.total-p.total>0?"+":"")+usd(s.total-p.total)):"&ndash;")+'</b></td></tr></table>';
+  }
+  h+='<p style="'+F+'font-size:10.5px;color:#999;margin:14px 0 0">Source: Xero profit and loss, '+esc(weekWindow(WE).label)+' (Sunday to Saturday). Generated by Spark HQ.</p></div>';
+
+  const btn=document.getElementById("copyBtn");
+  const done=()=>{btn.classList.add("ok");btn.textContent="Copied, paste into Outlook";setTimeout(()=>{btn.classList.remove("ok");render();},2600);};
+  const plain=h.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+  if(navigator.clipboard&&window.ClipboardItem){
+    navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([h],{type:"text/html"}),"text/plain":new Blob([plain],{type:"text/plain"})})]).then(done).catch(()=>fallback(h,done));
+  } else fallback(h,done);
+}
+function fallback(h,done){
+  const d=document.createElement("div");
+  d.contentEditable="true"; d.style.cssText="position:fixed;left:-9999px;top:0";
+  d.innerHTML=h; document.body.appendChild(d);
+  const r=document.createRange(); r.selectNodeContents(d);
+  const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  try{document.execCommand("copy");done();}catch(e){alert("Copy failed. Select the read-out manually.");}
+  sel.removeAllRanges(); d.remove();
+}
+
+/* ------------------------------------------------------------------ init */
+function buildWeekSelect(){
+  const ws=document.getElementById("weekSel"), E0=E();
+  if(!E0.sales.length){ ws.innerHTML='<option>&ndash;</option>'; ws.disabled=true; return; }
+  ws.disabled=false;
+  ws.innerHTML = E0.sales.slice().reverse().map(r=>{
+    const has=(E0.detailWeeks||[]).includes(r.we);
+    return '<option value="'+r.we+'"'+(r.we===WE?" selected":"")+(has?"":" disabled")+'>'+mdy(r.we)+(has?"":"  (no detail cached)")+'</option>';
+  }).join("");
+}
+(function init(){
+  const rail=document.getElementById("rail");
+  rail.innerHTML = PULSE.entities.map(e=>
+    '<button class="ent" role="tab" data-id="'+e.id+'" aria-selected="'+(e.id===ENT)+'">'+
+      '<span class="dot'+(e.live?"":" off")+'"></span>'+esc(e.short)+
+      ((PULSE.byEntity[e.id]||{}).unconfirmed?'<span class="badge-q">?</span>':'')+'</button>').join("")+
+    '<button class="ent" role="tab" data-id="__all" aria-selected="false" title="Consolidated view across all six entities">'+
+      '<span class="dot off"></span>All entities</button>';
+  rail.addEventListener("click", ev=>{
+    const b=ev.target.closest(".ent"); if(!b) return;
+    if(b.dataset.id==="__all"){
+      const n=PULSE.entities.filter(e=>e.live).length;
+      alert("Consolidated roll-up needs every entity reading from Xero. "+n+" of "+PULSE.entities.length+" are live. The remaining ones need the reports scope.");
+      return;
+    }
+    ENT=b.dataset.id;
+    [...rail.children].forEach(x=>x.setAttribute("aria-selected", x.dataset.id===ENT));
+    PICK=null; WE=defaultWeek(); buildWeekSelect(); render();
+    const dw=(E().detailWeeks||[]).slice().sort(), i=dw.indexOf(WE);
+    document.getElementById("wPrev").disabled=i<=0;
+    document.getElementById("wNext").disabled=i<0||i>=dw.length-1;
+  });
+  const ws=document.getElementById("weekSel");
+  ws.addEventListener("change", e=>{ WE=e.target.value; PICK=null; render(); });
+  document.getElementById("viewSel").addEventListener("change", e=>{ VIEW=e.target.value; PICK=null; render(); });
+
+  /* week stepper — only steps between weeks that actually have detail */
+  function stepWeek(dir){
+    const dw=(E().detailWeeks||[]).slice().sort();
+    const i=dw.indexOf(WE), j=i+dir;
+    if(i<0||j<0||j>=dw.length) return;
+    WE=dw[j]; PICK=null; buildWeekSelect(); render(); syncStep();
+  }
+  function syncStep(){
+    const dw=(E().detailWeeks||[]).slice().sort(), i=dw.indexOf(WE);
+    document.getElementById("wPrev").disabled = i<=0;
+    document.getElementById("wNext").disabled = i<0 || i>=dw.length-1;
+  }
+  document.getElementById("wPrev").addEventListener("click",()=>stepWeek(-1));
+  document.getElementById("wNext").addEventListener("click",()=>stepWeek(1));
+
+  /* units toggle */
+  function syncUnits(){
+    document.getElementById("mAmt").setAttribute("aria-pressed", UNITS==="amt");
+    document.getElementById("mPct").setAttribute("aria-pressed", UNITS==="pct");
+  }
+  document.getElementById("mAmt").addEventListener("click",()=>{UNITS="amt";syncUnits();render();});
+  document.getElementById("mPct").addEventListener("click",()=>{UNITS="pct";syncUnits();render();});
+
+  /* keyboard: arrows step weeks, Esc clears the selection */
+  document.addEventListener("keydown", ev=>{
+    if(/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+    if(ev.key==="ArrowLeft") stepWeek(-1);
+    else if(ev.key==="ArrowRight") stepWeek(1);
+    else if(ev.key==="Escape" && PICK){ PICK=null; render(); }
+  });
+
+  const railClick=rail.addEventListener;
+  WE=defaultWeek(); buildWeekSelect(); syncUnits(); render(); syncStep();
+
+  /* embedded in the HQ Finance pane: announce readiness and current week to the shell */
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ source: "spark-pulse", ready: true, weekEnding: WE }, "*");
+      document.body.style.paddingBottom = "24px";
+    }
+  } catch (e) { /* standalone, nothing to tell */ }
+})();
+</script>
+</body>
+</html>
