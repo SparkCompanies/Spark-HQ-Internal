@@ -20279,5 +20279,97 @@ window.addEventListener("message",function(e){
 });
 })();
 </script>
+
+<!-- SPARK_PULSE_PILL — adds a Weekly Pulse pill to the Finance mode tabs.
+     Purely additive: creates its own pill and pane at runtime and wraps finSetMode.
+     No existing markup or function bodies are modified. Remove this block to revert. -->
+<script>
+(function(){
+  if (window.__sparkPulsePill) return; window.__sparkPulsePill = true;
+  var PANE_ID = 'finPulsePane', PILL_MODE = 'pulse', SRC = 'spark-pulse.html';
+  var HIDE = ['#finTiles', '.fin-bh', '.fin-tblwrap', '#finProtoNote', '#finRulesWrap'];
+  var stash = [];
+
+  function q(sel, root){ return (root||document).querySelector(sel); }
+
+  function hideInvoicing(){
+    stash = [];
+    HIDE.forEach(function(sel){
+      var el = q(sel);
+      if (el) { stash.push([el, el.style.display]); el.style.display = 'none'; }
+    });
+  }
+  function restoreInvoicing(){
+    stash.forEach(function(p){ p[0].style.display = p[1] || ''; });
+    stash = [];
+  }
+
+  function pane(){
+    var p = document.getElementById(PANE_ID);
+    if (p) return p;
+    var wrap = q('.fin-wrap'); if (!wrap) return null;
+    p = document.createElement('div');
+    p.id = PANE_ID;
+    p.style.cssText = 'display:none;margin:0 -28px;border-radius:12px;overflow:hidden;background:#0A0A0B;border:1px solid rgba(255,255,255,.08)';
+    p.innerHTML = '<iframe title="Weekly Sales Pulse" style="width:100%;height:calc(100vh - 210px);min-height:720px;border:0;display:block" loading="lazy"></iframe>';
+    wrap.appendChild(p);
+    return p;
+  }
+
+  function setPills(on){
+    var tabs = document.getElementById('finModeTabs'); if (!tabs) return;
+    Array.prototype.forEach.call(tabs.querySelectorAll('.fin-modetab'), function(b){
+      var mine = b.getAttribute('data-mode') === PILL_MODE;
+      if (on)  { b.classList.toggle('on', mine); }
+      else if (mine) { b.classList.remove('on'); }
+    });
+  }
+
+  window.sparkPulseHide = function(){
+    var p = document.getElementById(PANE_ID);
+    if (!p || p.style.display === 'none') return;
+    p.style.display = 'none';
+    restoreInvoicing();
+    setPills(false);
+  };
+
+  window.sparkPulseShow = function(){
+    var p = pane(); if (!p) return;
+    var f = p.querySelector('iframe');
+    if (f && !f.getAttribute('src')) f.setAttribute('src', SRC);
+    hideInvoicing();
+    p.style.display = 'block';
+    setPills(true);
+  };
+
+  function addPill(){
+    var tabs = document.getElementById('finModeTabs');
+    if (!tabs || tabs.querySelector('[data-mode="' + PILL_MODE + '"]')) return;
+    var b = document.createElement('button');
+    b.className = 'fin-modetab';
+    b.setAttribute('data-mode', PILL_MODE);
+    b.textContent = 'Weekly Pulse';
+    b.addEventListener('click', function(){ window.sparkPulseShow(); });
+    tabs.appendChild(b);
+  }
+
+  /* wrap finSetMode so Hourly / Direct Hire put the pulse away without editing that function */
+  function wrap(){
+    if (typeof window.finSetMode !== 'function' || window.finSetMode.__pulseWrapped) return false;
+    var orig = window.finSetMode;
+    var w = function(){ try { window.sparkPulseHide(); } catch (e) {} return orig.apply(this, arguments); };
+    w.__pulseWrapped = true;
+    window.finSetMode = w;
+    return true;
+  }
+
+  function boot(){
+    addPill();
+    if (!wrap()) { var n = 0, t = setInterval(function(){ if (wrap() || ++n > 40) clearInterval(t); }, 250); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
 </body>
 </html>
