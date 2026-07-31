@@ -146,6 +146,36 @@ tr:last-child td{border-bottom:0}
 .clegend button[aria-pressed="true"]{border-color:var(--gold);color:var(--paper);background:rgba(201,162,39,.09)}
 .sw{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
 
+/* ---------- live status chip ---------- */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:700;padding:4px 9px;border-radius:20px;border:1px solid var(--edge);color:var(--dimmer);white-space:nowrap}
+.chip .led{width:6px;height:6px;border-radius:50%;background:var(--dimmer);flex:0 0 auto}
+.chip.live{border-color:rgba(47,178,124,.4);color:var(--up)} .chip.live .led{background:var(--up);box-shadow:0 0 6px var(--up)}
+.chip.local{border-color:rgba(201,162,39,.35);color:var(--gold-lite)} .chip.local .led{background:var(--gold)}
+.chip.err{border-color:rgba(224,87,74,.4);color:var(--down)} .chip.err .led{background:var(--down)}
+
+/* ---------- weekly input form ---------- */
+.keybar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.kf{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:13px;margin-top:17px}
+.kf label{display:block;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer);
+  font-weight:700;margin-bottom:5px}
+.kf input,.kf select,.kf textarea{width:100%;background:var(--panel2);border:1px solid var(--edge);border-radius:7px;
+  color:var(--paper);font-family:var(--f);font-size:13.5px;padding:9px 11px;font-variant-numeric:tabular-nums}
+.kf input:focus,.kf select:focus,.kf textarea:focus{outline:none;border-color:var(--gold)}
+.kf .wide{grid-column:1 / -1}
+.kf textarea{min-height:56px;resize:vertical;font-variant-numeric:normal}
+.kfg{grid-column:1 / -1;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);
+  font-weight:700;margin:8px 0 -4px;padding-top:12px;border-top:1px solid var(--edge)}
+.kfg:first-child{margin-top:0;padding-top:0;border-top:0}
+.kfoot{display:flex;align-items:center;gap:14px;margin-top:18px;flex-wrap:wrap}
+.kfoot .msg{font-size:12px;color:var(--dim)}
+.kfoot .msg.ok{color:var(--up)} .kfoot .msg.bad{color:var(--down)}
+.btn.primary{background:linear-gradient(180deg,var(--gold-lite),var(--gold));border-color:var(--gold);color:#2A2205;font-weight:700}
+.btn.primary:hover{filter:brightness(1.07);color:#2A2205}
+.btn:disabled{opacity:.5;cursor:default}
+.calc{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.calc b{color:var(--gold-lite);font-weight:600}
+
 /* ---------- attribution ---------- */
 .recon{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--edge);
   border:1px solid var(--edge);border-radius:9px;overflow:hidden;margin-top:16px}
@@ -239,6 +269,7 @@ th .sar{color:var(--gold);margin-left:3px}
       </div>
     </div>
     <div class="mast-sp"></div>
+    <span class="chip" id="srcChip"><i class="led"></i><span id="srcTxt">connecting</span></span>
     <div class="ctrl">
       <span class="lbl">Week ending</span>
       <div class="step">
@@ -334,6 +365,164 @@ function divRows(we){
   return [...rows.values()]
     .filter(r=>r.now>0||r.was>0)
     .map(r=>({...r, delta:r.now-r.was, dpct: r.was>0 ? (r.now-r.was)/r.was*100 : (r.now>0?null:0)}));
+}
+
+/* ==================================================================
+   SUPABASE DATA LAYER
+   The embedded block is a seed. Live rows from Supabase are overlaid on
+   top of it, so the page paints instantly and gets more real as weeks
+   land. Nothing here can leave the page blank.
+   ================================================================== */
+const SB_URL = "https://rdyzvohphrmkkowdsoam.supabase.co";
+const SB_KEY = "sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5";
+let SB = null, SRC = { mode: "seed", weeks: 0, note: "" }, CAN_WRITE = false;
+
+async function sbClient(){
+  if (SB) return SB;
+  /* an explicitly injected client wins (HQ can hand one in; tests use this too) */
+  if (window.__PULSE_SB) { SB = window.__PULSE_SB; return SB; }
+  /* embedded in HQ: borrow the parent's already-authenticated client */
+  try {
+    if (window.parent && window.parent !== window && window.parent.SPARK_SB && window.parent.SPARK_SB.getClient) {
+      const c = window.parent.SPARK_SB.getClient();
+      if (c) { SB = c; return SB; }
+    }
+  } catch (e) { /* cross-origin, fall through */ }
+  /* standalone: same storageKey, so an HQ session on this origin is reused */
+  const m = await import("https://esm.sh/@supabase/supabase-js@2");
+  SB = m.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true,
+            flowType: "pkce", storageKey: "spark_hq_sb_auth" }
+  });
+  return SB;
+}
+
+function setSrc(mode, txt){
+  SRC.mode = mode;
+  const chip = document.getElementById("srcChip"), t = document.getElementById("srcTxt");
+  if (!chip || !t) return;
+  chip.className = "chip " + (mode === "live" ? "live" : mode === "error" ? "err" : "local");
+  t.textContent = txt;
+}
+
+/* one Supabase row set -> the shape render() already understands */
+function overlay(cfg, weekly, inputs){
+  let weeks = 0;
+
+  (cfg || []).forEach(function(c){
+    let ent = PULSE.entities.find(function(e){ return e.id === c.entity; });
+    if (!ent) { ent = { id: c.entity, name: c.display_name, short: c.short_name, live: false }; PULSE.entities.push(ent); }
+    ent.name = c.display_name || ent.name;
+    ent.short = c.short_name || ent.short;
+    if (!PULSE.byEntity[c.entity]) {
+      PULSE.byEntity[c.entity] = { sales:[], hours:[], hc:[], yoy:[], dhMonthly:[], divisions:{}, detailWeeks:[], cats:[], ath:null };
+    }
+    const B = PULSE.byEntity[c.entity];
+    if (Array.isArray(c.categories) && c.categories.length) B.cats = c.categories;
+    if (c.ath && Object.keys(c.ath).length) B.ath = c.ath;
+    if (c.sf_report_ids) B.sfReports = c.sf_report_ids;
+  });
+
+  /* revenue: rebuild sales rows and division maps per entity+week */
+  const byEW = {};
+  (weekly || []).forEach(function(r){
+    const k = r.entity + "|" + r.we_date;
+    (byEW[k] = byEW[k] || []).push(r);
+  });
+  Object.keys(byEW).forEach(function(k){
+    const parts = k.split("|"), ent = parts[0], we = parts[1], rows = byEW[k];
+    const B = PULSE.byEntity[ent]; if (!B) return;
+    weeks++;
+
+    const sale = { we: we, assign:0, dh:0, exp:0, other:0, assist:0, total:0 };
+    const div = { period: null, contract:{}, dh:{}, other:{}, payroll: null };
+    rows.forEach(function(r){
+      const amt = Number(r.amount) || 0;
+      if (sale[r.category] === undefined) sale[r.category] = 0;
+      sale[r.category] += amt;
+      sale.total += amt;
+      if (r.category === "assign" && r.division) div.contract[r.division] = (div.contract[r.division]||0) + amt;
+      else if (r.category === "dh" && r.division) div.dh[r.division] = (div.dh[r.division]||0) + amt;
+      else div.other[r.account_name] = (div.other[r.account_name]||0) + amt;
+      if (!div.period && r.period_start && r.period_end) div.period = r.period_start + " to " + r.period_end;
+    });
+    ["assign","dh","exp","other","assist","total"].forEach(function(f){ sale[f] = Math.round((sale[f]||0)*100)/100; });
+
+    const prior = B.divisions[we];
+    if (prior && prior.payroll) div.payroll = prior.payroll;
+    B.divisions[we] = div;
+    if (B.detailWeeks.indexOf(we) === -1) B.detailWeeks.push(we);
+    B.detailWeeks.sort().reverse();
+
+    const i = B.sales.findIndex(function(x){ return x.we === we; });
+    if (i >= 0) B.sales[i] = sale; else { B.sales.push(sale); B.sales.sort(function(a,b){ return a.we < b.we ? -1 : 1; }); }
+    const e2 = PULSE.entities.find(function(e){ return e.id === ent; });
+    if (e2) e2.live = true;
+  });
+
+  /* hand-keyed inputs: payroll, hours, headcount */
+  (inputs || []).forEach(function(r){
+    const B = PULSE.byEntity[r.entity]; if (!B) return;
+    const we = r.we_date;
+
+    if (r.payroll_internal != null || r.payroll_external != null) {
+      B.divisions[we] = B.divisions[we] || { period:null, contract:{}, dh:{}, other:{}, payroll:null };
+      B.divisions[we].payroll = {
+        internal: Number(r.payroll_internal) || 0,
+        external: Number(r.payroll_external) || 0,
+        workersComp: r.workers_comp == null ? null : Number(r.workers_comp),
+        allowances:  r.allowances  == null ? null : Number(r.allowances),
+        bonuses:     r.bonuses     == null ? null : Number(r.bonuses)
+      };
+    }
+
+    if (r.hours_rt != null || r.hours_ot != null || r.hours_dt != null) {
+      const rt = Number(r.hours_rt)||0, ot = Number(r.hours_ot)||0, dt = Number(r.hours_dt)||0;
+      const row = B.hours.find(function(x){ return x.we === we; });
+      const vals = { rt: rt, ot: ot, dt: dt, total: Math.round((rt+ot+dt)*100)/100,
+                     paidTotal: r.hours_paid_total == null ? null : Number(r.hours_paid_total) };
+      if (row) { Object.keys(vals).forEach(function(k){ if (vals[k] != null) row[k] = vals[k]; }); }
+      else { vals.we = we; vals.py = null; B.hours.push(vals); B.hours.sort(function(a,b){ return a.we < b.we ? -1 : 1; }); }
+    }
+
+    if (r.headcount != null) {
+      const row = B.hc.find(function(x){ return x.we === we; });
+      if (row) { row.hc = r.headcount; row.hcSource = r.headcount_source; }
+      else { B.hc.push({ we: we, hc: r.headcount, py: null, goal: null, hcSource: r.headcount_source });
+             B.hc.sort(function(a,b){ return a.we < b.we ? -1 : 1; }); }
+    }
+
+    B.inputs = B.inputs || {};
+    B.inputs[we] = r;
+  });
+
+  return weeks;
+}
+
+async function hydrate(){
+  let sb;
+  try { sb = await sbClient(); }
+  catch (e) { setSrc("error", "offline snapshot"); SRC.note = String(e.message || e); return; }
+  try {
+    const res = await Promise.all([
+      sb.from("pulse_config").select("*").order("sort_order"),
+      sb.from("pulse_weekly").select("*").order("we_date", { ascending: false }).limit(4000),
+      sb.from("pulse_inputs").select("*").order("we_date", { ascending: false }).limit(600)
+    ]);
+    const err = res.find(function(r){ return r.error; });
+    if (err) {
+      const m = String(err.error.message || "");
+      setSrc("local", /jwt|permission|denied|row-level/i.test(m) ? "sign in to load live" : "snapshot, read failed");
+      SRC.note = m;
+      return;
+    }
+    const n = overlay(res[0].data, res[1].data, res[2].data);
+    CAN_WRITE = true;
+    if (n > 0) { SRC.weeks = n; setSrc("live", "live \u00b7 " + n + " week" + (n === 1 ? "" : "s")); }
+    else setSrc("local", "no weeks loaded yet");
+  } catch (e) {
+    setSrc("error", "offline snapshot"); SRC.note = String(e.message || e);
+  }
 }
 
 /* ------------------------------------------------------------------ week window (Sunday -> Saturday) */
@@ -604,6 +793,112 @@ function attribution(){
   '</div>';
 }
 
+/* ------------------------------------------------------------------ weekly input form */
+let KEY_OPEN = false;
+
+function keyPanel(){
+  const B = E(), cur = (B.inputs || {})[WE] || {};
+  const d = divAt(WE), pay = d && d.payroll;
+  const s = salesAt(WE);
+  const v = function(x){ return x == null ? "" : x; };
+
+  if (!KEY_OPEN) {
+    const done = pay ? "keyed" : "not keyed yet";
+    return '<div class="p"><div class="keybar">'+
+      '<div><h2 class="p-t">This week\'s inputs</h2>'+
+      '<p class="p-s" style="margin-bottom:0">Payroll, hours and headcount for '+esc(meta().short)+', week ending '+mdy(WE)+
+      ' &middot; <b style="color:'+(pay?"var(--up)":"var(--gold-lite)")+'">'+done+'</b>'+
+      (cur.updated_by ? ' &middot; last saved by '+esc(cur.updated_by) : '')+'</p></div>'+
+      '<button class="btn" id="keyOpen">'+
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>'+
+      (pay ? "Edit" : "Key this week")+'</button>'+
+    '</div></div>';
+  }
+
+  const f = function(id, lab, val, step){
+    return '<div><label for="'+id+'">'+lab+'</label>'+
+      '<input id="'+id+'" type="number" step="'+(step||"0.01")+'" inputmode="decimal" value="'+v(val)+'"></div>';
+  };
+  return '<div class="p"><div class="keybar"><div>'+
+    '<h2 class="p-t">Key '+esc(meta().short)+' &middot; week ending '+mdy(WE)+'</h2>'+
+    '<p class="p-s" style="margin-bottom:0">Payroll comes off the pay run. Leave anything you do not have blank.</p></div>'+
+    '<button class="btn" id="keyClose">Cancel</button></div>'+
+    '<div class="kf">'+
+      '<div class="kfg">Payroll cash requirement</div>'+
+      f("kInt","Internal", cur.payroll_internal)+
+      f("kExt","External", cur.payroll_external)+
+      f("kWc","Workers comp", cur.workers_comp)+
+      f("kAllow","Allowances", cur.allowances)+
+      f("kBon","Bonuses", cur.bonuses)+
+      '<div class="kfg">Hours</div>'+
+      f("kRt","Regular", cur.hours_rt)+
+      f("kOt","Overtime", cur.hours_ot)+
+      f("kDt","Double time", cur.hours_dt)+
+      f("kPaid","Paid on the run", cur.hours_paid_total)+
+      '<div class="kfg">Headcount</div>'+
+      f("kHc","Headcount", cur.headcount, "1")+
+      '<div><label for="kSrc">Source</label><select id="kSrc">'+
+        ['pay_run','sf_report','manual'].map(function(o){
+          const lab = o === "pay_run" ? "Pay run" : o === "sf_report" ? "Salesforce report" : "Manual";
+          return '<option value="'+o+'"'+((cur.headcount_source||"pay_run")===o?" selected":"")+'>'+lab+'</option>';
+        }).join("")+'</select></div>'+
+      '<div class="wide"><label for="kNote">Note</label><textarea id="kNote">'+esc(cur.notes||"")+'</textarea></div>'+
+    '</div>'+
+    '<div class="kfoot">'+
+      '<button class="btn primary" id="keySave">Save week</button>'+
+      '<span class="calc" id="keyCalc"></span>'+
+      '<span class="msg" id="keyMsg"></span>'+
+    '</div>'+
+    (s ? '<p class="note">Sales for this week are '+usdc(s.total)+', so the spread updates as soon as payroll is saved.</p>' : '')+
+  '</div>';
+}
+
+function keyRecalc(){
+  const g = function(id){ const el = document.getElementById(id); const n = el ? parseFloat(el.value) : NaN; return isNaN(n) ? 0 : n; };
+  const s = salesAt(WE), pay = g("kInt") + g("kExt");
+  const hrs = g("kRt") + g("kOt") + g("kDt");
+  const el = document.getElementById("keyCalc"); if (!el) return;
+  const bits = [];
+  if (pay) bits.push("payroll <b>" + usdc(pay) + "</b>");
+  if (s && pay) bits.push("spread <b>" + usdc(s.total - pay) + "</b> (" + ((s.total - pay) / s.total * 100).toFixed(1) + "%)");
+  if (hrs) bits.push("hours <b>" + num(hrs, 2) + "</b>");
+  el.innerHTML = bits.join(" &middot; ");
+}
+
+async function keySave(){
+  const btn = document.getElementById("keySave"), msg = document.getElementById("keyMsg");
+  const num_ = function(id){ const el = document.getElementById(id); if (!el || el.value === "") return null;
+                             const n = parseFloat(el.value); return isNaN(n) ? null : n; };
+  const int_ = function(id){ const n = num_(id); return n == null ? null : Math.round(n); };
+  const row = {
+    entity: ENT, we_date: WE,
+    payroll_internal: num_("kInt"), payroll_external: num_("kExt"),
+    workers_comp: num_("kWc"), allowances: num_("kAllow"), bonuses: num_("kBon"),
+    hours_rt: num_("kRt"), hours_ot: num_("kOt"), hours_dt: num_("kDt"),
+    hours_paid_total: num_("kPaid"),
+    headcount: int_("kHc"),
+    headcount_source: (document.getElementById("kSrc") || {}).value || "pay_run",
+    notes: (document.getElementById("kNote") || {}).value || null
+  };
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Saving\u2026";
+  try {
+    const sb = await sbClient();
+    let who = null;
+    try { const u = await sb.auth.getUser(); who = u && u.data && u.data.user && u.data.user.email; } catch (e) {}
+    row.updated_by = who || "unknown";
+    const res = await sb.from("pulse_inputs").upsert(row, { onConflict: "entity,we_date" });
+    if (res.error) throw new Error(res.error.message);
+    overlay(null, null, [row]);
+    msg.className = "msg ok"; msg.textContent = "Saved";
+    KEY_OPEN = false;
+    setTimeout(function(){ render(); }, 550);
+  } catch (e) {
+    msg.className = "msg bad";
+    msg.textContent = /row-level|permission|denied/i.test(String(e.message)) ? "No permission to save" : String(e.message);
+    btn.disabled = false;
+  }
+}
+
 /* ------------------------------------------------------------------ composition bar */
 function compBar(){
   let rows=divRows(WE).filter(r=>r.now>0);
@@ -756,6 +1051,9 @@ function render(){
     kpi("Overtime", otp!=null? otp.toFixed(1)+"%":"&ndash;", h? num(h.ot,1)+" of "+num(h.total,0)+" hrs":"")+
     kpi("Headcount", c&&c.hc? c.hc:"&ndash;", c&&c.hc? arrow(c.hc-c.py)+'<span class="'+cls(c.hc-c.py)+'">'+Math.abs(c.hc-c.py)+'</span> vs 2025':"no timesheet series")+
   '</div>');
+
+  /* --- weekly inputs --- */
+  html.push('<div class="grid">'+keyPanel()+'</div>');
 
   /* --- attribution: how the report's units roll up to entities --- */
   if(PULSE.report) html.push('<div class="grid">'+attribution()+'</div>');
@@ -913,7 +1211,10 @@ function render(){
     '<ul>'+pts.map(t=>'<li>'+t+'</li>').join("")+'</ul>'+
   '</div>');
 
-  html.push('<p class="foot">Prototype on real data. Figures for '+esc(ent.name)+' pulled from Xero on '+mdy(PULSE.generated)+'. '+
+  html.push('<p class="foot">'+(SRC.mode==="live"
+      ? 'Live from Supabase &middot; '+SRC.weeks+' week'+(SRC.weeks===1?'':'s')+' loaded. '
+      : 'Local snapshot, not yet reading from Supabase'+(SRC.note?' ('+esc(SRC.note.slice(0,90))+')':'')+'. ')+
+    'Figures for '+esc(ent.name)+' reconciled against Xero on '+mdy(PULSE.generated)+'. '+
     'One week ending, two clocks, both keyed to the same Sunday: Salesforce holds the work week that ended '+mdy(WE)+
     ', Xero holds the invoices raised for it over '+esc(weekWindow(WE).label)+'. The offset is how billing works, not a mismatch. '+
     'Payroll cash requirement is a weekly input from the pay run.</p>');
@@ -926,6 +1227,18 @@ function render(){
   }));
   const cp=document.getElementById("clearPick");
   if(cp) cp.addEventListener("click",ev=>{ ev.stopPropagation(); PICK=null; render(); });
+  const kOpen=document.getElementById("keyOpen");
+  if(kOpen) kOpen.addEventListener("click",()=>{ KEY_OPEN=true; render(); });
+  const kClose=document.getElementById("keyClose");
+  if(kClose) kClose.addEventListener("click",()=>{ KEY_OPEN=false; render(); });
+  const kSave=document.getElementById("keySave");
+  if(kSave){
+    kSave.addEventListener("click", keySave);
+    ["kInt","kExt","kRt","kOt","kDt"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.addEventListener("input", keyRecalc);
+    });
+    keyRecalc();
+  }
   main.querySelectorAll("th.sortable").forEach(th=>th.addEventListener("click",()=>{
     const c=th.dataset.sort;
     SORT = SORT.col===c ? {col:c,dir:-SORT.dir} : {col:c,dir:c==="div"?1:-1};
@@ -1026,13 +1339,13 @@ function buildWeekSelect(){
     }
     ENT=b.dataset.id;
     [...rail.children].forEach(x=>x.setAttribute("aria-selected", x.dataset.id===ENT));
-    PICK=null; WE=defaultWeek(); buildWeekSelect(); render();
+    PICK=null; KEY_OPEN=false; WE=defaultWeek(); buildWeekSelect(); render();
     const dw=(E().detailWeeks||[]).slice().sort(), i=dw.indexOf(WE);
     document.getElementById("wPrev").disabled=i<=0;
     document.getElementById("wNext").disabled=i<0||i>=dw.length-1;
   });
   const ws=document.getElementById("weekSel");
-  ws.addEventListener("change", e=>{ WE=e.target.value; PICK=null; render(); });
+  ws.addEventListener("change", e=>{ WE=e.target.value; PICK=null; KEY_OPEN=false; render(); });
   document.getElementById("viewSel").addEventListener("change", e=>{ VIEW=e.target.value; PICK=null; render(); });
 
   /* week stepper — only steps between weeks that actually have detail */
@@ -1068,6 +1381,12 @@ function buildWeekSelect(){
 
   const railClick=rail.addEventListener;
   WE=defaultWeek(); buildWeekSelect(); syncUnits(); render(); syncStep();
+
+  /* paint from the seed first, then overlay live rows and repaint */
+  hydrate().then(function(){
+    if(!PULSE.byEntity[ENT]) ENT = PULSE.entities[0].id;
+    WE = defaultWeek(); buildWeekSelect(); render(); syncStep();
+  });
 
   /* embedded in the HQ Finance pane: announce readiness and current week to the shell */
   try {
