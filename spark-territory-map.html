@@ -503,13 +503,22 @@ function diffLog(prev,next){
   next.territories.forEach(t=>{ if(pn[t.id]&&pn[t.id]!==t.name) msgs.push('"'+pn[t.id]+'" renamed to "'+t.name+'".'); });
   return msgs;
 }
-document.getElementById("saveBtn").addEventListener("click",()=>{
+document.getElementById("saveBtn").addEventListener("click",async ()=>{
   const prev=JSON.parse(saved);
   for(const m of diffLog(prev,data)) data.log.unshift({ts:new Date().toISOString(),msg:m});
   data.updated=new Date().toISOString();
   localStorage.setItem(LS_KEY,JSON.stringify(data));
+  var sharedOk=false, denied=false, failMsg="";
+  try{
+    var tok = await sfToken();
+    if(tok){
+      var r = await fetch(WORKER+"/terr-map-config",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({data:data})});
+      if(r.status===403){ denied=true; }
+      else{ var j=await r.json(); sharedOk=!!(j&&j.ok); if(!sharedOk) failMsg=(j&&j.error)||("HTTP "+r.status); }
+    } else { failMsg="no HQ session"; }
+  }catch(e){ failMsg=String(e.message||e); }
   saved=JSON.stringify(data);markDirty();renderRail();
-  toast("Saved and logged. Export a JSON backup to share.");
+  toast(sharedOk ? "Saved for everyone." : (denied ? "Saved on this device only — your account isn't on the map admin list." : "Saved on this device only — shared store unreachable ("+failMsg+")."));
 });
 document.getElementById("undoBtn").addEventListener("click",()=>{
   data=JSON.parse(saved);activeTerr=data.territories[0]?.id||null;
@@ -801,6 +810,27 @@ svg.addEventListener('click', function(e){
   else clearFocus();
 });
 initSF();
+/* ---------- shared map config (Supabase via worker) ---------- */
+async function loadShared(){
+  try{
+    var tok = await sfToken(); if(!tok) return;
+    var r = await fetch(WORKER + "/terr-map-config", {headers:{Authorization:"Bearer "+tok}});
+    var j = await r.json();
+    if(j && j.ok && j.data && Array.isArray(j.data.territories)){
+      data = j.data; if(!Array.isArray(data.log)) data.log = [];
+      saved = JSON.stringify(data);
+      activeTerr = data.territories[0] ? data.territories[0].id : null;
+      focusTerr = null; document.body.classList.remove("focused"); closePanel();
+      renderMap(); renderRail(); markDirty();
+      if(j.updated_at){
+        document.getElementById("stamp").textContent = "Updated " +
+          new Date(j.updated_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) +
+          (j.updated_by ? " by " + String(j.updated_by).split("@")[0] : "");
+      }
+    }
+  }catch(e){}
+}
+loadShared();
 </script>
 </body>
 </html>
