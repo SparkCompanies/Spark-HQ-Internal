@@ -650,6 +650,7 @@ function stateOfRec(r){ return normState(r.shippingState || r.shipping_state || 
 async function sfToken(){
   try{ var sb = window.SPARK_SB || (window.opener && window.opener.SPARK_SB);
     if(sb && sb.getToken){ var t = await Promise.resolve(sb.getToken()); if(t) return t; } }catch(e){}
+  try{ var hq = JSON.parse(localStorage.getItem('spark_hq_sb_auth')); if(hq && hq.access_token) return hq.access_token; }catch(e){}
   try{
     for(var i=0;i<localStorage.length;i++){
       var k = localStorage.key(i);
