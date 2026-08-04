@@ -672,11 +672,16 @@ async function initSF(){
   if(!tok){ SF.error = 'auth'; setChip('err','Salesforce: sign in to HQ, then refresh'); return; }
   setChip('', 'Salesforce: loading…');
   try{
-    var res = await Promise.all([
-      fetch(WORKER + '/terr-accounts', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}),
-      fetch(WORKER + '/terr-jobs', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}).catch(function(){return null;})
-    ]);
-    var aj = res[0], jj = res[1];
+    var aj, jj;
+    var md = await fetch(WORKER + '/terr-map-data', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}).catch(function(){return null;});
+    if(md && md.ok){ aj = { ok:true, accounts: md.accounts || [] }; jj = { ok:true, jobs: md.jobs || [], unplaceable: [] }; }
+    else {
+      var res = await Promise.all([
+        fetch(WORKER + '/terr-accounts', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}),
+        fetch(WORKER + '/terr-jobs', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}).catch(function(){return null;})
+      ]);
+      aj = res[0]; jj = res[1];
+    }
     if(!aj || !aj.ok) throw new Error((aj && aj.error) || 'accounts endpoint error');
     SF.accts = aj.accounts || [];
     var byName = {}; SF.accts.forEach(function(a){ byName[String(a.name||'').toLowerCase().trim()] = a; });
