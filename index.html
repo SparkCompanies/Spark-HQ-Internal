@@ -13156,7 +13156,8 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
             var si = ni.indexOf('sparkline');
             if (si !== -1) ni.splice(si + 1, 0, 'boards'); else ni.splice(1, 0, 'boards');
           }
-        });
+        }); // vTerrMap — ensure Territory Map nav exists in saved sets
+  Object.keys(merged).forEach(function(k){ var ni = merged[k].navItems; if (Array.isArray(ni) && ni.indexOf('terrmap') === -1) { var bi = ni.indexOf('boards'); if (bi !== -1) ni.splice(bi + 1, 0, 'terrmap'); else ni.splice(1, 0, 'terrmap'); } });
         // vMatch — ensure Spark Match nav exists in saved sets
         Object.keys(merged).forEach(function(k){
           var ni = merged[k].navItems;
