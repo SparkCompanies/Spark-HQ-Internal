@@ -13113,21 +13113,21 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['analytics', 'knowledge', 'role', 'content'],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','match','training','standard','careers','people','tools','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: ['role'],
-      navItems: ['home','people','leadership']
+      navItems: ['home','people','leadership','terrmap']
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -13240,7 +13240,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     roleEditingId = roleId;
     const isNew = !roleId;
     const r = isNew
-      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','match','training','standard','careers','people','tools'], adminTabs: [] }
+      ? { label: '', icon: '◆', desc: '', who: '', navItems: ['home','boards','terrmap','match','training','standard','careers','people','tools'], adminTabs: [] }
       : ROLE_PERMISSIONS[roleId];
     const modal = document.getElementById('roleEditorModal');
     if (!modal) return;
