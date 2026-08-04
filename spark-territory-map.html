@@ -166,6 +166,9 @@ body.focused .showall{display:inline-flex}
 .bu-job a:hover{color:var(--gold-hi)}
 .bu-job a svg{color:var(--faint)}
 .bu-job a:hover svg{color:var(--gold-hi)}
+.req-edit{color:var(--faint);cursor:pointer;padding:0 4px;font-size:11px}
+.req-edit:hover{color:var(--gold-hi)}
+.req-bu-sel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px;max-width:170px}
 .bu-job .ja{color:var(--faint);display:block;font-size:11px}
 .p-empty{padding:24px 8px;font-size:13px;color:var(--dim);line-height:1.6;text-align:center}
 .p-empty button{margin-top:10px}
@@ -727,7 +730,7 @@ function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++
 function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
 
 /* ---------- panel ---------- */
-var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null;
+var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null, reqEditing = null, openBUs = {};
 var panelEl = document.getElementById('panel');
 function openPanel(tid, st){
   if(admin) return;
@@ -786,13 +789,21 @@ function renderPanel(){
       var max = groups[keys[0]].length;
       h = keys.map(function(k){
         var g = groups[k], c = buColor(k);
-        return '<div class="bu-row" data-bu="'+esc(k)+'"><div class="bu-top"><span class="bn">'+esc(k)+'</span><span class="bc">'+g.length+'</span></div>'
+        var forceOpen = openBUs[k] || (reqEditing && g.some(function(j){ return j.id===reqEditing; }));
+        return '<div class="bu-row'+(forceOpen?' open':'')+'" data-bu="'+esc(k)+'"><div class="bu-top"><span class="bn">'+esc(k)+'</span><span class="bc">'+g.length+'</span></div>'
           +'<div class="bu-bar"><i style="width:'+(g.length/max*100)+'%;background:'+c+'"></i></div>'
           +'<div class="bu-jobs">'+g.map(function(j){
+            if(reqEditing && j.id===reqEditing){
+              return '<div class="bu-job req-editor" data-jid="'+esc(j.id)+'">'+esc(j.name||'Open req')
+                +'<div style="margin-top:5px;display:flex;gap:6px;align-items:center"><select class="req-bu-sel">'
+                +buOptions().map(function(b){return '<option'+(b===j.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
+                +'</select><button class="tb req-bu-save">Save to SF</button><button class="tb req-bu-cancel">Cancel</button></div></div>';
+            }
             var nm = esc(j.name||j.title||'Open req');
             var link = j.url || j.link || null;
             var head = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener">'+nm+' <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : nm;
-            return '<div class="bu-job">'+head+'<span class="ja">'+esc(j.account||'')+(jobState(j)?' · '+jobState(j):'')+'</span></div>';
+            var pencil = j.id ? '<span class="req-edit" data-jid="'+esc(j.id)+'" title="Change BU in Salesforce">✎</span>' : '';
+            return '<div class="bu-job">'+head+pencil+'<span class="ja">'+esc(j.account||'')+(jobState(j)?' · '+jobState(j):'')+'</span></div>';
           }).join('')+'</div></div>';
       }).join('');
     }
@@ -809,8 +820,34 @@ document.querySelectorAll('.p-tab').forEach(function(b){ b.addEventListener('cli
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
   renderPanel();
 });});
-document.getElementById('pBody').addEventListener('click', function(e){
-  var row = e.target.closest('.bu-top'); if(row) row.parentElement.classList.toggle('open');
+function buOptions(){
+  var s = {};
+  SF.accts.forEach(function(a){ if(a.bu) s[a.bu]=1; });
+  SF.jobs.forEach(function(j){ if(j.bu) s[j.bu]=1; });
+  return Object.keys(s).sort();
+}
+document.getElementById('pBody').addEventListener('click', async function(e){
+  var pe = e.target.closest('.req-edit');
+  if(pe){ reqEditing = pe.dataset.jid; renderPanel(); return; }
+  if(e.target.closest('.req-bu-cancel')){ reqEditing = null; renderPanel(); return; }
+  var sv = e.target.closest('.req-bu-save');
+  if(sv){
+    var row = sv.closest('.req-editor'), jid = row.dataset.jid;
+    var bu = row.querySelector('.req-bu-sel').value;
+    sv.disabled = true; sv.textContent = 'Saving…';
+    try{
+      var tok = await sfToken();
+      var r = await fetch(WORKER+'/sf-update-job-bu',{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({jobId:jid,bu:bu})});
+      var j = await r.json();
+      if(r.status===403){ toast("BU changes are limited to map admins."); }
+      else if(j && j.ok){ var job = SF.jobs.find(function(x){return x.id===jid;}); if(job) job.bu = bu; toast("BU updated in Salesforce."); }
+      else { toast("SF update failed: "+((j&&j.error)||("HTTP "+r.status))); }
+    }catch(err){ toast("SF update failed: "+String(err.message||err)); }
+    reqEditing = null; renderPanel(); return;
+  }
+  if(e.target.closest('.req-editor')) return;
+  var row2 = e.target.closest('.bu-top');
+  if(row2){ var k = row2.parentElement.dataset.bu; openBUs[k] = !openBUs[k]; row2.parentElement.classList.toggle('open'); }
 });
 
 /* ---------- focus escape hatches ---------- */
