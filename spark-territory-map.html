@@ -162,6 +162,10 @@ body.focused .showall{display:inline-flex}
 .bu-jobs{display:none;margin-top:8px}
 .bu-row.open .bu-jobs{display:block}
 .bu-job{font-size:12px;color:#c6c4bb;padding:5px 0 5px 10px;border-left:2px solid var(--edge);margin-bottom:4px;line-height:1.4}
+.bu-job a{color:#c6c4bb;text-decoration:none}
+.bu-job a:hover{color:var(--gold-hi)}
+.bu-job a svg{color:var(--faint)}
+.bu-job a:hover svg{color:var(--gold-hi)}
 .bu-job .ja{color:var(--faint);display:block;font-size:11px}
 .p-empty{padding:24px 8px;font-size:13px;color:var(--dim);line-height:1.6;text-align:center}
 .p-empty button{margin-top:10px}
@@ -784,7 +788,12 @@ function renderPanel(){
         var g = groups[k], c = buColor(k);
         return '<div class="bu-row" data-bu="'+esc(k)+'"><div class="bu-top"><span class="bn">'+esc(k)+'</span><span class="bc">'+g.length+'</span></div>'
           +'<div class="bu-bar"><i style="width:'+(g.length/max*100)+'%;background:'+c+'"></i></div>'
-          +'<div class="bu-jobs">'+g.map(function(j){ return '<div class="bu-job">'+esc(j.name||j.title||'Open req')+'<span class="ja">'+esc(j.account||'')+(jobState(j)?' · '+jobState(j):'')+'</span></div>'; }).join('')+'</div></div>';
+          +'<div class="bu-jobs">'+g.map(function(j){
+            var nm = esc(j.name||j.title||'Open req');
+            var link = j.url || j.link || null;
+            var head = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener">'+nm+' <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : nm;
+            return '<div class="bu-job">'+head+'<span class="ja">'+esc(j.account||'')+(jobState(j)?' · '+jobState(j):'')+'</span></div>';
+          }).join('')+'</div></div>';
       }).join('');
     }
   }
