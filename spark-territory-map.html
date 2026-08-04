@@ -119,60 +119,6 @@ body.dirty .savebar{display:flex}
 .savebar .hb.solid{background:#141414;color:var(--gold-hi)}
 .toast{position:fixed;bottom:20px;right:20px;background:#000;border:1px solid var(--edge);border-left:3px solid var(--gold);color:#fff;padding:11px 17px;border-radius:4px;font-size:13.5px;display:none;z-index:20}
 
-/* ---------- SF panel ---------- */
-.showall{display:none;font-size:12px;padding:5px 12px;border:1px solid var(--gold);background:transparent;color:var(--gold-hi);border-radius:99px}
-body.focused .showall{display:inline-flex}
-.sfchip{font-size:11.5px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
-.sfchip .dot{width:7px;height:7px;border-radius:99px;background:#5c5a54}
-.sfchip.on .dot{background:#4c9a5f}
-.sfchip.err .dot{background:#c05a4e}
-.panel{position:fixed;top:0;right:-420px;width:400px;max-width:96vw;height:100vh;background:var(--panel);border-left:1px solid var(--edge);z-index:30;display:flex;flex-direction:column;transition:right .22s ease;box-shadow:-14px 0 40px rgba(0,0,0,.55)}
-.panel.open{right:0}
-.p-head{display:flex;align-items:center;gap:10px;padding:15px 16px;border-bottom:1px solid var(--edge)}
-.p-head .sw{width:14px;height:14px}
-.p-head h2{font-size:16px;font-weight:600;flex:1}
-.p-x{background:transparent;border:1px solid var(--edge);color:var(--dim);width:30px;height:30px;border-radius:4px;font-size:15px}
-.p-x:hover{border-color:var(--gold);color:var(--gold-hi)}
-.p-widen{display:none;font-size:11.5px;padding:5px 11px;border:1px solid var(--edge);background:transparent;color:var(--dim);border-radius:99px;white-space:nowrap}
-.p-widen:hover{border-color:var(--gold);color:var(--gold-hi)}
-.p-stats{display:flex;gap:0;border-bottom:1px solid var(--edge)}
-.p-stat{flex:1;padding:10px 16px;border-right:1px solid var(--edge)}
-.p-stat:last-child{border-right:none}
-.p-stat .n{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
-.p-stat .l{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-.p-tabs{display:flex;border-bottom:1px solid var(--edge)}
-.p-tab{flex:1;padding:10px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim);font-size:13px;letter-spacing:.04em}
-.p-tab.on{color:var(--gold-hi);border-bottom-color:var(--gold);font-weight:600}
-.p-body{flex:1;overflow-y:auto;padding:12px 16px}
-.p-search{width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:4px;color:var(--txt);font-family:inherit;font-size:13px;padding:8px 10px;margin-bottom:10px}
-.acct{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--edge)}
-.acct .nm{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.acct a{color:var(--txt);text-decoration:none}
-.acct a:hover{color:var(--gold-hi)}
-.acct .ext{color:var(--faint);flex:none}
-.acct a:hover .ext{color:var(--gold-hi)}
-.acct .meta{font-size:11px;color:var(--dim);white-space:nowrap}
-.butag{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:99px;font-weight:600;flex:none}
-.bu-row{padding:10px 2px;border-bottom:1px solid var(--edge)}
-.bu-top{display:flex;align-items:center;gap:10px;cursor:pointer}
-.bu-top .bn{font-size:13.5px;font-weight:600;flex:1}
-.bu-top .bc{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums}
-.bu-bar{height:4px;background:var(--panel2);border-radius:2px;margin-top:7px}
-.bu-bar i{display:block;height:100%;border-radius:2px}
-.bu-jobs{display:none;margin-top:8px}
-.bu-row.open .bu-jobs{display:block}
-.bu-job{font-size:12px;color:#c6c4bb;padding:5px 0 5px 10px;border-left:2px solid var(--edge);margin-bottom:4px;line-height:1.4}
-.bu-job a{color:#c6c4bb;text-decoration:none}
-.bu-job a:hover{color:var(--gold-hi)}
-.bu-job a svg{color:var(--faint)}
-.bu-job a:hover svg{color:var(--gold-hi)}
-.req-edit{color:var(--faint);cursor:pointer;padding:0 4px;font-size:11px}
-.req-edit:hover{color:var(--gold-hi)}
-.req-bu-sel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px;max-width:170px}
-.bu-job .ja{color:var(--faint);display:block;font-size:11px}
-.p-empty{padding:24px 8px;font-size:13px;color:var(--dim);line-height:1.6;text-align:center}
-.p-empty button{margin-top:10px}
-.p-foot{padding:9px 16px;border-top:1px solid var(--edge);font-size:11px;color:var(--faint)}
 /* ---------- Print ---------- */
 .printonly{display:none}
 @media print{
@@ -236,9 +182,7 @@ body.focused .showall{display:inline-flex}
     <div class="mapbar">
       <h1>United States coverage</h1>
       <span class="pill" id="pill">View</span>
-      <span class="hint" id="hint">Hover a state · click it to open its territory.</span>
-      <button class="showall" id="showAll">Show all territories</button>
-      <span class="sfchip" id="sfchip"><span class="dot"></span><span id="sfchipTxt">Salesforce: connecting…</span></span>
+      <span class="hint" id="hint">Hover a state · click a territory card to focus it.</span>
     </div>
     <div class="paintbar" id="paintbar"></div>
     <div class="mapwrap" id="mapwrap">
@@ -256,16 +200,6 @@ body.focused .showall{display:inline-flex}
       <button class="hb solid" id="saveBtn">Save & log</button>
     </div>
   </main>
-</div>
-<div class="panel" id="panel">
-  <div class="p-head"><span class="sw" id="pSw"></span><h2 id="pTitle">Territory</h2><button class="p-widen" id="pWiden"></button><button class="p-x" id="pClose">✕</button></div>
-  <div class="p-stats" id="pStats"></div>
-  <div class="p-tabs">
-    <button class="p-tab on" data-pt="clients" id="ptClients">Clients</button>
-    <button class="p-tab" data-pt="reqs" id="ptReqs">Open reqs by BU</button>
-  </div>
-  <div class="p-body" id="pBody"></div>
-  <div class="p-foot" id="pFoot">Salesforce via spark-hq-worker</div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -396,8 +330,7 @@ function renderRail(){
   pb.innerHTML='<span class="pb-l">Paint with</span>'+data.territories.map(t=>
     '<button class="pchip'+(t.id===activeTerr?" sel":"")+'" data-pick="'+t.id+'"><span class="sw" style="background:'+t.color+'"></span>'+esc(t.name)+'</button>').join("");
   const assigned=data.territories.reduce((a,t)=>a+t.states.length,0);
-  var un=Object.keys(STATES).filter(function(ab){return !terrOf(ab);}).sort();
-  document.getElementById("foot").textContent = un.length ? un.length+" unassigned (dark): "+un.join(" · ") : "All 51 states assigned.";
+  document.getElementById("foot").textContent=(51-assigned)+" unassigned (dark). AK · HI · DC unassigned unless painted.";
   document.getElementById("stamp").textContent=data.updated?"Updated "+new Date(data.updated).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"Draft — not yet saved";
   renderLog(); renderKpis();
 }
@@ -472,7 +405,8 @@ tList.addEventListener("click",e=>{
   if(chip){data.territories.find(t=>t.id===chip.dataset.id).color=chip.dataset.c;renderMap();renderRail();markDirty();return;}
   const head=e.target.closest(".tc-head");
   if(head){const id=head.parentElement.dataset.id;
-    if(admin){activeTerr=id;renderMap();renderRail();} else {(focusTerr===id)?clearFocus():setFocus(id);}}
+    if(admin){activeTerr=id;} else {focusTerr=(focusTerr===id?null:id);}
+    renderMap();renderRail();}
 });
 tList.addEventListener("input",e=>{
   if(e.target.classList.contains("rn")){data.territories.find(t=>t.id===e.target.dataset.id).name=e.target.value;markDirty();}
@@ -494,7 +428,7 @@ adminBtn.addEventListener("click",()=>{
   admin=!admin;document.body.classList.toggle("admin",admin);
   document.getElementById("adminLbl").textContent=admin?"Done editing":"Admin edit";
   pill.textContent=admin?"Admin":"View";pill.classList.toggle("admin",admin);
-  hint.textContent=admin?"Pick a territory in the gold bar, then tap states. Tap again to remove. Drag to paint several.":"Click a state for its clients & reqs · territory cards for the full region.";
+  hint.textContent=admin?"Pick a territory in the gold bar, then tap states. Tap again to remove. Drag to paint several.":"Hover a state · click a territory card to focus it.";
   if(admin&&!activeTerr)activeTerr=data.territories[0]?.id||null;
   if(admin){focusTerr=null;renderMap();}
   renderRail();
@@ -513,22 +447,13 @@ function diffLog(prev,next){
   next.territories.forEach(t=>{ if(pn[t.id]&&pn[t.id]!==t.name) msgs.push('"'+pn[t.id]+'" renamed to "'+t.name+'".'); });
   return msgs;
 }
-document.getElementById("saveBtn").addEventListener("click",async ()=>{
+document.getElementById("saveBtn").addEventListener("click",()=>{
   const prev=JSON.parse(saved);
   for(const m of diffLog(prev,data)) data.log.unshift({ts:new Date().toISOString(),msg:m});
   data.updated=new Date().toISOString();
   localStorage.setItem(LS_KEY,JSON.stringify(data));
-  var sharedOk=false, denied=false, failMsg="";
-  try{
-    var tok = await sfToken();
-    if(tok){
-      var r = await fetch(WORKER+"/terr-map-config",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({data:data})});
-      if(r.status===403){ denied=true; }
-      else{ var j=await r.json(); sharedOk=!!(j&&j.ok); if(!sharedOk) failMsg=(j&&j.error)||("HTTP "+r.status); }
-    } else { failMsg="no HQ session"; }
-  }catch(e){ failMsg=String(e.message||e); }
   saved=JSON.stringify(data);markDirty();renderRail();
-  toast(sharedOk ? "Saved for everyone." : (denied ? "Saved on this device only — your account isn't on the map admin list." : "Saved on this device only — shared store unreachable ("+failMsg+")."));
+  toast("Saved and logged. Export a JSON backup to share.");
 });
 document.getElementById("undoBtn").addEventListener("click",()=>{
   data=JSON.parse(saved);activeTerr=data.territories[0]?.id||null;
@@ -654,238 +579,6 @@ let toastT;
 function toast(m){const el=document.getElementById("toast");el.textContent=m;el.style.display="block";clearTimeout(toastT);toastT=setTimeout(()=>el.style.display="none",3400);}
 
 renderMap();renderRail();
-
-/* ================= SALESFORCE LAYER ================= */
-var WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
-var SF = { accts: [], jobs: [], loaded: false, error: null, at: null };
-var NAME2AB = {}; Object.keys(STATES).forEach(function(ab){ NAME2AB[STATES[ab].name.toLowerCase()] = ab; });
-function normState(v){
-  if(!v) return null;
-  var s = String(v).trim();
-  if(s.length===2 && STATES[s.toUpperCase()]) return s.toUpperCase();
-  return NAME2AB[s.toLowerCase()] || null;
-}
-function stateOfRec(r){ return normState(r.shippingState || r.shipping_state || r.state || r.st); }
-async function sfToken(){
-  try{ var sb = window.SPARK_SB || (window.opener && window.opener.SPARK_SB);
-    if(sb && sb.getToken){ var t = await Promise.resolve(sb.getToken()); if(t) return t; } }catch(e){}
-  try{ var hq = JSON.parse(localStorage.getItem('spark_hq_sb_auth')); if(hq && hq.access_token) return hq.access_token; }catch(e){}
-  try{
-    for(var i=0;i<localStorage.length;i++){
-      var k = localStorage.key(i);
-      if(/^sb-.*-auth-token$/.test(k)){
-        var v = JSON.parse(localStorage.getItem(k));
-        var tok = v && (v.access_token || (v.currentSession && v.currentSession.access_token));
-        if(tok) return tok;
-      }
-    }
-  }catch(e){}
-  return null;
-}
-function setChip(cls, txt){
-  var c = document.getElementById('sfchip');
-  c.className = 'sfchip' + (cls ? ' '+cls : '');
-  document.getElementById('sfchipTxt').textContent = txt;
-}
-async function initSF(){
-  var tok = await sfToken();
-  if(!tok){ SF.error = 'auth'; setChip('err','Salesforce: sign in to HQ, then refresh'); return; }
-  setChip('', 'Salesforce: loading…');
-  try{
-    var aj, jj;
-    var md = await fetch(WORKER + '/terr-map-data', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}).catch(function(){return null;});
-    if(md && md.ok){ aj = { ok:true, accounts: md.accounts || [] }; jj = { ok:true, jobs: md.jobs || [], unplaceable: [] }; }
-    else {
-      var res = await Promise.all([
-        fetch(WORKER + '/terr-accounts', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}),
-        fetch(WORKER + '/terr-jobs', {headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json();}).catch(function(){return null;})
-      ]);
-      aj = res[0]; jj = res[1];
-    }
-    if(!aj || !aj.ok) throw new Error((aj && aj.error) || 'accounts endpoint error');
-    SF.accts = aj.accounts || [];
-    var byName = {}; SF.accts.forEach(function(a){ byName[String(a.name||'').toLowerCase().trim()] = a; });
-    var jobs = (jj && jj.ok) ? (jj.jobs || []) : [];
-    ((jj && jj.unplaceable) || []).forEach(function(u){ jobs.push(u); });
-    jobs.forEach(function(j){
-      if(!stateOfRec(j)){
-        var host = byName[String(j.account||'').toLowerCase().trim()];
-        if(host) j._hostState = stateOfRec(host);
-      }
-    });
-    SF.jobs = jobs; SF.loaded = true; SF.at = new Date();
-    var withState = SF.accts.filter(function(a){ return stateOfRec(a); }).length;
-    if(withState === 0){
-      setChip('err','Salesforce: '+SF.accts.length+' accounts — worker missing ShippingState');
-    } else {
-      setChip('on','Salesforce: '+withState+' accounts · '+SF.jobs.length+' reqs');
-    }
-    if(focusTerr) openPanel(focusTerr);
-  }catch(e){ SF.error = String(e.message||e); setChip('err','Salesforce: '+SF.error); }
-}
-function jobState(j){ return stateOfRec(j) || j._hostState || null; }
-function acctsFor(tid, st){ return SF.accts.filter(function(a){ var s=stateOfRec(a); if(!s) return false; if(st) return s===st; var t=terrOf(s); return t&&t.id===tid; }); }
-function jobsFor(tid, st){ return SF.jobs.filter(function(j){ var s=jobState(j); if(!s) return false; if(st) return s===st; var t=terrOf(s); return t&&t.id===tid; }); }
-function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
-function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
-
-/* ---------- panel ---------- */
-var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null, reqEditing = null, openBUs = {};
-var panelEl = document.getElementById('panel');
-function openPanel(tid, st){
-  if(admin) return;
-  panelTid = tid; panelQ = ''; panelTab = 'clients'; panelState = st || null;
-  document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x.dataset.pt==='clients'); });
-  var t = data.territories.find(function(x){return x.id===tid;});
-  if(!t) return;
-  document.getElementById('pSw').style.background = t.color;
-  document.getElementById('pTitle').textContent = panelState ? STATES[panelState].name : t.name;
-  var wb = document.getElementById('pWiden');
-  wb.style.display = panelState ? 'inline-flex' : 'none';
-  wb.textContent = 'All of ' + t.name.replace(/^National /,'');
-  renderPanel();
-  panelEl.classList.add('open');
-}
-function closePanel(){ panelEl.classList.remove('open'); panelTid = null; }
-function renderPanel(){
-  var t = data.territories.find(function(x){return x.id===panelTid;});
-  if(!t) return;
-  var accts = acctsFor(t.id, panelState), jobs = jobsFor(t.id, panelState);
-  document.getElementById('pStats').innerHTML =
-    '<div class="p-stat"><div class="n">'+accts.length+'</div><div class="l">Clients</div></div>'
-   +'<div class="p-stat"><div class="n">'+jobs.length+'</div><div class="l">Open reqs</div></div>'
-   +(panelState
-     ? '<div class="p-stat"><div class="n">'+fmtM(POP[panelState]||0)+'</div><div class="l">Population</div></div>'
-     : '<div class="p-stat"><div class="n">'+t.states.length+'</div><div class="l">States</div></div>');
-  document.getElementById('ptClients').textContent = 'Clients ('+accts.length+')';
-  document.getElementById('ptReqs').textContent = 'Reqs by BU ('+jobs.length+')';
-  var body = document.getElementById('pBody'), h = '';
-  if(!SF.loaded){
-    h = '<div class="p-empty">' + (SF.error==='auth'
-      ? 'Sign in to Spark HQ in another tab, then <br><button class="hb" onclick="initSF()">Retry connection</button>'
-      : (SF.error ? 'Salesforce error: '+esc(SF.error)+'<br><button class="hb" onclick="initSF()">Retry</button>' : 'Loading Salesforce…')) + '</div>';
-  } else if(panelTab === 'clients'){
-    var q = panelQ.toLowerCase();
-    var list = accts.filter(function(a){ return !q || String(a.name||'').toLowerCase().indexOf(q)>=0; })
-                    .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
-    h += '<input class="p-search" id="pSearch" placeholder="Filter clients…" value="'+esc(panelQ)+'">';
-    if(!accts.length){
-      h += '<div class="p-empty">No accounts matched to this '+(panelState?'state':'territory')+' yet.'+(SF.accts.length&&!SF.accts.some(function(a){return stateOfRec(a);})?'<br>Worker needs ShippingState + Id — patch pending.':'')+'</div>';
-    } else {
-      h += list.map(function(a){
-        var link = sfLink(a);
-        var nm = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener">'+esc(a.name||'—')+' <svg class="ext" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : esc(a.name||'—');
-        return '<div class="acct"><span class="nm">'+nm+'</span>'
-          +(a.bu?'<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>':'')
-          +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>';
-      }).join('');
-    }
-  } else {
-    if(!jobs.length){ h = '<div class="p-empty">No open reqs matched to this territory.</div>'; }
-    else {
-      var groups = {};
-      jobs.forEach(function(j){ var k=j.bu||'Unassigned BU'; (groups[k]=groups[k]||[]).push(j); });
-      var keys = Object.keys(groups).sort(function(a,b){ return groups[b].length-groups[a].length; });
-      var max = groups[keys[0]].length;
-      h = keys.map(function(k){
-        var g = groups[k], c = buColor(k);
-        var forceOpen = openBUs[k] || (reqEditing && g.some(function(j){ return j.id===reqEditing; }));
-        return '<div class="bu-row'+(forceOpen?' open':'')+'" data-bu="'+esc(k)+'"><div class="bu-top"><span class="bn">'+esc(k)+'</span><span class="bc">'+g.length+'</span></div>'
-          +'<div class="bu-bar"><i style="width:'+(g.length/max*100)+'%;background:'+c+'"></i></div>'
-          +'<div class="bu-jobs">'+g.map(function(j){
-            if(reqEditing && j.id===reqEditing){
-              return '<div class="bu-job req-editor" data-jid="'+esc(j.id)+'">'+esc(j.name||'Open req')
-                +'<div style="margin-top:5px;display:flex;gap:6px;align-items:center"><select class="req-bu-sel">'
-                +buOptions().map(function(b){return '<option'+(b===j.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
-                +'</select><button class="tb req-bu-save">Save to SF</button><button class="tb req-bu-cancel">Cancel</button></div></div>';
-            }
-            var nm = esc(j.name||j.title||'Open req');
-            var link = j.url || j.link || null;
-            var head = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener">'+nm+' <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : nm;
-            var pencil = j.id ? '<span class="req-edit" data-jid="'+esc(j.id)+'" title="Change BU in Salesforce">✎</span>' : '';
-            return '<div class="bu-job">'+head+pencil+'<span class="ja">'+esc(j.account||'')+(jobState(j)?' · '+jobState(j):'')+'</span></div>';
-          }).join('')+'</div></div>';
-      }).join('');
-    }
-  }
-  body.innerHTML = h;
-  var s = document.getElementById('pSearch');
-  if(s){ s.addEventListener('input', function(e){ panelQ = e.target.value; var pos=e.target.selectionStart; renderPanel(); var s2=document.getElementById('pSearch'); s2.focus(); s2.setSelectionRange(pos,pos); }); }
-  document.getElementById('pFoot').textContent = 'Salesforce via spark-hq-worker' + (SF.at ? ' · refreshed '+SF.at.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '');
-}
-document.getElementById('pClose').addEventListener('click', function(){ clearFocus(); });
-document.getElementById('pWiden').addEventListener('click', function(){ if(panelTid) openPanel(panelTid); });
-document.querySelectorAll('.p-tab').forEach(function(b){ b.addEventListener('click', function(){
-  panelTab = b.dataset.pt;
-  document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
-  renderPanel();
-});});
-function buOptions(){
-  var s = {};
-  SF.accts.forEach(function(a){ if(a.bu) s[a.bu]=1; });
-  SF.jobs.forEach(function(j){ if(j.bu) s[j.bu]=1; });
-  return Object.keys(s).sort();
-}
-document.getElementById('pBody').addEventListener('click', async function(e){
-  var pe = e.target.closest('.req-edit');
-  if(pe){ reqEditing = pe.dataset.jid; renderPanel(); return; }
-  if(e.target.closest('.req-bu-cancel')){ reqEditing = null; renderPanel(); return; }
-  var sv = e.target.closest('.req-bu-save');
-  if(sv){
-    var row = sv.closest('.req-editor'), jid = row.dataset.jid;
-    var bu = row.querySelector('.req-bu-sel').value;
-    sv.disabled = true; sv.textContent = 'Saving…';
-    try{
-      var tok = await sfToken();
-      var r = await fetch(WORKER+'/sf-update-job-bu',{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({jobId:jid,bu:bu})});
-      var j = await r.json();
-      if(r.status===403){ toast("BU changes are limited to map admins."); }
-      else if(j && j.ok){ var job = SF.jobs.find(function(x){return x.id===jid;}); if(job) job.bu = bu; toast("BU updated in Salesforce."); }
-      else { toast("SF update failed: "+((j&&j.error)||("HTTP "+r.status))); }
-    }catch(err){ toast("SF update failed: "+String(err.message||err)); }
-    reqEditing = null; renderPanel(); return;
-  }
-  if(e.target.closest('.req-editor')) return;
-  var row2 = e.target.closest('.bu-top');
-  if(row2){ var k = row2.parentElement.dataset.bu; openBUs[k] = !openBUs[k]; row2.parentElement.classList.toggle('open'); }
-});
-
-/* ---------- focus escape hatches ---------- */
-function clearFocus(){ focusTerr = null; document.body.classList.remove('focused'); closePanel(); renderMap(); renderRail(); }
-function setFocus(tid, st){ focusTerr = tid; document.body.classList.add('focused'); renderMap(); renderRail(); openPanel(tid, st); }
-document.getElementById('showAll').addEventListener('click', clearFocus);
-document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && focusTerr) clearFocus(); });
-var panMoved = false;
-var _pm = panMove; panMove = function(e){ if(panP){ panMoved = true; } _pm(e); };
-svg.addEventListener('click', function(e){
-  if(admin) return;
-  if(panMoved){ panMoved = false; return; }
-  var p = e.target.closest('path.st');
-  if(p){ var t = terrOf(p.dataset.st); if(t){ (focusTerr===t.id && panelState===p.dataset.st) ? clearFocus() : setFocus(t.id, p.dataset.st); } }
-  else clearFocus();
-});
-initSF();
-/* ---------- shared map config (Supabase via worker) ---------- */
-async function loadShared(){
-  try{
-    var tok = await sfToken(); if(!tok) return;
-    var r = await fetch(WORKER + "/terr-map-config", {headers:{Authorization:"Bearer "+tok}});
-    var j = await r.json();
-    if(j && j.ok && j.data && Array.isArray(j.data.territories)){
-      data = j.data; if(!Array.isArray(data.log)) data.log = [];
-      saved = JSON.stringify(data);
-      activeTerr = data.territories[0] ? data.territories[0].id : null;
-      focusTerr = null; document.body.classList.remove("focused"); closePanel();
-      renderMap(); renderRail(); markDirty();
-      if(j.updated_at){
-        document.getElementById("stamp").textContent = "Updated " +
-          new Date(j.updated_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) +
-          (j.updated_by ? " by " + String(j.updated_by).split("@")[0] : "");
-      }
-    }
-  }catch(e){}
-}
-loadShared();
 </script>
 </body>
 </html>
