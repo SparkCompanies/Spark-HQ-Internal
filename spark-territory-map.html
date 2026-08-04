@@ -133,6 +133,8 @@ body.focused .showall{display:inline-flex}
 .p-head h2{font-size:16px;font-weight:600;flex:1}
 .p-x{background:transparent;border:1px solid var(--edge);color:var(--dim);width:30px;height:30px;border-radius:4px;font-size:15px}
 .p-x:hover{border-color:var(--gold);color:var(--gold-hi)}
+.p-widen{display:none;font-size:11.5px;padding:5px 11px;border:1px solid var(--edge);background:transparent;color:var(--dim);border-radius:99px;white-space:nowrap}
+.p-widen:hover{border-color:var(--gold);color:var(--gold-hi)}
 .p-stats{display:flex;gap:0;border-bottom:1px solid var(--edge)}
 .p-stat{flex:1;padding:10px 16px;border-right:1px solid var(--edge)}
 .p-stat:last-child{border-right:none}
@@ -249,7 +251,7 @@ body.focused .showall{display:inline-flex}
   </main>
 </div>
 <div class="panel" id="panel">
-  <div class="p-head"><span class="sw" id="pSw"></span><h2 id="pTitle">Territory</h2><button class="p-x" id="pClose">✕</button></div>
+  <div class="p-head"><span class="sw" id="pSw"></span><h2 id="pTitle">Territory</h2><button class="p-widen" id="pWiden"></button><button class="p-x" id="pClose">✕</button></div>
   <div class="p-stats" id="pStats"></div>
   <div class="p-tabs">
     <button class="p-tab on" data-pt="clients" id="ptClients">Clients</button>
@@ -387,7 +389,8 @@ function renderRail(){
   pb.innerHTML='<span class="pb-l">Paint with</span>'+data.territories.map(t=>
     '<button class="pchip'+(t.id===activeTerr?" sel":"")+'" data-pick="'+t.id+'"><span class="sw" style="background:'+t.color+'"></span>'+esc(t.name)+'</button>').join("");
   const assigned=data.territories.reduce((a,t)=>a+t.states.length,0);
-  document.getElementById("foot").textContent=(51-assigned)+" unassigned (dark). AK · HI · DC unassigned unless painted.";
+  var un=Object.keys(STATES).filter(function(ab){return !terrOf(ab);}).sort();
+  document.getElementById("foot").textContent = un.length ? un.length+" unassigned (dark): "+un.join(" · ") : "All 51 states assigned.";
   document.getElementById("stamp").textContent=data.updated?"Updated "+new Date(data.updated).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"Draft — not yet saved";
   renderLog(); renderKpis();
 }
@@ -484,7 +487,7 @@ adminBtn.addEventListener("click",()=>{
   admin=!admin;document.body.classList.toggle("admin",admin);
   document.getElementById("adminLbl").textContent=admin?"Done editing":"Admin edit";
   pill.textContent=admin?"Admin":"View";pill.classList.toggle("admin",admin);
-  hint.textContent=admin?"Pick a territory in the gold bar, then tap states. Tap again to remove. Drag to paint several.":"Hover a state · click a territory card to focus it.";
+  hint.textContent=admin?"Pick a territory in the gold bar, then tap states. Tap again to remove. Drag to paint several.":"Click a state for its clients & reqs · territory cards for the full region.";
   if(admin&&!activeTerr)activeTerr=data.territories[0]?.id||null;
   if(admin){focusTerr=null;renderMap();}
   renderRail();
@@ -714,22 +717,25 @@ async function initSF(){
   }catch(e){ SF.error = String(e.message||e); setChip('err','Salesforce: '+SF.error); }
 }
 function jobState(j){ return stateOfRec(j) || j._hostState || null; }
-function acctsFor(tid){ return SF.accts.filter(function(a){ var s=stateOfRec(a); var t=s&&terrOf(s); return t&&t.id===tid; }); }
-function jobsFor(tid){ return SF.jobs.filter(function(j){ var s=jobState(j); var t=s&&terrOf(s); return t&&t.id===tid; }); }
+function acctsFor(tid, st){ return SF.accts.filter(function(a){ var s=stateOfRec(a); if(!s) return false; if(st) return s===st; var t=terrOf(s); return t&&t.id===tid; }); }
+function jobsFor(tid, st){ return SF.jobs.filter(function(j){ var s=jobState(j); if(!s) return false; if(st) return s===st; var t=terrOf(s); return t&&t.id===tid; }); }
 function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
 function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
 
 /* ---------- panel ---------- */
-var panelTab = 'clients', panelTid = null, panelQ = '';
+var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null;
 var panelEl = document.getElementById('panel');
-function openPanel(tid){
+function openPanel(tid, st){
   if(admin) return;
-  panelTid = tid; panelQ = ''; panelTab = 'clients';
+  panelTid = tid; panelQ = ''; panelTab = 'clients'; panelState = st || null;
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x.dataset.pt==='clients'); });
   var t = data.territories.find(function(x){return x.id===tid;});
   if(!t) return;
   document.getElementById('pSw').style.background = t.color;
-  document.getElementById('pTitle').textContent = t.name;
+  document.getElementById('pTitle').textContent = panelState ? STATES[panelState].name : t.name;
+  var wb = document.getElementById('pWiden');
+  wb.style.display = panelState ? 'inline-flex' : 'none';
+  wb.textContent = 'All of ' + t.name.replace(/^National /,'');
   renderPanel();
   panelEl.classList.add('open');
 }
@@ -737,11 +743,13 @@ function closePanel(){ panelEl.classList.remove('open'); panelTid = null; }
 function renderPanel(){
   var t = data.territories.find(function(x){return x.id===panelTid;});
   if(!t) return;
-  var accts = acctsFor(t.id), jobs = jobsFor(t.id);
+  var accts = acctsFor(t.id, panelState), jobs = jobsFor(t.id, panelState);
   document.getElementById('pStats').innerHTML =
     '<div class="p-stat"><div class="n">'+accts.length+'</div><div class="l">Clients</div></div>'
    +'<div class="p-stat"><div class="n">'+jobs.length+'</div><div class="l">Open reqs</div></div>'
-   +'<div class="p-stat"><div class="n">'+t.states.length+'</div><div class="l">States</div></div>';
+   +(panelState
+     ? '<div class="p-stat"><div class="n">'+fmtM(POP[panelState]||0)+'</div><div class="l">Population</div></div>'
+     : '<div class="p-stat"><div class="n">'+t.states.length+'</div><div class="l">States</div></div>');
   document.getElementById('ptClients').textContent = 'Clients ('+accts.length+')';
   document.getElementById('ptReqs').textContent = 'Reqs by BU ('+jobs.length+')';
   var body = document.getElementById('pBody'), h = '';
@@ -755,7 +763,7 @@ function renderPanel(){
                     .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
     h += '<input class="p-search" id="pSearch" placeholder="Filter clients…" value="'+esc(panelQ)+'">';
     if(!accts.length){
-      h += '<div class="p-empty">No accounts matched to this territory yet.'+(SF.accts.length&&!SF.accts.some(function(a){return stateOfRec(a);})?'<br>Worker needs ShippingState + Id — patch pending.':'')+'</div>';
+      h += '<div class="p-empty">No accounts matched to this '+(panelState?'state':'territory')+' yet.'+(SF.accts.length&&!SF.accts.some(function(a){return stateOfRec(a);})?'<br>Worker needs ShippingState + Id — patch pending.':'')+'</div>';
     } else {
       h += list.map(function(a){
         var link = sfLink(a);
@@ -786,6 +794,7 @@ function renderPanel(){
   document.getElementById('pFoot').textContent = 'Salesforce via spark-hq-worker' + (SF.at ? ' · refreshed '+SF.at.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '');
 }
 document.getElementById('pClose').addEventListener('click', function(){ clearFocus(); });
+document.getElementById('pWiden').addEventListener('click', function(){ if(panelTid) openPanel(panelTid); });
 document.querySelectorAll('.p-tab').forEach(function(b){ b.addEventListener('click', function(){
   panelTab = b.dataset.pt;
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
@@ -797,7 +806,7 @@ document.getElementById('pBody').addEventListener('click', function(e){
 
 /* ---------- focus escape hatches ---------- */
 function clearFocus(){ focusTerr = null; document.body.classList.remove('focused'); closePanel(); renderMap(); renderRail(); }
-function setFocus(tid){ focusTerr = tid; document.body.classList.add('focused'); renderMap(); renderRail(); openPanel(tid); }
+function setFocus(tid, st){ focusTerr = tid; document.body.classList.add('focused'); renderMap(); renderRail(); openPanel(tid, st); }
 document.getElementById('showAll').addEventListener('click', clearFocus);
 document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && focusTerr) clearFocus(); });
 var panMoved = false;
@@ -806,7 +815,7 @@ svg.addEventListener('click', function(e){
   if(admin) return;
   if(panMoved){ panMoved = false; return; }
   var p = e.target.closest('path.st');
-  if(p){ var t = terrOf(p.dataset.st); if(t){ (focusTerr===t.id) ? clearFocus() : setFocus(t.id); } }
+  if(p){ var t = terrOf(p.dataset.st); if(t){ (focusTerr===t.id && panelState===p.dataset.st) ? clearFocus() : setFocus(t.id, p.dataset.st); } }
   else clearFocus();
 });
 initSF();
