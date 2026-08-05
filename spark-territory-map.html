@@ -856,7 +856,7 @@ function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++
 function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
 
 /* ---------- panel ---------- */
-var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null, reqEditing = null, openBUs = {};
+var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null, reqEditing = null, acctEditing = null, openBUs = {};
 var panelEl = document.getElementById('panel');
 function openPanel(tid, st){
   if(admin) return;
@@ -903,7 +903,15 @@ function renderPanel(){
       h += list.map(function(a){
         var link = sfLink(a);
         var nm = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener">'+esc(a.name||'—')+' <svg class="ext" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : esc(a.name||'—');
-        return '<div class="acct"><span class="nm">'+nm+'</span>'
+        if(acctEditing && a.id===acctEditing){
+          return '<div class="acct acct-editor" data-aid="'+esc(a.id)+'"><span class="nm">'+esc(a.name||'—')+'</span>'
+            +'<span style="display:flex;gap:6px;align-items:center;margin-left:auto"><select class="acct-bu-sel">'
+            +'<option value="">(no BU)</option>'
+            +buOptions().map(function(b){return '<option'+(b===a.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
+            +'</select><button class="tb acct-bu-save">Save to SF</button><button class="tb acct-bu-cancel">Cancel</button></span></div>';
+        }
+        var pencil = a.id ? '<span class="req-edit acct-edit" data-aid="'+esc(a.id)+'" title="Change BU in Salesforce">✎</span>' : '';
+        return '<div class="acct"><span class="nm">'+nm+'</span>'+pencil
           +(a.bu?'<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>':'')
           +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>';
       }).join('');
@@ -955,6 +963,25 @@ function buOptions(){
   return Object.keys(s).sort();
 }
 document.getElementById('pBody').addEventListener('click', async function(e){
+  var ae = e.target.closest('.acct-edit');
+  if(ae){ acctEditing = ae.dataset.aid; renderPanel(); return; }
+  if(e.target.closest('.acct-bu-cancel')){ acctEditing = null; renderPanel(); return; }
+  var asv = e.target.closest('.acct-bu-save');
+  if(asv){
+    var arow = asv.closest('.acct-editor'), aid = arow.dataset.aid;
+    var abu = arow.querySelector('.acct-bu-sel').value;
+    asv.disabled = true; asv.textContent = 'Saving…';
+    try{
+      var tok0 = await sfToken();
+      var r0 = await fetch(WORKER+'/sf-update-account-bu',{method:'POST',headers:{Authorization:'Bearer '+tok0,'Content-Type':'application/json'},body:JSON.stringify({accountId:aid,bu:abu})});
+      var j0 = await r0.json();
+      if(r0.status===403){ toast("BU changes are limited to map admins."); }
+      else if(j0 && j0.ok){ var acc = SF.accts.find(function(x){return x.id===aid;}); if(acc) acc.bu = abu; toast("Client BU updated in Salesforce."); }
+      else { toast("SF update failed: "+((j0&&j0.error)||("HTTP "+r0.status))); }
+    }catch(e0){ toast("SF update failed: "+String(e0.message||e0)); }
+    acctEditing = null; renderPanel(); return;
+  }
+  if(e.target.closest('.acct-editor')) return;
   var pe = e.target.closest('.req-edit');
   if(pe){ reqEditing = pe.dataset.jid; renderPanel(); return; }
   if(e.target.closest('.req-bu-cancel')){ reqEditing = null; renderPanel(); return; }
