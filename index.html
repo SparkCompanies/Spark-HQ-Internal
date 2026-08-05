@@ -6775,6 +6775,8 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           <div class="fin-chips" id="finChips"></div>
         </div>
 
+        <div id="finReviewPanel" style="display:none"></div>
+
         <div class="fin-tblwrap">
           <table class="fin-tbl">
             <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="finSelAll" title="Select all" style="accent-color:#FFC800;cursor:pointer"></th><th>Client</th><th>Reference</th><th class="r">Contractors</th><th class="r">Hours</th><th class="r">Amount</th><th class="r">Due</th><th class="r">Status</th></tr></thead>
@@ -11332,6 +11334,48 @@ window.FINRULES = (function () {
     window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/inv-approvals-save', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({ week:(FIN_MODE==='dh'?FIN_WEEK_DH():FIN_WEEK()), invoiceKey:key, xeroId:(d&&d.invoiceID)||'', xeroNum:(d&&d.invoiceNumber)||'', xeroOrg:(d&&d.org)||'' }) }); })
       .catch(function(){}); }
   function FIN_ADAPT(d){ if(!d || !d.ok) return d; if(d.invoices) return d; var invoices = (d.ready||[]).map(function(inv){ return { client: inv.client, entity: inv.entity, reference: inv.reference, emp: inv.employees, lines: (inv.lines||[]).map(function(l){ return [l.desc, l.hours, l.rate, l.amount]; }), subtotal: inv.subtotal, dueDate: inv.dueDate, dueDateISO: (inv.dueDateISO || (function(){ var _p=String(inv.dueDate||'').split('/'); return _p.length===3 ? (_p[2]+'-'+_p[0]+'-'+_p[1]) : ''; })()), invDate: inv.invDate, account: inv.account, tax: inv.tax, flags: inv.flags||[], consolidatedFrom: inv.consolidatedFrom||null, invDateISO: (d.summary && d.summary.weekEndingRaw) || '' }; }); invoices.forEach(function(_iv){ _iv.reference = finShortRef(_iv.reference, (d.summary && d.summary.weekEndingRaw) || _iv.invDateISO || ''); }); return { ok:true, invoices: invoices, held: d.held||[], summary: { weekEnding: (d.summary && d.summary.weekEnding) || '', weekEndingRaw: (d.summary && d.summary.weekEndingRaw) || '', invoices: invoices.length, total: (d.summary && d.summary.readyTotal) || 0, employees: invoices.reduce(function(s,iv){ return s + (iv.emp||0); }, 0), entities: (function(){ var seen={},out=[]; invoices.forEach(function(iv){ var e=iv.entity||''; if(e&&!seen[e]){ seen[e]=1; out.push(e); } }); return out; })(), hours: invoices.reduce(function(s,iv){ return s + (iv.lines||[]).reduce(function(h,l){ return h + (Number(l[1])||0); }, 0); }, 0), held: (d.held||[]).length } }; }
+  window.finResolve = function(ri, action, sf){
+    var items = window.FIN_REVIEW || []; var it = items[ri]; if(!it) return;
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER+'/fin-aliases-save', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body: JSON.stringify({ client: it.client, docName: it.docName, action: action, sfName: sf||null }) }).then(function(r){ return r.json(); });
+    }).then(function(d){
+      if(!d || d.error){ alert('Save failed: '+((d&&d.error)||'unknown')); return; }
+      window.FIN_REVIEW = (window.FIN_REVIEW||[]).filter(function(x,i){ return i!==ri; });
+      window.finRenderReview();
+    }).catch(function(e){ alert('Save error: '+e); });
+  };
+  window.finRenderReview = function(){
+    var el = document.getElementById('finReviewPanel'); if(!el) return;
+    var items = window.FIN_REVIEW || [];
+    if(!items.length){ el.style.display='none'; el.innerHTML=''; return; }
+    var rosters = window.FIN_ROSTERS || {};
+    var LBL = { penske:'Penske', paslin:'Paslin', fanuc:'Fanuc' };
+    var esc = function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;'); };
+    var h = '<div style=\"border:1px solid #e0a23d;border-radius:12px;padding:14px 16px;margin:0 0 14px;background:rgba(224,162,61,0.06)\">';
+    h += '<div style=\"font:700 15px/1.2 Space Grotesk,sans-serif;color:#e0a23d;margin-bottom:6px\">Needs review ('+items.length+')</div>';
+    h += '<div style=\"font-size:11px;color:#9aa;margin-bottom:8px\">Names the matcher was not sure about \u2014 pick a fix and it is saved and auto-applied next week.</div>';
+    items.forEach(function(it, idx){
+      var cl = LBL[it.client] || it.client; var roster = rosters[it.client] || [];
+      var opts = '<option value=\"\">pick someone else\u2026</option>' + roster.map(function(n){ return '<option value=\"'+esc(n)+'\">'+esc(n)+'</option>'; }).join('');
+      h += '<div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,0.08)\">';
+      h += '<span style=\"font-size:13px\"><b>'+esc(cl)+'</b> \u00b7 sheet name <b>&quot;'+esc(it.docName)+'&quot;</b>'+(it.nearest?(' \u00b7 closest <b>'+esc(it.nearest)+'</b> ('+Math.round((it.score||0)*100)+'%)'):'')+'</span>';
+      h += '<span style=\"flex:1\"></span>';
+      if(it.nearest){ h += '<button class=\"fin-btn\" data-ri=\"'+idx+'\" data-act=\"matched\" data-sf=\"'+esc(it.nearest)+'\" style=\"border-color:#4caf50;color:#4caf50\">\u2713 Use &quot;'+esc(it.nearest)+'&quot;</button>'; }
+      h += '<select data-pick=\"'+idx+'\" style=\"font-size:12px;padding:5px;border-radius:6px;max-width:180px\">'+opts+'</select>';
+      h += '<button class=\"fin-btn\" data-ri=\"'+idx+'\" data-act=\"pick\">Use picked</button>';
+      h += '<button class=\"fin-btn\" data-ri=\"'+idx+'\" data-act=\"ignore\">Not in SF</button>';
+      h += '<button class=\"fin-btn\" data-ri=\"'+idx+'\" data-act=\"fix_sf\">Fix in SF</button>';
+      h += '</div>';
+    });
+    h += '</div>';
+    el.innerHTML = h; el.style.display='';
+    el.onclick = function(ev){
+      var b = (ev.target && ev.target.closest) ? ev.target.closest('button[data-act]') : null; if(!b) return;
+      var ri = Number(b.getAttribute('data-ri')); var act = b.getAttribute('data-act'); var sf = b.getAttribute('data-sf') || null;
+      if(act==='pick'){ var sel = el.querySelector('select[data-pick=\"'+ri+'\"]'); sf = (sel && sel.value) ? sel.value : null; if(!sf) return; act='matched'; }
+      window.finResolve(ri, act, sf);
+    };
+  };
   window.finSyncWeek=function(){
     var wk=FIN_WEEK();
     var btn=document.getElementById('finSyncBtn');
@@ -11340,6 +11384,7 @@ window.FINRULES = (function () {
     fetch(url,{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
       if(btn){ btn.disabled=false; btn.textContent='Sync timesheets'; }
       if(!d || d.error){ alert('Sync failed: '+((d&&d.error)||'unknown error')); return; }
+      window.FIN_REVIEW = d.needsReview || []; window.FIN_ROSTERS = d.rosters || {}; if(window.finRenderReview) window.finRenderReview();
       var L=[];
       if(d.penske){ var pf=(d.penske.flagged||[]).length; L.push('Penske: '+((d.penske.intakeRowsPreview||[]).length)+' workers'+(pf?(' ('+pf+' flagged)'):'')); }
       if(d.paslin){ var af=(d.paslin.flagged||[]).length; L.push('Paslin: '+((d.paslin.intakeRowsPreview||[]).length)+' matched'+(af?(' ('+af+' flagged)'):'')); }
