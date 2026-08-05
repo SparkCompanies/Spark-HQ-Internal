@@ -104,7 +104,8 @@ path.st:hover{filter:brightness(1.18)}
 path.st.dimmed{opacity:.22}
 text.abbr{font-family:'Jost',sans-serif;font-size:9.5px;font-weight:600;pointer-events:none;opacity:.8}
 .callout-line{stroke:#4a4840;stroke-width:.8}
-text.co{font-family:'Jost',sans-serif;font-size:10.5px;font-weight:600;pointer-events:none}
+text.co{font-family:'Jost',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer}
+text.co:hover{filter:brightness(1.4);text-decoration:underline}
 .zoomctl{position:absolute;right:14px;top:14px;display:flex;flex-direction:column;gap:6px;z-index:4}
 .zb{width:32px;height:32px;border-radius:4px;background:var(--panel2);border:1px solid var(--edge);color:var(--txt);font-size:16px;display:flex;align-items:center;justify-content:center}
 .zb:hover{border-color:var(--gold);color:var(--gold-hi)}
@@ -421,10 +422,10 @@ function renderMap(){
     const ly=y0+i*24;
     const t=terrOf(it.ab);
     h+='<line class="callout-line" x1="'+it.cx+'" y1="'+it.cy+'" x2="985" y2="'+ly+'"></line>';
-    h+='<text class="co" x="989" y="'+(ly+4)+'" fill="'+(t?t.color:"#6a6860")+'">'+it.ab+'</text>';
+    h+='<text class="co" data-st="'+it.ab+'" x="989" y="'+(ly+4)+'" fill="'+(t?t.color:"#6a6860")+'">'+it.ab+'</text>';
   });
   const hi=STATES.HI, hit=terrOf("HI");
-  h+='<text class="co" x="'+(hi.cx+34)+'" y="'+(hi.cy+4)+'" fill="'+(hit?hit.color:"#6a6860")+'">HI</text>';
+  h+='<text class="co" data-st="HI" x="'+(hi.cx+34)+'" y="'+(hi.cy+4)+'" fill="'+(hit?hit.color:"#6a6860")+'">HI</text>';
   svg.innerHTML=h;
 }
 
@@ -484,7 +485,7 @@ function renderLog(){
 
 /* ---------- Interactions ---------- */
 svg.addEventListener("mousemove",e=>{
-  const p=e.target.closest("path.st"); if(!p){tooltip.style.display="none";return;}
+  const p=e.target.closest("path.st, text.co[data-st]"); if(!p){tooltip.style.display="none";return;}
   var t, label, pop;
   if(p.dataset.county){ var f=p.dataset.county; t=terrOfCounty(f); label=MI.counties[f].name+" County, "+(f.slice(0,2)==="39"?"OH":"MI"); pop=MIPOP[f]||0; }
   else { const ab=p.dataset.st; t=terrOf(ab); label=STATES[ab].name; pop=POP[ab]||0; }
@@ -515,7 +516,7 @@ function paintCounty(f){
 }
 function paintTarget(p){ if(p.dataset.county) paintCounty(p.dataset.county); else paint(p.dataset.st); }
 svg.addEventListener("pointerdown",e=>{
-  if(admin){ const p=e.target.closest("path.st"); if(p){e.preventDefault();painting=true;lastPainted=p.dataset.county||p.dataset.st;paintTarget(p);} return; }
+  if(admin){ const p=e.target.closest("path.st, text.co[data-st]"); if(p){e.preventDefault();painting=true;lastPainted=p.dataset.county||p.dataset.st;paintTarget(p);} return; }
   panStart(e);
 });
 svg.addEventListener("pointermove",e=>{
@@ -987,7 +988,7 @@ var _pm = panMove; panMove = function(e){ if(panP){ panMoved = true; } _pm(e); }
 svg.addEventListener('click', function(e){
   if(admin) return;
   if(panMoved){ panMoved = false; return; }
-  var p = e.target.closest('path.st');
+  var p = e.target.closest('path.st, text.co[data-st]');
   if(p){
     if(p.dataset.county){ var tc = terrOfCounty(p.dataset.county); if(tc){ (focusTerr===tc.id && panelState==="MI") ? clearFocus() : setFocus(tc.id, "MI"); } }
     else { var t = terrOf(p.dataset.st); if(t){ (focusTerr===t.id && panelState===p.dataset.st) ? clearFocus() : setFocus(t.id, p.dataset.st); } }
