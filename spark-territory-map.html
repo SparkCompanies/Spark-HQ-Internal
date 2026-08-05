@@ -982,7 +982,7 @@ function loadPicklists(){
   sfToken().then(function(tok){
     if(!tok) return;
     ['Account','bpats__Job__c'].forEach(function(obj){
-      fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(obj), {headers:{Authorization:'Bearer '+tok}})
+      fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(obj), {method:'POST',headers:{Authorization:'Bearer '+tok}})
         .then(function(r){ return r.json(); })
         .then(function(j){ if(j && j.ok && Array.isArray(j.values)) PICKLISTS[obj==='Account'?'acct':'job'] = j.values; })
         .catch(function(){});
