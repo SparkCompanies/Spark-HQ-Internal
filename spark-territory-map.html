@@ -170,6 +170,11 @@ body.focused .showall{display:inline-flex}
 .req-edit{color:var(--faint);cursor:pointer;padding:0 4px;font-size:11px}
 .req-edit:hover{color:var(--gold-hi)}
 .req-bu-sel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px;max-width:170px}
+.acct-ck{accent-color:var(--gold);margin-right:8px;cursor:pointer;flex:none}
+.bulkbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--gold-dark);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px}
+.bulkbar .bsel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px}
+.bulkbar .blink{color:var(--dim);cursor:pointer;text-decoration:underline;font-size:11.5px}
+.bulkbar .blink:hover{color:var(--gold-hi)}
 .bu-job .ja{color:var(--faint);display:block;font-size:11px}
 .p-empty{padding:24px 8px;font-size:13px;color:var(--dim);line-height:1.6;text-align:center}
 .p-empty button{margin-top:10px}
@@ -856,11 +861,11 @@ function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++
 function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
 
 /* ---------- panel ---------- */
-var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null, reqEditing = null, acctEditing = null, openBUs = {};
+var panelTab = 'clients', panelTid = null, panelQ = '', panelState = null, reqEditing = null, acctEditing = null, openBUs = {}, selAccts = {};
 var panelEl = document.getElementById('panel');
 function openPanel(tid, st){
   if(admin) return;
-  panelTid = tid; panelQ = ''; panelTab = 'clients'; panelState = st || null;
+  panelTid = tid; panelQ = ''; panelTab = 'clients'; panelState = st || null; selAccts = {}; acctEditing = null; reqEditing = null;
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x.dataset.pt==='clients'); });
   var t = data.territories.find(function(x){return x.id===tid;});
   if(!t) return;
@@ -897,6 +902,14 @@ function renderPanel(){
     var list = accts.filter(function(a){ return !q || String(a.name||'').toLowerCase().indexOf(q)>=0; })
                     .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
     h += '<input class="p-search" id="pSearch" placeholder="Filter clients…" value="'+esc(panelQ)+'">';
+    var nSel = Object.keys(selAccts).length;
+    h += '<div class="bulkbar" id="bulkBar">'
+      +'<span><b id="bbCount">'+nSel+'</b> selected</span>'
+      +'<span class="blink" id="bbAll">Select all shown ('+list.filter(function(a){return a.id;}).length+')</span>'
+      +'<span class="blink" id="bbNone">Clear</span>'
+      +'<span style="margin-left:auto;display:flex;gap:6px;align-items:center">BU: <select class="bsel" id="bbSel"><option value="">(no BU)</option>'
+      +buOptions('acct').map(function(b){return '<option>'+esc(b)+'</option>';}).join('')
+      +'</select><button class="tb" id="bbApply"'+(nSel?'':' disabled')+'>Apply to SF</button></span></div>';
     if(!accts.length){
       h += '<div class="p-empty">No accounts matched to this '+(panelState?'state':'territory')+' yet.'+(SF.accts.length&&!SF.accts.some(function(a){return stateOfRec(a);})?'<br>Worker needs ShippingState + Id — patch pending.':'')+'</div>';
     } else {
@@ -907,11 +920,12 @@ function renderPanel(){
           return '<div class="acct acct-editor" data-aid="'+esc(a.id)+'"><span class="nm">'+esc(a.name||'—')+'</span>'
             +'<span style="display:flex;gap:6px;align-items:center;margin-left:auto"><select class="acct-bu-sel">'
             +'<option value="">(no BU)</option>'
-            +buOptions().map(function(b){return '<option'+(b===a.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
+            +buOptions('acct').map(function(b){return '<option'+(b===a.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
             +'</select><button class="tb acct-bu-save">Save to SF</button><button class="tb acct-bu-cancel">Cancel</button></span></div>';
         }
         var pencil = a.id ? '<span class="req-edit acct-edit" data-aid="'+esc(a.id)+'" title="Change BU in Salesforce">✎</span>' : '';
-        return '<div class="acct"><span class="nm">'+nm+'</span>'+pencil
+        var ck = a.id ? '<input type="checkbox" class="acct-ck" data-aid="'+esc(a.id)+'"'+(selAccts[a.id]?' checked':'')+'>' : '';
+        return '<div class="acct">'+ck+'<span class="nm">'+nm+'</span>'+pencil
           +(a.bu?'<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>':'')
           +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>';
       }).join('');
@@ -932,7 +946,7 @@ function renderPanel(){
             if(reqEditing && j.id===reqEditing){
               return '<div class="bu-job req-editor" data-jid="'+esc(j.id)+'">'+esc(j.name||'Open req')
                 +'<div style="margin-top:5px;display:flex;gap:6px;align-items:center"><select class="req-bu-sel">'
-                +buOptions().map(function(b){return '<option'+(b===j.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
+                +buOptions('job').map(function(b){return '<option'+(b===j.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
                 +'</select><button class="tb req-bu-save">Save to SF</button><button class="tb req-bu-cancel">Cancel</button></div></div>';
             }
             var nm = esc(j.name||j.title||'Open req');
@@ -951,18 +965,74 @@ function renderPanel(){
 }
 document.getElementById('pClose').addEventListener('click', function(){ clearFocus(); });
 document.getElementById('pWiden').addEventListener('click', function(){ if(panelTid) openPanel(panelTid); });
+document.getElementById('pBody').addEventListener('change', function(e){
+  var ck = e.target.closest('.acct-ck');
+  if(ck){ if(ck.checked) selAccts[ck.dataset.aid]=1; else delete selAccts[ck.dataset.aid];
+    var c = document.getElementById('bbCount'); if(c) c.textContent = Object.keys(selAccts).length;
+    var ap = document.getElementById('bbApply'); if(ap) ap.disabled = Object.keys(selAccts).length===0;
+  }
+});
 document.querySelectorAll('.p-tab').forEach(function(b){ b.addEventListener('click', function(){
   panelTab = b.dataset.pt;
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
   renderPanel();
 });});
-function buOptions(){
+var PICKLISTS = { acct: null, job: null };
+function loadPicklists(){
+  sfToken().then(function(tok){
+    if(!tok) return;
+    ['Account','bpats__Job__c'].forEach(function(obj){
+      fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(obj), {headers:{Authorization:'Bearer '+tok}})
+        .then(function(r){ return r.json(); })
+        .then(function(j){ if(j && j.ok && Array.isArray(j.values)) PICKLISTS[obj==='Account'?'acct':'job'] = j.values; })
+        .catch(function(){});
+    });
+  });
+}
+function buOptions(kind){
+  var pk = PICKLISTS[kind==='job'?'job':'acct'];
+  if(pk && pk.length) return pk.slice();
   var s = {};
-  SF.accts.forEach(function(a){ if(a.bu) s[a.bu]=1; });
-  SF.jobs.forEach(function(j){ if(j.bu) s[j.bu]=1; });
+  if(kind==='job'){ SF.jobs.forEach(function(j){ if(j.bu) s[j.bu]=1; }); }
+  else { SF.accts.forEach(function(a){ if(a.bu) s[a.bu]=1; }); }
   return Object.keys(s).sort();
 }
 document.getElementById('pBody').addEventListener('click', async function(e){
+  var bbA = e.target.closest('#bbAll');
+  if(bbA){
+    var t0 = data.territories.find(function(x){return x.id===panelTid;});
+    if(t0){ var q0 = panelQ.toLowerCase();
+      acctsFor(t0.id, panelState).filter(function(a){ return a.id && (!q0 || String(a.name||'').toLowerCase().indexOf(q0)>=0); })
+        .forEach(function(a){ selAccts[a.id]=1; });
+      renderPanel(); }
+    return;
+  }
+  if(e.target.closest('#bbNone')){ selAccts = {}; renderPanel(); return; }
+  var bbAp = e.target.closest('#bbApply');
+  if(bbAp){
+    var ids = Object.keys(selAccts);
+    if(!ids.length) return;
+    var bu2 = document.getElementById('bbSel').value;
+    bbAp.disabled = true; bbAp.textContent = 'Applying 0/'+ids.length+'…';
+    var okN = 0, failMsgs = [];
+    try{
+      var tok2 = await sfToken();
+      for(var off=0; off<ids.length; off+=200){
+        var chunk = ids.slice(off, off+200);
+        var r2 = await fetch(WORKER+'/sf-update-account-bu-bulk',{method:'POST',headers:{Authorization:'Bearer '+tok2,'Content-Type':'application/json'},body:JSON.stringify({ids:chunk,bu:bu2})});
+        var j2 = await r2.json();
+        if(r2.status===403){ toast("BU changes are limited to map admins."); bbAp.disabled=false; renderPanel(); return; }
+        if(!(j2&&j2.ok)){ failMsgs.push((j2&&j2.error)||('HTTP '+r2.status)); break; }
+        okN += j2.updated;
+        (j2.failed||[]).forEach(function(f){ if(failMsgs.length<3) failMsgs.push(f.message); });
+        j2.updatedIds.forEach(function(id){ var acc=SF.accts.find(function(x){return x.id===id;}); if(acc) acc.bu=bu2; delete selAccts[id]; });
+        bbAp.textContent = 'Applying '+Math.min(off+200,ids.length)+'/'+ids.length+'…';
+      }
+    }catch(e2){ failMsgs.push(String(e2.message||e2)); }
+    var failN = ids.length - okN;
+    toast('Bulk BU: '+okN+' updated in Salesforce'+(failN? ' · '+failN+' failed'+(failMsgs.length?' — '+failMsgs[0]:'') : '.'));
+    renderPanel(); return;
+  }
   var ae = e.target.closest('.acct-edit');
   if(ae){ acctEditing = ae.dataset.aid; renderPanel(); return; }
   if(e.target.closest('.acct-bu-cancel')){ acctEditing = null; renderPanel(); return; }
@@ -1023,6 +1093,7 @@ svg.addEventListener('click', function(e){
   else clearFocus();
 });
 initSF();
+loadPicklists();
 /* ---------- shared map config (Supabase via worker) ---------- */
 async function loadShared(){
   try{
