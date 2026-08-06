@@ -185,6 +185,19 @@ body.focused .showall{display:inline-flex}
 .bulkbar .blink{color:var(--dim);cursor:pointer;text-decoration:underline;font-size:11.5px}
 .bulkbar .blink:hover{color:var(--gold-hi)}
 .statwrap{display:flex;gap:6px;align-items:center;margin-left:10px}
+.scoreboard{display:flex;gap:10px;align-items:stretch;padding:10px 26px;border-bottom:1px solid var(--edge);flex-wrap:wrap;background:var(--panel)}
+.scoreboard:empty{display:none}
+.sb-tile{display:flex;flex-direction:column;gap:2px;padding:8px 16px;border:1px solid var(--edge);border-radius:6px;cursor:pointer;min-width:86px;transition:border-color .15s}
+.sb-tile:hover{border-color:var(--gold-dark)}
+.sb-tile.on{border-color:var(--gold-hi);background:var(--panel2)}
+.sb-tile .n{font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.sb-tile .l{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.sb-tile.sb-reqs{cursor:default;border-color:var(--gold-dark)}
+.sb-tile.sb-reqs .n{color:var(--gold-hi)}
+.sb-tile.st-active .n{color:#57d98a}
+.sb-tile.st-former .n{color:#e77}
+.sb-tile.st-signed .n{color:var(--gold-hi)}
+.sb-tile.st-prospect .n,.sb-tile.st-target .n{color:#7ab8ff}
 .statwrap .bsel,#statusSel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px}
 .sttag{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;border-radius:3px;padding:1px 5px;white-space:nowrap;border:1px solid var(--edge);color:var(--dim)}
 .sttag.st-active{color:#57d98a;border-color:#57d98a66}
@@ -242,6 +255,7 @@ body.focused .showall{display:inline-flex}
 </header>
 
 <div class="kpis" id="kpis"></div>
+<div class="scoreboard" id="scoreboard"></div>
 
 <div class="app">
   <aside>
@@ -865,7 +879,7 @@ async function initSF(){
       if(!j.zip && host) j._hostZip = host.zip || host.shippingZip || "";
       if(host) j._host = host;
     });
-    SF.jobs = jobs; SF.loaded = true; SF.at = new Date();
+    SF.jobs = jobs; SF.loaded = true; SF.at = new Date(); try{ renderScoreboard(); }catch(e){}
     var withState = SF.accts.filter(function(a){ return stateOfRec(a); }).length;
     if(withState === 0){
       setChip('err','Salesforce: '+SF.accts.length+' accounts — worker missing ShippingState');
@@ -1079,7 +1093,7 @@ function loadPicklists(){
     [['Account','Subdivision__c','acct'],['bpats__Job__c','Subdivision__c','job'],['Account','Division__c','co'],['Account','Status__c','stat']].forEach(function(t){
       fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(t[0]) + '&field=' + encodeURIComponent(t[1]), {method:'POST',headers:{Authorization:'Bearer '+tok}})
         .then(function(r){ return r.json(); })
-        .then(function(j){ if(j && j.ok && Array.isArray(j.values)){ PICKLISTS[t[2]] = j.values; fillStatusSel(); } })
+        .then(function(j){ if(j && j.ok && Array.isArray(j.values)){ PICKLISTS[t[2]] = j.values; fillStatusSel(); renderScoreboard(); } })
         .catch(function(){});
     });
   });
@@ -1090,6 +1104,39 @@ function statusOptions(){
   SF.accts.forEach(function(a){ if(a.status) s[a.status]=1; });
   return Object.keys(s).sort();
 }
+function renderScoreboard(){
+  var el = document.getElementById('scoreboard');
+  if(!el || !SF.accts) return;
+  var pool = SF.accts.filter(function(a){
+    if(companyFilter && (a.co||'') !== companyFilter) return false;
+    if(buFilter && (a.bu||'') !== buFilter) return false;
+    return true;
+  });
+  var counts = {};
+  pool.forEach(function(a){ var s = a.status || '(none)'; counts[s] = (counts[s]||0) + 1; });
+  var order = statusOptions().filter(function(v){ return counts[v]; });
+  Object.keys(counts).forEach(function(k){ if(order.indexOf(k)===-1 && k!=='(none)') order.push(k); });
+  var reqN = filterJobs().length;
+  var h = '<div class="sb-tile sb-reqs"><div class="n">'+reqN+'</div><div class="l">Open reqs</div></div>';
+  h += '<div class="sb-tile'+(statusFilter===''?' on':'')+'" data-sb=""><div class="n">'+pool.length+'</div><div class="l">All companies</div></div>';
+  order.forEach(function(v){
+    var cls = 'st-'+String(v).toLowerCase().replace(/[^a-z]+/g,'-');
+    h += '<div class="sb-tile '+cls+(statusFilter===v?' on':'')+'" data-sb="'+esc(v)+'"><div class="n">'+counts[v]+'</div><div class="l">'+esc(v)+'</div></div>';
+  });
+  if(counts['(none)']) h += '<div class="sb-tile" style="opacity:.6;cursor:default"><div class="n">'+counts['(none)']+'</div><div class="l">No status</div></div>';
+  el.innerHTML = h;
+}
+document.addEventListener('click', function(e){
+  var tile = e.target.closest('.sb-tile[data-sb]');
+  if(!tile) return;
+  statusFilter = (statusFilter === tile.dataset.sb) ? '' : tile.dataset.sb;
+  fillStatusSel(); syncClearLink();
+  renderMap(); renderKpis(); renderRail(); renderScoreboard();
+  var anyF = !!(statusFilter||companyFilter||buFilter);
+  if(anyF){ openPanel('__FILTER__'); }
+  else if(panelTid === '__FILTER__'){ panelEl.classList.remove('open'); panelTid = null; }
+  else if(panelTid) renderPanel();
+});
 function fillStatusSel(){
   fillOneSel('statusSel', statusOptions(), statusFilter);
   fillOneSel('companySel', coOptions(), companyFilter);
@@ -1116,7 +1163,7 @@ document.addEventListener('change', function(e){
     if(id === 'statusSel') statusFilter = e.target.value;
     if(id === 'companySel') companyFilter = e.target.value;
     if(id === 'buSel') buFilter = e.target.value;
-    syncClearLink();
+    syncClearLink(); renderScoreboard();
     renderMap(); renderKpis(); renderRail();
     var anyF = !!(statusFilter||companyFilter||buFilter);
     if(anyF){ openPanel('__FILTER__'); }
@@ -1127,7 +1174,7 @@ document.addEventListener('change', function(e){
 document.addEventListener('click', function(e){
   if(e.target && e.target.id === 'clearFilters'){
     statusFilter = companyFilter = buFilter = '';
-    fillStatusSel(); syncClearLink();
+    fillStatusSel(); syncClearLink(); renderScoreboard();
     renderMap(); renderKpis(); renderRail();
     if(panelTid === '__FILTER__'){ panelEl.classList.remove('open'); panelTid = null; }
     else if(panelTid) renderPanel();
