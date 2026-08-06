@@ -890,6 +890,19 @@ function terrOfRec(s, rec){
 function inMIBucket(s, rec){ return s==="MI" || (s==="OH" && !!attribCounty(s, rec)); }
 var statusFilter = '', companyFilter = '', buFilter = '';
 function passStatus(r){ return !statusFilter || (r.status||'') === statusFilter; }
+function filterLabel(){
+  var p = [];
+  if(statusFilter) p.push(statusFilter);
+  if(companyFilter) p.push(companyFilter);
+  if(buFilter) p.push('BU ' + buFilter);
+  return p.join(' · ');
+}
+function filterAccts(){ return SF.accts.filter(passFilters); }
+function filterJobs(){ return SF.jobs.filter(function(j){ var host = j._host || {};
+  if(statusFilter && (j.status||host.status||'') !== statusFilter && (host.status||'') !== statusFilter) return false;
+  if(companyFilter && (j.co||host.co||'') !== companyFilter) return false;
+  if(buFilter && (j.bu||host.bu||'') !== buFilter) return false;
+  return true; }); }
 function passFilters(r){
   if(statusFilter && (r.status||'') !== statusFilter) return false;
   if(companyFilter && (r.co||'') !== companyFilter) return false;
@@ -911,6 +924,14 @@ function openPanel(tid, st){
   if(admin) return;
   panelTid = tid; panelQ = ''; panelTab = 'clients'; panelState = st || null; selAccts = {}; acctEditing = null; reqEditing = null;
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x.dataset.pt==='clients'); });
+  if(tid === '__FILTER__'){
+    document.getElementById('pSw').style.background = 'var(--gold-hi)';
+    document.getElementById('pTitle').textContent = 'Filtered: ' + (filterLabel() || 'all');
+    document.getElementById('pWiden').style.display = 'none';
+    renderPanel();
+    panelEl.classList.add('open');
+    return;
+  }
   var t = data.territories.find(function(x){return x.id===tid;});
   if(!t) return;
   document.getElementById('pSw').style.background = t.color;
@@ -923,17 +944,26 @@ function openPanel(tid, st){
 }
 function closePanel(){ panelEl.classList.remove('open'); panelTid = null; }
 function renderPanel(){
-  var t = data.territories.find(function(x){return x.id===panelTid;});
-  if(!t) return;
-  var accts = acctsFor(t.id, panelState), jobs = jobsFor(t.id, panelState);
+  var accts, jobs, t = null;
+  if(panelTid === '__FILTER__'){
+    accts = filterAccts(); jobs = filterJobs();
+    var ttl = document.getElementById('pTitle');
+    if(ttl) ttl.textContent = 'Filtered: ' + (filterLabel() || 'all');
+  } else {
+    t = data.territories.find(function(x){return x.id===panelTid;});
+    if(!t) return;
+    accts = acctsFor(t.id, panelState); jobs = jobsFor(t.id, panelState);
+  }
   document.getElementById('pStats').innerHTML =
     '<div class="p-stat"><div class="n">'+accts.length+'</div><div class="l">Companies</div></div>'
    +'<div class="p-stat"><div class="n">'+jobs.length+'</div><div class="l">Open reqs</div></div>'
-   +(panelState === "MI"
+   +(panelTid === '__FILTER__'
+     ? '<div class="p-stat"><div class="n">'+Object.keys(accts.reduce(function(m,a){ var s=stateOfRec(a); if(s) m[s]=1; return m; },{})).length+'</div><div class="l">States</div></div>'
+     : (panelState === "MI"
      ? '<div class="p-stat"><div class="n">'+fmtM((t.counties||[]).reduce(function(a,f){return a+(MIPOP[f]||0);},0))+'</div><div class="l">County-area pop.</div></div>'
      : (panelState
        ? '<div class="p-stat"><div class="n">'+fmtM(POP[panelState]||0)+'</div><div class="l">Population</div></div>'
-       : '<div class="p-stat"><div class="n">'+t.states.length+'</div><div class="l">States</div></div>'));
+       : '<div class="p-stat"><div class="n">'+t.states.length+'</div><div class="l">States</div></div>')));
   document.getElementById('ptClients').textContent = 'Companies ('+accts.length+')';
   document.getElementById('ptReqs').textContent = 'Reqs by BU ('+jobs.length+')';
   var body = document.getElementById('pBody'), h = '';
@@ -1087,14 +1117,20 @@ document.addEventListener('change', function(e){
     if(id === 'companySel') companyFilter = e.target.value;
     if(id === 'buSel') buFilter = e.target.value;
     syncClearLink();
-    renderMap(); renderKpis(); renderRail(); if(panelTid) renderPanel();
+    renderMap(); renderKpis(); renderRail();
+    var anyF = !!(statusFilter||companyFilter||buFilter);
+    if(anyF){ openPanel('__FILTER__'); }
+    else if(panelTid === '__FILTER__'){ panelEl.classList.remove('open'); panelTid = null; }
+    else if(panelTid) renderPanel();
   }
 });
 document.addEventListener('click', function(e){
   if(e.target && e.target.id === 'clearFilters'){
     statusFilter = companyFilter = buFilter = '';
     fillStatusSel(); syncClearLink();
-    renderMap(); renderKpis(); renderRail(); if(panelTid) renderPanel();
+    renderMap(); renderKpis(); renderRail();
+    if(panelTid === '__FILTER__'){ panelEl.classList.remove('open'); panelTid = null; }
+    else if(panelTid) renderPanel();
   }
 });
 function buOptions(kind){
@@ -1108,11 +1144,12 @@ function buOptions(kind){
 document.getElementById('pBody').addEventListener('click', async function(e){
   var bbA = e.target.closest('#bbAll');
   if(bbA){
-    var t0 = data.territories.find(function(x){return x.id===panelTid;});
-    if(t0){ var q0 = panelQ.toLowerCase();
-      acctsFor(t0.id, panelState).filter(function(a){ return a.id && (!q0 || String(a.name||'').toLowerCase().indexOf(q0)>=0); })
-        .forEach(function(a){ selAccts[a.id]=1; });
-      renderPanel(); }
+    var pool0 = panelTid === '__FILTER__' ? filterAccts()
+      : (function(){ var t0 = data.territories.find(function(x){return x.id===panelTid;}); return t0 ? acctsFor(t0.id, panelState) : []; })();
+    var q0 = panelQ.toLowerCase();
+    pool0.filter(function(a){ return a.id && (!q0 || String(a.name||'').toLowerCase().indexOf(q0)>=0); })
+      .forEach(function(a){ selAccts[a.id]=1; });
+    renderPanel();
     return;
   }
   if(e.target.closest('#bbNone')){ selAccts = {}; renderPanel(); return; }
