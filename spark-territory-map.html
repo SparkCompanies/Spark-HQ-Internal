@@ -146,8 +146,13 @@ body.focused .showall{display:inline-flex}
 .p-tab.on{color:var(--gold-hi);border-bottom-color:var(--gold);font-weight:600}
 .p-body{flex:1;overflow-y:auto;padding:12px 16px}
 .p-search{width:100%;background:var(--bg);border:1px solid var(--edge);border-radius:4px;color:var(--txt);font-family:inherit;font-size:13px;padding:8px 10px;margin-bottom:10px}
-.acct{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--edge)}
+.acct{display:flex;align-items:flex-start;gap:10px;padding:9px 2px;border-bottom:1px solid var(--edge)}
+.acct .acct-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.acct .acct-line1{display:flex;align-items:center;gap:8px;min-width:0}
+.acct .acct-line2{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.acct .acct-line2 .meta{margin-left:auto}
 .acct .nm{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct .acct-line1 .nm{flex:0 1 auto;max-width:100%}
 .acct a{color:var(--txt);text-decoration:none}
 .acct a:hover{color:var(--gold-hi)}
 .acct .ext{color:var(--faint);flex:none}
@@ -255,7 +260,10 @@ body.focused .showall{display:inline-flex}
       <span class="pill" id="pill">View</span>
       <span class="hint" id="hint">Hover a state · click it to open its territory.</span>
       <button class="showall" id="showAll">Show all territories</button>
-      <span class="statwrap"><span class="ed-lb" style="color:var(--dim)">Status</span><select id="statusSel" class="bsel"><option value="">All</option></select></span>
+      <span class="statwrap"><span class="ed-lb" style="color:var(--dim)">Status</span><select id="statusSel" class="bsel"><option value="">All</option></select>
+      <span class="ed-lb" style="color:var(--dim)">Company</span><select id="companySel" class="bsel"><option value="">All</option></select>
+      <span class="ed-lb" style="color:var(--dim)">BU</span><select id="buSel" class="bsel"><option value="">All</option></select>
+      <span class="blink" id="clearFilters" style="display:none">clear</span></span>
       <span class="sfchip" id="sfchip"><span class="dot"></span><span id="sfchipTxt">Salesforce: connecting…</span></span>
     </div>
     <div class="paintbar" id="paintbar"></div>
@@ -880,10 +888,19 @@ function terrOfRec(s, rec){
   return terrOf(s);
 }
 function inMIBucket(s, rec){ return s==="MI" || (s==="OH" && !!attribCounty(s, rec)); }
-var statusFilter = '';
+var statusFilter = '', companyFilter = '', buFilter = '';
 function passStatus(r){ return !statusFilter || (r.status||'') === statusFilter; }
-function acctsFor(tid, st){ return SF.accts.filter(function(a){ if(!passStatus(a)) return false; var s=stateOfRec(a); if(!s) return false; var t=terrOfRec(s,a); if(st==="MI") return inMIBucket(s,a) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
-function jobsFor(tid, st){ return SF.jobs.filter(function(j){ var host = j._host; if(statusFilter && !(passStatus(j) || (host && passStatus(host)))) return false; var s=jobState(j); if(!s) return false; var rec = j.zip ? j : (j._host||j); var t=terrOfRec(s,rec); if(st==="MI") return inMIBucket(s,rec) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
+function passFilters(r){
+  if(statusFilter && (r.status||'') !== statusFilter) return false;
+  if(companyFilter && (r.co||'') !== companyFilter) return false;
+  if(buFilter && (r.bu||'') !== buFilter) return false;
+  return true;
+}
+function acctsFor(tid, st){ return SF.accts.filter(function(a){ if(!passFilters(a)) return false; var s=stateOfRec(a); if(!s) return false; var t=terrOfRec(s,a); if(st==="MI") return inMIBucket(s,a) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
+function jobsFor(tid, st){ return SF.jobs.filter(function(j){ var host = j._host || {};
+  if(statusFilter && (j.status||host.status||'') !== statusFilter && (host.status||'') !== statusFilter) return false;
+  if(companyFilter && (j.co||host.co||'') !== companyFilter) return false;
+  if(buFilter && (j.bu||host.bu||'') !== buFilter) return false; var s=jobState(j); if(!s) return false; var rec = j.zip ? j : (j._host||j); var t=terrOfRec(s,rec); if(st==="MI") return inMIBucket(s,rec) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
 function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
 function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
 
@@ -969,10 +986,13 @@ function renderPanel(){
         var ck = a.id ? '<input type="checkbox" class="acct-ck" data-aid="'+esc(a.id)+'"'+(selAccts[a.id]?' checked':'')+'>' : '';
         var cotag = a.co ? '<span class="cotag">'+esc(a.co)+'</span>' : '';
         var sttag = a.status ? '<span class="sttag st-'+esc(String(a.status).toLowerCase().replace(/[^a-z]+/g,'-'))+'">'+esc(a.status)+'</span>' : '';
-        cotag += sttag;
-        return '<div class="acct">'+ck+'<span class="nm">'+nm+'</span>'+pencil+cotag
-          +(a.bu?'<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>':'')
-          +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>';
+        var butag = a.bu ? '<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>' : '';
+        return '<div class="acct">'+ck
+          +'<div class="acct-main">'
+          +'<div class="acct-line1"><span class="nm">'+nm+'</span>'+pencil+'</div>'
+          +'<div class="acct-line2">'+cotag+sttag+butag
+          +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>'
+          +'</div></div>';
       }).join('');
     }
   } else {
@@ -1029,7 +1049,7 @@ function loadPicklists(){
     [['Account','Subdivision__c','acct'],['bpats__Job__c','Subdivision__c','job'],['Account','Division__c','co'],['Account','Status__c','stat']].forEach(function(t){
       fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(t[0]) + '&field=' + encodeURIComponent(t[1]), {method:'POST',headers:{Authorization:'Bearer '+tok}})
         .then(function(r){ return r.json(); })
-        .then(function(j){ if(j && j.ok && Array.isArray(j.values)){ PICKLISTS[t[2]] = j.values; if(t[2]==='stat') fillStatusSel(); } })
+        .then(function(j){ if(j && j.ok && Array.isArray(j.values)){ PICKLISTS[t[2]] = j.values; fillStatusSel(); } })
         .catch(function(){});
     });
   });
@@ -1041,10 +1061,18 @@ function statusOptions(){
   return Object.keys(s).sort();
 }
 function fillStatusSel(){
-  var el = document.getElementById('statusSel');
+  fillOneSel('statusSel', statusOptions(), statusFilter);
+  fillOneSel('companySel', coOptions(), companyFilter);
+  fillOneSel('buSel', buOptions('acct'), buFilter);
+}
+function fillOneSel(id, opts, cur){
+  var el = document.getElementById(id);
   if(!el) return;
-  var cur = statusFilter;
-  el.innerHTML = '<option value="">All</option>' + statusOptions().map(function(v){ return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }).join('');
+  el.innerHTML = '<option value="">All</option>' + opts.map(function(v){ return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }).join('');
+}
+function syncClearLink(){
+  var c = document.getElementById('clearFilters');
+  if(c) c.style.display = (statusFilter||companyFilter||buFilter) ? '' : 'none';
 }
 function coOptions(){
   if(PICKLISTS.co && PICKLISTS.co.length) return PICKLISTS.co.slice();
@@ -1053,8 +1081,19 @@ function coOptions(){
   return Object.keys(s).sort();
 }
 document.addEventListener('change', function(e){
-  if(e.target && e.target.id === 'statusSel'){
-    statusFilter = e.target.value;
+  var id = e.target && e.target.id;
+  if(id === 'statusSel' || id === 'companySel' || id === 'buSel'){
+    if(id === 'statusSel') statusFilter = e.target.value;
+    if(id === 'companySel') companyFilter = e.target.value;
+    if(id === 'buSel') buFilter = e.target.value;
+    syncClearLink();
+    renderMap(); renderKpis(); renderRail(); if(panelTid) renderPanel();
+  }
+});
+document.addEventListener('click', function(e){
+  if(e.target && e.target.id === 'clearFilters'){
+    statusFilter = companyFilter = buFilter = '';
+    fillStatusSel(); syncClearLink();
     renderMap(); renderKpis(); renderRail(); if(panelTid) renderPanel();
   }
 });
