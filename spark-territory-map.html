@@ -179,6 +179,13 @@ body.focused .showall{display:inline-flex}
 .bulkbar .bsel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px}
 .bulkbar .blink{color:var(--dim);cursor:pointer;text-decoration:underline;font-size:11.5px}
 .bulkbar .blink:hover{color:var(--gold-hi)}
+.statwrap{display:flex;gap:6px;align-items:center;margin-left:10px}
+.statwrap .bsel,#statusSel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px}
+.sttag{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;border-radius:3px;padding:1px 5px;white-space:nowrap;border:1px solid var(--edge);color:var(--dim)}
+.sttag.st-active{color:#57d98a;border-color:#57d98a66}
+.sttag.st-former{color:#e77;border-color:#e7777766}
+.sttag.st-signed{color:var(--gold-hi);border-color:var(--gold-dark)}
+.sttag.st-prospect,.sttag.st-target{color:#7ab8ff;border-color:#7ab8ff55}
 .bu-job .ja{color:var(--faint);display:block;font-size:11px}
 .p-empty{padding:24px 8px;font-size:13px;color:var(--dim);line-height:1.6;text-align:center}
 .p-empty button{margin-top:10px}
@@ -248,6 +255,7 @@ body.focused .showall{display:inline-flex}
       <span class="pill" id="pill">View</span>
       <span class="hint" id="hint">Hover a state · click it to open its territory.</span>
       <button class="showall" id="showAll">Show all territories</button>
+      <span class="statwrap"><span class="ed-lb" style="color:var(--dim)">Status</span><select id="statusSel" class="bsel"><option value="">All</option></select></span>
       <span class="sfchip" id="sfchip"><span class="dot"></span><span id="sfchipTxt">Salesforce: connecting…</span></span>
     </div>
     <div class="paintbar" id="paintbar"></div>
@@ -872,8 +880,10 @@ function terrOfRec(s, rec){
   return terrOf(s);
 }
 function inMIBucket(s, rec){ return s==="MI" || (s==="OH" && !!attribCounty(s, rec)); }
-function acctsFor(tid, st){ return SF.accts.filter(function(a){ var s=stateOfRec(a); if(!s) return false; var t=terrOfRec(s,a); if(st==="MI") return inMIBucket(s,a) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
-function jobsFor(tid, st){ return SF.jobs.filter(function(j){ var s=jobState(j); if(!s) return false; var rec = j.zip ? j : (j._host||j); var t=terrOfRec(s,rec); if(st==="MI") return inMIBucket(s,rec) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
+var statusFilter = '';
+function passStatus(r){ return !statusFilter || (r.status||'') === statusFilter; }
+function acctsFor(tid, st){ return SF.accts.filter(function(a){ if(!passStatus(a)) return false; var s=stateOfRec(a); if(!s) return false; var t=terrOfRec(s,a); if(st==="MI") return inMIBucket(s,a) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
+function jobsFor(tid, st){ return SF.jobs.filter(function(j){ var host = j._host; if(statusFilter && !(passStatus(j) || (host && passStatus(host)))) return false; var s=jobState(j); if(!s) return false; var rec = j.zip ? j : (j._host||j); var t=terrOfRec(s,rec); if(st==="MI") return inMIBucket(s,rec) && t && t.id===tid; if(st) return s===st && t && t.id===tid; return t&&t.id===tid; }); }
 function buColor(bu){ var h=0; var s=String(bu||'?'); for(var i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
 function sfLink(a){ return a.url || a.link || (a.id ? null : null); }
 
@@ -928,6 +938,9 @@ function renderPanel(){
       +'<span class="ed-lb">Company</span><select class="bsel" id="bbCoSel"><option value="__keep__">leave unchanged</option><option value="">(none)</option>'
       +coOptions().map(function(c){return '<option>'+esc(c)+'</option>';}).join('')
       +'</select>'
+      +'<span class="ed-lb">Status</span><select class="bsel" id="bbStSel"><option value="__keep__">leave unchanged</option><option value="">(none)</option>'
+      +statusOptions().map(function(v){return '<option>'+esc(v)+'</option>';}).join('')
+      +'</select>'
       +'<span class="ed-lb">BU</span><select class="bsel" id="bbSel"><option value="__keep__">leave unchanged</option><option value="">(no BU)</option>'
       +buOptions('acct').map(function(b){return '<option>'+esc(b)+'</option>';}).join('')
       +'</select><button class="tb" id="bbApply"'+(nSel?'':' disabled')+'>Apply to SF</button></span></div>';
@@ -943,6 +956,10 @@ function renderPanel(){
             +'<option value="">(none)</option>'
             +coOptions().map(function(c){return '<option'+(c===a.co?' selected':'')+'>'+esc(c)+'</option>';}).join('')
             +'</select>'
+            +'<span class="ed-lb">Status</span><select class="acct-st-sel">'
+            +'<option value="">(none)</option>'
+            +statusOptions().map(function(v){return '<option'+(v===a.status?' selected':'')+'>'+esc(v)+'</option>';}).join('')
+            +'</select>'
             +'<span class="ed-lb">BU</span><select class="acct-bu-sel">'
             +'<option value="">(no BU)</option>'
             +buOptions('acct').map(function(b){return '<option'+(b===a.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
@@ -951,6 +968,8 @@ function renderPanel(){
         var pencil = a.id ? '<span class="req-edit acct-edit" data-aid="'+esc(a.id)+'" title="Change BU in Salesforce">✎</span>' : '';
         var ck = a.id ? '<input type="checkbox" class="acct-ck" data-aid="'+esc(a.id)+'"'+(selAccts[a.id]?' checked':'')+'>' : '';
         var cotag = a.co ? '<span class="cotag">'+esc(a.co)+'</span>' : '';
+        var sttag = a.status ? '<span class="sttag st-'+esc(String(a.status).toLowerCase().replace(/[^a-z]+/g,'-'))+'">'+esc(a.status)+'</span>' : '';
+        cotag += sttag;
         return '<div class="acct">'+ck+'<span class="nm">'+nm+'</span>'+pencil+cotag
           +(a.bu?'<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>':'')
           +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>';
@@ -1003,17 +1022,29 @@ document.querySelectorAll('.p-tab').forEach(function(b){ b.addEventListener('cli
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
   renderPanel();
 });});
-var PICKLISTS = { acct: null, job: null, co: null };
+var PICKLISTS = { acct: null, job: null, co: null, stat: null };
 function loadPicklists(){
   sfToken().then(function(tok){
     if(!tok) return;
-    [['Account','Subdivision__c','acct'],['bpats__Job__c','Subdivision__c','job'],['Account','Division__c','co']].forEach(function(t){
+    [['Account','Subdivision__c','acct'],['bpats__Job__c','Subdivision__c','job'],['Account','Division__c','co'],['Account','Status__c','stat']].forEach(function(t){
       fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(t[0]) + '&field=' + encodeURIComponent(t[1]), {method:'POST',headers:{Authorization:'Bearer '+tok}})
         .then(function(r){ return r.json(); })
-        .then(function(j){ if(j && j.ok && Array.isArray(j.values)) PICKLISTS[t[2]] = j.values; })
+        .then(function(j){ if(j && j.ok && Array.isArray(j.values)){ PICKLISTS[t[2]] = j.values; if(t[2]==='stat') fillStatusSel(); } })
         .catch(function(){});
     });
   });
+}
+function statusOptions(){
+  if(PICKLISTS.stat && PICKLISTS.stat.length) return PICKLISTS.stat.slice();
+  var s = {};
+  SF.accts.forEach(function(a){ if(a.status) s[a.status]=1; });
+  return Object.keys(s).sort();
+}
+function fillStatusSel(){
+  var el = document.getElementById('statusSel');
+  if(!el) return;
+  var cur = statusFilter;
+  el.innerHTML = '<option value="">All</option>' + statusOptions().map(function(v){ return '<option'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }).join('');
 }
 function coOptions(){
   if(PICKLISTS.co && PICKLISTS.co.length) return PICKLISTS.co.slice();
@@ -1021,6 +1052,12 @@ function coOptions(){
   SF.accts.forEach(function(a){ if(a.co) s[a.co]=1; });
   return Object.keys(s).sort();
 }
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id === 'statusSel'){
+    statusFilter = e.target.value;
+    renderMap(); renderKpis(); renderRail(); if(panelTid) renderPanel();
+  }
+});
 function buOptions(kind){
   var pk = PICKLISTS[kind==='job'?'job':'acct'];
   if(pk && pk.length) return pk.slice();
@@ -1046,7 +1083,8 @@ document.getElementById('pBody').addEventListener('click', async function(e){
     if(!ids.length) return;
     var bu2 = document.getElementById('bbSel').value;
     var co2 = document.getElementById('bbCoSel').value;
-    if(bu2==='__keep__' && co2==='__keep__'){ toast('Pick a Company or BU to apply first.'); return; }
+    var st2 = document.getElementById('bbStSel').value;
+    if(bu2==='__keep__' && co2==='__keep__' && st2==='__keep__'){ toast('Pick a Status, Company, or BU to apply first.'); return; }
     var nCo = ids.length;
     if(co2!=='__keep__' && !confirm('Set Company to "'+(co2||'(none)')+'" on '+nCo+' client'+(nCo===1?'':'s')+' in Salesforce?')) return;
     bbAp.disabled = true; bbAp.textContent = 'Applying 0/'+ids.length+'…';
@@ -1058,18 +1096,19 @@ document.getElementById('pBody').addEventListener('click', async function(e){
         var pl2 = {ids:chunk};
         if(bu2!=='__keep__') pl2.bu = bu2;
         if(co2!=='__keep__') pl2.company = co2;
+        if(st2!=='__keep__') pl2.status = st2;
         var r2 = await fetch(WORKER+'/sf-update-account-bu-bulk',{method:'POST',headers:{Authorization:'Bearer '+tok2,'Content-Type':'application/json'},body:JSON.stringify(pl2)});
         var j2 = await r2.json();
         if(r2.status===403){ toast("BU changes are limited to map admins."); bbAp.disabled=false; renderPanel(); return; }
         if(!(j2&&j2.ok)){ failMsgs.push((j2&&j2.error)||('HTTP '+r2.status)); break; }
         okN += j2.updated;
         (j2.failed||[]).forEach(function(f){ if(failMsgs.length<3) failMsgs.push(f.message); });
-        j2.updatedIds.forEach(function(id){ var acc=SF.accts.find(function(x){return x.id===id;}); if(acc){ if(bu2!=='__keep__') acc.bu=bu2; if(co2!=='__keep__') acc.co=co2; } delete selAccts[id]; });
+        j2.updatedIds.forEach(function(id){ var acc=SF.accts.find(function(x){return x.id===id;}); if(acc){ if(bu2!=='__keep__') acc.bu=bu2; if(co2!=='__keep__') acc.co=co2; if(st2!=='__keep__') acc.status=st2; } delete selAccts[id]; });
         bbAp.textContent = 'Applying '+Math.min(off+200,ids.length)+'/'+ids.length+'…';
       }
     }catch(e2){ failMsgs.push(String(e2.message||e2)); }
     var failN = ids.length - okN;
-    toast('Bulk '+[co2!=='__keep__'?'Company':null, bu2!=='__keep__'?'BU':null].filter(Boolean).join(' + ')+': '+okN+' updated in Salesforce'+(failN? ' · '+failN+' failed'+(failMsgs.length?' — '+failMsgs[0]:'') : '.'));
+    toast('Bulk '+[st2!=='__keep__'?'Status':null, co2!=='__keep__'?'Company':null, bu2!=='__keep__'?'BU':null].filter(Boolean).join(' + ')+': '+okN+' updated in Salesforce'+(failN? ' · '+failN+' failed'+(failMsgs.length?' — '+failMsgs[0]:'') : '.'));
     renderPanel(); return;
   }
   var ae = e.target.closest('.acct-edit');
@@ -1080,17 +1119,20 @@ document.getElementById('pBody').addEventListener('click', async function(e){
     var arow = asv.closest('.acct-editor'), aid = arow.dataset.aid;
     var abu = arow.querySelector('.acct-bu-sel').value;
     var aco = arow.querySelector('.acct-co-sel').value;
+    var ast = arow.querySelector('.acct-st-sel').value;
     var prev = SF.accts.find(function(x){return x.id===aid;}) || {};
     var coChanged = aco !== (prev.co||'');
+    var stChanged = ast !== (prev.status||'');
     asv.disabled = true; asv.textContent = 'Saving…';
     try{
       var tok0 = await sfToken();
       var payload = {accountId:aid, bu:abu};
       if(coChanged) payload.company = aco;
+      if(stChanged) payload.status = ast;
       var r0 = await fetch(WORKER+'/sf-update-account-bu',{method:'POST',headers:{Authorization:'Bearer '+tok0,'Content-Type':'application/json'},body:JSON.stringify(payload)});
       var j0 = await r0.json();
       if(r0.status===403){ toast("BU changes are limited to map admins."); }
-      else if(j0 && j0.ok){ var acc = SF.accts.find(function(x){return x.id===aid;}); if(acc){ acc.bu = abu; acc.co = aco; } toast("Client "+(coChanged?"Company + BU":"BU")+" updated in Salesforce."); }
+      else if(j0 && j0.ok){ var acc = SF.accts.find(function(x){return x.id===aid;}); if(acc){ acc.bu = abu; acc.co = aco; if(stChanged) acc.status = ast; } var parts=[]; if(coChanged)parts.push("Company"); if(stChanged)parts.push("Status"); parts.push("BU"); toast("Client "+parts.join(" + ")+" updated in Salesforce."); }
       else { toast("SF update failed: "+((j0&&j0.error)||("HTTP "+r0.status))); }
     }catch(e0){ toast("SF update failed: "+String(e0.message||e0)); }
     acctEditing = null; renderPanel(); return;
