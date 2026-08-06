@@ -911,7 +911,11 @@ function renderPanel(){
       +'<span><b id="bbCount">'+nSel+'</b> selected</span>'
       +'<span class="blink" id="bbAll">Select all shown ('+list.filter(function(a){return a.id;}).length+')</span>'
       +'<span class="blink" id="bbNone">Clear</span>'
-      +'<span style="margin-left:auto;display:flex;gap:6px;align-items:center">BU: <select class="bsel" id="bbSel"><option value="">(no BU)</option>'
+      +'<span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      +'<span class="ed-lb">Company</span><select class="bsel" id="bbCoSel"><option value="__keep__">leave unchanged</option><option value="">(none)</option>'
+      +coOptions().map(function(c){return '<option>'+esc(c)+'</option>';}).join('')
+      +'</select>'
+      +'<span class="ed-lb">BU</span><select class="bsel" id="bbSel"><option value="__keep__">leave unchanged</option><option value="">(no BU)</option>'
       +buOptions('acct').map(function(b){return '<option>'+esc(b)+'</option>';}).join('')
       +'</select><button class="tb" id="bbApply"'+(nSel?'':' disabled')+'>Apply to SF</button></span></div>';
     if(!accts.length){
@@ -1028,24 +1032,31 @@ document.getElementById('pBody').addEventListener('click', async function(e){
     var ids = Object.keys(selAccts);
     if(!ids.length) return;
     var bu2 = document.getElementById('bbSel').value;
+    var co2 = document.getElementById('bbCoSel').value;
+    if(bu2==='__keep__' && co2==='__keep__'){ toast('Pick a Company or BU to apply first.'); return; }
+    var nCo = ids.length;
+    if(co2!=='__keep__' && !confirm('Set Company to "'+(co2||'(none)')+'" on '+nCo+' client'+(nCo===1?'':'s')+' in Salesforce?')) return;
     bbAp.disabled = true; bbAp.textContent = 'Applying 0/'+ids.length+'…';
     var okN = 0, failMsgs = [];
     try{
       var tok2 = await sfToken();
       for(var off=0; off<ids.length; off+=200){
         var chunk = ids.slice(off, off+200);
-        var r2 = await fetch(WORKER+'/sf-update-account-bu-bulk',{method:'POST',headers:{Authorization:'Bearer '+tok2,'Content-Type':'application/json'},body:JSON.stringify({ids:chunk,bu:bu2})});
+        var pl2 = {ids:chunk};
+        if(bu2!=='__keep__') pl2.bu = bu2;
+        if(co2!=='__keep__') pl2.company = co2;
+        var r2 = await fetch(WORKER+'/sf-update-account-bu-bulk',{method:'POST',headers:{Authorization:'Bearer '+tok2,'Content-Type':'application/json'},body:JSON.stringify(pl2)});
         var j2 = await r2.json();
         if(r2.status===403){ toast("BU changes are limited to map admins."); bbAp.disabled=false; renderPanel(); return; }
         if(!(j2&&j2.ok)){ failMsgs.push((j2&&j2.error)||('HTTP '+r2.status)); break; }
         okN += j2.updated;
         (j2.failed||[]).forEach(function(f){ if(failMsgs.length<3) failMsgs.push(f.message); });
-        j2.updatedIds.forEach(function(id){ var acc=SF.accts.find(function(x){return x.id===id;}); if(acc) acc.bu=bu2; delete selAccts[id]; });
+        j2.updatedIds.forEach(function(id){ var acc=SF.accts.find(function(x){return x.id===id;}); if(acc){ if(bu2!=='__keep__') acc.bu=bu2; if(co2!=='__keep__') acc.co=co2; } delete selAccts[id]; });
         bbAp.textContent = 'Applying '+Math.min(off+200,ids.length)+'/'+ids.length+'…';
       }
     }catch(e2){ failMsgs.push(String(e2.message||e2)); }
     var failN = ids.length - okN;
-    toast('Bulk BU: '+okN+' updated in Salesforce'+(failN? ' · '+failN+' failed'+(failMsgs.length?' — '+failMsgs[0]:'') : '.'));
+    toast('Bulk '+[co2!=='__keep__'?'Company':null, bu2!=='__keep__'?'BU':null].filter(Boolean).join(' + ')+': '+okN+' updated in Salesforce'+(failN? ' · '+failN+' failed'+(failMsgs.length?' — '+failMsgs[0]:'') : '.'));
     renderPanel(); return;
   }
   var ae = e.target.closest('.acct-edit');
