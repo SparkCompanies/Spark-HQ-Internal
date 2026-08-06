@@ -153,6 +153,7 @@ body.focused .showall{display:inline-flex}
 .acct .ext{color:var(--faint);flex:none}
 .acct a:hover .ext{color:var(--gold-hi)}
 .acct .meta{font-size:11px;color:var(--dim);white-space:nowrap}
+.cotag{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);border:1px solid var(--edge);border-radius:3px;padding:1px 5px;white-space:nowrap}
 .butag{font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:99px;font-weight:600;flex:none}
 .bu-row{padding:10px 2px;border-bottom:1px solid var(--edge)}
 .bu-top{display:flex;align-items:center;gap:10px;cursor:pointer}
@@ -171,6 +172,9 @@ body.focused .showall{display:inline-flex}
 .req-edit:hover{color:var(--gold-hi)}
 .req-bu-sel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px;max-width:170px}
 .acct-ck{accent-color:var(--gold);margin-right:8px;cursor:pointer;flex:none}
+.acct-editor .ed-row{display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.acct-editor .ed-lb{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.acct-co-sel,.acct-bu-sel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px;max-width:150px}
 .bulkbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--gold-dark);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px}
 .bulkbar .bsel{background:var(--bg);border:1px solid var(--edge);color:var(--txt);font-family:inherit;font-size:12px;padding:4px 6px;border-radius:3px}
 .bulkbar .blink{color:var(--dim);cursor:pointer;text-decoration:underline;font-size:11.5px}
@@ -917,15 +921,20 @@ function renderPanel(){
         var link = sfLink(a);
         var nm = link ? '<a href="'+esc(link)+'" target="_blank" rel="noopener">'+esc(a.name||'—')+' <svg class="ext" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a>' : esc(a.name||'—');
         if(acctEditing && a.id===acctEditing){
-          return '<div class="acct acct-editor" data-aid="'+esc(a.id)+'"><span class="nm">'+esc(a.name||'—')+'</span>'
-            +'<span style="display:flex;gap:6px;align-items:center;margin-left:auto"><select class="acct-bu-sel">'
+          return '<div class="acct acct-editor" data-aid="'+esc(a.id)+'" style="flex-wrap:wrap"><span class="nm">'+esc(a.name||'—')+'</span>'
+            +'<span class="ed-row"><span class="ed-lb">Company</span><select class="acct-co-sel">'
+            +'<option value="">(none)</option>'
+            +coOptions().map(function(c){return '<option'+(c===a.co?' selected':'')+'>'+esc(c)+'</option>';}).join('')
+            +'</select>'
+            +'<span class="ed-lb">BU</span><select class="acct-bu-sel">'
             +'<option value="">(no BU)</option>'
             +buOptions('acct').map(function(b){return '<option'+(b===a.bu?' selected':'')+'>'+esc(b)+'</option>';}).join('')
             +'</select><button class="tb acct-bu-save">Save to SF</button><button class="tb acct-bu-cancel">Cancel</button></span></div>';
         }
         var pencil = a.id ? '<span class="req-edit acct-edit" data-aid="'+esc(a.id)+'" title="Change BU in Salesforce">✎</span>' : '';
         var ck = a.id ? '<input type="checkbox" class="acct-ck" data-aid="'+esc(a.id)+'"'+(selAccts[a.id]?' checked':'')+'>' : '';
-        return '<div class="acct">'+ck+'<span class="nm">'+nm+'</span>'+pencil
+        var cotag = a.co ? '<span class="cotag">'+esc(a.co)+'</span>' : '';
+        return '<div class="acct">'+ck+'<span class="nm">'+nm+'</span>'+pencil+cotag
           +(a.bu?'<span class="butag" style="background:'+buColor(a.bu)+'22;color:'+buColor(a.bu)+';border:1px solid '+buColor(a.bu)+'55">'+esc(a.bu)+'</span>':'')
           +'<span class="meta">'+esc([a.city, stateOfRec(a)].filter(Boolean).join(', '))+'</span></div>';
       }).join('');
@@ -977,17 +986,23 @@ document.querySelectorAll('.p-tab').forEach(function(b){ b.addEventListener('cli
   document.querySelectorAll('.p-tab').forEach(function(x){ x.classList.toggle('on', x===b); });
   renderPanel();
 });});
-var PICKLISTS = { acct: null, job: null };
+var PICKLISTS = { acct: null, job: null, co: null };
 function loadPicklists(){
   sfToken().then(function(tok){
     if(!tok) return;
-    ['Account','bpats__Job__c'].forEach(function(obj){
-      fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(obj), {method:'POST',headers:{Authorization:'Bearer '+tok}})
+    [['Account','Subdivision__c','acct'],['bpats__Job__c','Subdivision__c','job'],['Account','Division__c','co']].forEach(function(t){
+      fetch(WORKER + '/sf-picklist?obj=' + encodeURIComponent(t[0]) + '&field=' + encodeURIComponent(t[1]), {method:'POST',headers:{Authorization:'Bearer '+tok}})
         .then(function(r){ return r.json(); })
-        .then(function(j){ if(j && j.ok && Array.isArray(j.values)) PICKLISTS[obj==='Account'?'acct':'job'] = j.values; })
+        .then(function(j){ if(j && j.ok && Array.isArray(j.values)) PICKLISTS[t[2]] = j.values; })
         .catch(function(){});
     });
   });
+}
+function coOptions(){
+  if(PICKLISTS.co && PICKLISTS.co.length) return PICKLISTS.co.slice();
+  var s = {};
+  SF.accts.forEach(function(a){ if(a.co) s[a.co]=1; });
+  return Object.keys(s).sort();
 }
 function buOptions(kind){
   var pk = PICKLISTS[kind==='job'?'job':'acct'];
@@ -1040,13 +1055,18 @@ document.getElementById('pBody').addEventListener('click', async function(e){
   if(asv){
     var arow = asv.closest('.acct-editor'), aid = arow.dataset.aid;
     var abu = arow.querySelector('.acct-bu-sel').value;
+    var aco = arow.querySelector('.acct-co-sel').value;
+    var prev = SF.accts.find(function(x){return x.id===aid;}) || {};
+    var coChanged = aco !== (prev.co||'');
     asv.disabled = true; asv.textContent = 'Saving…';
     try{
       var tok0 = await sfToken();
-      var r0 = await fetch(WORKER+'/sf-update-account-bu',{method:'POST',headers:{Authorization:'Bearer '+tok0,'Content-Type':'application/json'},body:JSON.stringify({accountId:aid,bu:abu})});
+      var payload = {accountId:aid, bu:abu};
+      if(coChanged) payload.company = aco;
+      var r0 = await fetch(WORKER+'/sf-update-account-bu',{method:'POST',headers:{Authorization:'Bearer '+tok0,'Content-Type':'application/json'},body:JSON.stringify(payload)});
       var j0 = await r0.json();
       if(r0.status===403){ toast("BU changes are limited to map admins."); }
-      else if(j0 && j0.ok){ var acc = SF.accts.find(function(x){return x.id===aid;}); if(acc) acc.bu = abu; toast("Client BU updated in Salesforce."); }
+      else if(j0 && j0.ok){ var acc = SF.accts.find(function(x){return x.id===aid;}); if(acc){ acc.bu = abu; acc.co = aco; } toast("Client "+(coChanged?"Company + BU":"BU")+" updated in Salesforce."); }
       else { toast("SF update failed: "+((j0&&j0.error)||("HTTP "+r0.status))); }
     }catch(e0){ toast("SF update failed: "+String(e0.message||e0)); }
     acctEditing = null; renderPanel(); return;
