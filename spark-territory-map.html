@@ -271,7 +271,7 @@ body.focused .showall{display:inline-flex}
   <div class="p-head"><span class="sw" id="pSw"></span><h2 id="pTitle">Territory</h2><button class="p-widen" id="pWiden"></button><button class="p-x" id="pClose">✕</button></div>
   <div class="p-stats" id="pStats"></div>
   <div class="p-tabs">
-    <button class="p-tab on" data-pt="clients" id="ptClients">Clients</button>
+    <button class="p-tab on" data-pt="clients" id="ptClients">Companies</button>
     <button class="p-tab" data-pt="reqs" id="ptReqs">Open reqs by BU</button>
   </div>
   <div class="p-body" id="pBody"></div>
@@ -887,14 +887,14 @@ function renderPanel(){
   if(!t) return;
   var accts = acctsFor(t.id, panelState), jobs = jobsFor(t.id, panelState);
   document.getElementById('pStats').innerHTML =
-    '<div class="p-stat"><div class="n">'+accts.length+'</div><div class="l">Clients</div></div>'
+    '<div class="p-stat"><div class="n">'+accts.length+'</div><div class="l">Companies</div></div>'
    +'<div class="p-stat"><div class="n">'+jobs.length+'</div><div class="l">Open reqs</div></div>'
    +(panelState === "MI"
      ? '<div class="p-stat"><div class="n">'+fmtM((t.counties||[]).reduce(function(a,f){return a+(MIPOP[f]||0);},0))+'</div><div class="l">County-area pop.</div></div>'
      : (panelState
        ? '<div class="p-stat"><div class="n">'+fmtM(POP[panelState]||0)+'</div><div class="l">Population</div></div>'
        : '<div class="p-stat"><div class="n">'+t.states.length+'</div><div class="l">States</div></div>'));
-  document.getElementById('ptClients').textContent = 'Clients ('+accts.length+')';
+  document.getElementById('ptClients').textContent = 'Companies ('+accts.length+')';
   document.getElementById('ptReqs').textContent = 'Reqs by BU ('+jobs.length+')';
   var body = document.getElementById('pBody'), h = '';
   if(!SF.loaded){
@@ -905,7 +905,7 @@ function renderPanel(){
     var q = panelQ.toLowerCase();
     var list = accts.filter(function(a){ return !q || String(a.name||'').toLowerCase().indexOf(q)>=0; })
                     .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
-    h += '<input class="p-search" id="pSearch" placeholder="Filter clients…" value="'+esc(panelQ)+'">';
+    h += '<input class="p-search" id="pSearch" placeholder="Filter companies…" value="'+esc(panelQ)+'">';
     var nSel = Object.keys(selAccts).length;
     h += '<div class="bulkbar" id="bulkBar">'
       +'<span><b id="bbCount">'+nSel+'</b> selected</span>'
