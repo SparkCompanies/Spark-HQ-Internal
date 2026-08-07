@@ -615,7 +615,7 @@ var worker_default = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(we)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
       const d = new Date(we + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 5);
       const checkDate = (d.getUTCMonth() + 1) + "-" + d.getUTCDate() + "-" + d.getUTCFullYear() + " Check Date";
-      const out = { version: "preview-v34-git", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
+      const out = { version: "preview-v35-git", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
       let token;
       try { token = await getGraphToken(env); } catch (e) { out.tokenError = String(e.message || e); return json(out, 200, origin); }
       const H = { Authorization: "Bearer " + token, Accept: "application/json" };
@@ -1829,6 +1829,70 @@ var worker_default = {
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
+    }
+    if (url.pathname === "/sf-update-account-address") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a map admin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      let body; try { body = await request.json(); } catch(e){ return json({ error: "bad json" }, 400, origin); }
+      const acctId = String((body && body.accountId) || "").trim();
+      if (/^[a-zA-Z0-9]{15,18}$/.test(acctId) === false) return json({ error: "invalid accountId" }, 400, origin);
+      const rec = {};
+      if (Object.prototype.hasOwnProperty.call(body, "city")) rec.ShippingCity = String(body.city||"").trim() || null;
+      if (Object.prototype.hasOwnProperty.call(body, "state")) rec.ShippingState = String(body.state||"").trim().toUpperCase() || null;
+      if (Object.prototype.hasOwnProperty.call(body, "zip")) rec.ShippingPostalCode = String(body.zip||"").trim() || null;
+      if (Object.keys(rec).length === 0) return json({ error: "nothing to update" }, 400, origin);
+      try {
+        const tok = await getSalesforceToken(env);
+        const at = tok.access_token || tok.accessToken || tok.token;
+        const base = String(tok.instance_url || "").replace(/\/+$/, "");
+        const r = await fetch(base + "/services/data/v59.0/sobjects/Account/" + acctId, {
+          method: "PATCH", headers: { "Authorization": "Bearer " + at, "Content-Type": "application/json" }, body: JSON.stringify(rec) });
+        if (r.status === 204) return json({ ok: true, accountId: acctId, by: email }, 200, origin);
+        let msg = "HTTP " + r.status;
+        try { const e2 = await r.json(); if (Array.isArray(e2) && e2[0]) msg = (e2[0].errorCode?e2[0].errorCode+" ":"") + (e2[0].message||""); } catch(x){}
+        return json({ error: msg }, 502, origin);
+      } catch(e){ return json({ error: String(e.message||e) }, 502, origin); }
+    }
+    if (url.pathname === "/sf-update-account-address-bulk") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a map admin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      let body; try { body = await request.json(); } catch(e){ return json({ error: "bad json" }, 400, origin); }
+      const ups = Array.isArray(body && body.updates) ? body.updates : [];
+      if (ups.length < 1 || ups.length > 200) return json({ error: "1-200 updates required" }, 400, origin);
+      if (ups.every(function(u){ return u && /^[a-zA-Z0-9]{15,18}$/.test(String(u.id||"")); }) === false) return json({ error: "invalid id in list" }, 400, origin);
+      try {
+        const tok = await getSalesforceToken(env);
+        const at = tok.access_token || tok.accessToken || tok.token;
+        const base = String(tok.instance_url || "").replace(/\/+$/, "");
+        const records = ups.map(function(u){
+          const rec = { attributes: { type: "Account" }, Id: String(u.id) };
+          if (u.city !== undefined) rec.ShippingCity = String(u.city||"").trim() || null;
+          if (u.state !== undefined) rec.ShippingState = String(u.state||"").trim().toUpperCase() || null;
+          if (u.zip !== undefined) rec.ShippingPostalCode = String(u.zip||"").trim() || null;
+          return rec;
+        });
+        const r = await fetch(base + "/services/data/v59.0/composite/sobjects", {
+          method: "PATCH", headers: { "Authorization": "Bearer " + at, "Content-Type": "application/json" },
+          body: JSON.stringify({ allOrNone: false, records: records }) });
+        if (r.ok !== true) { const t2 = await r.text(); return json({ error: "composite failed: " + r.status + " " + t2.slice(0,180) }, 502, origin); }
+        const results = await r.json();
+        const updatedIds = [], failed = [];
+        results.forEach(function(res, i){
+          if (res.success) updatedIds.push(String(ups[i].id));
+          else failed.push({ id: String(ups[i].id), message: (res.errors && res.errors[0] && res.errors[0].message) || "unknown" });
+        });
+        return json({ ok: true, updated: updatedIds.length, updatedIds: updatedIds, failed: failed, by: email }, 200, origin);
+      } catch(e){ return json({ error: String(e.message||e) }, 502, origin); }
     }
     if (url.pathname === "/sf-update-account-bu-bulk") {
       const who = await verifyUser(request, env);
