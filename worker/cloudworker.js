@@ -615,7 +615,7 @@ var worker_default = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(we)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
       const d = new Date(we + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 5);
       const checkDate = (d.getUTCMonth() + 1) + "-" + d.getUTCDate() + "-" + d.getUTCFullYear() + " Check Date";
-      const out = { version: "preview-v33-merged", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
+      const out = { version: "preview-v34-git", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
       let token;
       try { token = await getGraphToken(env); } catch (e) { out.tokenError = String(e.message || e); return json(out, 200, origin); }
       const H = { Authorization: "Bearer " + token, Accept: "application/json" };
