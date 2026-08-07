@@ -187,6 +187,8 @@ body.focused .showall{display:inline-flex}
 .statwrap{display:flex;gap:6px;align-items:center;margin-left:10px}
 .scoreboard{display:flex;gap:10px;align-items:stretch;padding:10px 26px;border-bottom:1px solid var(--edge);flex-wrap:wrap;background:var(--panel)}
 .scoreboard:empty{display:none}
+.aabtn{display:inline-flex;font-size:12px;padding:5px 12px;border:1px solid var(--gold);background:transparent;color:var(--gold-hi);border-radius:99px;cursor:pointer;font-family:inherit;margin-left:8px}
+.aabtn:hover{background:var(--panel2)}
 .aa-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:60;padding:40px 24px}
 .aa-wrap.open{display:block}
 .aa-box{max-width:1080px;margin:0 auto;background:var(--panel);border:1px solid var(--gold-dark);border-radius:8px;display:flex;flex-direction:column;max-height:calc(100vh - 80px)}
@@ -300,7 +302,7 @@ body.focused .showall{display:inline-flex}
       <span class="pill" id="pill">View</span>
       <span class="hint" id="hint">Hover a state · click it to open its territory.</span>
       <button class="showall" id="showAll">Show all territories</button>
-      <button class="showall" id="addrAuditBtn" title="Find and fix bad addresses">Address audit</button>
+      <button class="aabtn" id="addrAuditBtn" title="Find and fix bad addresses">Address audit</button>
       <span class="statwrap"><span class="ed-lb" style="color:var(--dim)">Status</span><select id="statusSel" class="bsel"><option value="">All</option></select>
       <span class="ed-lb" style="color:var(--dim)">Company</span><select id="companySel" class="bsel"><option value="">All</option></select>
       <span class="ed-lb" style="color:var(--dim)">BU</span><select id="buSel" class="bsel"><option value="">All</option></select>
