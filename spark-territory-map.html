@@ -30,7 +30,7 @@ header .sp{flex:1}
 .hb svg{width:14px;height:14px}
 
 /* ---------- KPI strip ---------- */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--edge);border-bottom:1px solid var(--edge)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--edge);border-bottom:1px solid var(--edge)}
 .kpi{background:var(--bg);padding:12px 22px}
 .kpi .n{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
 .kpi .n em{font-style:normal;color:var(--gold);font-size:14px;margin-left:2px}
@@ -473,12 +473,11 @@ function renderKpis(){
   const cAssigned=data.territories.reduce(function(a,t){return a+((t.counties||[]).length);},0);
   const assigned=data.territories.reduce((a,t)=>a+t.states.filter(s=>s!=="MI").length,0) + (cAssigned===87?1:0);
   const covered=data.territories.reduce((a,t)=>a+popOf(t),0);
-  const chg=data.log.length?new Date(data.log[0].ts).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—";
   document.getElementById("kpis").innerHTML=
     '<div class="kpi"><div class="n">'+data.territories.length+'</div><div class="l">Territories</div></div>'
    +'<div class="kpi"><div class="n">'+assigned+'<em>/ 51</em></div><div class="l">States assigned</div></div>'
    +'<div class="kpi"><div class="n">'+fmtM(covered)+'<em>'+Math.round(covered/US_POP*100)+'%</em></div><div class="l">Population covered</div></div>'
-   +'<div class="kpi"><div class="n">'+chg+'</div><div class="l">Last change</div></div>';
+;
 }
 
 /* ---------- Rail ---------- */
