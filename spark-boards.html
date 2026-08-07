@@ -7039,43 +7039,68 @@ function SFNameCell({ value, onPick, onText }) {
   const [res, setRes] = useState([]);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [foc, setFoc] = useState(false);
+  const [pos, setPos] = useState(null);
+  const boxRef = useRef(null);
   useEffect(() => { setQ(value || ''); }, [value]);
+  const place = () => {
+    const el = boxRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const up = (window.innerHeight - r.bottom) < 260 && r.top > 260;
+    setPos({
+      left: Math.min(r.left, window.innerWidth - 340),
+      top: up ? null : r.bottom + 4,
+      bottom: up ? (window.innerHeight - r.top + 4) : null,
+      width: Math.max(r.width, 300)
+    });
+  };
   const run = s => {
     setQ(s);
     if (!LIVE || s.trim().length < 2) { setRes([]); setOpen(false); return; }
     setBusy(true);
+    place();
     API.call('/boards-sf-search?onboarding=1&q=' + encodeURIComponent(s.trim()))
-      .then(d => { setRes((d && d.results) || []); setOpen(true); })
+      .then(d => { setRes((d && d.results) || []); place(); setOpen(true); })
       .catch(() => { setRes([]); setOpen(false); })
       .then(() => setBusy(false));
   };
-  const commit = () => {
-    setOpen(false);
-    if (q !== value) onText(q);
-  };
-  return React.createElement('div', { style: { position: 'relative', width: '100%' } },
+  const menuStyle = pos ? {
+    position: 'fixed', left: pos.left + 'px',
+    top: pos.top !== null ? pos.top + 'px' : 'auto',
+    bottom: pos.bottom !== null ? pos.bottom + 'px' : 'auto',
+    width: pos.width + 'px', zIndex: 9999, background: '#fff',
+    border: '1px solid #E3E5EC', borderRadius: 10,
+    boxShadow: '0 10px 34px rgba(16,16,29,.20)', maxHeight: 250, overflowY: 'auto'
+  } : { display: 'none' };
+  return React.createElement('div', { ref: boxRef, style: { position: 'relative', width: '100%' } },
     React.createElement('input', {
       value: q,
       onChange: e => run(e.target.value),
-      onBlur: () => setTimeout(commit, 150),
-      onKeyDown: e => { if (e.key === 'Enter') { e.target.blur(); } if (e.key === 'Escape') { setOpen(false); } },
-      placeholder: 'Type to search Salesforce',
-      style: { width: '100%', border: 'none', background: 'transparent', font: 'inherit', fontWeight: 600, outline: 'none', padding: '2px 0' }
+      onFocus: () => setFoc(true),
+      onBlur: () => setTimeout(() => { setFoc(false); setOpen(false); if (q !== value) onText(q); }, 160),
+      onKeyDown: e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { setOpen(false); e.target.blur(); } },
+      placeholder: foc ? 'Type 2+ letters to search Salesforce' : '',
+      style: {
+        width: '100%', font: 'inherit', fontWeight: 600, outline: 'none',
+        border: foc ? '1px solid #FFC800' : '1px solid transparent',
+        background: foc ? '#fff' : 'transparent',
+        borderRadius: 6, padding: '3px 6px', boxSizing: 'border-box',
+        boxShadow: foc ? '0 2px 10px rgba(16,16,29,.10)' : 'none'
+      }
     }),
-    busy && React.createElement('div', { style: { position: 'absolute', right: 4, top: 4, fontSize: 10, color: '#9A9CA8' } }, '...'),
-    open && res.length > 0 && React.createElement('div', {
-      style: { position: 'absolute', top: '100%', left: 0, zIndex: 200, background: '#fff', border: '1px solid #E3E5EC', borderRadius: 10, boxShadow: '0 8px 30px rgba(16,16,29,.14)', minWidth: 300, maxHeight: 280, overflowY: 'auto', marginTop: 4 }
-    }, res.map(r => React.createElement('div', {
-      key: r.sfId,
-      onMouseDown: e => { e.preventDefault(); setOpen(false); setQ(r.name); onPick(r); },
-      style: { padding: '8px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #F2F3F7' },
-      onMouseEnter: e => e.currentTarget.style.background = '#F7F8FB',
-      onMouseLeave: e => e.currentTarget.style.background = 'transparent'
-    }, React.createElement('div', { style: { fontWeight: 600 } }, r.name),
-       React.createElement('div', { style: { fontSize: 11, color: '#7A7D8C', marginTop: 2 } }, (r.start || 'no start date') + '  ·  ' + (r.status || ''))))),
-    open && res.length === 0 && !busy && React.createElement('div', {
-      style: { position: 'absolute', top: '100%', left: 0, zIndex: 200, background: '#fff', border: '1px solid #E3E5EC', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#7A7D8C', marginTop: 4, whiteSpace: 'nowrap' }
-    }, 'No match in Salesforce'));
+    busy && React.createElement('div', { style: { position: 'absolute', right: 6, top: 5, fontSize: 10, color: '#9A9CA8', pointerEvents: 'none' } }, '···'),
+    open && React.createElement('div', { style: menuStyle },
+      res.length === 0 && !busy
+        ? React.createElement('div', { style: { padding: '10px 12px', fontSize: 12, color: '#7A7D8C' } }, 'No match in Salesforce')
+        : res.map(r => React.createElement('div', {
+            key: r.sfId,
+            onMouseDown: ev => { ev.preventDefault(); setOpen(false); setQ(r.name); onPick(r); },
+            style: { padding: '8px 12px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #F2F3F7' },
+            onMouseEnter: ev => ev.currentTarget.style.background = '#F7F8FB',
+            onMouseLeave: ev => ev.currentTarget.style.background = 'transparent'
+          }, React.createElement('div', { style: { fontWeight: 600, color: '#16161D' } }, r.name),
+             React.createElement('div', { style: { fontSize: 11, color: '#7A7D8C', marginTop: 2 } }, (r.start || 'no start date') + '  ·  ' + (r.status || ''))))));
 }
 function BoardView({
   board,
