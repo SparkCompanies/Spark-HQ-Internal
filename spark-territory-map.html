@@ -102,7 +102,7 @@ text.tlabel{font-family:'Jost',sans-serif;font-weight:700;letter-spacing:.18em;t
 text.tpop{font-family:'Jost',sans-serif;font-weight:500;pointer-events:none;paint-order:stroke;stroke:#0e0e11;stroke-width:2.5px}
 path.st:hover{filter:brightness(1.18)}
 path.st.dimmed{opacity:.22}
-text.abbr{font-family:'Jost',sans-serif;font-size:9.5px;font-weight:600;pointer-events:none;opacity:.8}
+text.abbr{font-family:'Jost',sans-serif;font-size:9.5px;font-weight:600;pointer-events:none;opacity:.92;fill:#f5f3ec;stroke:rgba(0,0,0,.55);stroke-width:2.4px;paint-order:stroke fill;stroke-linejoin:round}
 .callout-line{stroke:#4a4840;stroke-width:.8}
 text.co{font-family:'Jost',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer}
 text.co:hover{filter:brightness(1.4);text-decoration:underline}
@@ -471,8 +471,7 @@ function renderMap(){
   // state abbreviations
   for(const [ab,s] of Object.entries(STATES)){
     if(NOLABEL.has(ab) || ab==="MI") continue;
-    const t=terrOf(ab); const lt=!t||lum(t.color)<0.5;
-    h+='<text class="abbr" x="'+s.cx+'" y="'+(s.cy+4)+'" text-anchor="middle" fill="'+(lt?"#f2f0e8":"#141414")+'">'+ab+'</text>';
+    h+='<text class="abbr" x="'+s.cx+'" y="'+(s.cy+4)+'" text-anchor="middle">'+ab+'</text>';
   }
   // territory name labels
   for(const t of data.territories){
