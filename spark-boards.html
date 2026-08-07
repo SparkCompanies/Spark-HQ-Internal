@@ -628,6 +628,10 @@ const API = {
 const Persist = {
   board(b) {
     if (!LIVE || !b) return;
+    if (typeof window !== 'undefined' && window.__sbNoSave) {
+      sbFlash('Clear the search box before editing. Changes are not saved while filtered.');
+      return;
+    }
     API.call('/boards-save', {
       method: 'POST',
       body: JSON.stringify({
@@ -1101,6 +1105,7 @@ const SparkMark = () => /*#__PURE__*/React.createElement("svg", {
 
 /* ---------------- Seed data ---------------- */
 function filterBoardRows(b, q) {
+  try { window.__sbNoSave = !!q; } catch (e) {}
   if (!b || !q) return b;
   var s = String(q).toLowerCase();
   return Object.assign({}, b, {
