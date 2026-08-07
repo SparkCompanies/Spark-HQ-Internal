@@ -7256,7 +7256,7 @@ function Home({
     className: "home"
   }, /*#__PURE__*/React.createElement("h1", {
     className: "home-h"
-  }, "Good morning, Allie"), /*#__PURE__*/React.createElement("p", {
+  }, (function(){var x=new Date().getHours();var g=x<12?'Good morning':x<18?'Good afternoon':'Good evening';return g+', '+sparkMe().name.split(' ')[0];})()), /*#__PURE__*/React.createElement("p", {
     className: "home-sub"
   }, "Here's where everything stands across your boards today."), /*#__PURE__*/React.createElement("div", {
     className: "stat-grid"
@@ -7998,7 +7998,7 @@ function NewBoardModal({
   }, /*#__PURE__*/React.createElement(Avatar, {
     user: u,
     size: 20
-  }), u.name.split(' ')[0]))))), /*#__PURE__*/React.createElement("div", {
+  }), (u && u.name ? u.name : sparkMe().name).split(' ')[0]))))), /*#__PURE__*/React.createElement("div", {
     className: "modal-f"
   }, /*#__PURE__*/React.createElement("button", {
     className: "btn ghost",
