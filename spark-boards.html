@@ -4812,6 +4812,20 @@ function TableView({
     if (col && col.type === 'status') notes = runAutomations(nb, it, key);
     update(() => nb);
     Persist.board(nb);
+    if (LIVE && col && col.type === 'status' && col.options && col.options[val] && col.options[val].label === 'Placed') {
+      if (!it.sfId) {
+        sbFlash('Saved on the board. This row has no Salesforce link yet - run Sync with Salesforce first.');
+      } else {
+        API.call('/boards-sf-write', {
+          method: 'POST',
+          body: JSON.stringify({ boardId: board.id, itemId: it.id, status: 'Active' })
+        }).then(function () {
+          sbFlash(it.name + ' set to Active in Salesforce.', 'ok');
+        }).catch(function (e) {
+          sbFlash('Board updated, but Salesforce was not: ' + ((e && e.message) || ''));
+        });
+      }
+    }
     if (notes.length && onAutomation) onAutomation(notes);
   };
   const addItem = gi => {
