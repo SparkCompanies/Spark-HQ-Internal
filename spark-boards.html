@@ -1100,6 +1100,38 @@ const SparkMark = () => /*#__PURE__*/React.createElement("svg", {
 }));
 
 /* ---------------- Seed data ---------------- */
+var SPARK_NAME_MAP = {
+  aspegel: 'Allie Spegel', mpatrico: 'Mary Patrico', pmalani: 'Priyanka Malani',
+  tcoleman: 'Tamika Coleman', aopalewski: 'Aaron Opalewski', eurisitti: 'Erica Urisitti',
+  bnamma: 'Bedros Naama', copalewski: 'Chad Opalewski', dveres: 'Dave Veres',
+  fkundtz: 'Fletcher Kundtz', modeesh: 'Maryam Odeesh', shoensheid: 'Sarah Hoensheid'
+};
+function sparkMe() {
+  try {
+    var raw = localStorage.getItem('spark_hq_sb_auth');
+    if (!raw) return TEAM[0];
+    var v = JSON.parse(raw), s = v.currentSession || v;
+    if (!s || !s.access_token) return TEAM[0];
+    var part = s.access_token.split('.')[1];
+    var p = JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/')));
+    var email = (p.email || '').toLowerCase();
+    if (!email) return TEAM[0];
+    var user = email.split('@')[0];
+    var md = p.user_metadata || {};
+    var nm = md.full_name || md.name || SPARK_NAME_MAP[user] || null;
+    if (!nm) {
+      nm = user.split(/[._-]+/).filter(Boolean).map(function (x) {
+        return x.charAt(0).toUpperCase() + x.slice(1);
+      }).join(' ');
+    }
+    var hit = TEAM.filter(function (t) { return t.name.toLowerCase() === nm.toLowerCase(); })[0];
+    if (hit) return hit;
+    var pal = ['#D4A843', '#579BFC', '#A25DDC', '#00C875', '#E14B8A', '#00A9A5', '#FDAB3D', '#7E5BD6'];
+    var n = 0;
+    for (var i = 0; i < email.length; i++) n = (n * 31 + email.charCodeAt(i)) >>> 0;
+    return { id: 'sb_' + user, name: nm, color: pal[n % pal.length], email: email };
+  } catch (e) { return TEAM[0]; }
+}
 const TEAM = [{
   id: 'u1',
   name: 'Allie Spegel',
@@ -4766,7 +4798,7 @@ function TableView({
     const old = it[key];
     it[key] = val;
     if (key !== 'name' && String(old) !== String(val)) logAct(nb, {
-      actor: TEAM[0],
+      actor: sparkMe(),
       kind: 'cell',
       itemId: it.id,
       item: it.name,
@@ -4793,7 +4825,7 @@ function TableView({
     });
     nb.groups[gi].items.push(blank);
     logAct(nb, {
-      actor: TEAM[0],
+      actor: sparkMe(),
       kind: 'created',
       item: blank.name,
       group: nb.groups[gi].title
@@ -5406,7 +5438,7 @@ function KanbanView({
           it[key] = statusIdx;
           moved = it;
           if (String(old) !== String(statusIdx)) logAct(nb, {
-            actor: TEAM[0],
+            actor: sparkMe(),
             kind: 'cell',
             itemId: it.id,
             item: it.name,
@@ -8934,7 +8966,7 @@ function App() {
   const [activityOpen, setActivityOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const canEdit = role !== 'viewer';
-  const me = TEAM[0];
+  const me = sparkMe();
   const undoActivity = (boardId, ev) => updateBoard(boardId, b => {
     const nb = structuredClone(b);
     if (ev.kind === 'cell') {
@@ -9534,7 +9566,7 @@ function App() {
       if (activeBoard) setActivityOpen(true);
     }
   }, /*#__PURE__*/React.createElement(Avatar, {
-    user: TEAM[0],
+    user: sparkMe(),
     size: 34
   }))), query && route.page !== 'board' && /*#__PURE__*/React.createElement("div", {
     className: "content"
