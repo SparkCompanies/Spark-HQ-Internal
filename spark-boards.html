@@ -1100,6 +1100,19 @@ const SparkMark = () => /*#__PURE__*/React.createElement("svg", {
 }));
 
 /* ---------------- Seed data ---------------- */
+function filterBoardRows(b, q) {
+  if (!b || !q) return b;
+  var s = String(q).toLowerCase();
+  return Object.assign({}, b, {
+    groups: (b.groups || []).map(function (g) {
+      return Object.assign({}, g, {
+        items: (g.items || []).filter(function (it) {
+          return String(it.name || '').toLowerCase().indexOf(s) !== -1;
+        })
+      });
+    })
+  });
+}
 var SPARK_NAME_MAP = {
   aspegel: 'Allie Spegel', mpatrico: 'Mary Patrico', pmalani: 'Priyanka Malani',
   tcoleman: 'Tamika Coleman', aopalewski: 'Aaron Opalewski', eurisitti: 'Erica Urisitti',
@@ -9669,10 +9682,10 @@ function App() {
     boards: deletedBoards,
     onRestore: restoreBoard,
     onPurge: purgeBoard
-  })), !query && route.page === 'board' && activeBoard && /*#__PURE__*/React.createElement(BoardView, {
-    board: activeBoard,
+  })), route.page === 'board' && activeBoard && /*#__PURE__*/React.createElement(BoardView, {
+    board: filterBoardRows(activeBoard, query),
     update: fn => updateBoard(activeBoard.id, fn),
-    canEdit: canEdit,
+    canEdit: canEdit && !query,
     onOpenItem: (gid, iid) => setDrawer({
       boardId: activeBoard.id,
       itemId: iid
