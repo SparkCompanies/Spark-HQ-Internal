@@ -13204,6 +13204,15 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           }
         }); // vTerrMap — ensure Territory Map nav exists in saved sets
   Object.keys(merged).forEach(function(k){ var ni = merged[k].navItems; if (Array.isArray(ni) && ni.indexOf('terrmap') === -1) { var bi = ni.indexOf('boards'); if (bi !== -1) ni.splice(bi + 1, 0, 'terrmap'); else ni.splice(1, 0, 'terrmap'); } });
+        // vTkLinks — ensure TimeKeep Links nav exists in saved sets (admins/managers, not members)
+        Object.keys(merged).forEach(function(k){
+          if (k === 'member') return;
+          var ni = merged[k].navItems;
+          if (Array.isArray(ni) && ni.indexOf('tklinks') === -1) {
+            var ti = ni.indexOf('terrmap');
+            if (ti !== -1) ni.splice(ti + 1, 0, 'tklinks'); else ni.splice(1, 0, 'tklinks');
+          }
+        });
         // vMatch — ensure Spark Match nav exists in saved sets
         Object.keys(merged).forEach(function(k){
           var ni = merged[k].navItems;
