@@ -3,7 +3,7 @@
     "rewrite": "/index.html",
     "exclude": [
       "/assets/*",
-      "*.{css,scss,js,mjs,json,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf}",
+      "*.{css,scss,js,mjs,json,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf,mp4,mov,webm,mp3,wav,pdf}",
       "/spark-*.html",
       "/sparkline.html"
     ]
