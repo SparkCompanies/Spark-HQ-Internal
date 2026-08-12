@@ -13173,7 +13173,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: ['role'],
-      navItems: ['home','people','leadership','terrmap']
+      navItems: ['home','command','people','leadership','terrmap','training' /* STANDARD_ACCESS_v1 */]
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -13234,6 +13234,19 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           var ni = merged[k].navItems;
           if (Array.isArray(ni) && ni.indexOf('headcount') === -1 && ni.indexOf('finance') !== -1) {
             ni.splice(ni.indexOf('finance') + 1, 0, 'headcount');
+          }
+        });
+        // STANDARD_ACCESS_v1 — ensure Command Center + Training exist in saved sets (all roles)
+        Object.keys(merged).forEach(function(k){
+          var ni = merged[k].navItems;
+          if (!Array.isArray(ni)) return;
+          if (ni.indexOf('command') === -1) {
+            var hi = ni.indexOf('home');
+            if (hi !== -1) ni.splice(hi + 1, 0, 'command'); else ni.unshift('command');
+          }
+          if (ni.indexOf('training') === -1) {
+            var ti = ni.indexOf('terrmap');
+            if (ti !== -1) ni.splice(ti + 1, 0, 'training'); else ni.push('training');
           }
         });
         return merged;
@@ -20299,7 +20312,7 @@ window.jvDraftCard = function(draft){
 };
 </script>
 <!-- ===== END SPARK HQ ALFRED CONFIRM CARD v1 ===== -->
-<script>/* SPARK_HQ_CMD_EMBED_v2 */ (function(){var ALLOW=['aspegel@sparkcompanies.com','aopalewski@sparkcompanies.com','fkundtz@sparkcompanies.com','dveres@sparkcompanies.com'].map(function(e){return e.toLowerCase();});function btn(){return document.querySelector('.nav-item[data-tab="command"]');}function hide(){var b=btn();if(b)b.style.display='none';var v=document.getElementById('view-command');if(v&&v.style.display!=='none'){var h=document.querySelector('.nav-item[data-tab="home"]');if(h)h.click();}}function show(){var b=btn();if(b)b.style.display='';}function go(t){t=t||0;var u=(window.SPARK_SB&&window.SPARK_SB.whoami)?window.SPARK_SB.whoami():null;if(u&&u.email){var ok=ALLOW.indexOf((u.email||'').toLowerCase())>=0;/*CMD_ALLOWLIST_v3*/try{console.log('[CmdCenter] you are:',u.email,'| allowed:',ok);}catch(e){}if(ok)show();else hide();return;}if(t<14)setTimeout(function(){go(t+1);},700);else hide();/*CMD_FAILCLOSED_v3*/}if(document.readyState!=='loading')go();else document.addEventListener('DOMContentLoaded',function(){go();});})(); if(0)
+<script>/* SPARK_HQ_CMD_EMBED_v2 */ (function(){var ALLOW=['aspegel@sparkcompanies.com','aopalewski@sparkcompanies.com','fkundtz@sparkcompanies.com','dveres@sparkcompanies.com'].map(function(e){return e.toLowerCase();});function btn(){return document.querySelector('.nav-item[data-tab="command"]');}function hide(){var b=btn();if(b)b.style.display='none';var v=document.getElementById('view-command');if(v&&v.style.display!=='none'){var h=document.querySelector('.nav-item[data-tab="home"]');if(h)h.click();}}function show(){var b=btn();if(b)b.style.display='';}function go(t){t=t||0;var u=(window.SPARK_SB&&window.SPARK_SB.whoami)?window.SPARK_SB.whoami():null;if(u&&u.email){var ok=true; /* STANDARD_ACCESS_v1 — open to all signed-in users (was 4-email allowlist) *//*CMD_ALLOWLIST_v3*/try{console.log('[CmdCenter] you are:',u.email,'| allowed:',ok);}catch(e){}if(ok)show();else hide();return;}if(t<14)setTimeout(function(){go(t+1);},700);else hide();/*CMD_FAILCLOSED_v3*/}if(document.readyState!=='loading')go();else document.addEventListener('DOMContentLoaded',function(){go();});})(); if(0)
 (function(){
   // ===== Spark Command Center embed — leadership allowlist (EDIT THIS LIST) =====
   var SPARK_CMD_ALLOW = [
