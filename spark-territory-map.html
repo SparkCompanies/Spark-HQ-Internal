@@ -644,6 +644,17 @@ document.getElementById("addT").addEventListener("click",()=>{
 /* admin toggle / save / diff logging */
 const adminBtn=document.getElementById("adminBtn"),pill=document.getElementById("pill"),hint=document.getElementById("hint");
 adminBtn.addEventListener("click",()=>{
+  /* TERRMAP_PIN_v1 — soft gate on entering edit mode (view is always open) */
+  var TERRMAP_PIN = "606761";
+  if(!admin){
+    var unlocked=false; try{ unlocked = sessionStorage.getItem("terrmap_edit_unlocked")==="1"; }catch(e){}
+    if(!unlocked){
+      var entered = window.prompt("Admin edit is locked. Enter the PIN to make changes:");
+      if(entered===null) return;                 /* cancelled */
+      if(entered!==TERRMAP_PIN){ window.alert("Incorrect PIN. Still in view-only mode."); return; }
+      try{ sessionStorage.setItem("terrmap_edit_unlocked","1"); }catch(e){}
+    }
+  }
   admin=!admin;document.body.classList.toggle("admin",admin);
   document.getElementById("adminLbl").textContent=admin?"Done editing":"Admin edit";
   pill.textContent=admin?"Admin":"View";pill.classList.toggle("admin",admin);
