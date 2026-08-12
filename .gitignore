@@ -7,3 +7,7 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+index.backup-*.html
+*.bak
+*.bak-*
+index.html.*.bak
