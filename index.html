@@ -20823,9 +20823,20 @@ window.addEventListener("message",function(e){
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       };
-      if(typeof providerCreds !== 'undefined' && providerCreds.anthropic && providerCreds.anthropic.apiKey){
-        headers['x-api-key'] = providerCreds.anthropic.apiKey;
+      /* DUBBER_KEYFIX_v1 */
+      var dubKey = '';
+      try {
+        if(typeof providerCreds !== 'undefined' && providerCreds.anthropic && providerCreds.anthropic.apiKey){
+          dubKey = providerCreds.anthropic.apiKey;
+        }
+      } catch(_){}
+      if(!dubKey){
+        try { dubKey = localStorage.getItem('spark_hq_anthropic_key') || localStorage.getItem('spark_hq_api_key') || ''; } catch(_){}
       }
+      if(!dubKey){
+        throw new Error('No Anthropic key found. Set it under Admin \u2192 AI Settings, then reload this page.');
+      }
+      headers['x-api-key'] = dubKey;
       var response = await fetch('https://api.anthropic.com/v1/messages', {
         method:'POST', headers: headers,
         body: JSON.stringify({
