@@ -671,14 +671,14 @@ var dw=document.createElement('div');dw.className='drawerwrap';
 dw.innerHTML='<div class="drawer"><button class="dclose">&times;</button><h3>Overdue receivables</h3><div class="dsub">Spark Talent · live from Xero via Spark HQ Worker · everyone with this widget can see this, no Xero login needed</div>'+
 '<div class="buckets"><div class="bucket"><div class="bl">1–30 DAYS</div><div class="bv">$24.8K</div></div><div class="bucket"><div class="bl">31–60 DAYS</div><div class="bv">$59.5K</div></div><div class="bucket"><div class="bl">61–90 DAYS</div><div class="bv">$86.2K</div></div><div class="bucket hot"><div class="bl">90+ DAYS</div><div class="bv">$1.10M</div></div></div>'+
 '<input class="dsearch" placeholder="Search client or invoice #...">'+
-'<table class="dtable"><thead><tr><th>CLIENT</th><th>INVOICE</th><th style="text-align:right;">AMOUNT</th><th style="text-align:right;">DAYS LATE</th></tr></thead><tbody></tbody></table>'+
+'<table class="dtable"><thead><tr><th>CLIENT</th><th>INVOICE</th><th>REFERENCE</th><th style="text-align:right;">AMOUNT</th><th style="text-align:right;">DAYS LATE</th></tr></thead><tbody></tbody></table>'+
 '<div class="dfoot">Rows without live data are marked (sample). Production: worker /ar-overdue, refreshed hourly, entity-aware. Total shown: <b>$1.27M overdue · 103 invoices</b>.</div></div>';
 document.body.appendChild(dw);
 function drawRows(f){
   var tb=dw.querySelector('tbody');var q=(f||'').toLowerCase();
   tb.innerHTML=AR_FULL.filter(function(r){return !q||r.c.toLowerCase().indexOf(q)>-1||r.inv.indexOf(q)>-1;}).map(function(r){
-    return '<tr><td>'+r.c+(r.real?'':' <span style="color:#a3a29b;font-size:10.5px;">(sample)</span>')+'</td><td>'+r.inv+'</td><td class="amt">$'+r.a.toLocaleString()+'</td><td class="late'+(r.d<60?' warn':'')+'">'+r.d+'d</td></tr>';
-  }).join('')||'<tr><td colspan="4" style="text-align:center;color:#a3a29b;padding:18px;">No matches</td></tr>';
+    var _ref=(''+(r.ref||'')).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); return '<tr><td>'+r.c+(r.real?'':' <span style="color:#a3a29b;font-size:10.5px;">(sample)</span>')+'</td><td>'+r.inv+'</td><td class="ref" style="color:#6b6a64;">'+(_ref||'<span style="color:#c9c6bb;">\u2014</span>')+'</td><td class="amt">$'+r.a.toLocaleString()+'</td><td class="late'+(r.d<60?' warn':'')+'">'+r.d+'d</td></tr>'; /* AR_REFERENCE_home */
+  }).join('')||'<tr><td colspan="5" style="text-align:center;color:#a3a29b;padding:18px;">No matches</td></tr>';
 }
 drawRows('');
 dw.querySelector('.dsearch').addEventListener('input',function(){drawRows(this.value);});
@@ -878,7 +878,7 @@ function updateDrawer(){
  if(sub)sub.textContent=AR_LIVE.entity+' · live from Xero via Spark HQ Worker · no Xero login needed'+(d?' · as of '+new Date(d.asOf).toLocaleTimeString():'');
  var bl=dw.querySelectorAll('.bucket .bv');
  if(d&&bl.length===4){bl[0].textContent=fmtK(d.buckets.b30);bl[1].textContent=fmtK(d.buckets.b60);bl[2].textContent=fmtK(d.buckets.b90);bl[3].textContent=fmtK(d.buckets.b90p);}
- AR_FULL=d?d.invoices.map(function(r){return{c:r.contact,inv:r.number,a:Math.round(r.amountDue),d:r.daysLate,real:1};}):[];
+ AR_FULL=d?d.invoices.map(function(r){return{c:r.contact,inv:r.number,ref:r.reference||'',a:Math.round(r.amountDue),d:r.daysLate,real:1};}):[]; /* AR_REFERENCE_home */
  var foot=dw.querySelector('.dfoot');
  if(foot)foot.innerHTML=d?('Total: <b>'+fmtK(d.overdueTotal)+' overdue · '+d.overdueCount+' invoices</b> · '+fmtK(d.awaitingTotal)+' awaiting payment overall · refreshed every 10 min'):(AR_LIVE.err?'Could not load: '+AR_LIVE.err+' — this entity may not have a Custom Connection yet.':'Loading…');
  drawRows(dw.querySelector('.dsearch').value||'');
