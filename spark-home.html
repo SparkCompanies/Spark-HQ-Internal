@@ -341,12 +341,11 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
         <div class="qab"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More Apps</div>
       </div>
     </section>
-    <section class="kpis">
-      <div class="kpi"><div class="kv"><span class="big" id="kpiHc">475</span><span class="arrow">&#9650; +3</span></div><div class="kl">ON PAYROLL &middot; THIS WEEK</div></div>
-      <div class="kpi"><div class="kv"><span class="big" id="kpiPipe">$5.73M</span><span class="arrow">&#9650;</span></div><div class="kl">OPEN PIPELINE</div></div>
-      <div class="kpi"><div class="kv"><span class="big">12</span><span class="arrow">&#9650; +4</span></div><div class="kl">PLACEMENTS &middot; THIS WEEK (SAMPLE)</div></div>
-      <div class="kpi"><div class="kv"><span class="big" id="kpiHrs">18,269</span></div><div class="kl">HOURS LOGGED &middot; THIS WEEK</div></div>
-      <div class="kpi red"><div class="kv"><span class="big" id="kpiAr">$1.27M</span><span class="arrow">&#9660;</span></div><div class="kl">OVERDUE AR &middot; NEEDS ATTENTION</div></div>
+    <section class="kpis"><!-- HOME_DEFAKE_v1 -->
+      <div class="kpi"><div class="kv"><span class="big" id="kpiHc" data-live="sf">&mdash;</span></div><div class="kl">ON PAYROLL &middot; THIS WEEK</div></div>
+      <div class="kpi"><div class="kv"><span class="big" id="kpiPipe" data-live="sf">&mdash;</span></div><div class="kl">OPEN PIPELINE</div></div>
+      <div class="kpi"><div class="kv"><span class="big" id="kpiHrs" data-live="sf">&mdash;</span></div><div class="kl">HOURS LOGGED &middot; THIS WEEK</div></div>
+      <div class="kpi red"><div class="kv"><span class="big" id="kpiAr">&mdash;</span></div><div class="kl">OVERDUE AR &middot; LIVE FROM XERO</div></div>
     </section>
     <section class="dash" id="dashPage">
 
@@ -590,7 +589,7 @@ finance:{t:'Finance snapshot',lock:true},
 leadership:{t:'Leadership toolkit',lock:true}
 };
 function defOpts(id){var o={};(WIDGETS[id].opts||[]).forEach(function(s){o[s.k]=s.d;});return o;}
-var DEFAULT=[{id:'needsyou',s:3},{id:'thermo',s:3},{id:'pipeline',s:3},{id:'ar',s:3},{id:'today',s:3},{id:'headcount',s:3},{id:'leaderboard',s:3},{id:'spotlight',s:3},{id:'training',s:2},{id:'whosin',s:2},{id:'countdowns',s:2},{id:'inbox',s:2},{id:'bdays',s:2},{id:'jarvis',s:2},{id:'teams',s:3},{id:'links',s:3}];
+var DEFAULT=[{id:'ar',s:6},{id:'links',s:3},{id:'jarvis',s:3}]; /* HOME_DEFAKE_v1 — only live/real cards by default; sample widgets remain in the gallery, tagged */
 DEFAULT.forEach(function(w){w.o=defOpts(w.id);});
 var layout=JSON.parse(JSON.stringify(DEFAULT));
 var grid=document.getElementById('grid'),editing=false;
@@ -640,6 +639,8 @@ function render(){
   var bd=document.getElementById('briefDays');if(bd){bd.textContent=Math.max(0,Math.ceil((new Date('2026-08-03T09:00:00')-new Date())/86400000));}
   if(typeof saveLayoutCloud==='function')saveLayoutCloud();
 }
+  /* HOME_DEFAKE_v1 — widgets whose data is placeholder, not wired to a live source */
+  var SAMPLE_WIDGETS={pipeline:1,headcount:1,today:1,inbox:1,training:1,whosin:1,needsyou:1,thermo:1,leaderboard:1,spotlight:1,countdowns:1,bdays:1};
 function renderGallery(){
   var g=document.getElementById('galgrid');g.innerHTML='';
   Object.keys(WIDGETS).forEach(function(id){
@@ -647,7 +648,7 @@ function renderGallery(){
     if(layout.some(function(w){return w.id===id;}))return;
     var el=document.createElement('div');
     el.className='gal'+(def.lock?' locked':'');
-    el.innerHTML=(def.lock?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3a29b" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> ':'')+def.t+'<span class="plus">'+(def.lock?'tab access required':'+')+'</span>';
+    var _samp=(typeof SAMPLE_WIDGETS!=='undefined'&&SAMPLE_WIDGETS[id]); el.innerHTML=(def.lock?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a3a29b" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> ':'')+def.t+(_samp?' <span style="font-size:9.5px;letter-spacing:.1em;color:#a3792e;background:#fff3c2;border:1px solid #f0dc8a;border-radius:99px;padding:1px 7px;margin-left:4px;">SAMPLE</span>':'')+'<span class="plus">'+(def.lock?'tab access required':'+')+'</span>'; /* HOME_DEFAKE_v1 */
     if(!def.lock){el.addEventListener('click',function(){layout.push({id:id,s:3,o:defOpts(id)});render();saved();});}
     g.appendChild(el);
   });
@@ -893,7 +894,7 @@ wGet('/sf-board').then(function(d){
  if(pipe!=null){var p=num(pipe);if(p!=null)setKpi('kpiPipe',p>=1e6?'$'+(p/1e6).toFixed(2)+'M':'$'+Math.round(p/1e3)+'K');}
  if(hc!=null&&num(hc)!=null)setKpi('kpiHc',String(Math.round(num(hc))));
  if(hrs!=null&&num(hrs)!=null)setKpi('kpiHrs',Math.round(num(hrs)).toLocaleString());
-}).catch(function(e){console.log('[Home] /sf-board unavailable:',e);});
+}).catch(function(e){/* HOME_DEFAKE_v1 — leave KPIs blank rather than show fake numbers */try{document.querySelectorAll('.kpi .big[data-live="sf"]').forEach(function(el){if(el.textContent==='\u2014'){el.title='Connects when the Salesforce board endpoint is live';}});}catch(_){}console.log('[Home] /sf-board unavailable — payroll/pipeline/hours left blank (no fake fallback):',e);});
 loadAR('Spark Talent');
 /* ---------- ticker from real activity ---------- */
 function tickerFromPulse(){
