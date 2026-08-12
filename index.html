@@ -8542,7 +8542,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
               <div class="admin-section-head">
                 <h3>All training content</h3>
                 <div class="actions">
-                  <button class="btn-secondary" onclick="exportTrainingDataJson()">Export JSON</button>
+                  <button class="btn-secondary" id="lmsPubBtn" onclick="publishLmsToTeam()" style="background:#FFC800;border-color:#FFC800;color:#171614;font-weight:700;">Publish to team</button><span id="lmsPubState" style="font-size:11.5px;color:#8a8578;align-self:center;margin-right:6px;"></span><button class="btn-secondary" onclick="exportTrainingDataJson()">Export JSON</button>
                   <button class="btn-secondary" onclick="resetTrainingData()">Reset to default</button>
                 </div>
               </div>
@@ -18007,7 +18007,13 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 
   // ==================== PERSIST LMS DATA ====================
   function persistLmsData() {
-    try { localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); } catch(e) {}
+    /* LMS_PUBLISH_v1 */
+    try {
+      localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA));
+      localStorage.setItem('spark_hq_lms_dirty', '1');
+      var chip = document.getElementById('lmsPubState');
+      if (chip) { chip.textContent = 'Unpublished edits'; chip.style.color = '#B8912E'; }
+    } catch(e) {}
   }
   // Load any persisted LMS_DATA overrides on startup
   (function loadLmsDataOverrides() {
@@ -18022,9 +18028,71 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     } catch(e) {}
   })();
 
+    /* ==================== LMS_PUBLISH_v1 ==================== */
+  window.publishLmsToTeam = function() {
+    if (!window.SPARK_SB || !window.SPARK_SB.setContent) { alert('Cloud sync is not available on this page.'); return; }
+    var who = null;
+    try { who = window.SPARK_SB.whoami(); } catch(e) {}
+    if (!who || !who.email) { alert('Sign in first — publishing records who published.'); return; }
+    var nSub = (LMS_DATA.subjects || []).length;
+    var nTop = (LMS_DATA.subjects || []).reduce(function(a, s){ return a + (s.topics || []).length; }, 0);
+    if (!confirm('Publish the current training content to the whole team?\n\n' + nSub + ' subjects / ' + nTop + ' topics\nEveryone sees this version on their next load.')) return;
+    var payload = {
+      subjects: LMS_DATA.subjects,
+      publishedAt: new Date().toISOString(),
+      publishedBy: who.email,
+      v: 1
+    };
+    var btn = document.getElementById('lmsPubBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Publishing\u2026'; }
+    window.SPARK_SB.setContent('lms_content', payload).then(function(r) {
+      var err = r && r.error;
+      if (btn) { btn.disabled = false; btn.textContent = 'Publish to team'; }
+      if (err) { alert('Publish failed: ' + (err.message || JSON.stringify(err))); return; }
+      try { localStorage.removeItem('spark_hq_lms_dirty'); } catch(e) {}
+      var chip = document.getElementById('lmsPubState');
+      if (chip) { chip.textContent = 'Published ' + new Date().toLocaleTimeString() + ' by ' + who.email; chip.style.color = '#3E9E7E'; }
+      alert('Published. The team sees this version on their next page load.');
+    }).catch(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Publish to team'; }
+      alert('Publish failed: ' + (e && e.message ? e.message : e));
+    });
+  };
+
+  (function pullSharedLms(tries) {
+    tries = tries || 0;
+    if (!window.SPARK_SB || !window.SPARK_SB.getContent) {
+      if (tries < 20) setTimeout(function(){ pullSharedLms(tries + 1); }, 700);
+      return;
+    }
+    var dirty = false;
+    try { dirty = localStorage.getItem('spark_hq_lms_dirty') === '1'; } catch(e) {}
+    if (dirty) {
+      try { console.info('[LMS] Local unpublished edits present — shared version not applied. Publish or Reset to sync.'); } catch(e) {}
+      var chip0 = document.getElementById('lmsPubState');
+      if (chip0) { chip0.textContent = 'Unpublished edits'; chip0.style.color = '#B8912E'; }
+      return;
+    }
+    window.SPARK_SB.getContent('lms_content').then(function(shared) {
+      if (!shared || !shared.subjects || !shared.subjects.length) return;
+      LMS_DATA.subjects = shared.subjects;
+      try { localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); } catch(e) {}
+      try { renderLmsRail(); } catch(e) {}
+      try { renderLmsContent(); } catch(e) {}
+      try { renderTrainingAdmin(); } catch(e) {}
+      var chip = document.getElementById('lmsPubState');
+      if (chip && shared.publishedAt) {
+        chip.textContent = 'Published ' + new Date(shared.publishedAt).toLocaleString() + (shared.publishedBy ? ' by ' + shared.publishedBy : '');
+        chip.style.color = '#3E9E7E';
+      }
+      try { console.info('[LMS] Loaded published curriculum (' + shared.subjects.length + ' subjects).'); } catch(e) {}
+    }).catch(function(){ /* offline or table missing — built-in/local stands */ });
+  })();
+
   window.resetTrainingData = function() {
     if (!confirm('Reset all training data to defaults? Your edits will be lost (progress and quiz attempts kept).')) return;
     localStorage.removeItem('spark_hq_lms_data');
+    localStorage.removeItem('spark_hq_lms_dirty'); /* LMS_PUBLISH_v1 */
     location.reload();
   };
 
