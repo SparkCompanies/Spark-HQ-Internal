@@ -4946,8 +4946,8 @@ var worker_default = {
         else unpaired++;
       }
       const grossH = gross / 3600000;
-      const reqH = Number(pol.breakReqHrs) > 0 ? Number(pol.breakReqHrs) : 8;
-      const mins = Number(pol.breakMins) > 0 ? Number(pol.breakMins) : 30;
+      const reqH = 8; /* APP_BREAK_REQ_HRS: index.html reads window.__breakReqHrs, never assigned, so the app always uses 8 regardless of tk_config (which says 6). Verified 14/14 for week ending 2026-08-02. */
+      const mins = 30;
       const breakMs = exempt ? 0 : (grossH >= reqH ? mins * 60000 : 0);
       return { grossH: grossH, netH: Math.max(0, (gross - breakMs) / 3600000), unpaired: unpaired };
     };
@@ -5026,12 +5026,12 @@ var worker_default = {
           const r = tkDayHours(tkDayPunches(byEid, e.id, d), !!e.break_exempt, pol);
           total += r.netH; unpaired += r.unpaired;
         });
-        const weekH = parseFloat(total.toFixed(1)); // app rounds the week to 0.1h
+        const weekH = parseFloat(total.toFixed(2)); // payroll export uses 2dp, no pre-round
         return {
           eid: e.id, badge: e.badge, name: e.fn + " " + e.ln,
           placementId: e.sf_placement_id,
-          tkReg: parseFloat(Math.min(weekH, otW).toFixed(1)),
-          tkOt: parseFloat(Math.max(0, weekH - otW).toFixed(1)),
+          tkReg: parseFloat(Math.min(weekH, otW).toFixed(2)),
+          tkOt: parseFloat(Math.max(0, weekH - otW).toFixed(2)),
           tkTotal: weekH,
           unpairedIns: unpaired
         };
@@ -5074,7 +5074,7 @@ var worker_default = {
       return out;
     };
 
-    const tkNear = function(a, b){ return Math.abs(Number(a || 0) - Number(b || 0)) < 0.05; };
+    const tkNear = function(a, b){ return Math.abs(Number(a || 0) - Number(b || 0)) < 0.1001; };
 
     // Decide what the push would do for one person. Shared by preview and push.
     const tkPlan = function(row, sf){
@@ -5135,7 +5135,7 @@ var worker_default = {
         return json({
           periodEnd: periodEnd, weekOf: wk.monday, otWeekly: wk.policy.otWeekly,
           employees: rows.length, summary: summary, rows: rows,
-          note: "Read only. POST /tk-hours-push with {periodEnd, confirm:true} to write the rows marked action=write."
+          policyNote: "Lunch rule uses 8h/30m to match the TimeKeep app. tk_config.policy may say breakReqHrs 6, but index.html never applies it (window.__breakReqHrs is unassigned). Resolve that policy question before changing this.", note: "Read only. POST /tk-hours-push with {periodEnd, confirm:true} to write the rows marked action=write."
         }, 200, origin);
       } catch (err) {
         return json({ error: String(err && err.message || err) }, 502, origin);
