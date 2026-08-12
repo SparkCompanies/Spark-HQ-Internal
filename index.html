@@ -13173,7 +13173,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: ['role'],
-      navItems: ['home','command','people','leadership','terrmap','training' /* STANDARD_ACCESS_v1 */]
+      navItems: ['home','command','people','leadership','terrmap','training','standard','careers' /* STANDARD_ACCESS_v2 */]
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -13247,6 +13247,15 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           if (ni.indexOf('training') === -1) {
             var ti = ni.indexOf('terrmap');
             if (ti !== -1) ni.splice(ti + 1, 0, 'training'); else ni.push('training');
+          }
+          /* STANDARD_ACCESS_v2 — Career Paths + Spark Standard for everyone */
+          if (ni.indexOf('standard') === -1) {
+            var tr = ni.indexOf('training');
+            if (tr !== -1) ni.splice(tr + 1, 0, 'standard'); else ni.push('standard');
+          }
+          if (ni.indexOf('careers') === -1) {
+            var st = ni.indexOf('standard');
+            if (st !== -1) ni.splice(st + 1, 0, 'careers'); else ni.push('careers');
           }
         });
         return merged;
