@@ -381,14 +381,9 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
       </div>
       <div class="statgrid" style="grid-template-columns:1fr 1fr 1.2fr;">
         <div class="statcard"><h4>MOST RECOGNIZED</h4><div id="mostRec"></div></div>
-        <div class="statcard calcard"><h4>CALENDAR &middot; AUGUST</h4>
-<table><tr><th>S</th><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th></tr>
-<tr><td></td><td></td><td></td><td></td><td></td><td></td><td>1</td></tr>
-<tr><td>2</td><td class="evt">3</td><td>4</td><td>5</td><td>6</td><td class="evt">7</td><td>8</td></tr>
-<tr><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td class="evt">14</td><td>15</td></tr>
-<tr><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td><td>21</td><td>22</td></tr></table>
-<div class="calevt"><span class="dt">AUG 3</span><span>New hire orientation &middot; Troy training room</span></div>
-<div class="calevt"><span class="dt">AUG 7</span><span>Q3 all-hands + wins celebration (sample)</span></div>
+        <div class="statcard calcard" id="pulseCalCard"><h4 id="pulseCalHead">CALENDAR</h4>
+<div id="pulseCalGrid"></div>
+<div id="pulseCalEvents"><div class="calevt"><span>Loading your calendar&hellip;</span></div></div>
 </div>
 <div class="statcard"><h4>VALUES IN ACTION</h4><div id="valAct"></div></div>
       </div>
@@ -946,6 +941,57 @@ wGet('/calendar').then(function(d){
  var el=document.getElementById('todayLiveList');
  if(el)el.innerHTML='<div class="sub">Calendar unavailable right now</div>';
  console.log('[Home] /calendar unavailable:',e);
+});
+
+/* PULSE_CAL_LIVE_v1 — the Pulse month calendar renders the signed-in user's real
+   Outlook month (was a hardcoded August 2026 table with two invented events). */
+function pulseCalRender(d){
+  var head=document.getElementById('pulseCalHead');
+  var grid=document.getElementById('pulseCalGrid');
+  var list=document.getElementById('pulseCalEvents');
+  if(!grid||!list) return;
+  var now=new Date();
+  var MN=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  if(head) head.innerHTML='CALENDAR &middot; '+MN[now.getMonth()];
+  var evs=(d&&d.events)||[];
+  var byDay={};
+  evs.forEach(function(e){
+    if(!e.start) return;
+    var s=new Date(e.start);
+    if(s.getMonth()!==now.getMonth()||s.getFullYear()!==now.getFullYear()) return;
+    var k=s.getDate(); (byDay[k]=byDay[k]||[]).push(e);
+  });
+  var first=new Date(now.getFullYear(),now.getMonth(),1).getDay();
+  var days=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  var html='<table><tr><th>S</th><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th></tr><tr>';
+  for(var b=0;b<first;b++) html+='<td></td>';
+  for(var day=1;day<=days;day++){
+    if((first+day-1)%7===0 && day!==1) html+='</tr><tr>';
+    var cls=[];
+    if(byDay[day]) cls.push('evt');
+    if(day===now.getDate()) cls.push('today');
+    html+='<td'+(cls.length?' class="'+cls.join(' ')+'"':'')+'>'+day+'</td>';
+  }
+  html+='</tr></table>';
+  grid.innerHTML=html;
+  var MS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  var upcoming=evs.filter(function(e){ return e.start && new Date(e.start)>=new Date(now.getFullYear(),now.getMonth(),now.getDate()); })
+                  .sort(function(a,b){ return new Date(a.start)-new Date(b.start); }).slice(0,4);
+  if(!upcoming.length){ list.innerHTML='<div class="calevt"><span>Nothing else on your calendar this month</span></div>'; return; }
+  var out='';
+  upcoming.forEach(function(e){
+    var s=new Date(e.start);
+    var tm=e.allDay?'':(' &middot; '+s.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}));
+    var loc=e.location?(' &middot; '+String(e.location).replace(/[<>&]/g,'')):'';
+    out+='<div class="calevt"><span class="dt">'+MS[s.getMonth()]+' '+s.getDate()+'</span><span>'+String(e.subject).replace(/[<>&]/g,'')+tm+loc+'</span></div>';
+  });
+  list.innerHTML=out;
+}
+if(window.__CALDAY) pulseCalRender(window.__CALDAY);
+wGet('/calendar?days=45').then(function(d){ window.__CALMONTH=d; pulseCalRender(d); }).catch(function(e){
+  var list=document.getElementById('pulseCalEvents');
+  if(list) list.innerHTML='<div class="calevt"><span>Calendar unavailable right now</span></div>';
+  console.log('[Pulse] calendar unavailable:',e);
 });
 /* ---------- ticker from real activity ---------- */
 function tickerFromPulse(){
