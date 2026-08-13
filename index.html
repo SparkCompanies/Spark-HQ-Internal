@@ -8153,9 +8153,6 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="connections">
             <span>Connections</span><span class="badge-mini">7</span>
           </button>
-          <button class="admin-subnav-item" data-admin-tab="analytics">
-            <span>Usage analytics</span>
-          </button>
           <button class="admin-subnav-item" data-admin-tab="knowledge">
             <span>Agent knowledge</span>
           </button>
@@ -12839,7 +12836,7 @@ window.FINRULES = (function () {
   let maxTokens = parseInt(localStorage.getItem('spark_hq_max_tokens') || '1024');
   let agentKnowledge = {};
   let universalKnowledge = '';
-  if(localStorage.getItem('spark_hq_rolev2')!=='1'){try{localStorage.removeItem('spark_hq_role');localStorage.removeItem('spark_hq_roles');localStorage.setItem('spark_hq_rolev2','1');}catch(e){}}
+  if(localStorage.getItem('spark_hq_rolev3')!=='1'){try{localStorage.removeItem('spark_hq_role');localStorage.removeItem('spark_hq_roles');localStorage.setItem('spark_hq_rolev3','1');}catch(e){}} /* SPARK_ROLE_LOCK_v1 migration */
   let currentRole = localStorage.getItem('spark_hq_role') || 'member'; /* SPARK_REAL_ROLE_v1 boot */
 
   try {
@@ -13157,14 +13154,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
-      adminTabs: ['analytics', 'knowledge', 'role', 'content'],
+      adminTabs: ['knowledge'] /* SPARK_ROLE_LOCK_v1: managers keep agent knowledge; switcher/demo panes removed */,
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','match','training','standard','careers','people','tools','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
-      adminTabs: ['role'],
+      adminTabs: [] /* SPARK_ROLE_LOCK_v1: members get no Admin tab */,
       navItems: ['home','command','people','leadership','terrmap','training','standard','careers' /* STANDARD_ACCESS_v2 */]
     }
   };
@@ -20436,8 +20433,8 @@ window.jvDraftCard = function(draft){
   function uname(e){return (e||'').toLowerCase().split('@')[0];}
   function set(r){try{if(typeof window.setRole==='function'){window.setRole(r);return true;}}catch(e){}return false;}
   var LOCK=false;
-  try{var q=new URLSearchParams(location.search);if(q.get('role')==='super_admin'){LOCK=true;try{localStorage.setItem('spark_hq_role','super_admin');}catch(e){}setTimeout(function(){set('super_admin');},80);}}catch(e){}
-  window.SPARK_RESCUE=function(){LOCK=true;try{localStorage.setItem('spark_hq_role','super_admin');}catch(e){}set('super_admin');return 'super_admin restored';};
+  /* SPARK_ROLE_LOCK_v1: URL role backdoor removed */
+  window.SPARK_RESCUE=function(){/* SPARK_ROLE_LOCK_v1: rescue is FLOOR-gated */try{var u=window.SPARK_SB&&window.SPARK_SB.whoami&&window.SPARK_SB.whoami();if(!u||!u.email||FLOOR.indexOf(uname(u.email))<0)return 'not permitted';}catch(e){return 'not permitted';}LOCK=true;try{localStorage.setItem('spark_hq_role','super_admin');}catch(e){}set('super_admin');return 'super_admin restored';};
   function apply(){
     if(LOCK)return true;
     try{
