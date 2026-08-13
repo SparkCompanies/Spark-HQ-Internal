@@ -1408,7 +1408,38 @@ var worker_default = {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       const jobId = (url.searchParams.get("jobId") || "").replace(/[^a-zA-Z0-9]/g, "");
-      if (!jobId) return json({ error: "jobId required" }, 400, origin);
+      if (!jobId) {
+        /* SF_BOARD_SUMMARY_v1 + SF_BOARD_DEBUG_v1 — org-wide summary, errors surfaced */
+        let pipelineTotal = null, headcount = null, hours = null, weekEnding = null;
+        const diag = {};
+        try {
+          const pipeRes = await runSalesforceQueryAll( /* SF_BOARD_RUNNER_v2 */env, "SELECT SUM(Amount) amt FROM Opportunity WHERE IsClosed = false");
+          if (!pipeRes.ok) { diag.pipeline = pipeRes.error || "query not ok"; }
+          else if (pipeRes.records && pipeRes.records[0] && pipeRes.records[0].amt != null) {
+            pipelineTotal = Math.round(Number(pipeRes.records[0].amt));
+          } else { diag.pipeline = "ok but empty/unaliased: " + JSON.stringify((pipeRes.records || [])[0] || null); }
+        } catch (e) { diag.pipeline = "threw: " + String(e && e.message || e); }
+        try {
+          const weRes = await runSalesforceQueryAll( /* SF_BOARD_RUNNER_v2 */
+            env,
+            "SELECT ASYMBL_Time__Pay_Period_End_Date__c FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c != null AND ASYMBL_Time__Pay_Period_End_Date__c <= TODAY ORDER BY ASYMBL_Time__Pay_Period_End_Date__c DESC LIMIT 1"
+          );
+          if (weRes.ok && weRes.records && weRes.records.length) {
+            weekEnding = weRes.records[0].ASYMBL_Time__Pay_Period_End_Date__c;
+            const hRes = await runSalesforceQueryAll( /* SF_BOARD_RUNNER_v2 */
+              env,
+              "SELECT COUNT_DISTINCT(ASYMBL_Time__Timesheet__c) heads, SUM(ASYMBL_Time__Regular_Hours__c) rh, SUM(ASYMBL_Time__Overtime_Hours__c) oh, SUM(ASYMBL_Time__Double_Time_Hours__c) dh FROM ASYMBL_Time__Time_Entry__c WHERE ASYMBL_Time__Timesheet__r.ASYMBL_Time__Pay_Period_End_Date__c = " + weekEnding /* SF_BOARD_HEADS_v3 marker moved out of SOQL */
+            );
+            if (!hRes.ok) { diag.hours = hRes.error || "query not ok"; }
+            else if (hRes.records && hRes.records[0]) {
+              const agg = hRes.records[0]; /* SF_BOARD_HEADS_v3 */
+              headcount = agg.heads == null ? null : Math.round(Number(agg.heads));
+              hours = Math.round((Number(agg.rh) || 0) + (Number(agg.oh) || 0) + (Number(agg.dh) || 0));
+            } else { diag.hours = "ok but no aggregate row returned"; }
+          } else if (!weRes.ok) { diag.week = weRes.error || "week query not ok"; }
+        } catch (e) { diag.hours = "threw: " + String(e && e.message || e); }
+        return json({ ok: true, summary: true, pipelineTotal, headcount, hours, weekEnding, diag }, 200, origin);
+      }
       try {
         const stagesRes = await runSalesforceQuery(
           env,
@@ -1676,7 +1707,7 @@ var worker_default = {
           else if (dl <= 60) buckets.b60 += amt;
           else if (dl <= 90) buckets.b90 += amt;
           else buckets.b90p += amt;
-          rows.push({ contact: inv.Contact && inv.Contact.Name || "", number: inv.InvoiceNumber || "", amountDue: Math.round(amt * 100) / 100, dueDate: (inv.DueDateString || "").slice(0, 10), daysLate: dl });
+          rows.push({ contact: inv.Contact && inv.Contact.Name || "", number: inv.InvoiceNumber || "", reference: inv.Reference || "", amountDue: Math.round(amt * 100) / 100, dueDate: (inv.DueDateString || "").slice(0, 10), daysLate: dl });
         }
         rows.sort((a, b) => b.amountDue - a.amountDue);
         const payload2 = {
