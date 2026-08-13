@@ -3346,6 +3346,7 @@ function StatusCell({
   canEdit
 }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
   const [edit, setEdit] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
@@ -3394,13 +3395,28 @@ function StatusCell({
       background: s ? s.color : 'transparent',
       color: s ? '#fff' : 'var(--faint)'
     },
-    onClick: () => setOpen(o => !o)
+    onClick: e => {
+      const r = e.currentTarget.getBoundingClientRect();
+      const below = window.innerHeight - r.bottom;
+      const up = below < 320 && r.top > 320;
+      setMenuPos({
+        left: Math.min(r.left, window.innerWidth - 230),
+        top: up ? null : r.bottom + 4,
+        bottom: up ? window.innerHeight - r.top + 4 : null
+      });
+      setOpen(o => !o);
+    }
   }, s ? s.label : '—'), open && /*#__PURE__*/React.createElement("div", {
     className: "menu status-menu",
-    style: {
-      top: '100%',
-      left: 0
-    }
+    style: menuPos ? {
+      position: 'fixed',
+      left: menuPos.left + 'px',
+      top: menuPos.top !== null ? menuPos.top + 'px' : 'auto',
+      bottom: menuPos.bottom !== null ? menuPos.bottom + 'px' : 'auto',
+      zIndex: 9999,
+      maxHeight: 300,
+      overflowY: 'auto'
+    } : { top: '100%', left: 0 }
   }, !edit && opts.map((opt, idx) => /*#__PURE__*/React.createElement("button", {
     key: idx,
     className: "menu-opt",
@@ -7270,7 +7286,7 @@ function BoardView({
     style: {
       color: 'var(--faint)'
     }
-  }, "Simulated — live sync runs through the connection bridge at deploy.")), /*#__PURE__*/React.createElement("div", {
+  }, "Live — pulls placement status and links records in Salesforce.")), /*#__PURE__*/React.createElement("div", {
     className: "content" + (canEdit ? '' : ' readonly')
   }, view === 'table' && /*#__PURE__*/React.createElement(TableView, {
     board: board,
