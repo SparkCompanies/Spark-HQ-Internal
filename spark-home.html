@@ -549,13 +549,13 @@ ar:{t:'Overdue AR',lock:false,
   s+='</div><button class="arbtn" data-ardrawer><span>View all '+d.overdueCount+' overdue invoices</span><span>→</span></button>';
   setTimeout(function(){var w=document.querySelectorAll('[data-wid="ar"] .row span:first-child');rows.forEach(function(r,i){if(w[i])w[i].textContent=r.contact+' · #'+r.number;});},0);
   return s;}},
-today:{t:'Today · Outlook',lock:false,
- opts:[{k:'range',label:'Range',type:'select',c:['Work hours','Full day','Next 3 days'],d:'Work hours'},{k:'loc',label:'Show location',type:'toggle',d:true}],
- render:function(o){var loc=o.loc?' <span class="sub">· Troy Conference Room</span>':'';
-  var s=head('Today · '+o.range.toLowerCase(),IC.cal,'Outlook')+'<div class="row"><span><b>9:00</b> &nbsp;Weekly leadership sync'+loc+' <span class="sub">(sample)</span></span></div><div class="row"><span><b>1:00</b> &nbsp;Greenshades implementation call <span class="sub">(sample)</span></span></div>';
-  if(o.range!=='Work hours')s+='<div class="row"><span><b>6:30</b> &nbsp;Awana TNT leader night <span class="sub">(sample)</span></span></div>';
-  s+='<div class="sub" style="margin-top:8px;">Live feed connects via Microsoft sign-in</div>';
+today:{t:'Today \u00b7 Outlook',lock:false,
+ opts:[],
+ render:function(o){var d=window.__CALDAY||null;
+  var s=head('Today \u00b7 Outlook',IC.cal,'Outlook \u00b7 live');
+  s+='<div id="todayLiveList">'+(d?todayRows(d):'<div class="sub">Loading your day\u2026</div>')+'</div>';
   return s;}},
+
 inbox:{t:'Inbox · Outlook',lock:false,
  opts:[{k:'flag',label:'Flagged only',type:'toggle',d:false}],
  render:function(o){var s=head('Inbox'+(o.flag?' · flagged':''),IC.mail,'Outlook');
@@ -608,7 +608,7 @@ finance:{t:'Finance snapshot',lock:true},
 leadership:{t:'Leadership toolkit',lock:true}
 };
 function defOpts(id){var o={};(WIDGETS[id].opts||[]).forEach(function(s){o[s.k]=s.d;});return o;}
-var DEFAULT=[{id:'ar',s:6},{id:'pipeline',s:3},{id:'headcount',s:3},{id:'links',s:3},{id:'jarvis',s:3}]; /* HOME_LIVE_v1 — live Salesforce + Xero cards by default */
+var DEFAULT=[{id:'ar',s:6},{id:'today',s:3},{id:'pipeline',s:3},{id:'headcount',s:3},{id:'links',s:3},{id:'jarvis',s:3}]; /* HOME_LIVE_v1 + HOME_TODAY_v1 — live cards by default */
 DEFAULT.forEach(function(w){w.o=defOpts(w.id);});
 var layout=JSON.parse(JSON.stringify(DEFAULT));
 var grid=document.getElementById('grid'),editing=false;
@@ -659,7 +659,7 @@ function render(){
   if(typeof saveLayoutCloud==='function')saveLayoutCloud();
 }
   /* HOME_DEFAKE_v1 — widgets whose data is placeholder, not wired to a live source */
-  var SAMPLE_WIDGETS={today:1,inbox:1,training:1,whosin:1,needsyou:1,thermo:1,leaderboard:1,spotlight:1,countdowns:1,bdays:1};
+  var SAMPLE_WIDGETS={inbox:1,training:1,whosin:1,needsyou:1,thermo:1,leaderboard:1,spotlight:1,countdowns:1,bdays:1};
 function renderGallery(){
   var g=document.getElementById('galgrid');g.innerHTML='';
   Object.keys(WIDGETS).forEach(function(id){
@@ -920,6 +920,30 @@ wGet('/sf-board').then(function(d){
  var _hw=document.getElementById('hcLiveWk');if(_hw&&d.weekEnding)_hw.textContent='on payroll \u00b7 week ending '+d.weekEnding;}catch(_){}
 }).catch(function(e){/* HOME_DEFAKE_v1 — leave KPIs blank rather than show fake numbers */try{document.querySelectorAll('.kpi .big[data-live="sf"]').forEach(function(el){if(el.textContent==='\u2014'){el.title='Connects when the Salesforce board endpoint is live';}});}catch(_){}console.log('[Home] /sf-board unavailable — payroll/pipeline/hours left blank (no fake fallback):',e);});
 loadAR('Spark Talent');
+/* HOME_TODAY_v1 \u2014 per-user Outlook day via worker /calendar (self-scoped to the signed-in user) */
+function todayRows(d){
+ var evs=(d&&d.events)||[];var t=new Date();
+ function sameDay(x){var e=new Date(x);return e.getFullYear()===t.getFullYear()&&e.getMonth()===t.getMonth()&&e.getDate()===t.getDate();}
+ var rows=evs.filter(function(e){return e.start&&sameDay(e.start);});
+ if(!rows.length)return '<div class="sub">Nothing on your calendar today</div>';
+ var out='';var max=6;
+ rows.slice(0,max).forEach(function(e){
+  var tm=e.allDay?'All day':new Date(e.start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  var loc=e.location?' <span class="sub">\u00b7 '+String(e.location).replace(/[<>&]/g,'')+'</span>':'';
+  out+='<div class="row"><span><b>'+tm+'</b> &nbsp;'+String(e.subject).replace(/[<>&]/g,'')+loc+'</span></div>';
+ });
+ if(rows.length>max)out+='<div class="sub" style="margin-top:6px;">+'+(rows.length-max)+' more</div>';
+ return out;
+}
+wGet('/calendar').then(function(d){
+ window.__CALDAY=d;
+ var el=document.getElementById('todayLiveList');
+ if(el)el.innerHTML=todayRows(d);
+}).catch(function(e){
+ var el=document.getElementById('todayLiveList');
+ if(el)el.innerHTML='<div class="sub">Calendar unavailable right now</div>';
+ console.log('[Home] /calendar unavailable:',e);
+});
 /* ---------- ticker from real activity ---------- */
 function tickerFromPulse(){
  var t=document.getElementById('ttrack');if(!t)return;
