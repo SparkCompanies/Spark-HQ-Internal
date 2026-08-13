@@ -8179,11 +8179,36 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="people-admin">
             <span>People & roles</span><span class="badge-mini" id="peopleCountBadge"></span>
           </button>
+          <button class="admin-subnav-item" data-admin-tab="circuit-admin">
+            <span>Circuit content</span>
+          </button>
         </div>
 
         <!-- Content area -->
         <!-- HQ_ADMIN_TRIM_v1: Content&SOPs / Security / Billing stub buttons removed -->
         <div class="admin-content">
+
+          <!-- CIRCUIT_ADMIN_v1 PANE -->
+          <div class="admin-pane" data-admin-pane="circuit-admin" style="display:none;">
+            <div class="admin-hero">
+              <div class="eyebrow">Spark Circuit &middot; Content</div>
+              <h2>New-hire training content. <span style="color:var(--muted-light);">Edit it here, publish when ready.</span></h2>
+              <div class="dek">Stage checklists, the eight core values, and the Dub-or-Keep job posting. Edits stay local until you press Publish &mdash; then every new hire sees them on their next load. Quizzes and the Worker Profile stay fixed in the build so everyone is assessed on the same thing.</div>
+            </div>
+            <div class="admin-section">
+              <div class="admin-section-head">
+                <h3>Circuit content</h3>
+                <div class="actions">
+                  <span id="circPubState" style="font-size:11.5px;color:#8a8578;align-self:center;margin-right:6px;"></span>
+                  <button class="btn-secondary" id="circPubBtn" onclick="publishCircuitToTeam()" style="background:#FFC800;border-color:#FFC800;color:#171614;font-weight:700;">Publish to team</button>
+                  <button class="btn-secondary" onclick="circuitExportJson()">Export JSON</button>
+                  <button class="btn-secondary" onclick="circuitResetLocal()">Discard my edits</button>
+                </div>
+              </div>
+              <div id="circuitAdminBody"><div class="dek">Loading Circuit content&hellip;</div></div>
+            </div>
+          </div>
+
 
           <!-- AGENTS -->
           <div class="admin-pane" data-admin-pane="home-branding" style="display:none;">
@@ -13147,7 +13172,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin'],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
@@ -13262,7 +13287,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['leadership','Leadership'], ['admin','Admin']
   ];
   const ALL_ADMIN_TABS = [
-    ['team-progress','Team progress'],
+    ['team-progress','Team progress'], ['circuit-admin','Circuit content'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
     ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
@@ -21122,6 +21147,184 @@ window.addEventListener("message",function(e){
     document.addEventListener('DOMContentLoaded', function(){ mount(); addTile(); });
   } else { mount(); addTile(); }
 })();
+</script>
+<script>
+/* ==================== CIRCUIT_ADMIN_v1 ==================== */
+(function(){
+  var CIRC = null;            /* working copy */
+  var CIRC_SEED = null;       /* pristine seed for reset/diff */
+  var CIRC_DIRTY_KEY = 'spark_hq_circuit_dirty';
+  var CIRC_LOCAL_KEY = 'spark_hq_circuit_local';
+  var SEED_URL = 'circuit-content-seed.json';
+
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function dirty(on){ try{ if(on) localStorage.setItem(CIRC_DIRTY_KEY,'1'); else localStorage.removeItem(CIRC_DIRTY_KEY); }catch(e){} paintState(); }
+  function isDirty(){ try{ return localStorage.getItem(CIRC_DIRTY_KEY)==='1'; }catch(e){ return false; } }
+  function saveLocal(){ try{ localStorage.setItem(CIRC_LOCAL_KEY, JSON.stringify(CIRC)); }catch(e){} dirty(true); }
+
+  function paintState(){
+    var el=document.getElementById('circPubState'); if(!el) return;
+    if(isDirty()){ el.textContent='Unpublished edits'; el.style.color='#a3792e'; }
+    else if(CIRC && CIRC.publishedAt){ el.textContent='Published '+new Date(CIRC.publishedAt).toLocaleString()+(CIRC.publishedBy?' by '+CIRC.publishedBy:''); el.style.color='#8a8578'; }
+    else { el.textContent='Live build content'; el.style.color='#8a8578'; }
+  }
+
+  function load(){
+    var body=document.getElementById('circuitAdminBody'); if(!body) return;
+    fetch(SEED_URL).then(function(r){ if(!r.ok) throw new Error('seed '+r.status); return r.json(); }).then(function(seed){
+      CIRC_SEED = seed;
+      var local=null; try{ local=JSON.parse(localStorage.getItem(CIRC_LOCAL_KEY)||'null'); }catch(e){}
+      if(local && local.stages){ CIRC=local; render(); return; }
+      if(window.SPARK_SB && window.SPARK_SB.getContent){
+        window.SPARK_SB.getContent('circuit_content').then(function(pub){
+          CIRC = (pub && pub.stages) ? pub : JSON.parse(JSON.stringify(seed));
+          render();
+        }).catch(function(){ CIRC=JSON.parse(JSON.stringify(seed)); render(); });
+      } else { CIRC=JSON.parse(JSON.stringify(seed)); render(); }
+    }).catch(function(e){
+      body.innerHTML='<div class="dek">Could not load Circuit content ('+esc(e.message)+'). The seed file circuit-content-seed.json must sit next to index.html in the repo.</div>';
+    });
+  }
+
+  function render(){
+    var body=document.getElementById('circuitAdminBody'); if(!body||!CIRC) return;
+    var html='';
+    html+='<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">';
+    html+='<button class="btn-secondary circ-tabbtn" data-ct="stages" onclick="circTab(\'stages\')">Stages &amp; steps</button>';
+    html+='<button class="btn-secondary circ-tabbtn" data-ct="values" onclick="circTab(\'values\')">Core values</button>';
+    html+='<button class="btn-secondary circ-tabbtn" data-ct="dub" onclick="circTab(\'dub\')">Dub-or-Keep job</button>';
+    html+='</div><div id="circTabBody"></div>';
+    body.innerHTML=html;
+    circTab(window.__circTab||'stages');
+    paintState();
+  }
+
+  window.circTab=function(t){
+    window.__circTab=t;
+    try{ document.querySelectorAll('.circ-tabbtn').forEach(function(b){ b.style.background = (b.getAttribute('data-ct')===t)?'#FFC800':''; b.style.fontWeight=(b.getAttribute('data-ct')===t)?'700':''; }); }catch(e){}
+    var el=document.getElementById('circTabBody'); if(!el) return;
+    if(t==='values') el.innerHTML=renderValues();
+    else if(t==='dub') el.innerHTML=renderDub();
+    else el.innerHTML=renderStages();
+  };
+
+  function renderStages(){
+    var out='';
+    (CIRC.stages||[]).forEach(function(st,si){
+      out+='<div style="border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden;">';
+      out+='<div style="background:#faf9f6;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="circToggle(\'cs'+si+'\')">';
+      out+='<div><b>'+esc(st.num)+' &middot; '+esc(st.name)+'</b> <span class="sub" style="color:#8a8578;">'+((st.steps||[]).length)+' steps</span></div><div style="color:#8a8578;">edit</div></div>';
+      out+='<div id="cs'+si+'" style="display:none;padding:14px;">';
+      out+=field('Stage name', 'stages.'+si+'.name', st.name);
+      out+=field('Tagline', 'stages.'+si+'.tag', st.tag, true);
+      out+=field('Celebration line', 'stages.'+si+'.celebrate', st.celebrate, true);
+      (st.steps||[]).forEach(function(sp,pi){
+        out+='<div style="border-top:1px solid var(--line-light);margin-top:12px;padding-top:12px;">';
+        out+='<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="circToggle(\'cs'+si+'p'+pi+'\')"><b style="font-size:13px;">'+esc(sp.title)+'</b><span class="sub" style="color:#8a8578;">'+((sp.checks||[]).length)+' checks</span></div>';
+        out+='<div id="cs'+si+'p'+pi+'" style="display:none;padding-top:10px;">';
+        out+=field('Step title','stages.'+si+'.steps.'+pi+'.title', sp.title);
+        (sp.blocks||[]).forEach(function(b,bi){
+          var path='stages.'+si+'.steps.'+pi+'.blocks.'+bi+'.x';
+          if(b.t==='p'||b.t==='h'||b.t==='note') out+=field(b.t==='h'?'Heading':(b.t==='note'?'Note':'Paragraph'), path, b.x, true);
+          else if(b.t==='list'||b.t==='steps') out+=listField((b.t==='steps'?'Numbered steps':'Bullet list')+' (one per line)', path, b.x);
+          else if(b.t==='video') out+=field('Video file / URL', path, b.x);
+          else if(b.t==='link') out+=field('Link text', path, b.x)+field('Link URL','stages.'+si+'.steps.'+pi+'.blocks.'+bi+'.href', b.href||'');
+          else if(b.t==='kv') out+='<div class="sub" style="color:#8a8578;margin:6px 0;">'+(b.x||[]).length+' label/value rows &mdash; edit via Export JSON for now</div>';
+        });
+        out+=listField('Checklist items (one per line)','stages.'+si+'.steps.'+pi+'.checks', sp.checks||[]);
+        out+='</div></div>';
+      });
+      out+='</div></div>';
+    });
+    return out;
+  }
+
+  function renderValues(){
+    var out='<div class="dek" style="margin-bottom:12px;">The eight cards new hires flip in Stage 03.</div>';
+    (CIRC.values||[]).forEach(function(v,i){
+      out+='<div style="border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px;">';
+      out+=field('Value '+(i+1)+' title','values.'+i+'.name', v.name);
+      out+=field('Body','values.'+i+'.body', v.body, true);
+      out+='</div>';
+    });
+    return out;
+  }
+
+  function renderDub(){
+    var j=(CIRC.dub&&CIRC.dub.job)||{};
+    var out='<div class="dek" style="margin-bottom:12px;">The job posting trainees mark up in the Dub-or-Keep exercise.</div>';
+    out+=field('Req number','dub.job.req', j.req);
+    out+=field('Job title','dub.job.title', j.title);
+    out+=field('Client','dub.job.client', j.client);
+    out+=field('Location','dub.job.loc', j.loc);
+    out+=field('Rate','dub.job.rate', j.rate);
+    out+=listField('Key skills (one per line)','dub.job.keys', j.keys||[]);
+    return out;
+  }
+
+  function field(label, path, val, multi){
+    var id='cf_'+path.replace(/\./g,'_');
+    return '<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a8578;margin-bottom:4px;">'+esc(label)+'</label>'+
+      (multi
+        ? '<textarea id="'+id+'" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px/1.5 inherit;" oninput="circSet(\''+path+'\',this.value)">'+esc(val)+'</textarea>'
+        : '<input id="'+id+'" type="text" value="'+esc(val)+'" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px inherit;" oninput="circSet(\''+path+'\',this.value)">')+
+      '</div>';
+  }
+  function listField(label, path, arr){
+    var id='cf_'+path.replace(/\./g,'_');
+    return '<div style="margin-bottom:10px;"><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a8578;margin-bottom:4px;">'+esc(label)+'</label>'+
+      '<textarea id="'+id+'" rows="'+Math.max(2,Math.min(10,(arr||[]).length+1))+'" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:13px/1.5 inherit;" oninput="circSetList(\''+path+'\',this.value)">'+esc((arr||[]).join('\n'))+'</textarea></div>';
+  }
+
+  function walk(path){
+    var parts=path.split('.'), o=CIRC;
+    for(var i=0;i<parts.length-1;i++){ o=o[parts[i]]; if(o==null) return null; }
+    return {obj:o, key:parts[parts.length-1]};
+  }
+  window.circSet=function(path,val){ var t=walk(path); if(!t)return; t.obj[t.key]=val; saveLocal(); };
+  window.circSetList=function(path,val){ var t=walk(path); if(!t)return; t.obj[t.key]=val.split('\n').map(function(s){return s.trim();}).filter(function(s){return s.length;}); saveLocal(); };
+  window.circToggle=function(id){ var e=document.getElementById(id); if(e) e.style.display = (e.style.display==='none'?'block':'none'); };
+
+  window.circuitExportJson=function(){
+    try{
+      var blob=new Blob([JSON.stringify(CIRC,null,1)],{type:'application/json'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='circuit-content.json'; a.click();
+    }catch(e){ alert('Export failed: '+e.message); }
+  };
+  window.circuitResetLocal=function(){
+    if(!confirm('Discard your unpublished edits and reload the published (or build) content?')) return;
+    try{ localStorage.removeItem(CIRC_LOCAL_KEY); }catch(e){}
+    dirty(false); CIRC=null; load();
+  };
+
+  window.publishCircuitToTeam=function(){
+    if(!window.SPARK_SB || !window.SPARK_SB.setContent){ alert('Cloud sync is not available on this page.'); return; }
+    var who=null; try{ who=window.SPARK_SB.whoami(); }catch(e){}
+    if(!who||!who.email){ alert('Sign in first — publishing records who published.'); return; }
+    if(!CIRC||!CIRC.stages||!CIRC.stages.length){ alert('Nothing loaded to publish.'); return; }
+    var nSteps=(CIRC.stages||[]).reduce(function(a,s){return a+((s.steps||[]).length);},0);
+    if(!confirm('Publish Circuit content to every new hire?\n\n'+CIRC.stages.length+' stages / '+nSteps+' steps / '+(CIRC.values||[]).length+' values\nAnyone who opens Circuit next will see this version.')) return;
+    var payload=JSON.parse(JSON.stringify(CIRC));
+    payload.v=1; payload.publishedAt=new Date().toISOString(); payload.publishedBy=who.email;
+    var btn=document.getElementById('circPubBtn'); if(btn){ btn.disabled=true; btn.textContent='Publishing…'; }
+    window.SPARK_SB.setContent('circuit_content', payload).then(function(){
+      CIRC=payload; try{ localStorage.removeItem(CIRC_LOCAL_KEY); }catch(e){}
+      dirty(false);
+      if(btn){ btn.disabled=false; btn.textContent='Publish to team'; }
+      paintState(); alert('Published. New hires see this version on their next load.');
+    }).catch(function(e){
+      if(btn){ btn.disabled=false; btn.textContent='Publish to team'; }
+      alert('Publish failed: '+((e&&e.message)||e));
+    });
+  };
+
+  /* load when the pane is first opened */
+  document.addEventListener('click', function(ev){
+    var b=ev.target && ev.target.closest && ev.target.closest('[data-admin-tab="circuit-admin"]');
+    if(b && !CIRC) setTimeout(load, 60);
+  }, true);
+})();
+
 </script>
 </body>
 </html>
