@@ -449,15 +449,18 @@ var tint=h<7?'#141626':h<12?'#1c1f38':h<17?'#1a1c33':h<20?'#221a30':'#101120';
 hero.style.background='radial-gradient(ellipse at 50% 30%, '+tint+' 0%, var(--night) 65%)';
 }
 tick();setInterval(tick,30000);
-/* HOME_PRESENCE_v1 — real presence: heartbeat + live 5-min count (replaced a random 18-29) */
+/* HOME_PRESENCE_v2 — real presence; reads a FRESH auth token every beat (v1 reused a
+   page-load token that expires after ~1h, causing endless 401s in long-lived tabs) */
 (function(){
  var el=document.getElementById('presTxt'); var pill=el?el.parentElement:null; if(pill)pill.style.display='none';
- function beat(){ if(!window.__me)return;
-  fetch(SB_URL+"/rest/v1/spark_hq_presence?on_conflict=email",{method:"POST",headers:sbHdr({Prefer:"resolution=merge-duplicates"}),body:JSON.stringify({email:window.__me.email,last_seen:new Date().toISOString()})}).catch(function(){});
+ function tok(){try{var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}');return a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||'';}catch(e){return '';}}
+ function hdr(extra){var o={apikey:SB_KEY,'Content-Type':'application/json'};var t=tok();if(t)o.Authorization='Bearer '+t;if(extra)for(var k in extra)o[k]=extra[k];return o;}
+ function beat(){ if(!window.__me||!tok())return;
+  fetch(SB_URL+"/rest/v1/spark_hq_presence?on_conflict=email",{method:"POST",headers:hdr({Prefer:"resolution=merge-duplicates"}),body:JSON.stringify({email:window.__me.email,last_seen:new Date().toISOString()})}).catch(function(){});
  }
- function count(){ if(!window.__me)return;
+ function count(){ if(!tok())return;
   var cutoff=new Date(Date.now()-5*60*1000).toISOString();
-  sbGet("spark_hq_presence?select=email&last_seen=gte."+encodeURIComponent(cutoff)).then(function(rows){
+  fetch(SB_URL+"/rest/v1/spark_hq_presence?select=email&last_seen=gte."+encodeURIComponent(cutoff),{headers:hdr()}).then(function(r){return r.ok?r.json():Promise.reject(r.status);}).then(function(rows){
    var n=(rows||[]).length; if(!el||!pill)return;
    if(n>0){el.textContent=n+(n===1?' spark':' sparks')+' in HQ right now';pill.style.display='';}
    else{pill.style.display='none';}
