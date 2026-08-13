@@ -1409,11 +1409,20 @@ var worker_default = {
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       const jobId = (url.searchParams.get("jobId") || "").replace(/[^a-zA-Z0-9]/g, "");
       if (!jobId) {
-        /* SF_BOARD_SUMMARY_v1 + SF_BOARD_DEBUG_v1 — org-wide summary, errors surfaced */
+        /* SF_BOARD_SUMMARY_v1 + SF_BOARD_DEBUG_v1 + SF_BOARD_BU_v1 — org-wide or per-BU summary */
+        const bu = (url.searchParams.get("bu") || "").trim().slice(0, 60).replace(/['"\\]/g, "");
+        if (url.searchParams.get("listbu")) {
+          const out = { ok: true, listbu: true };
+          const d1 = await runSalesforceQueryAll(env, "SELECT ASYMBL_Time__Timesheet__r.Placement__r.Division__c dv, COUNT(Id) n FROM ASYMBL_Time__Time_Entry__c WHERE ASYMBL_Time__Timesheet__r.Placement__r.Division__c != null GROUP BY ASYMBL_Time__Timesheet__r.Placement__r.Division__c ORDER BY COUNT(Id) DESC");
+          out.divisions = d1.ok ? d1.records : { error: d1.error };
+          const d2 = await runSalesforceQueryAll(env, "SELECT Account.Subdivision__c sd, COUNT(Id) n FROM Opportunity WHERE IsClosed = false AND Account.Subdivision__c != null GROUP BY Account.Subdivision__c ORDER BY COUNT(Id) DESC");
+          out.subdivisions = d2.ok ? d2.records : { error: d2.error };
+          return json(out, 200, origin);
+        }
         let pipelineTotal = null, headcount = null, hours = null, weekEnding = null;
         const diag = {};
         try {
-          const pipeRes = await runSalesforceQueryAll( /* SF_BOARD_RUNNER_v2 */env, "SELECT SUM(Amount) amt FROM Opportunity WHERE IsClosed = false");
+          const pipeRes = await runSalesforceQueryAll( /* SF_BOARD_RUNNER_v2 */env, "SELECT SUM(Amount) amt FROM Opportunity WHERE IsClosed = false" + (bu ? " AND Account.Subdivision__c = '" + bu + "'" : ""));
           if (!pipeRes.ok) { diag.pipeline = pipeRes.error || "query not ok"; }
           else if (pipeRes.records && pipeRes.records[0] && pipeRes.records[0].amt != null) {
             pipelineTotal = Math.round(Number(pipeRes.records[0].amt));
@@ -1428,7 +1437,7 @@ var worker_default = {
             weekEnding = weRes.records[0].ASYMBL_Time__Pay_Period_End_Date__c;
             const hRes = await runSalesforceQueryAll( /* SF_BOARD_RUNNER_v2 */
               env,
-              "SELECT COUNT_DISTINCT(ASYMBL_Time__Timesheet__c) heads, SUM(ASYMBL_Time__Regular_Hours__c) rh, SUM(ASYMBL_Time__Overtime_Hours__c) oh, SUM(ASYMBL_Time__Double_Time_Hours__c) dh FROM ASYMBL_Time__Time_Entry__c WHERE ASYMBL_Time__Timesheet__r.ASYMBL_Time__Pay_Period_End_Date__c = " + weekEnding /* SF_BOARD_HEADS_v3 marker moved out of SOQL */
+              "SELECT COUNT_DISTINCT(ASYMBL_Time__Timesheet__c) heads, SUM(ASYMBL_Time__Regular_Hours__c) rh, SUM(ASYMBL_Time__Overtime_Hours__c) oh, SUM(ASYMBL_Time__Double_Time_Hours__c) dh FROM ASYMBL_Time__Time_Entry__c WHERE ASYMBL_Time__Timesheet__r.ASYMBL_Time__Pay_Period_End_Date__c = " + weekEnding + (bu ? " AND ASYMBL_Time__Timesheet__r.Placement__r.Division__c = '" + bu + "'" : "") /* SF_BOARD_HEADS_v3 + BU_v1 */
             );
             if (!hRes.ok) { diag.hours = hRes.error || "query not ok"; }
             else if (hRes.records && hRes.records[0]) {
@@ -1438,7 +1447,7 @@ var worker_default = {
             } else { diag.hours = "ok but no aggregate row returned"; }
           } else if (!weRes.ok) { diag.week = weRes.error || "week query not ok"; }
         } catch (e) { diag.hours = "threw: " + String(e && e.message || e); }
-        return json({ ok: true, summary: true, pipelineTotal, headcount, hours, weekEnding, diag }, 200, origin);
+        return json({ ok: true, summary: true, bu: bu || null, pipelineTotal, headcount, hours, weekEnding, diag }, 200, origin);
       }
       try {
         const stagesRes = await runSalesforceQuery(
