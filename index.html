@@ -20477,19 +20477,56 @@ window.jvDraftCard = function(draft){
 })();
 </script>
 
-<script>/*HOME_EMBED_v1*/
+<script>/*HOME_EMBED_v2 — no classic-home flash: swap immediately, reveal classic only on real failure*/
 (function(){
+function hideClassic(){
+  var v=document.getElementById("view-home");if(!v)return false;
+  if(!v.getAttribute("data-classic-hidden")){
+    v.setAttribute("data-classic-hidden","1");
+    var kids=v.children;
+    for(var i=0;i<kids.length;i++){ if(kids[i].id!=="sparkHomeFrame"){ kids[i].setAttribute("data-classic-node","1"); kids[i].style.display="none"; } }
+  }
+  return true;
+}
+function revealClassic(){
+  var v=document.getElementById("view-home");if(!v)return;
+  var n=v.querySelectorAll('[data-classic-node="1"]');
+  for(var i=0;i<n.length;i++){ n[i].style.display=""; }
+  v.removeAttribute("data-classic-hidden");
+}
 function swap(){
   var v=document.getElementById("view-home");if(!v)return;
   if(document.getElementById("sparkHomeFrame"))return;
-  v.innerHTML='<iframe id="sparkHomeFrame" src="spark-home.html" title="Spark Home" style="border:0;width:100%;height:calc(100vh - 70px);display:block;background:#faf9f6;"></iframe>';
+  hideClassic();
+  var f=document.createElement("iframe");
+  f.id="sparkHomeFrame"; f.src="spark-home.html"; f.title="Spark Home";
+  f.setAttribute("style","border:0;width:100%;height:calc(100vh - 70px);display:block;background:#faf9f6;");
+  v.appendChild(f);
 }
+/* hide the classic markup and mount the iframe as early as the node exists,
+   so the old Home is never painted while we wait on the network */
+(function early(t){
+  t=t||0;
+  if(hideClassic()){ swap(); return; }
+  if(t<60) setTimeout(function(){ early(t+1); }, 25);
+})();
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){ hideClassic(); swap(); });
+/* verify the embedded page actually loads; if it truly does not, fall back visibly */
 fetch("spark-home.html",{method:"HEAD"}).then(function(r){
-  if(!r.ok){console.warn("[HomeEmbed] spark-home.html missing ("+r.status+"), keeping classic home");return;}
+  var ct=(r.headers && r.headers.get)?(r.headers.get("content-type")||""):"";
+  if(!r.ok){
+    console.warn("[HomeEmbed] spark-home.html missing ("+r.status+"), falling back to classic home");
+    var fr=document.getElementById("sparkHomeFrame"); if(fr)fr.remove();
+    revealClassic(); return;
+  }
   swap();
   var v=document.getElementById("view-home");
   if(v){new MutationObserver(function(){if(!document.getElementById("sparkHomeFrame")){swap();}}).observe(v,{childList:true});}
-}).catch(function(e){console.warn("[HomeEmbed] check failed, keeping classic home",e);});
+}).catch(function(e){
+  console.warn("[HomeEmbed] check failed, falling back to classic home",e);
+  var fr=document.getElementById("sparkHomeFrame"); if(fr)fr.remove();
+  revealClassic();
+});
 window.addEventListener("message",function(e){
   if(e.origin!==window.location.origin)return;
   var d=e.data;if(!d||d.type!=="spark-nav"||!d.tab)return;
