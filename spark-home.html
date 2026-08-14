@@ -314,7 +314,7 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
           <span class="bnr-tag">CORE VALUES &middot; VIDEO SLOT</span>
         </div>
         <div class="bnr-side">
-          <div class="thumb"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/plantfloor3/300/150" alt=""><span>New hire class of 8 starts Aug 3 &mdash; meet them Friday</span></div>
+          <div class="thumb"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/plantfloor3/300/150" alt=""><span id="heroClassLine">New hire class starts Aug 19</span></div>
           <div class="thumb" id="thumbPulse"><img onerror="this.style.display='none'" src="https://picsum.photos/seed/sparkshout2/300/150" alt=""><span>See a value in action? Post a shout-out &darr;</span></div>
         </div>
       </div>
@@ -610,7 +610,7 @@ countdowns:{t:'Countdowns',lock:false,
  render:function(o){var now=new Date();
   function dto(d){return Math.max(0,Math.ceil((d-now)/86400000));}
   var fri=new Date(now);fri.setDate(now.getDate()+((5-now.getDay()+7)%7||7));fri.setHours(17,0,0,0);
-  return head('Countdowns',IC.clk,'')+'<div class="cd"><span>Payroll cutoff · Fri (sample)</span><b>'+dto(fri)+'d</b></div><div class="cd"><span>New hire class · Aug 3</span><b>'+dto(new Date('2026-08-03T09:00:00'))+'d</b></div><div class="cd"><span>Q3 close · Sep 30</span><b>'+dto(new Date('2026-09-30T23:59:59'))+'d</b></div>';}},
+  return head('Countdowns',IC.clk,'')+'<div class="cd"><span>Payroll cutoff · Fri (sample)</span><b>'+dto(fri)+'d</b></div><div class="cd"><span>New hire class · Aug 19</span><b>'+dto(new Date(NEXT_CLASS))+'d</b></div><div class="cd"><span>Q3 close · Sep 30</span><b>'+dto(new Date('2026-09-30T23:59:59'))+'d</b></div>';}},
 bdays:{t:'Birthdays & anniversaries',lock:false,
  opts:[{k:'range',label:'Range',type:'select',c:['This week','This month'],d:'This week'}],
  render:function(o){return head('Birthdays & anniversaries',IC.tr,o.range+' (sample)')+'<div class="bday"><span class="bavatar">MP</span><span style="flex:1;">Morgan P. — birthday</span><b class="sub">Fri</b></div><div class="bday"><span class="bavatar">DL</span><span style="flex:1;">Devon L. — 3 years at Spark</span><b class="sub">Mon</b></div><div class="bday"><span class="bavatar">AC</span><span style="flex:1;">Alex C. — 1 year at Spark</span><b class="sub">Wed</b></div>';}},
@@ -665,7 +665,7 @@ function render(){
   });
   countUp(grid);
   renderGallery();
-  var bd=document.getElementById('briefDays');if(bd){bd.textContent=Math.max(0,Math.ceil((new Date('2026-08-03T09:00:00')-new Date())/86400000));}
+  var bd=document.getElementById('briefDays');if(bd){bd.textContent=Math.max(0,nextClassDays());}
   if(typeof saveLayoutCloud==='function')saveLayoutCloud();
 }
   /* HOME_DEFAKE_v1 — widgets whose data is placeholder, not wired to a live source */
@@ -694,7 +694,8 @@ document.getElementById('czBtn').addEventListener('click',function(){
 document.getElementById('rsBtn').addEventListener('click',function(){layout=JSON.parse(JSON.stringify(DEFAULT));render();saved();});
 function refreshWinWidgets(){render();}
 render();
-(function(){var el=document.getElementById('briefDays');if(el){el.textContent=Math.max(0,Math.ceil((new Date('2026-08-03T09:00:00')-new Date())/86400000));}})();
+(function(){var el=document.getElementById('briefDays');if(el){el.textContent=Math.max(0,nextClassDays());}
+ var hl=document.getElementById('heroClassLine');if(hl){hl.textContent=nextClassLine();}})();
 /* ---------- AR drawer ---------- */
 var dw=document.createElement('div');dw.className='drawerwrap';
 dw.innerHTML='<div class="drawer"><button class="dclose">&times;</button><h3>Overdue receivables</h3><div class="dsub">Spark Talent · live from Xero via Spark HQ Worker · everyone with this widget can see this, no Xero login needed</div>'+
@@ -918,7 +919,7 @@ function num(x){var n=Number(String(x).replace(/[^0-9.]/g,''));return isFinite(n
 /* SPEED_POLISH_v1 — paint last-known numbers instantly, refresh in background */
 function hqCacheGet(k){try{var o=JSON.parse(localStorage.getItem(k)||'null');if(o&&o.t&&(Date.now()-o.t)<86400000)return o.d;}catch(e){}return null;}
 function hqCacheSet(k,d){try{localStorage.setItem(k,JSON.stringify({t:Date.now(),d:d}));}catch(e){}}
-function applySfBoard(d){
+function applySfBoard(d){ setTimeout(function(){ try{ if(typeof tickerFromPulse==='function') tickerFromPulse(); }catch(e){} },0); /* TICKER_TRUTH_v1 */
  try{console.log('[Home] /sf-board keys:',Object.keys(d));}catch(e){}
  var pipe=d.pipelineTotal||d.openPipeline||d.pipeline||(d.totals&&(d.totals.pipeline||d.totals.openPipeline));
  var hc=d.headcount||d.onPayroll||(d.totals&&d.totals.headcount);
@@ -1086,6 +1087,21 @@ function pulseCalRender(d){
 }
 /* CAL_BAND_v1: the shared fetch above drives this; no second round-trip */
 if(window.__CALMONTH) pulseCalRender(window.__CALMONTH);
+/* TICKER_TRUTH_v1 — ONE place to set the next new-hire class date.
+   Change NEXT_CLASS below and the ticker, the hero card and the morning brief
+   all follow. Nothing hardcodes a date any more. */
+var NEXT_CLASS='2026-08-19T08:30:00';
+function nextClassDays(){return Math.ceil((new Date(NEXT_CLASS)-new Date())/86400000);}
+function nextClassLine(){
+  var d=nextClassDays();
+  var dt=new Date(NEXT_CLASS);
+  var M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var when=M[dt.getMonth()]+' '+dt.getDate();
+  if(d>1) return 'New hire class starts '+when+' \u2014 '+d+' days out';
+  if(d===1) return 'New hire class starts tomorrow \u2014 '+when;
+  if(d===0) return 'New hire class starts today';
+  return 'New hire class started '+when;
+}
 /* ---------- ticker from real activity ---------- */
 function tickerFromPulse(){
  var t=document.getElementById('ttrack');if(!t)return;
@@ -1097,9 +1113,12 @@ function tickerFromPulse(){
   else if(k==='News')items.push('<span><b>NEWS</b> · '+esc(pWho(p))+(pText(p)?' — '+esc(pText(p).slice(0,60)):'')+'</span>');
   else items.push('<span><b>'+k.toUpperCase()+'</b> · '+esc(pWho(p))+'</span>');
  });
+ /* TICKER_TRUTH_v1 — headcount from the live payload, never a stale on-screen value */
+ var hcLive=(window.__SFSUM&&(window.__SFSUM.headcount||window.__SFSUM.heads))||null;
  var kh=document.getElementById('kpiHc');
- if(kh)items.push('<span><b>HEADCOUNT</b> · '+esc(kh.textContent)+' on payroll</span>');
- items.push('<span><b>MILESTONE</b> · New hire class starts Aug 3</span>');
+ var hcTxt=hcLive!=null?String(hcLive):((kh&&/^[0-9,]+$/.test((kh.textContent||'').trim()))?kh.textContent.trim():null);
+ if(hcTxt)items.push('<span><b>HEADCOUNT</b> · '+esc(hcTxt)+' on payroll</span>');
+ items.push('<span><b>MILESTONE</b> · '+esc(nextClassLine())+'</span>');
  if(!items.length)items.push('<span><b>THE PULSE</b> · Post the first shout-out below</span>');
  t.innerHTML=items.join('')+items.join('');
 }
