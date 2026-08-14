@@ -980,13 +980,14 @@ window.SPARK_LIVE = (function () {
     wrap.style.cssText = 'display:flex;gap:10px;align-items:center';
     var opts = sundays(20).map(function (iso) { return '<option value="' + iso + '">' + labelWe(iso) + '</option>'; }).join('');
     wrap.innerHTML =
-      '<span class="live" id="lvStatus" style="color:var(--dm)"><i style="background:var(--dm)"></i>CONNECTING</span>' +
+      '<span class="live" id="lvStatus" title="Click to retry" style="color:var(--dm);cursor:pointer"><i style="background:var(--dm)"></i>CONNECTING</span>' +
       '<select id="lvWk" class="fb" style="appearance:none;-webkit-appearance:none;padding:8px 12px;cursor:pointer">' + opts + '</select>' +
       '<button class="fb" id="lvRefresh" title="Refresh week">&#8635;</button>' +
       '<div style="width:1px;height:30px;background:var(--bd)"></div>';
     search.parentNode.insertBefore(wrap, search);
     document.getElementById('lvWk').addEventListener('change', function () { selectWeek(this.value); });
     document.getElementById('lvRefresh').addEventListener('click', function () { delete batches[curIso]; selectWeek(curIso); });
+    document.getElementById('lvStatus').addEventListener('click', function () { selectWeek(curIso || sundays(1)[0]); });
   }
   function badgeSample() {
     ['p-dh', 'p-tg'].forEach(function (id) {
@@ -1000,8 +1001,10 @@ window.SPARK_LIVE = (function () {
   // ── auth ──
   function getClient() {
     if (sb) return Promise.resolve(sb);
-    return import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm').then(function (m) {
-      sb = m.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+    // Mirror Spark HQ's auth config EXACTLY (same storageKey) so this page
+    // reads the same login session the main app writes. Same origin = shared localStorage.
+    return import('https://esm.sh/@supabase/supabase-js@2').then(function (m) {
+      sb = m.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce', storageKey: 'spark_hq_sb_auth' } });
       return sb;
     });
   }
