@@ -347,17 +347,20 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
       <div class="kpi"><div class="kv"><span class="big" id="kpiHrs" data-live="sf">&mdash;</span></div><div class="kl">HOURS LOGGED &middot; THIS WEEK</div></div>
       <div class="kpi red"><div class="kv"><span class="big" id="kpiAr">&mdash;</span></div><div class="kl">OVERDUE AR &middot; LIVE FROM XERO</div></div>
     </section>
-    <section class="calband" id="calBand">
-      <div class="cbhead">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-        <span class="cbtitle">Your next few days</span>
-        <span class="cbwho" id="cbWho">Outlook &middot; live</span>
+    <section class="calband cb2" id="calBand">
+      <div class="cb2head">
+        <div class="cb2cube"><u id="cbCubeM">AUG</u><b id="cbCubeD">--</b></div>
+        <div class="cb2ttl"><h2 id="cbDayName">Your calendar</h2><p><i></i><span id="cbSummary">Outlook &middot; live</span></p></div>
+        <div class="cb2rt">
+          <div class="cb2seg" id="cbSeg"><button class="on" data-cbv="day">Day</button><button data-cbv="list">Next 7 days</button></div>
+        </div>
       </div>
-      <div class="cbcols">
-        <div class="cbbody" id="cbBody"><div class="cbskel"><div style="width:62%"></div><div style="width:44%"></div><div style="width:71%"></div></div></div>
-        <aside class="cbrail" id="cbRail"></aside>
+      <div class="cb2strip" id="cbStrip"></div>
+      <div class="cb2body">
+        <div class="cb2tl" id="cbBody"><div class="cbskel"><div style="width:62%"></div><div style="width:44%"></div><div style="width:71%"></div></div></div>
+        <aside class="cb2rail" id="cbRail"></aside>
       </div>
-      <div class="cbfoot" id="cbFoot" style="display:none;"></div>
+      <div class="cb2foot" id="cbFoot" style="display:none;"></div>
     </section>
     <section class="dash" id="dashPage">
 
@@ -960,66 +963,228 @@ function todayRows(d){
    Pulse month grid (previously two separate round-trips through the worker). */
 function calEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function calFmt(d){var h=d.getHours(),m=d.getMinutes();var ap=h>=12?'PM':'AM';h=h%12;if(h===0)h=12;return h+(m?':'+(m<10?'0':'')+m:'')+' '+ap;}
+function cbSel(){ return window.__CB_SEL||null; }
+function cbKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function cbTypeOf(e){
+  var loc=String(e.location||''), s=String(e.subject||'');
+  if(e.allDay) return 'pto';
+  if(/\b(pto|out of office|ooo|vacation|holiday)\b/i.test(s)) return 'pto';
+  if(/\b(training|onboard|circuit|academy|workshop|1:1|1-1)\b/i.test(s)) return 'focus';
+  if(e.online||/teams|zoom|meet\.google/i.test(loc)) return 'teams';
+  if(loc) return 'site';
+  return 'teams';
+}
+/* ---- day strip: one chip per day, meeting load + free hours ---- */
+function cbStripRender(evs){
+  var el=document.getElementById('cbStrip'); if(!el) return;
+  var now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  var out='';
+  for(var i=0;i<7;i++){
+    var d=new Date(t0.getTime()+i*864e5), k=cbKey(d);
+    var day=evs.filter(function(e){ return cbKey(new Date(e.start))===k; });
+    var mins=0; day.forEach(function(e){ if(!e.allDay&&e.end) mins+=Math.max(0,(new Date(e.end)-new Date(e.start))/60000); });
+    var freeH=Math.max(0,Math.round((9*60-mins)/60));
+    var bars=day.slice(0,5).map(function(e){ return '<i class="t-'+cbTypeOf(e)+'"></i>'; }).join('');
+    var cls=['cb2day']; if(i===0)cls.push('today');
+    if(d.getDay()===0||d.getDay()===6)cls.push('wknd');
+    if(cbKey(d)===cbKey(cbSel()||t0))cls.push('on');
+    out+='<button class="'+cls.join(' ')+'" data-cbday="'+i+'">'+
+      '<span class="w">'+(i===0?'TODAY':DOW[d.getDay()])+'</span>'+
+      '<span class="n">'+d.getDate()+'</span>'+
+      '<span class="load">'+bars+'</span>'+
+      '<span class="free">'+(day.length? (freeH+'h free') : 'clear')+'</span></button>';
+  }
+  el.innerHTML=out;
+  Array.prototype.forEach.call(el.querySelectorAll('[data-cbday]'),function(b){
+    b.addEventListener('click',function(){
+      var i=+b.getAttribute('data-cbday');
+      window.__CB_SEL=new Date(t0.getTime()+i*864e5);
+      calBandRender(window.__CALDAY);
+    });
+  });
+}
+/* ---- timeline for one day ---- */
+function cbTimeline(evs, day){
+  var PX=62, PAD=18;
+  var timed=evs.filter(function(e){ return !e.allDay; })
+               .sort(function(a,b){ return new Date(a.start)-new Date(b.start); });
+  var allday=evs.filter(function(e){ return e.allDay; });
+  if(!evs.length){
+    var isToday=cbKey(day)===cbKey(new Date());
+    return '<div class="cb2empty"><b>Nothing scheduled'+(isToday?' today':'')+'.</b><span>'+
+      (isToday?'Good day for deep work.':'Clear from here.')+'</span></div>';
+  }
+  var startH=8, endH=18;
+  if(timed.length){
+    startH=Math.min.apply(null,timed.map(function(e){ return new Date(e.start).getHours(); }));
+    endH=Math.max.apply(null,timed.map(function(e){ var x=new Date(e.end||e.start); return x.getHours()+(x.getMinutes()>0?1:0); }));
+    startH=Math.max(0,startH); endH=Math.min(24,Math.max(endH,startH+3));
+  }
+  var top=function(dt){ var m=(dt.getHours()-startH)*60+dt.getMinutes(); return PAD+(m/60)*PX; };
+  var H=PAD+(endH-startH)*PX+PAD;
+  var out='<div class="cb2inner" style="height:'+H+'px">';
+  for(var hh=startH;hh<=endH;hh++){
+    var lab=(hh%12===0?12:hh%12)+(hh<12?' AM':' PM');
+    out+='<div class="cb2hour" style="top:'+(PAD+(hh-startH)*PX)+'px"><span>'+lab+'</span></div>';
+  }
+  if(allday.length){
+    out+='<div class="cb2allday">'+allday.map(function(e){
+      return '<span class="cb2pill pto">'+calEsc(e.subject||'All day')+'</span>'; }).join('')+'</div>';
+  }
+  var now=new Date(), isToday=cbKey(day)===cbKey(now);
+  /* free gaps */
+  for(var i=0;i<timed.length-1;i++){
+    var endA=new Date(timed[i].end||timed[i].start), startB=new Date(timed[i+1].start);
+    var gapMin=(startB-endA)/60000;
+    if(gapMin>=25){
+      var gt=top(endA), gh=(gapMin/60)*PX-4;
+      var lbl=(gapMin>=60?(Math.floor(gapMin/60)+'h'+(gapMin%60?' '+Math.round(gapMin%60)+'m':'')):Math.round(gapMin)+' min')+' free';
+      out+='<div class="cb2gap" style="top:'+gt+'px;height:'+Math.max(20,gh)+'px"><span>'+lbl+'</span></div>';
+    }
+  }
+  timed.forEach(function(e){
+    var s=new Date(e.start), en=e.end?new Date(e.end):new Date(s.getTime()+30*60000);
+    var t=top(s), hgt=Math.max(26,((en-s)/60000/60)*PX-5);
+    var live=isToday&&s<=now&&en>=now;
+    var ty=cbTypeOf(e);
+    var loc=String(e.location||''), isTeams=!!e.online||/teams|zoom/i.test(loc);
+    var meta='<span class="k '+ty+'">'+({teams:'Teams',site:'On-site',focus:'Focus',pto:'Away'}[ty])+'</span>'+
+      calFmt(s)+' &ndash; '+calFmt(en)+(e.organizer?' &middot; '+calEsc(e.organizer):'')+
+      (loc&&!isTeams?' &middot; '+calEsc(loc):'');
+    var join=(e.online&&/^https:\/\//.test(e.online))?'<a class="cb2join" href="'+calEsc(e.online)+'" target="_blank" rel="noopener">JOIN</a>':'';
+    out+='<div class="cb2blk '+ty+(live?' now':'')+'" style="top:'+t+'px;height:'+hgt+'px">'+
+      '<div class="l1"><b>'+calEsc(e.subject||'(no subject)')+'</b>'+(live?'<span class="badge">NOW</span>':'')+'</div>'+
+      (hgt>34?'<div class="l2">'+meta+'</div>':'')+
+      '<div class="rt">'+join+'</div></div>';
+  });
+  if(isToday && now.getHours()>=startH && now.getHours()<=endH){
+    out+='<div class="cb2now" style="top:'+top(now)+'px"><u>'+calFmt(now)+'</u></div>';
+  }
+  return out+'</div>';
+}
+/* ---- list view: next 7 days ---- */
+function cbList(evs){
+  var now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  var rows=evs.filter(function(e){ var s=new Date(e.start); return (e.allDay? s>=t0 : new Date(e.end||e.start)>=now); })
+              .sort(function(a,b){ return new Date(a.start)-new Date(b.start); }).slice(0,14);
+  if(!rows.length) return '<div class="cb2empty"><b>Nothing in the next 7 days.</b><span>Enjoy it.</span></div>';
+  var DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'], last='', out='<div class="cb2list">';
+  rows.forEach(function(e){
+    var s=new Date(e.start), en=e.end?new Date(e.end):null, k=cbKey(s), ty=cbTypeOf(e);
+    var live=en&&s<=now&&en>=now;
+    if(k!==last){
+      out+='<div class="cb2lday">'+(k===cbKey(now)?'TODAY':DOW[s.getDay()]+' '+s.getDate())+'</div>';
+      last=k;
+    }
+    var join=(e.online&&/^https:\/\//.test(e.online))?'<a class="cb2join" href="'+calEsc(e.online)+'" target="_blank" rel="noopener">JOIN</a>':'';
+    out+='<div class="cb2lrow '+ty+(live?' now':'')+'"><div class="t">'+(e.allDay?'All day':calFmt(s))+
+      (en&&!e.allDay?'<u>'+Math.round((en-s)/60000)+'m</u>':'')+'</div>'+
+      '<div class="s"><b>'+calEsc(e.subject||'(no subject)')+'</b>'+
+      (e.organizer?'<u>'+calEsc(e.organizer)+'</u>':'')+'</div>'+join+'</div>';
+  });
+  return out+'</div>';
+}
+/* ---- rail: month + stats ---- */
 function calMiniRender(d){
   var rail=document.getElementById('cbRail'); if(!rail) return;
-  var now=new Date();
+  var now=new Date(), sel=cbSel()||now;
   var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
   var evs=((d&&d.events)||[]).filter(function(e){return e.start;});
   var byDay={}, wk=0, t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()), t7=new Date(t0.getTime()+7*864e5);
   evs.forEach(function(e){
     var s=new Date(e.start);
     if(s>=t0&&s<t7) wk++;
-    if(s.getMonth()===now.getMonth()&&s.getFullYear()===now.getFullYear()) byDay[s.getDate()]=1;
+    if(s.getMonth()===sel.getMonth()&&s.getFullYear()===sel.getFullYear()) byDay[s.getDate()]=1;
   });
-  var first=new Date(now.getFullYear(),now.getMonth(),1).getDay();
-  var days=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  var html='<div class="mlab">'+MN[now.getMonth()]+' '+now.getFullYear()+'</div><table><tr><th>S</th><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th></tr><tr>';
+  var first=new Date(sel.getFullYear(),sel.getMonth(),1).getDay();
+  var days=new Date(sel.getFullYear(),sel.getMonth()+1,0).getDate();
+  var html='<div class="cb2mh"><b>'+MN[sel.getMonth()]+' '+sel.getFullYear()+'</b></div><table><tr><th>S</th><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th></tr><tr>';
   for(var b=0;b<first;b++) html+='<td></td>';
   for(var day=1;day<=days;day++){
     if((first+day-1)%7===0 && day!==1) html+='</tr><tr>';
-    var cls=[]; if(byDay[day])cls.push('evt'); if(day===now.getDate())cls.push('today');
+    var cls=[]; if(byDay[day])cls.push('ev');
+    if(day===now.getDate()&&sel.getMonth()===now.getMonth()&&sel.getFullYear()===now.getFullYear())cls.push('td');
     html+='<td'+(cls.length?' class="'+cls.join(' ')+'"':'')+'>'+day+'</td>';
   }
-  html+='</tr></table><div class="mfoot">'+wk+' meeting'+(wk===1?'':'s')+' in the next 7 days</div>';
+  html+='</tr></table>';
+  /* stats for the selected day */
+  var dayEvs=evs.filter(function(e){ return cbKey(new Date(e.start))===cbKey(sel); });
+  var mins=0; dayEvs.forEach(function(e){ if(!e.allDay&&e.end) mins+=Math.max(0,(new Date(e.end)-new Date(e.start))/60000); });
+  var hm=function(m){ var H=Math.floor(m/60),M=Math.round(m%60); return (H?H+'h ':'')+(M?M+'m':(H?'':'0m')); };
+  /* next free block on the selected day */
+  var timed=dayEvs.filter(function(e){return !e.allDay;}).sort(function(a,b){return new Date(a.start)-new Date(b.start);});
+  var nextFree='—';
+  for(var i2=0;i2<timed.length-1;i2++){
+    var g=(new Date(timed[i2+1].start)-new Date(timed[i2].end||timed[i2].start))/60000;
+    if(g>=30){ nextFree=calFmt(new Date(timed[i2].end||timed[i2].start)); break; }
+  }
+  if(nextFree==='—'&&timed.length) nextFree=calFmt(new Date(timed[timed.length-1].end||timed[timed.length-1].start));
+  /* type split across the week */
+  var split={teams:0,focus:0,site:0,pto:0}, tot=0;
+  evs.filter(function(e){var s=new Date(e.start);return s>=t0&&s<t7;}).forEach(function(e){
+    var m=(e.allDay||!e.end)?30:Math.max(0,(new Date(e.end)-new Date(e.start))/60000);
+    split[cbTypeOf(e)]+=m; tot+=m;
+  });
+  var bar=function(k,label){ var p=tot?Math.round(split[k]/tot*100):0;
+    return p? '<div class="b"><i class="t-'+k+'"></i><span class="track"><u class="t-'+k+'" style="width:'+p+'%"></u></span><s>'+p+'%</s></div>':''; };
+  html+='<div class="cb2stat">'+
+    '<div class="r"><span>Booked</span><b>'+hm(mins)+'</b></div>'+
+    '<div class="r"><span>Meetings</span><b>'+dayEvs.length+'</b></div>'+
+    '<div class="r"><span>Frees up</span><b class="gold">'+nextFree+'</b></div>'+
+    '<div class="r"><span>Next 7 days</span><b>'+wk+'</b></div></div>';
+  var bars=bar('teams','Teams')+bar('focus','Focus')+bar('site','On-site')+bar('pto','Away');
+  if(bars) html+='<div class="cb2bars"><div class="lb">Where your week goes</div>'+bars+'</div>';
   rail.innerHTML=html;
 }
 function calBandRender(d){
   var body=document.getElementById('cbBody'), foot=document.getElementById('cbFoot');
   if(!body) return;
-  try{calMiniRender(d);}catch(e){}
   var evs=((d&&d.events)||[]).filter(function(e){return e.start;});
-  var now=new Date(), t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  var horizon=new Date(t0.getTime()+7*864e5);
-  var rows=evs.filter(function(e){var s=new Date(e.start);return (e.allDay? s>=t0 : new Date(e.end||e.start)>=now) && s<horizon;})
-              .sort(function(a,b){return new Date(a.start)-new Date(b.start);});
-  if(!rows.length){ body.innerHTML='<div class="cbempty">Nothing on your calendar for the next few days.</div>'; if(foot)foot.style.display='none'; return; }
-  var DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'];
-  var show=rows.slice(0,5), out='', lastKey='';
-  show.forEach(function(e){
-    var s=new Date(e.start), en=e.end?new Date(e.end):null;
-    var key=s.toDateString(), isToday=(key===now.toDateString());
-    var dayCell='';
-    if(key!==lastKey){
-      dayCell='<div class="cbday'+(isToday?' today':'')+'"><span class="dow">'+(isToday?'TODAY':DOW[s.getDay()])+'</span><span class="dnum">'+s.getDate()+'</span></div>';
-      lastKey=key;
-    } else { dayCell='<div class="cbday"></div>'; }
-    var isNow = en && s<=now && en>=now;
-    var meta='';
-    if(e.allDay){ meta='<span class="cbpill allday">All day</span>'; }
-    else { meta='<b>'+calFmt(s)+(en?' &ndash; '+calFmt(en):'')+'</b>'; }
-    var loc=e.location?String(e.location):'';
-    var isTeams=/teams/i.test(loc)||!!e.online;
-    if(loc && !isTeams) meta+='<span class="dot">&middot;</span><span>'+calEsc(loc)+'</span>';
-    if(isTeams) meta+='<span class="dot">&middot;</span><span class="cbpill">Teams</span>';
-    if(e.organizer) meta+='<span class="dot">&middot;</span><span>'+calEsc(e.organizer)+'</span>';
-    var join=(e.online&&/^https:\/\//.test(e.online))?'<a class="cbjoin" href="'+calEsc(e.online)+'" target="_blank" rel="noopener">Join</a>':'';
-    out+='<div class="cbrow'+(isNow?' is-now':'')+'">'+dayCell+'<div class="cbmain"><div class="cbsub">'+calEsc(e.subject||'(no subject)')+'</div><div class="cbtime">'+meta+'</div></div>'+join+'</div>';
-  });
-  body.innerHTML=out;
+  var now=new Date(), sel=cbSel()||now;
+  try{ cbStripRender(evs); }catch(e){}
+  try{ calMiniRender(d); }catch(e){}
+  var DOWL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MS=['AUG'];
+  var M3=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  var cm=document.getElementById('cbCubeM'), cd=document.getElementById('cbCubeD'),
+      dn=document.getElementById('cbDayName'), sm=document.getElementById('cbSummary');
+  if(cm)cm.textContent=M3[sel.getMonth()];
+  if(cd)cd.textContent=sel.getDate();
+  var view=window.__CB_VIEW||'day';
+  var dayEvs=evs.filter(function(e){ return cbKey(new Date(e.start))===cbKey(sel); });
+  if(dn)dn.textContent=(cbKey(sel)===cbKey(now)?'Today':DOWL[sel.getDay()]);
+  if(sm){
+    var mins=0; dayEvs.forEach(function(e){ if(!e.allDay&&e.end) mins+=Math.max(0,(new Date(e.end)-new Date(e.start))/60000); });
+    var H=Math.floor(mins/60),M=Math.round(mins%60);
+    sm.textContent='Outlook \u00b7 live \u00b7 '+dayEvs.length+' meeting'+(dayEvs.length===1?'':'s')+
+      (mins?(' \u00b7 '+(H?H+'h ':'')+(M?M+'m':'')+' booked'):'');
+  }
+  body.innerHTML = (view==='list') ? cbList(evs) : cbTimeline(dayEvs, sel);
+  /* next-up footer */
   if(foot){
-    var extra=rows.length-show.length;
-    foot.innerHTML=(extra>0?('+'+extra+' more in the next 7 days'):('&nbsp;'))+(d&&d.count?('<span style="margin-left:auto;">'+d.count+' events loaded</span>'):'');
-    foot.style.display='flex';
+    var up=evs.filter(function(e){ return new Date(e.end||e.start)>=now; })
+              .sort(function(a,b){ return new Date(a.start)-new Date(b.start); })[0];
+    if(up){
+      var s=new Date(up.start);
+      var when=(cbKey(s)===cbKey(now)?'':(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.getDay()]+' '));
+      foot.innerHTML='Next up &middot; <b>'+calEsc(up.subject||'')+'</b> &middot; '+when+(up.allDay?'all day':calFmt(s))+
+        '<a href="https://outlook.office.com/calendar/" target="_blank" rel="noopener">Open Outlook &rarr;</a>';
+      foot.style.display='flex';
+    } else { foot.style.display='none'; }
+  }
+  /* view toggle wiring (once) */
+  var seg=document.getElementById('cbSeg');
+  if(seg && !seg.getAttribute('data-wired')){
+    seg.setAttribute('data-wired','1');
+    Array.prototype.forEach.call(seg.querySelectorAll('button'),function(b){
+      b.addEventListener('click',function(){
+        window.__CB_VIEW=b.getAttribute('data-cbv');
+        Array.prototype.forEach.call(seg.querySelectorAll('button'),function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        calBandRender(window.__CALDAY);
+      });
+    });
   }
 }
 function applyCalData(d){
@@ -1184,6 +1349,121 @@ tickerFromPulse();
 .calband .cbsub{font-size:13.5px;margin-bottom:2px;}
 .calband .cbhead{padding:11px 16px;}
 @media(max-width:900px){.calband .cbcols{grid-template-columns:1fr;}.calband .cbrail{display:none;}}
+
+/* ===== CAL_TIMELINE_v1 — calendar band as a real day timeline ===== */
+.cb2{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff;
+ box-shadow:0 2px 6px rgba(20,18,14,.06),0 18px 34px -20px rgba(20,18,14,.3);margin-top:14px;}
+.cb2head{display:flex;align-items:center;gap:14px;padding:15px 19px;position:relative;
+ background:linear-gradient(135deg,#191713,#232019 60%,#2b2618);}
+.cb2head::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
+ background:linear-gradient(90deg,transparent,rgba(255,200,0,.5),transparent);}
+.cb2cube{width:44px;height:44px;border-radius:13px;flex-shrink:0;display:grid;place-items:center;position:relative;
+ background:linear-gradient(160deg,#FFD84D,#FFC800 55%,#E8A70B);
+ box-shadow:0 8px 18px -6px rgba(255,200,0,.7), inset 0 1px 0 rgba(255,255,255,.6);}
+.cb2cube u{text-decoration:none;position:absolute;top:6px;font-size:7px;font-weight:700;letter-spacing:.18em;color:#7a5c00;}
+.cb2cube b{font-size:18px;font-weight:800;color:#14120e;line-height:1;margin-top:7px;font-variant-numeric:tabular-nums;}
+.cb2ttl h2{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.01em;margin:0;}
+.cb2ttl p{font-size:11.5px;color:#a49d8b;margin:3px 0 0;display:flex;gap:8px;align-items:center;}
+.cb2ttl p i{width:5px;height:5px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84;}
+.cb2rt{margin-left:auto;display:flex;gap:9px;align-items:center;}
+.cb2seg{display:flex;border:1px solid #38332a;border-radius:9px;overflow:hidden;}
+.cb2seg button{background:transparent;border:0;border-right:1px solid #38332a;color:#a49d8b;font:600 11px inherit;padding:8px 13px;cursor:pointer;transition:all .15s;}
+.cb2seg button:last-child{border-right:0;}
+.cb2seg button.on{background:#fff;color:#14120e;font-weight:700;}
+.cb2seg button:hover:not(.on){color:#fff;}
+.cb2strip{display:flex;background:linear-gradient(180deg,#faf8f2,#fff);border-bottom:1px solid var(--line);}
+.cb2day{flex:1;padding:10px 5px 9px;text-align:center;cursor:pointer;border:0;border-right:1px solid var(--line-light);background:transparent;font:inherit;transition:background .15s;}
+.cb2day:last-child{border-right:0;}
+.cb2day:hover{background:#fffdf5;}
+.cb2day .w{display:block;font-size:9px;font-weight:700;letter-spacing:.13em;color:#a8a294;}
+.cb2day .n{display:block;font-size:19px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums;line-height:1.1;color:#2a2620;}
+.cb2day .load{display:flex;gap:2px;justify-content:center;margin-top:6px;height:3px;}
+.cb2day .load i{width:10px;height:3px;border-radius:2px;}
+.cb2day .free{display:block;font-size:9px;color:#a8a294;margin-top:5px;letter-spacing:.03em;}
+.cb2day.today .w{color:#9a7200;}
+.cb2day.today .n{color:#9a7200;}
+.cb2day.on{background:#fff;box-shadow:inset 0 -3px 0 #14120e;}
+.cb2day.on .n{color:#14120e;}
+.cb2day.wknd{background:#faf8f2;}
+.cb2day.wknd .n{color:#c7c1b1;}
+.t-teams{background:#5B5FC7;} .t-site{background:#1F8A70;} .t-focus{background:#C4611F;} .t-pto{background:#8a8578;}
+.cb2body{display:grid;grid-template-columns:1fr 250px;}
+.cb2tl{position:relative;overflow:hidden;}
+.cb2inner{position:relative;}
+.cb2hour{position:absolute;left:0;right:16px;border-top:1px solid #f2efe6;height:0;}
+.cb2hour span{position:absolute;left:14px;top:-7px;font-size:10px;color:#a8a294;background:#fff;padding-right:6px;font-variant-numeric:tabular-nums;}
+.cb2now{position:absolute;left:56px;right:16px;height:2px;background:linear-gradient(90deg,#FFC800,rgba(255,200,0,.12));z-index:5;border-radius:2px;}
+.cb2now::before{content:'';position:absolute;left:-5px;top:-3px;width:8px;height:8px;border-radius:50%;background:#FFC800;box-shadow:0 0 0 3px rgba(255,200,0,.28);}
+.cb2now u{text-decoration:none;position:absolute;right:0;top:-16px;font-size:9px;font-weight:700;letter-spacing:.08em;color:#9a7200;
+ background:#fff8e2;border:1px solid rgba(255,200,0,.4);border-radius:4px;padding:1px 6px;}
+.cb2blk{position:absolute;left:56px;right:18px;border-radius:11px;padding:8px 12px;cursor:default;overflow:hidden;
+ border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(20,18,14,.05);transition:transform .18s,box-shadow .18s;z-index:2;}
+.cb2blk:hover{transform:translateX(3px);box-shadow:0 8px 18px -10px rgba(20,18,14,.35);z-index:6;}
+.cb2blk::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.cb2blk.teams{background:linear-gradient(100deg,#eef0ff,#fff 62%);border-color:#dfe2ff;}
+.cb2blk.teams::before{background:#5B5FC7;}
+.cb2blk.site{background:linear-gradient(100deg,#e8f6f1,#fff 62%);border-color:#cfe9e1;}
+.cb2blk.site::before{background:#1F8A70;}
+.cb2blk.focus{background:linear-gradient(100deg,#fdefe4,#fff 62%);border-color:#f3ddc9;}
+.cb2blk.focus::before{background:#C4611F;}
+.cb2blk.pto{background:linear-gradient(100deg,#f2f0e8,#fff 62%);}
+.cb2blk.pto::before{background:#8a8578;}
+.cb2blk.now{background:linear-gradient(100deg,#fff8e2,#fff 55%);border-color:rgba(255,200,0,.55);box-shadow:0 6px 18px -8px rgba(255,200,0,.65);}
+.cb2blk.now::before{background:linear-gradient(180deg,#FFC800,#E8A70B);box-shadow:0 0 12px rgba(255,200,0,.85);}
+.cb2blk .l1{display:flex;align-items:center;gap:8px;}
+.cb2blk .l1 b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cb2blk .l1 .badge{font-size:8.5px;font-weight:800;letter-spacing:.1em;border-radius:4px;padding:2px 6px;flex-shrink:0;background:#14120e;color:#FFC800;}
+.cb2blk .l2{display:flex;align-items:center;gap:7px;margin-top:4px;font-size:10.5px;color:#7d7768;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cb2blk .l2 .k{font-size:9px;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;padding:1px 6px;font-weight:700;color:#fff;}
+.cb2blk .l2 .k.teams{background:#5B5FC7;} .cb2blk .l2 .k.site{background:#1F8A70;}
+.cb2blk .l2 .k.focus{background:#C4611F;} .cb2blk .l2 .k.pto{background:#8a8578;}
+.cb2blk .rt{position:absolute;right:10px;top:50%;transform:translateY(-50%);}
+.cb2join{border:0;border-radius:8px;padding:6px 12px;font-size:10.5px;font-weight:700;letter-spacing:.05em;cursor:pointer;color:#FFC800;text-decoration:none;
+ background:linear-gradient(160deg,#2f2a22,#14120e);box-shadow:0 4px 10px -4px rgba(20,18,14,.55);transition:all .16s;display:inline-block;}
+.cb2join:hover{transform:translateY(-1px);color:#FFD84D;}
+.cb2gap{position:absolute;left:56px;right:18px;border-radius:10px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;z-index:1;}
+.cb2gap span{font-size:10.5px;font-weight:600;color:#a8a294;}
+.cb2gap:hover{border-color:#FFC800;background:#fff8e2;}
+.cb2gap:hover span{color:#9a7200;}
+.cb2allday{position:absolute;top:2px;left:56px;right:18px;display:flex;gap:6px;flex-wrap:wrap;z-index:3;}
+.cb2pill{font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:999px;padding:3px 10px;background:#f2f0e8;color:#6d685c;border:1px solid var(--line);}
+.cb2empty{padding:44px 20px;text-align:center;}
+.cb2empty b{display:block;font-size:14px;font-weight:600;}
+.cb2empty span{display:block;font-size:12px;color:#a8a294;margin-top:5px;}
+.cb2list{padding:6px 0;}
+.cb2lday{font-size:9.5px;font-weight:800;letter-spacing:.14em;color:#a8a294;padding:10px 18px 5px;}
+.cb2lrow{display:grid;grid-template-columns:74px 1fr auto;gap:12px;align-items:center;padding:9px 18px;position:relative;}
+.cb2lrow::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:0 3px 3px 0;}
+.cb2lrow.teams::before{background:#5B5FC7;} .cb2lrow.site::before{background:#1F8A70;}
+.cb2lrow.focus::before{background:#C4611F;} .cb2lrow.pto::before{background:#8a8578;}
+.cb2lrow.now{background:linear-gradient(90deg,#fff8e2,#fff 60%);}
+.cb2lrow.now::before{background:#FFC800;box-shadow:0 0 10px rgba(255,200,0,.8);}
+.cb2lrow .t{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+.cb2lrow .t u{text-decoration:none;display:block;font-size:9.5px;color:#a8a294;font-weight:500;}
+.cb2lrow .s b{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cb2lrow .s u{text-decoration:none;display:block;font-size:10.5px;color:#a8a294;margin-top:2px;}
+.cb2rail{border-left:1px solid var(--line);background:linear-gradient(180deg,#fdfcf8,#fff);padding:15px 16px;}
+.cb2mh b{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#2a2620;}
+.cb2rail table{width:100%;border-collapse:collapse;font-size:10.5px;text-align:center;margin-top:9px;}
+.cb2rail th{font-size:8.5px;font-weight:700;letter-spacing:.1em;color:#a8a294;padding:3px 0;}
+.cb2rail td{padding:4px 0;border-radius:7px;color:#2a2620;position:relative;font-variant-numeric:tabular-nums;}
+.cb2rail td.ev::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#E8A70B;}
+.cb2rail td.td{background:#14120e;color:#FFC800;font-weight:800;}
+.cb2stat{margin-top:13px;padding-top:12px;border-top:1px solid #f2efe6;}
+.cb2stat .r{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:11.5px;color:#7d7768;}
+.cb2stat .r b{font-size:11.5px;font-weight:700;color:#14120e;font-variant-numeric:tabular-nums;}
+.cb2stat .r b.gold{color:#9a7200;}
+.cb2bars{margin-top:12px;padding-top:12px;border-top:1px solid #f2efe6;}
+.cb2bars .lb{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#a8a294;margin-bottom:8px;}
+.cb2bars .b{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.cb2bars .b i{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.cb2bars .b .track{flex:1;height:5px;background:#f2efe6;border-radius:3px;overflow:hidden;}
+.cb2bars .b .track u{display:block;height:100%;border-radius:3px;}
+.cb2bars .b s{text-decoration:none;font-size:10px;font-weight:700;width:26px;text-align:right;color:#2a2620;font-variant-numeric:tabular-nums;}
+.cb2foot{padding:11px 19px;border-top:1px solid var(--line);background:linear-gradient(180deg,#fff,#faf8f2);display:flex;align-items:center;gap:9px;font-size:11.5px;color:#7d7768;}
+.cb2foot b{color:#14120e;font-weight:600;}
+.cb2foot a{margin-left:auto;color:#9a7200;font-weight:700;text-decoration:none;}
+@media(max-width:900px){.cb2body{grid-template-columns:1fr}.cb2rail{display:none}}
 </style>
 <script>
 (function(){
