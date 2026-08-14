@@ -1044,21 +1044,41 @@ function cbTimeline(evs, day){
   }
   timed.forEach(function(e){
     var s=new Date(e.start), en=e.end?new Date(e.end):new Date(s.getTime()+30*60000);
-    var t=top(s), hgt=Math.max(26,((en-s)/60000/60)*PX-5);
-    var live=isToday&&s<=now&&en>=now;
+    var t=top(s), mins=(en-s)/60000, hgt=Math.max(30,(mins/60)*PX-5);
+    var live=isToday&&s<=now&&en>=now, past=isToday&&en<now;
     var ty=cbTypeOf(e);
-    var loc=String(e.location||''), isTeams=!!e.online||/teams|zoom/i.test(loc);
+    var loc=String(e.location||''), isTeams=!!e.online||!!e.isOnline||/teams|zoom/i.test(loc);
+    /* CAL_POLISH_v1 — long meetings no longer render as a cavern of white space:
+       the card keeps its true duration on the grid but the CONTENT is capped and
+       vertically centred, with a duration chip so length is still legible. */
+    var dur=mins>=60?(Math.floor(mins/60)+'h'+(mins%60?' '+Math.round(mins%60)+'m':'')):Math.round(mins)+'m';
     var meta='<span class="k '+ty+'">'+({teams:'Teams',site:'On-site',focus:'Focus',pto:'Away'}[ty])+'</span>'+
       calFmt(s)+' &ndash; '+calFmt(en)+(e.organizer?' &middot; '+calEsc(e.organizer):'')+
       (loc&&!isTeams?' &middot; '+calEsc(loc):'');
-    var join=(e.online&&/^https:\/\//.test(e.online))?'<a class="cb2join" href="'+calEsc(e.online)+'" target="_blank" rel="noopener">JOIN</a>':'';
-    out+='<div class="cb2blk '+ty+(live?' now':'')+'" style="top:'+t+'px;height:'+hgt+'px">'+
-      '<div class="l1"><b>'+calEsc(e.subject||'(no subject)')+'</b>'+(live?'<span class="badge">NOW</span>':'')+'</div>'+
-      (hgt>34?'<div class="l2">'+meta+'</div>':'')+
+    var href=(e.online&&/^https:\/\//.test(e.online))?e.online:((e.link&&/^https:\/\//.test(e.link))?e.link:'');
+    var join=href?('<a class="cb2join'+(e.online?'':' alt')+'" href="'+calEsc(href)+'" target="_blank" rel="noopener">'+(e.online?'JOIN':'OPEN')+'</a>'):'';
+    out+='<div class="cb2blk '+ty+(live?' now':'')+(past?' past':'')+(hgt>=92?' tall':'')+'" style="top:'+t+'px;height:'+hgt+'px">'+
+      '<div class="cb2in">'+
+        '<div class="l1"><b>'+calEsc(e.subject||'(no subject)')+'</b>'+
+          (live?'<span class="badge">NOW</span>':'')+
+          (mins>=50?'<span class="dur">'+dur+'</span>':'')+'</div>'+
+        (hgt>38?'<div class="l2">'+meta+'</div>':'')+
+      '</div>'+
       '<div class="rt">'+join+'</div></div>';
   });
   if(isToday && now.getHours()>=startH && now.getHours()<=endH){
     out+='<div class="cb2now" style="top:'+top(now)+'px"><u>'+calFmt(now)+'</u></div>';
+  }
+  /* CAL_POLISH_v1 — close the day out instead of trailing into blank space */
+  var lastEnd=timed.length?new Date(timed[timed.length-1].end||timed[timed.length-1].start):null;
+  if(lastEnd){
+    var lt=top(lastEnd);
+    if(H-lt>34){
+      var restMin=(endH*60)-(lastEnd.getHours()*60+lastEnd.getMinutes());
+      var restTxt=restMin>=60?(Math.floor(restMin/60)+'h'+(restMin%60?' '+Math.round(restMin%60)+'m':'')):Math.round(restMin)+'m';
+      out+='<div class="cb2rest" style="top:'+(lt+6)+'px;height:'+Math.max(24,H-lt-16)+'px"><span>'+
+        (isToday&&lastEnd<now?'Rest of the day is clear':'Clear after '+calFmt(lastEnd))+' \u00b7 '+restTxt+'</span></div>';
+    }
   }
   return out+'</div>';
 }
@@ -1464,6 +1484,22 @@ tickerFromPulse();
 .cb2foot b{color:#14120e;font-weight:600;}
 .cb2foot a{margin-left:auto;color:#9a7200;font-weight:700;text-decoration:none;}
 @media(max-width:900px){.cb2body{grid-template-columns:1fr}.cb2rail{display:none}}
+
+/* ===== CAL_POLISH_v1 — long blocks, past events, day close-out ===== */
+.cb2blk{display:flex;align-items:center;}
+.cb2blk .cb2in{flex:1;min-width:0;max-height:100%;overflow:hidden;}
+.cb2blk.tall{align-items:flex-start;padding-top:11px;}
+.cb2blk.tall .cb2in{position:sticky;top:0;}
+.cb2blk .l1 .dur{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#7d7768;background:rgba(255,255,255,.75);
+ border:1px solid var(--line);border-radius:999px;padding:1px 7px;flex-shrink:0;}
+.cb2blk.past{opacity:.66;}
+.cb2blk.past:hover{opacity:1;}
+.cb2blk.tall::after{content:'';position:absolute;left:4px;right:0;top:0;bottom:0;pointer-events:none;
+ background:repeating-linear-gradient(135deg,rgba(255,255,255,0) 0 14px,rgba(255,255,255,.5) 14px 28px);opacity:.5;}
+.cb2join.alt{background:linear-gradient(160deg,#f4f1e8,#e9e5d8);color:#4a4438;border:1px solid var(--line);}
+.cb2rest{position:absolute;left:56px;right:18px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+ border:1px dashed #ece8dc;background:linear-gradient(180deg,rgba(250,248,242,.6),rgba(255,255,255,0));z-index:0;}
+.cb2rest span{font-size:10.5px;font-weight:600;color:#b3ada0;letter-spacing:.02em;}
 </style>
 <script>
 (function(){
