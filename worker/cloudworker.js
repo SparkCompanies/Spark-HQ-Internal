@@ -5555,10 +5555,10 @@ var worker_default = {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHARGE REPORT — PHASE B: /charge-batch  (read-only compute engine)
+// CHARGE REPORT — PHASE B+C: /charge-batch  (read-only compute engine)
 // ════════════════════════════════════════════════════════════════════════════
 // GET /charge-batch?weekEnding=YYYY-MM-DD   (a Sunday; defaults to latest week in SF)
-// Optional: &debug=1 for extra diagnostics.
+// Optional: &debug=1 diagnostics · &payables=0 to skip the Payable Worksheet merge.
 //
 // Pulls the week straight from Salesforce (no report export needed), applies the
 // finance agent's rules (fin_client_map, fin_ot_dt_rules), computes the verified
@@ -5569,7 +5569,8 @@ var worker_default = {
 //   regMargin = bill - pay*(1+burden)
 //   otMargin  = otBill - otPay*(1+burden)      dtMargin likewise
 //   vacMargin = -(bill - pay)*(1+burden)
-//   charge    = reg*regM + ot*otM + dt*dtM + vac*vacM   (vac hours wired in Phase C)
+//   charge    = reg*regM + ot*otM + dt*dtM + vac*vacM
+// Phase C: vacation hours + manual pays merged in from the 2026 Payable Worksheet.
 // ════════════════════════════════════════════════════════════════════════════
 
     if (url.pathname === "/charge-batch") {
@@ -5715,6 +5716,165 @@ var worker_default = {
 
         rows.sort((a, b) => (a.company || "").localeCompare(b.company || "") || (a.candidate || "").localeCompare(b.candidate || ""));
 
+        // ── 4.5) Phase C: Payable Worksheet — vacation + manual pays (v3) ───
+        const payables = { attempted: false };
+        if (url.searchParams.get("payables") !== "0") {
+          payables.attempted = true;
+          try {
+            const gt = await getGraphToken(env);
+            const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
+            const shareUrl = "https://sparktalent-my.sharepoint.com/:x:/g/personal/timecards_sparktalentinc_com/IQCNdykcRQJLRKsOAFZyxYT3ATQz4Y_-30tpSh40h2OGwSo";
+            const shareTok = "u!" + btoa(shareUrl).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+            const sR = await fetch("https://graph.microsoft.com/v1.0/shares/" + shareTok + "/driveItem?$select=id,parentReference", { headers: GH });
+            const sD = await sR.json();
+            if (!sR.ok) throw new Error((sD.error && sD.error.message) || "share resolve failed");
+            const B = "https://graph.microsoft.com/v1.0/drives/" + sD.parentReference.driveId + "/items/" + sD.id;
+            const wr = await fetch(B + "/workbook/worksheets?$select=name", { headers: GH });
+            const wd = await wr.json();
+            if (!wr.ok) throw new Error((wd.error && wd.error.message) || "worksheets failed");
+            const parts = weekEnding.split("-");
+            const short = Number(parts[1]) + "-" + Number(parts[2]) + "-" + parts[0].slice(2);
+            const normName = (s) => String(s).trim().toLowerCase().replace(/^we\s+/, "");
+            const target = (wd.value || []).map((x) => x.name).find((n) => normName(n) === short) || null;
+            payables.sheet = target || null;
+            if (!target) { payables.note = "No sheet named '" + short + "' or 'WE " + short + "' yet."; }
+            else {
+              const safe = encodeURIComponent(target.replace(/'/g, "''"));
+              const rr = await fetch(B + "/workbook/worksheets('" + safe + "')/range(address='A1:X200')?$select=values", { headers: GH });
+              const rd = await rr.json();
+              if (!rr.ok) throw new Error((rd.error && rd.error.message) || "range failed");
+              const grid = rd.values || [];
+              const SECTION = /^(advance|exepnses|expenses|shift premium|overpayment|bonus|reimburse|deduction|two rates|manual pay|vacation)/i;
+              const findCell = (re) => { for (let r = 0; r < grid.length; r++) { const row = grid[r] || []; for (let c = 0; c < row.length; c++) { if (re.test(String(row[c] || "").trim())) return { r, c }; } } return null; };
+              // A block title can sit in a vertically-merged cell, so the header row
+              // ("Team Member"...) may be a few rows off from the title cell. Hunt ±4.
+              const findHeader = (anchor) => {
+                for (let dr = -4; dr <= 4; dr++) {
+                  const r = anchor.r + dr; if (r < 0 || r >= grid.length) continue;
+                  const row = grid[r] || [];
+                  for (let c = anchor.c; c < Math.min(row.length, anchor.c + 6); c++) {
+                    if (/team member/i.test(String(row[c] || ""))) return { r, cName: c };
+                  }
+                }
+                return null;
+              };
+              const labelCol = (rowIdx, fromC, re, span) => { const row = grid[rowIdx] || []; for (let c = fromC; c < Math.min(row.length, fromC + (span || 10)); c++) { if (re.test(String(row[c] || "").trim().toLowerCase())) return c; } return null; };
+              const canon = (s) => String(s || "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+              const lev = (a, b) => { const m = a.length, n = b.length; if (!m) return n; if (!n) return m; let prev = []; for (let j = 0; j <= n; j++) prev[j] = j; for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) { const c = a[i - 1] === b[j - 1] ? 0 : 1; cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c); } prev = cur; } return prev[n]; };
+              const ratio = (a, b) => { const L = Math.max(a.length, b.length); return L === 0 ? 1 : 1 - lev(a, b) / L; };
+              const pool = rows.map((r, i) => ({ i, nk: canon(r.candidate), ak: canon(r.account + " " + r.company) }));
+              const matchRow = (name, client) => {
+                const nk = canon(name); if (!nk) return -1;
+                const ct = canon(client).split(" ").filter((w) => w.length >= 3)[0] || "";
+                let best = null;
+                for (const p of pool) {
+                  let s = p.nk === nk ? 1 : ratio(nk, p.nk);
+                  if (s < 0.7) continue;
+                  if (ct && p.ak.indexOf(ct) !== -1) s += 0.08;
+                  if (!best || s > best.s) best = { p, s };
+                }
+                return best && best.s >= 0.86 ? best.p.i : -1;
+              };
+              const readNames = (hdr, cb) => {
+                for (let r = hdr.r + 1; r < grid.length; r++) {
+                  const row = grid[r] || []; const name = String(row[hdr.cName] || "").trim();
+                  if (!name) { const nxt = String((grid[r + 1] || [])[hdr.cName] || "").trim(); if (!nxt) break; else continue; }
+                  if (SECTION.test(name) || /team member/i.test(name)) break;
+                  cb(row, name);
+                }
+              };
+              // Vacation block
+              const vacEntries = [];
+              const vT = findCell(/^vacation$/i);
+              const vH = vT && findHeader(vT);
+              if (vH) {
+                const cC = labelCol(vH.r, vH.cName, /^client/), cH = labelCol(vH.r, vH.cName, /total hours|^hours$/);
+                if (cH != null) readNames(vH, (row, name) => {
+                  const h = Number(row[cH]);
+                  if (h) vacEntries.push({ name, client: cC != null ? String(row[cC] || "").trim() : "", hours: h });
+                });
+              }
+              // Manual Pay block — columns read BY HEADER LABEL: Regular / OT / DT
+              const manEntries = [];
+              const mT = findCell(/^manual pay/i);
+              const mH = mT && findHeader(mT);
+              if (mH) {
+                const cC = labelCol(mH.r, mH.cName, /^client/);
+                const cW = labelCol(mH.r, mH.cName, /weekend/);
+                let cReg = labelCol(mH.r, mH.cName, /^reg/), cOt = labelCol(mH.r, mH.cName, /^ot$/), cDt = labelCol(mH.r, mH.cName, /^dt$|double/);
+                if (cReg == null && cW != null) { cReg = cW + 1; cOt = cW + 2; cDt = cW + 3; } // positional fallback
+                if (cReg != null) readNames(mH, (row, name) => {
+                  const n = (c) => { const v = c != null ? row[c] : null; return typeof v === "number" && isFinite(v) ? v : 0; };
+                  const reg = n(cReg), ot = n(cOt), dt = n(cDt);
+                  if (reg || ot || dt) manEntries.push({ name, client: cC != null ? String(row[cC] || "").trim() : "", reg, ot, dt });
+                });
+              }
+              // Merge vacation
+              payables.vacation = { entries: vacEntries.length, matched: 0, vacationOnlyAdded: 0, unmatched: [] };
+              const vacOnly = [];
+              vacEntries.forEach((e) => {
+                const i = matchRow(e.name, e.client);
+                if (i < 0) { vacOnly.push(e); return; }
+                const r = rows[i]; r.vacHrs = r2((r.vacHrs || 0) + e.hours); if (r.flags.indexOf("vacation") === -1) r.flags.push("vacation");
+                payables.vacation.matched++;
+              });
+              // Full-week vacation (no timesheet): look their placement up in SF and add a vacation-only row
+              for (const e of vacOnly.slice(0, 10)) {
+                let added = false;
+                try {
+                  const toks = canon(e.name).split(" ").filter((w) => w.length >= 3);
+                  if (toks.length >= 2) {
+                    const like = "%" + toks[0].replace(/'/g, "\\'") + "%" + toks[toks.length - 1].replace(/'/g, "\\'") + "%";
+                    const q = await runSalesforceQuery(env, "SELECT Id, Name, bpats__Pay_Rate__c, bpats__Bill_Rate__c, bpats__Burden_Percentage__c, Division__c, bpats__Account__r.Name, bpats__ATS_Job__c, bpats__ATS_Job__r.Subdivision__c, bpats__Candidate__r.Name FROM bpats__Placement__c WHERE bpats__Candidate__r.Name LIKE '" + like + "' ORDER BY CreatedDate DESC LIMIT 5");
+                    if (q.ok && q.records && q.records.length) {
+                      const ct = canon(e.client).split(" ").filter((w) => w.length >= 3)[0] || "";
+                      const pick = q.records.find((p) => ct && canon((p.bpats__Account__r && p.bpats__Account__r.Name) || "").indexOf(ct) !== -1) || q.records[0];
+                      const acct = (pick.bpats__Account__r && pick.bpats__Account__r.Name) || "(no account)";
+                      const map = clientMap[acct];
+                      const pay = Number(pick.bpats__Pay_Rate__c) || 0, bill = Number(pick.bpats__Bill_Rate__c) || 0;
+                      let burden = Number(pick.bpats__Burden_Percentage__c) || 0; if (burden > 1) burden = burden / 100;
+                      const vacM = -(bill - pay) * (1 + burden);
+                      let title = String(pick.Name || "");
+                      if (title.toLowerCase().indexOf(String(acct).toLowerCase()) === 0) title = title.slice(String(acct).length);
+                      title = title.replace(/^[\s\-–]+/, "");
+                      rows.push({
+                        tsId: null, placementId: pick.Id, jobId: pick.bpats__ATS_Job__c || null,
+                        company: map ? map.company : acct, entity: pick.Division__c || (map && map.entity) || null,
+                        bu: (pick.bpats__ATS_Job__r && pick.bpats__ATS_Job__r.Subdivision__c) || null,
+                        title, account: acct, candidate: (pick.bpats__Candidate__r && pick.bpats__Candidate__r.Name) || e.name,
+                        pay: r2(pay), otPay: r2(pay * 1.5), dtPay: r2(pay * 2), bill: r2(bill), otBill: 0, dtBill: 0,
+                        otMult: null, dtMult: null, burden: r4(burden),
+                        regHrs: 0, otHrs: 0, dtHrs: 0, vacHrs: e.hours, totalHrs: 0,
+                        regMargin: r4(bill - pay * (1 + burden)), otMargin: 0, dtMargin: 0, vacMargin: r4(vacM),
+                        charge: r2(e.hours * vacM),
+                        credits: [], flags: ["vacation", "vacation_only"]
+                      });
+                      review.push({ tsId: null, placementId: pick.Id, company: map ? map.company : acct, candidate: e.name, flags: ["vacation_only"], credits: ["Full-week vacation " + e.hours + "h — no timesheet; credits not attributed"] });
+                      payables.vacation.vacationOnlyAdded++;
+                      added = true;
+                    }
+                  }
+                } catch (e2) {}
+                if (!added) { payables.vacation.unmatched.push(e); review.push({ tsId: null, placementId: null, company: e.client || "(payables)", candidate: e.name, flags: ["vac_unmatched"], credits: ["Vacation " + e.hours + "h — no match found"] }); }
+              }
+              // Merge manual pays (Regular / OT / DT by header)
+              payables.manualPay = { entries: manEntries.length, matched: 0, unmatched: [] };
+              manEntries.forEach((e) => {
+                const i = matchRow(e.name, e.client);
+                if (i < 0) { payables.manualPay.unmatched.push(e); review.push({ tsId: null, placementId: null, company: e.client || "(payables)", candidate: e.name, flags: ["manual_unmatched"], credits: ["Manual pay " + (e.reg + e.ot + e.dt) + "h — no timesheet match"] }); return; }
+                const r = rows[i];
+                r.regHrs = r2(r.regHrs + e.reg); r.otHrs = r2(r.otHrs + e.ot); r.dtHrs = r2(r.dtHrs + e.dt);
+                r.totalHrs = r2(r.totalHrs + e.reg + e.ot + e.dt);
+                r.manualReg = r2((r.manualReg || 0) + e.reg); r.manualOt = r2((r.manualOt || 0) + e.ot); r.manualDt = r2((r.manualDt || 0) + e.dt);
+                if (r.flags.indexOf("manual_pay") === -1) r.flags.push("manual_pay");
+                payables.manualPay.matched++;
+              });
+              // Recompute charges with merged hours
+              rows.forEach((r) => { r.charge = r2(r.regHrs * r.regMargin + r.otHrs * r.otMargin + r.dtHrs * r.dtMargin + (r.vacHrs || 0) * r.vacMargin); });
+            }
+          } catch (e) { payables.error = String(e.message || e); }
+        }
+
         // ── 5) Rollups ───────────────────────────────────────────────────────
         const roll = (keyFn) => {
           const m = {};
@@ -5743,7 +5903,8 @@ var worker_default = {
         const hours = r2(rows.reduce((s, r) => s + r.totalHrs, 0));
         const out = {
           ok: true,
-          summary: { weekEnding, placements: rows.length, totalCharge: total, totalHours: hours, reviewCount: review.length, loneHouse: review.filter((x) => x.flags.indexOf("lone_house") !== -1).length },
+          summary: { weekEnding, placements: rows.length, totalCharge: total, totalHours: hours, vacationHours: r2(rows.reduce((s, r) => s + (r.vacHrs || 0), 0)), manualHours: r2(rows.reduce((s, r) => s + (r.manualReg || 0) + (r.manualOt || 0) + (r.manualDt || 0), 0)), reviewCount: review.length, loneHouse: review.filter((x) => x.flags.indexOf("lone_house") !== -1).length },
+          payables,
           rollups: { byCompany: roll((r) => r.company), byEntity: roll((r) => r.entity), byBU: roll((r) => r.bu), byRecipient },
           review,
           rows
