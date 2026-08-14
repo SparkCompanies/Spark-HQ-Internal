@@ -448,20 +448,42 @@ async function getMyCalendar(env, email, days) {
     const me = await uResp.json();
     let d = parseInt(days, 10);
     if (isNaN(d) || d < 1) d = 7;
-    if (d > 31) d = 31;
+    if (d > 62) d = 62;
+    /* CAL_WINDOW_v1 — start at MIDNIGHT TODAY in the user's zone, not "now".
+       Reading from now silently dropped every meeting that had already ended,
+       so a morning-heavy day looked empty by lunchtime. Eastern is the company
+       zone and matches the Prefer header below. */
     const now = /* @__PURE__ */ new Date();
-    const end = new Date(now.getTime() + d * 24 * 60 * 60 * 1e3);
-    const qs = "startDateTime=" + encodeURIComponent(now.toISOString()) + "&endDateTime=" + encodeURIComponent(end.toISOString()) + "&$select=subject,start,end,location,isAllDay,organizer&$orderby=start/dateTime&$top=50";
+    const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const offsetMs = now.getTime() - etNow.getTime();
+    const etMidnight = new Date(etNow.getFullYear(), etNow.getMonth(), etNow.getDate(), 0, 0, 0, 0);
+    const start = new Date(etMidnight.getTime() + offsetMs);
+    const end = new Date(start.getTime() + d * 24 * 60 * 60 * 1e3);
+    const qs = "startDateTime=" + encodeURIComponent(start.toISOString()) + "&endDateTime=" + encodeURIComponent(end.toISOString()) + "&$select=subject,start,end,location,isAllDay,organizer,onlineMeeting,isOnlineMeeting,onlineMeetingUrl,webLink,showAs,isCancelled&$orderby=start/dateTime&$top=200";
     const evResp = await fetch("https://graph.microsoft.com/v1.0/users/" + me.id + "/calendarView?" + qs, { headers: { "Authorization": "Bearer " + token, "Prefer": 'outlook.timezone="Eastern Standard Time"' } });
     if (!evResp.ok) {
       const t = await evResp.text();
       return { ok: false, error: "Calendar read failed: " + evResp.status + " " + t.slice(0, 120) };
     }
     const data = await evResp.json();
-    const events = (data.value || []).map(function(e) {
-      return { subject: e.subject || "(no subject)", start: e.start && e.start.dateTime ? e.start.dateTime : null, end: e.end && e.end.dateTime ? e.end.dateTime : null, allDay: !!e.isAllDay, location: e.location && e.location.displayName || "", organizer: e.organizer && e.organizer.emailAddress && e.organizer.emailAddress.name || "" };
+    /* CAL_WINDOW_v1 — carry the Teams join link through so the UI can show a
+       real Join button, drop cancelled events, and expose free/busy status. */
+    const events = (data.value || []).filter(function(e) { return !e.isCancelled; }).map(function(e) {
+      const join = (e.onlineMeeting && e.onlineMeeting.joinUrl) || e.onlineMeetingUrl || "";
+      return {
+        subject: e.subject || "(no subject)",
+        start: e.start && e.start.dateTime ? e.start.dateTime : null,
+        end: e.end && e.end.dateTime ? e.end.dateTime : null,
+        allDay: !!e.isAllDay,
+        location: e.location && e.location.displayName || "",
+        organizer: e.organizer && e.organizer.emailAddress && e.organizer.emailAddress.name || "",
+        online: /^https:\/\//.test(join) ? join : "",
+        isOnline: !!e.isOnlineMeeting,
+        showAs: e.showAs || "",
+        link: e.webLink || ""
+      };
     });
-    return { ok: true, user: email, days: d, count: events.length, events };
+    return { ok: true, user: email, days: d, from: start.toISOString(), to: end.toISOString(), count: events.length, events };
   } catch (e) {
     return { ok: false, error: String(e.message || e).slice(0, 200) };
   }
