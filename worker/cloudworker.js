@@ -1859,200 +1859,6 @@ var worker_default = {
         const f = (d.fields || []).find(function(x) {
           return x.name === fieldName;
         });
-        // ════════════════════════════════════════════════════════════════════════════
-// CHARGE REPORT — PHASE A: /charge-probe
-// ════════════════════════════════════════════════════════════════════════════
-// One-shot discovery for the Charge Report build. Read-only. Writes nothing.
-//
-// WHERE TO PASTE: inside the fetch handler in worker.js, directly ABOVE the
-// final line:   return json({ error: "Not found" }, 404, origin);
-// It uses only helpers that already exist in the worker (verifyUser,
-// getSalesforceToken, getGraphToken, runSalesforceQuery, json).
-//
-// HOW TO RUN (browser console on Spark HQ while signed in):
-//
-//   SPARK_SB.getToken().then(t =>
-//     fetch('https://spark-hq-worker.sparkcompanies.workers.dev/charge-probe', {
-//       headers: { Authorization: 'Bearer ' + t }
-//     }).then(r => r.json())
-//   ).then(j => { console.log(j); copy(JSON.stringify(j, null, 2)); alert('Probe JSON copied to clipboard'); });
-//
-// Optional params:
-//   ?reportId=00OV50000030xnxMAA   (defaults to the Charge Report Credits report)
-//   ?sheet=SheetName&range=A1:R60  (peek a specific sheet/range in the Payables workbook)
-//   ?file=<driveItemId>            (override which OneDrive file to open)
-// ════════════════════════════════════════════════════════════════════════════
-
-    if (url.pathname === "/charge-probe") {
-      const who = await verifyUser(request, env);
-      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-
-      const reportId = (url.searchParams.get("reportId") || "00OV50000030xnxMAA").replace(/[^a-zA-Z0-9]/g, "");
-      const out = { version: "charge-probe-v1", ranBy: who.email, reportId, salesforce: {}, graph: {}, note: "READ ONLY — discovery for the Charge Report build. Writes nothing." };
-
-      // ─── SALESFORCE ────────────────────────────────────────────────────────
-      try {
-        const tok = await getSalesforceToken(env);
-        const at = tok.access_token, base = String(tok.instance_url || "").replace(/\/+$/, "");
-        const H = { "Authorization": "Bearer " + at, "Accept": "application/json" };
-        const V = "/services/data/v60.0";
-
-        // 1) Report DESCRIBE — the exact column API names the legacy export uses
-        try {
-          const r = await fetch(base + V + "/analytics/reports/" + reportId + "/describe", { headers: H });
-          const d = await r.json();
-          if (!r.ok) {
-            out.salesforce.reportDescribeError = Array.isArray(d) && d[0] ? (d[0].errorCode + " " + d[0].message) : JSON.stringify(d).slice(0, 300);
-          } else {
-            const rm = d.reportMetadata || {};
-            const info = (d.reportExtendedMetadata || {}).detailColumnInfo || {};
-            out.salesforce.reportName = rm.name || null;
-            out.salesforce.reportType = rm.reportType || null;
-            out.salesforce.detailColumns = (rm.detailColumns || []).map(function (c) {
-              const i = info[c] || {};
-              return { key: c, label: i.label || null, dataType: i.dataType || null };
-            });
-            out.salesforce.reportFilters = rm.reportFilters || [];
-            out.salesforce.standardDateFilter = rm.standardDateFilter || null;
-          }
-        } catch (e) { out.salesforce.reportDescribeError = String(e.message || e); }
-
-        // 2) Report RUN — row count + first 3 rows so we see real data shape
-        try {
-          const r = await fetch(base + V + "/analytics/reports/" + reportId + "?includeDetails=true", { headers: H });
-          const d = await r.json();
-          if (!r.ok) {
-            out.salesforce.reportRunError = Array.isArray(d) && d[0] ? (d[0].errorCode + " " + d[0].message) : JSON.stringify(d).slice(0, 300);
-          } else {
-            const fm = d.factMap || {};
-            let rows = [];
-            Object.keys(fm).some(function (k) {
-              const rr = fm[k] && fm[k].rows;
-              if (Array.isArray(rr) && rr.length) { rows = rr; return true; }
-              return false;
-            });
-            out.salesforce.reportFormat = d.reportMetadata && d.reportMetadata.reportFormat;
-            out.salesforce.detailRowCount = rows.length;
-            out.salesforce.allData = d.allData; // false means Salesforce truncated at 2,000 detail rows
-            const cols = (out.salesforce.detailColumns || []).map(function (c) { return c.label || c.key; });
-            out.salesforce.sampleRows = rows.slice(0, 3).map(function (row) {
-              const o = {};
-              (row.dataCells || []).forEach(function (cell, i) { o[cols[i] || ("col" + i)] = cell.label; });
-              return o;
-            });
-          }
-        } catch (e) { out.salesforce.reportRunError = String(e.message || e); }
-
-        // 3) Placement describe — burden field + the credit child object
-        let creditObjectName = null;
-        try {
-          const r = await fetch(base + V + "/sobjects/bpats__Placement__c/describe", { headers: H });
-          const d = await r.json();
-          if (!r.ok) {
-            out.salesforce.placementDescribeError = JSON.stringify(d).slice(0, 300);
-          } else {
-            out.salesforce.placementBurdenFields = (d.fields || [])
-              .filter(function (f) { return /burden/i.test(f.name) || /burden/i.test(f.label || ""); })
-              .map(function (f) { return { name: f.name, label: f.label, type: f.type }; });
-            out.salesforce.placementRateFields = (d.fields || [])
-              .filter(function (f) { return /pay_rate|bill_rate|overtime|double/i.test(f.name); })
-              .map(function (f) { return { name: f.name, label: f.label, type: f.type }; });
-            const rels = (d.childRelationships || []).filter(function (c) {
-              return /credit/i.test(c.childSObject || "") || /credit/i.test(c.relationshipName || "");
-            });
-            out.salesforce.placementCreditChildRels = rels.map(function (c) {
-              return { object: c.childSObject, relationshipName: c.relationshipName, lookupField: c.field };
-            });
-            if (rels[0]) creditObjectName = rels[0].childSObject;
-            out.salesforce.placementChildObjectsAll = (d.childRelationships || []).map(function (c) { return c.childSObject; }).slice(0, 80);
-          }
-        } catch (e) { out.salesforce.placementDescribeError = String(e.message || e); }
-
-        // 4) Credit object describe — fields, picklists, and (critically) whether
-        //    the integration user can DELETE + CREATE these records, for the
-        //    lone-House-credit repair flow.
-        if (creditObjectName) {
-          try {
-            const r = await fetch(base + V + "/sobjects/" + creditObjectName + "/describe", { headers: H });
-            const d = await r.json();
-            if (!r.ok) {
-              out.salesforce.creditDescribeError = JSON.stringify(d).slice(0, 300);
-            } else {
-              out.salesforce.creditObject = {
-                name: d.name,
-                label: d.label,
-                canCreate: !!d.createable,
-                canDelete: !!d.deletable,
-                canUpdate: !!d.updateable,
-                canQuery: !!d.queryable,
-                fields: (d.fields || []).map(function (f) {
-                  const o = { name: f.name, label: f.label, type: f.type, updateable: f.updateable, createable: f.createable };
-                  if (f.referenceTo && f.referenceTo.length) o.referenceTo = f.referenceTo;
-                  const pv = (f.picklistValues || []).filter(function (p) { return p.active; }).map(function (p) { return p.value; });
-                  if (pv.length) o.picklist = pv;
-                  return o;
-                })
-              };
-              const s = await runSalesforceQuery(env, "SELECT FIELDS(ALL) FROM " + creditObjectName + " ORDER BY CreatedDate DESC LIMIT 3");
-              out.salesforce.creditSampleRecords = s.ok ? s.records : { error: s.error };
-            }
-          } catch (e) { out.salesforce.creditDescribeError = String(e.message || e); }
-        } else {
-          out.salesforce.creditObjectHint = "No child object with 'credit' in its name found on bpats__Placement__c. Check placementChildObjectsAll for the right one, then re-run with the object name once we wire it in.";
-        }
-      } catch (e) { out.salesforce.tokenError = String(e.message || e); }
-
-      // ─── ONEDRIVE: 2026 Payables Worksheet ─────────────────────────────────
-      try {
-        const gt = await getGraphToken(env);
-        const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
-        const G = "https://graph.microsoft.com/v1.0/users/" + encodeURIComponent("timecards@sparktalentinc.com") + "/drive";
-
-        let fileId = (url.searchParams.get("file") || "").trim() || null;
-        if (!fileId) {
-          const r = await fetch(G + "/root/search(q='Payables Worksheet')?$select=id,name,webUrl,parentReference,lastModifiedDateTime&$top=10", { headers: GH });
-          const d = await r.json();
-          if (!r.ok) {
-            out.graph.searchError = (d.error && d.error.message) || JSON.stringify(d).slice(0, 300);
-          } else {
-            const items = (d.value || []).map(function (v) {
-              return { id: v.id, name: v.name, path: v.parentReference && v.parentReference.path, modified: v.lastModifiedDateTime };
-            });
-            out.graph.searchMatches = items;
-            const best = items.filter(function (i) { return /2026/.test(i.name || ""); })[0] || items[0];
-            if (best) fileId = best.id;
-            else out.graph.hint = "No file matching 'Payables Worksheet' in the timecards drive. If it lives in a different account's OneDrive, tell me whose and I'll point the probe there.";
-          }
-        }
-
-        if (fileId) {
-          out.graph.fileId = fileId;
-          const wr = await fetch(G + "/items/" + fileId + "/workbook/worksheets?$select=name,position", { headers: GH });
-          const wd = await wr.json();
-          if (!wr.ok) {
-            out.graph.worksheetsError = (wd.error && wd.error.message) || JSON.stringify(wd).slice(0, 300);
-          } else {
-            const sheets = (wd.value || []).map(function (w) { return w.name; });
-            out.graph.worksheets = sheets;
-            // Peek: explicit ?sheet=, else the first sheet whose name smells like vacation
-            const want = (url.searchParams.get("sheet") || "").trim();
-            const target = want || sheets.filter(function (n) { return /vac|pto/i.test(n); })[0] || null;
-            if (target) {
-              const range = (url.searchParams.get("range") || "A1:R60").replace(/[^A-Za-z0-9:]/g, "");
-              const safe = target.replace(/'/g, "''");
-              const rr = await fetch(G + "/items/" + fileId + "/workbook/worksheets('" + encodeURIComponent(safe) + "')/range(address='" + range + "')?$select=address,rowCount,columnCount,values", { headers: GH });
-              const rd = await rr.json();
-              if (!rr.ok) out.graph.peekError = (rd.error && rd.error.message) || JSON.stringify(rd).slice(0, 300);
-              else out.graph.peek = { sheet: target, address: rd.address, rows: (rd.values || []).filter(function (row) { return row.some(function (c) { return c !== "" && c != null; }); }).slice(0, 60) };
-            } else {
-              out.graph.peekHint = "No sheet name containing 'vac'/'pto'. Re-run with ?sheet=<name from worksheets>&range=A1:R60 to peek the vacation grouping.";
-            }
-          }
-        }
-      } catch (e) { out.graph.error = String(e.message || e); }
-
-      return json(out, 200, origin);
-    }
         if (f === void 0) return json({ error: "field not found" }, 404, origin);
         const values = (f.picklistValues || []).filter(function(v) {
           return v.active;
@@ -5726,6 +5532,200 @@ var worker_default = {
     }
 
 
+// ════════════════════════════════════════════════════════════════════════════
+// CHARGE REPORT — PHASE A: /charge-probe
+// ════════════════════════════════════════════════════════════════════════════
+// One-shot discovery for the Charge Report build. Read-only. Writes nothing.
+//
+// WHERE TO PASTE: inside the fetch handler in worker.js, directly ABOVE the
+// final line:   return json({ error: "Not found" }, 404, origin);
+// It uses only helpers that already exist in the worker (verifyUser,
+// getSalesforceToken, getGraphToken, runSalesforceQuery, json).
+//
+// HOW TO RUN (browser console on Spark HQ while signed in):
+//
+//   SPARK_SB.getToken().then(t =>
+//     fetch('https://spark-hq-worker.sparkcompanies.workers.dev/charge-probe', {
+//       headers: { Authorization: 'Bearer ' + t }
+//     }).then(r => r.json())
+//   ).then(j => { console.log(j); copy(JSON.stringify(j, null, 2)); alert('Probe JSON copied to clipboard'); });
+//
+// Optional params:
+//   ?reportId=00OV50000030xnxMAA   (defaults to the Charge Report Credits report)
+//   ?sheet=SheetName&range=A1:R60  (peek a specific sheet/range in the Payables workbook)
+//   ?file=<driveItemId>            (override which OneDrive file to open)
+// ════════════════════════════════════════════════════════════════════════════
+
+    if (url.pathname === "/charge-probe") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+
+      const reportId = (url.searchParams.get("reportId") || "00OV50000030xnxMAA").replace(/[^a-zA-Z0-9]/g, "");
+      const out = { version: "charge-probe-v1", ranBy: who.email, reportId, salesforce: {}, graph: {}, note: "READ ONLY — discovery for the Charge Report build. Writes nothing." };
+
+      // ─── SALESFORCE ────────────────────────────────────────────────────────
+      try {
+        const tok = await getSalesforceToken(env);
+        const at = tok.access_token, base = String(tok.instance_url || "").replace(/\/+$/, "");
+        const H = { "Authorization": "Bearer " + at, "Accept": "application/json" };
+        const V = "/services/data/v60.0";
+
+        // 1) Report DESCRIBE — the exact column API names the legacy export uses
+        try {
+          const r = await fetch(base + V + "/analytics/reports/" + reportId + "/describe", { headers: H });
+          const d = await r.json();
+          if (!r.ok) {
+            out.salesforce.reportDescribeError = Array.isArray(d) && d[0] ? (d[0].errorCode + " " + d[0].message) : JSON.stringify(d).slice(0, 300);
+          } else {
+            const rm = d.reportMetadata || {};
+            const info = (d.reportExtendedMetadata || {}).detailColumnInfo || {};
+            out.salesforce.reportName = rm.name || null;
+            out.salesforce.reportType = rm.reportType || null;
+            out.salesforce.detailColumns = (rm.detailColumns || []).map(function (c) {
+              const i = info[c] || {};
+              return { key: c, label: i.label || null, dataType: i.dataType || null };
+            });
+            out.salesforce.reportFilters = rm.reportFilters || [];
+            out.salesforce.standardDateFilter = rm.standardDateFilter || null;
+          }
+        } catch (e) { out.salesforce.reportDescribeError = String(e.message || e); }
+
+        // 2) Report RUN — row count + first 3 rows so we see real data shape
+        try {
+          const r = await fetch(base + V + "/analytics/reports/" + reportId + "?includeDetails=true", { headers: H });
+          const d = await r.json();
+          if (!r.ok) {
+            out.salesforce.reportRunError = Array.isArray(d) && d[0] ? (d[0].errorCode + " " + d[0].message) : JSON.stringify(d).slice(0, 300);
+          } else {
+            const fm = d.factMap || {};
+            let rows = [];
+            Object.keys(fm).some(function (k) {
+              const rr = fm[k] && fm[k].rows;
+              if (Array.isArray(rr) && rr.length) { rows = rr; return true; }
+              return false;
+            });
+            out.salesforce.reportFormat = d.reportMetadata && d.reportMetadata.reportFormat;
+            out.salesforce.detailRowCount = rows.length;
+            out.salesforce.allData = d.allData; // false means Salesforce truncated at 2,000 detail rows
+            const cols = (out.salesforce.detailColumns || []).map(function (c) { return c.label || c.key; });
+            out.salesforce.sampleRows = rows.slice(0, 3).map(function (row) {
+              const o = {};
+              (row.dataCells || []).forEach(function (cell, i) { o[cols[i] || ("col" + i)] = cell.label; });
+              return o;
+            });
+          }
+        } catch (e) { out.salesforce.reportRunError = String(e.message || e); }
+
+        // 3) Placement describe — burden field + the credit child object
+        let creditObjectName = null;
+        try {
+          const r = await fetch(base + V + "/sobjects/bpats__Placement__c/describe", { headers: H });
+          const d = await r.json();
+          if (!r.ok) {
+            out.salesforce.placementDescribeError = JSON.stringify(d).slice(0, 300);
+          } else {
+            out.salesforce.placementBurdenFields = (d.fields || [])
+              .filter(function (f) { return /burden/i.test(f.name) || /burden/i.test(f.label || ""); })
+              .map(function (f) { return { name: f.name, label: f.label, type: f.type }; });
+            out.salesforce.placementRateFields = (d.fields || [])
+              .filter(function (f) { return /pay_rate|bill_rate|overtime|double/i.test(f.name); })
+              .map(function (f) { return { name: f.name, label: f.label, type: f.type }; });
+            const rels = (d.childRelationships || []).filter(function (c) {
+              return /credit/i.test(c.childSObject || "") || /credit/i.test(c.relationshipName || "");
+            });
+            out.salesforce.placementCreditChildRels = rels.map(function (c) {
+              return { object: c.childSObject, relationshipName: c.relationshipName, lookupField: c.field };
+            });
+            if (rels[0]) creditObjectName = rels[0].childSObject;
+            out.salesforce.placementChildObjectsAll = (d.childRelationships || []).map(function (c) { return c.childSObject; }).slice(0, 80);
+          }
+        } catch (e) { out.salesforce.placementDescribeError = String(e.message || e); }
+
+        // 4) Credit object describe — fields, picklists, and (critically) whether
+        //    the integration user can DELETE + CREATE these records, for the
+        //    lone-House-credit repair flow.
+        if (creditObjectName) {
+          try {
+            const r = await fetch(base + V + "/sobjects/" + creditObjectName + "/describe", { headers: H });
+            const d = await r.json();
+            if (!r.ok) {
+              out.salesforce.creditDescribeError = JSON.stringify(d).slice(0, 300);
+            } else {
+              out.salesforce.creditObject = {
+                name: d.name,
+                label: d.label,
+                canCreate: !!d.createable,
+                canDelete: !!d.deletable,
+                canUpdate: !!d.updateable,
+                canQuery: !!d.queryable,
+                fields: (d.fields || []).map(function (f) {
+                  const o = { name: f.name, label: f.label, type: f.type, updateable: f.updateable, createable: f.createable };
+                  if (f.referenceTo && f.referenceTo.length) o.referenceTo = f.referenceTo;
+                  const pv = (f.picklistValues || []).filter(function (p) { return p.active; }).map(function (p) { return p.value; });
+                  if (pv.length) o.picklist = pv;
+                  return o;
+                })
+              };
+              const s = await runSalesforceQuery(env, "SELECT FIELDS(ALL) FROM " + creditObjectName + " ORDER BY CreatedDate DESC LIMIT 3");
+              out.salesforce.creditSampleRecords = s.ok ? s.records : { error: s.error };
+            }
+          } catch (e) { out.salesforce.creditDescribeError = String(e.message || e); }
+        } else {
+          out.salesforce.creditObjectHint = "No child object with 'credit' in its name found on bpats__Placement__c. Check placementChildObjectsAll for the right one, then re-run with the object name once we wire it in.";
+        }
+      } catch (e) { out.salesforce.tokenError = String(e.message || e); }
+
+      // ─── ONEDRIVE: 2026 Payables Worksheet ─────────────────────────────────
+      try {
+        const gt = await getGraphToken(env);
+        const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
+        const G = "https://graph.microsoft.com/v1.0/users/" + encodeURIComponent("timecards@sparktalentinc.com") + "/drive";
+
+        let fileId = (url.searchParams.get("file") || "").trim() || null;
+        if (!fileId) {
+          const r = await fetch(G + "/root/search(q='Payables Worksheet')?$select=id,name,webUrl,parentReference,lastModifiedDateTime&$top=10", { headers: GH });
+          const d = await r.json();
+          if (!r.ok) {
+            out.graph.searchError = (d.error && d.error.message) || JSON.stringify(d).slice(0, 300);
+          } else {
+            const items = (d.value || []).map(function (v) {
+              return { id: v.id, name: v.name, path: v.parentReference && v.parentReference.path, modified: v.lastModifiedDateTime };
+            });
+            out.graph.searchMatches = items;
+            const best = items.filter(function (i) { return /2026/.test(i.name || ""); })[0] || items[0];
+            if (best) fileId = best.id;
+            else out.graph.hint = "No file matching 'Payables Worksheet' in the timecards drive. If it lives in a different account's OneDrive, tell me whose and I'll point the probe there.";
+          }
+        }
+
+        if (fileId) {
+          out.graph.fileId = fileId;
+          const wr = await fetch(G + "/items/" + fileId + "/workbook/worksheets?$select=name,position", { headers: GH });
+          const wd = await wr.json();
+          if (!wr.ok) {
+            out.graph.worksheetsError = (wd.error && wd.error.message) || JSON.stringify(wd).slice(0, 300);
+          } else {
+            const sheets = (wd.value || []).map(function (w) { return w.name; });
+            out.graph.worksheets = sheets;
+            // Peek: explicit ?sheet=, else the first sheet whose name smells like vacation
+            const want = (url.searchParams.get("sheet") || "").trim();
+            const target = want || sheets.filter(function (n) { return /vac|pto/i.test(n); })[0] || null;
+            if (target) {
+              const range = (url.searchParams.get("range") || "A1:R60").replace(/[^A-Za-z0-9:]/g, "");
+              const safe = target.replace(/'/g, "''");
+              const rr = await fetch(G + "/items/" + fileId + "/workbook/worksheets('" + encodeURIComponent(safe) + "')/range(address='" + range + "')?$select=address,rowCount,columnCount,values", { headers: GH });
+              const rd = await rr.json();
+              if (!rr.ok) out.graph.peekError = (rd.error && rd.error.message) || JSON.stringify(rd).slice(0, 300);
+              else out.graph.peek = { sheet: target, address: rd.address, rows: (rd.values || []).filter(function (row) { return row.some(function (c) { return c !== "" && c != null; }); }).slice(0, 60) };
+            } else {
+              out.graph.peekHint = "No sheet name containing 'vac'/'pto'. Re-run with ?sheet=<name from worksheets>&range=A1:R60 to peek the vacation grouping.";
+            }
+          }
+        }
+      } catch (e) { out.graph.error = String(e.message || e); }
+
+      return json(out, 200, origin);
+    }
     return json({ error: "Not found" }, 404, origin);
   }
 };
