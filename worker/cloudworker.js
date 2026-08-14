@@ -5573,6 +5573,87 @@ var worker_default = {
 // Phase C: vacation hours + manual pays merged in from the 2026 Payable Worksheet.
 // ════════════════════════════════════════════════════════════════════════════
 
+    // ══════════════════════════════════════════════════════════════════════
+    // CHARGE REPORT — PHASE D: /charge-history (official books) + /charge-snapshot
+    // History tables are loaded from the running Excel report (charge_history.sql)
+    // and grown weekly by /charge-snapshot, which freezes the live engine's week.
+    // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/charge-history") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const sbAll = async (path) => {
+          let out = [], off = 0;
+          for (;;) {
+            const sep = path.indexOf("?") === -1 ? "?" : "&";
+            const r = await sbService(env, "GET", path + sep + "limit=1000&offset=" + off);
+            if (!r.ok) throw new Error(path.split("?")[0] + ": " + JSON.stringify(r.data).slice(0, 160));
+            const rows = Array.isArray(r.data) ? r.data : [];
+            out = out.concat(rows);
+            if (rows.length < 1000) return out;
+            off += 1000;
+          }
+        };
+        const unitWeeks = await sbAll("charge_unit_weeks?select=week_ending,unit,kind,charge&order=week_ending.asc");
+        const units = await sbAll("charge_units?select=unit,is_entity,ath,ath_we");
+        const unitTargets = await sbAll("charge_unit_targets?select=unit,period,amount");
+        const people = await sbAll("charge_people?select=person,role,entity,bu,cum_raw,monthly_raw,quarterly_raw,rec_ath,sales_ath,fd_ath,tt_ath");
+        const personWeeks = await sbAll("charge_person_weeks?select=week_ending,person,sales,fd,rec,tt,raw&order=week_ending.asc");
+        const personTargets = await sbAll("charge_person_targets?select=person,unit,period,kind,amount");
+        let dh = [];
+        const dhLatest = await sbService(env, "GET", "charge_dh_snap?select=week_ending&order=week_ending.desc&limit=1");
+        if (dhLatest.ok && Array.isArray(dhLatest.data) && dhLatest.data[0]) {
+          dh = await sbAll("charge_dh_snap?select=week_ending,entity,bu,company,sales_rep,recruiter,charge,week_num,of_weeks,weeks_remaining,employee&week_ending=eq." + dhLatest.data[0].week_ending);
+        }
+        let lastImported = null;
+        unitWeeks.forEach((r) => { if (!lastImported || r.week_ending > lastImported) lastImported = r.week_ending; });
+        return json({ ok: true, lastImported, unitWeeks, units, unitTargets, people, personWeeks, personTargets, dh }, 200, origin);
+      } catch (e) {
+        return json({ error: "history failed: " + String(e.message || e) }, 502, origin);
+      }
+    }
+
+    if (url.pathname === "/charge-snapshot") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      const weekEnding = (url.searchParams.get("weekEnding") || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
+      try {
+        // Re-run the live engine for that week and freeze its output.
+        const bR = await fetch(url.origin + "/charge-batch?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
+        const b = await bR.json();
+        if (!b || !b.ok) return json({ error: "engine failed: " + ((b && b.error) || bR.status) }, 502, origin);
+        const r2s = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const unitRows = [];
+        ((b.rollups && b.rollups.byEntity) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
+        ((b.rollups && b.rollups.byBU) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
+        const bucket = (t) => { t = String(t || "").toLowerCase(); if (t.indexOf("full") !== -1) return "fd"; if (t.indexOf("recruit") !== -1) return "rec"; if (t.indexOf("account") !== -1 || t.indexOf("sales") !== -1) return "sales"; return null; };
+        const ppl = {};
+        (b.rows || []).forEach((row) => {
+          const seen = {};
+          (row.credits || []).forEach((c) => {
+            const n = c.recipient; if (!n) return;
+            const p = ppl[n] || (ppl[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
+            if (!seen[n]) { p.tt += row.charge; seen[n] = 1; }
+            const bk = bucket(c.type); if (bk) p[bk] += row.charge;
+          });
+        });
+        const personRows = Object.keys(ppl).map((n) => ({ week_ending: weekEnding, person: n, sales: r2s(ppl[n].sales), fd: r2s(ppl[n].fd), rec: r2s(ppl[n].rec), tt: r2s(ppl[n].tt), raw: null }));
+        const u1 = await sbService(env, "POST", "charge_unit_weeks?on_conflict=week_ending,unit,kind", unitRows);
+        if (!u1.ok) return json({ error: "unit upsert failed: " + JSON.stringify(u1.data).slice(0, 160) }, 502, origin);
+        const u2 = await sbService(env, "POST", "charge_person_weeks?on_conflict=week_ending,person", personRows);
+        if (!u2.ok) return json({ error: "person upsert failed: " + JSON.stringify(u2.data).slice(0, 160) }, 502, origin);
+        return json({ ok: true, weekEnding, unitRows: unitRows.length, personRows: personRows.length, contractTotal: b.summary && b.summary.totalCharge, note: "Contract side frozen. DH joins snapshots once the DH Salesforce report is wired." }, 200, origin);
+      } catch (e) {
+        return json({ error: "snapshot failed: " + String(e.message || e) }, 502, origin);
+      }
+    }
+
     if (url.pathname === "/charge-batch") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
