@@ -5555,6 +5555,207 @@ var worker_default = {
 
 
 // ════════════════════════════════════════════════════════════════════════════
+// CHARGE REPORT — PHASE B: /charge-batch  (read-only compute engine)
+// ════════════════════════════════════════════════════════════════════════════
+// GET /charge-batch?weekEnding=YYYY-MM-DD   (a Sunday; defaults to latest week in SF)
+// Optional: &debug=1 for extra diagnostics.
+//
+// Pulls the week straight from Salesforce (no report export needed), applies the
+// finance agent's rules (fin_client_map, fin_ot_dt_rules), computes the verified
+// widget math, and returns rows + rollups + review flags. Writes nothing.
+//
+// Verified math (100% match against widget_8-2-26.xlsx):
+//   otPay = pay*1.5   dtPay = pay*2
+//   regMargin = bill - pay*(1+burden)
+//   otMargin  = otBill - otPay*(1+burden)      dtMargin likewise
+//   vacMargin = -(bill - pay)*(1+burden)
+//   charge    = reg*regM + ot*otM + dt*dtM + vac*vacM   (vac hours wired in Phase C)
+// ════════════════════════════════════════════════════════════════════════════
+
+    if (url.pathname === "/charge-batch") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let weekEnding = (url.searchParams.get("weekEnding") || "").trim();
+      const wantDebug = url.searchParams.get("debug") === "1";
+      try {
+        if (!weekEnding) {
+          const latest = await runSalesforceQuery(env, "SELECT ASYMBL_Time__Pay_Period_End_Date__c FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c != null AND ASYMBL_Time__Pay_Period_End_Date__c <= TODAY ORDER BY ASYMBL_Time__Pay_Period_End_Date__c DESC LIMIT 1");
+          if (latest.ok && latest.records && latest.records[0]) weekEnding = latest.records[0].ASYMBL_Time__Pay_Period_End_Date__c;
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
+
+        // ── 1) Salesforce pulls ─────────────────────────────────────────────
+        const tsSoql = "SELECT Id, ASYMBL_Time__Candidate_Name__c, ASYMBL_Time__Regular_Hours__c, ASYMBL_Time__Overtime_Hours__c, ASYMBL_Time__Double_Time_Hours__c, ASYMBL_Time__Total_Hours_Logged__c, ASYMBL_Time__Overtime_Bill_Rate__c, ASYMBL_Time__Double_Time_Bill_Rate__c, Placement__c, Placement__r.Name, Placement__r.bpats__Pay_Rate__c, Placement__r.bpats__Bill_Rate__c, Placement__r.bpats__Burden_Percentage__c, Placement__r.Division__c, Placement__r.bpats__Account__r.Name, Placement__r.bpats__ATS_Job__c, Placement__r.bpats__ATS_Job__r.Subdivision__c FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c = " + weekEnding + " AND ASYMBL_Time__Total_Hours_Logged__c > 0 AND Placement__c != null";
+        const tsRes = await runSalesforceQueryAll(env, tsSoql);
+        if (!tsRes.ok) return json({ error: "Timesheet query failed: " + tsRes.error }, 502, origin);
+
+        const crSoql = "SELECT Id, Name, bpats__Credit_Recipient__c, bpats__User__c, bpats__ATS_Role_Type__c, bpats__Placement__c, Timesheet_Timesheet__c FROM bpats__Placement_Credit__c WHERE Timesheet_Timesheet__r.ASYMBL_Time__Pay_Period_End_Date__c = " + weekEnding + " AND bpats__Is_Void__c = false";
+        const crRes = await runSalesforceQueryAll(env, crSoql);
+        if (!crRes.ok) return json({ error: "Credit query failed: " + crRes.error }, 502, origin);
+
+        // ── 2) Supabase rules (shared with the invoicing agent) ─────────────
+        const clientMap = {};   // sf account name -> { company, entity }
+        try {
+          const r = await sbService(env, "GET", "fin_client_map?select=sf_account_name,xero_contact,invoicing_entity");
+          if (r && r.ok && Array.isArray(r.data)) r.data.forEach((m) => { clientMap[m.sf_account_name] = { company: m.xero_contact || m.sf_account_name, entity: m.invoicing_entity || null }; });
+        } catch (e) {}
+        const rateRules = {};   // sf account name -> { mode, ot, dt }
+        try {
+          const r = await sbService(env, "GET", "fin_ot_dt_rules?select=sf_account_name,rate_mode,ot_multiplier,dt_multiplier");
+          if (r && r.ok && Array.isArray(r.data)) r.data.forEach((m) => { rateRules[m.sf_account_name] = { mode: m.rate_mode || "unset", ot: m.ot_multiplier, dt: m.dt_multiplier }; });
+        } catch (e) {}
+        const recipAlias = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan" };
+        try {
+          const r = await sbService(env, "GET", "charge_name_aliases?select=sf_name,display_name");
+          if (r && r.ok && Array.isArray(r.data)) r.data.forEach((m) => { recipAlias[m.sf_name] = m.display_name; });
+        } catch (e) {}
+        const creditRename = { "Sales Credit": "Account Manager", "Recruiter Credit": "Recruiter", "Full Desk Credit": "Full Desk", "House Credit": "House Credit" };
+
+        // ── 3) Group credits by timesheet, collapse duplicates ──────────────
+        const creditsByTs = {};
+        (crRes.records || []).forEach((c) => {
+          const k = c.Timesheet_Timesheet__c || ("P|" + c.bpats__Placement__c);
+          (creditsByTs[k] = creditsByTs[k] || []).push(c);
+        });
+
+        // ── 4) Build rows ────────────────────────────────────────────────────
+        const rows = [];
+        const review = [];
+        const dbg = { timesheets: (tsRes.records || []).length, creditRecords: (crRes.records || []).length, dupCreditsCollapsed: 0, mappedAccounts: 0, unmappedAccounts: {}, missingRateRule: {}, skippedNoPlacement: 0 };
+        const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const r4 = (n) => Math.round((Number(n) || 0) * 10000) / 10000;
+
+        for (const ts of tsRes.records || []) {
+          const pl = ts.Placement__r || {};
+          const acct = (pl.bpats__Account__r && pl.bpats__Account__r.Name) || "(no account)";
+          const cand = ts.ASYMBL_Time__Candidate_Name__c || "Unknown";
+          const map = clientMap[acct];
+          if (map) dbg.mappedAccounts++; else dbg.unmappedAccounts[acct] = (dbg.unmappedAccounts[acct] || 0) + 1;
+          const company = map ? map.company : acct;
+          const entity = pl.Division__c || (map && map.entity) || null;
+          const bu = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || null;
+
+          // Job title: placement name is "Account… - Title" (candidate suffix when present)
+          let title = String(pl.Name || "");
+          if (title.toLowerCase().indexOf(String(acct).toLowerCase()) === 0) title = title.slice(String(acct).length);
+          title = title.replace(/^[\s\-–]+/, "");
+          const candIdx = cand !== "Unknown" ? title.toLowerCase().lastIndexOf(cand.toLowerCase()) : -1;
+          if (candIdx > 0) title = title.slice(0, candIdx).replace(/[\s\-–]+$/, "");
+
+          const pay = Number(pl.bpats__Pay_Rate__c) || 0;
+          const bill = Number(pl.bpats__Bill_Rate__c) || 0;
+          let burden = Number(pl.bpats__Burden_Percentage__c) || 0;
+          if (burden > 1) burden = burden / 100; // SF percent fields arrive as 23.0
+          const regH = Number(ts.ASYMBL_Time__Regular_Hours__c) || 0;
+          const otH = Number(ts.ASYMBL_Time__Overtime_Hours__c) || 0;
+          const dtH = Number(ts.ASYMBL_Time__Double_Time_Hours__c) || 0;
+          const totH = Number(ts.ASYMBL_Time__Total_Hours_Logged__c) || 0;
+
+          // OT/DT bill rates: rate rule multiplier wins; else timesheet's explicit rates; else 0
+          const rule = rateRules[acct] || null;
+          if (!rule && (otH > 0 || dtH > 0)) dbg.missingRateRule[acct] = (dbg.missingRateRule[acct] || 0) + 1;
+          const otMult = rule && rule.mode === "multiplier" && rule.ot != null ? Number(rule.ot) : null;
+          const dtMult = rule && rule.mode === "multiplier" && rule.dt != null ? Number(rule.dt) : null;
+          const otBill = otMult != null ? bill * otMult : (Number(ts.ASYMBL_Time__Overtime_Bill_Rate__c) || 0);
+          const dtBill = dtMult != null ? bill * dtMult : (Number(ts.ASYMBL_Time__Double_Time_Bill_Rate__c) || 0);
+          const otPay = pay * 1.5, dtPay = pay * 2;
+
+          const regM = bill - pay * (1 + burden);
+          const otM = otBill - otPay * (1 + burden);
+          const dtM = dtBill - dtPay * (1 + burden);
+          const vacM = -(bill - pay) * (1 + burden);
+          const vacH = 0; // Phase C: Payables Worksheet
+          const charge = regH * regM + otH * otM + dtH * dtM + vacH * vacM;
+
+          // Credits: collapse exact duplicates, then pick the canonical set
+          const raw = creditsByTs[ts.Id] || [];
+          const seen = {};
+          let credits = [];
+          raw.forEach((c) => {
+            const key = (c.Name || "") + "|" + (c.bpats__Credit_Recipient__c || "");
+            if (seen[key]) { dbg.dupCreditsCollapsed++; return; }
+            seen[key] = 1;
+            credits.push({ id: c.Id, type: c.Name || "", recipient: c.bpats__Credit_Recipient__c || "", userId: c.bpats__User__c || null, roleType: c.bpats__ATS_Role_Type__c || "" });
+          });
+          const flags = [];
+          const sales = credits.filter((c) => c.type === "Sales Credit");
+          const recr = credits.filter((c) => c.type === "Recruiter Credit");
+          const full = credits.filter((c) => c.type === "Full Desk Credit");
+          const house = credits.filter((c) => c.type === "House Credit");
+          let kept;
+          if (sales.length && recr.length) { kept = [sales[0], recr[0]]; if (credits.length > 2) flags.push("extra_credits"); }
+          else if (full.length) { kept = [full[0]]; if (sales.length) kept.push(sales[0]); if (credits.length > kept.length) flags.push("extra_credits"); }
+          else if (credits.length === 1 && house.length === 1) { kept = credits; flags.push("lone_house"); }
+          else if (credits.length === 0) { kept = []; flags.push("no_credits"); }
+          else { kept = credits; if (credits.length > 2) flags.push("extra_credits"); }
+          if (!map) flags.push("unmapped_account");
+          if (!bu) flags.push("no_bu");
+          if ((otH > 0 && otBill === 0) || (dtH > 0 && dtBill === 0)) flags.push("unbilled_ot");
+
+          const creditsOut = kept.map((c) => ({
+            id: c.id,
+            type: creditRename[c.type] || c.type,
+            recipient: recipAlias[c.recipient] || c.recipient,
+            userId: c.userId
+          }));
+          if (flags.length) review.push({ tsId: ts.Id, placementId: ts.Placement__c, company, candidate: cand, flags, credits: creditsOut.map((c) => c.type + "→" + c.recipient) });
+
+          rows.push({
+            tsId: ts.Id, placementId: ts.Placement__c, jobId: pl.bpats__ATS_Job__c || null,
+            company, entity, bu, title, account: acct, candidate: cand,
+            pay: r2(pay), otPay: r2(otPay), dtPay: r2(dtPay),
+            bill: r2(bill), otBill: r2(otBill), dtBill: r2(dtBill),
+            otMult: otMult, dtMult: dtMult, burden: r4(burden),
+            regHrs: regH, otHrs: otH, dtHrs: dtH, vacHrs: vacH, totalHrs: totH,
+            regMargin: r4(regM), otMargin: r4(otM), dtMargin: r4(dtM), vacMargin: r4(vacM),
+            charge: r2(charge),
+            credits: creditsOut, flags
+          });
+        }
+
+        rows.sort((a, b) => (a.company || "").localeCompare(b.company || "") || (a.candidate || "").localeCompare(b.candidate || ""));
+
+        // ── 5) Rollups ───────────────────────────────────────────────────────
+        const roll = (keyFn) => {
+          const m = {};
+          rows.forEach((r) => {
+            const k = keyFn(r) || "(none)";
+            const o = (m[k] = m[k] || { charge: 0, hours: 0, placements: 0 });
+            o.charge += r.charge; o.hours += r.totalHrs; o.placements++;
+          });
+          return Object.keys(m).sort((a, b) => m[b].charge - m[a].charge).map((k) => ({ key: k, charge: r2(m[k].charge), hours: r2(m[k].hours), placements: m[k].placements }));
+        };
+        const byRecipient = (() => {
+          const m = {};
+          rows.forEach((r) => {
+            const seenP = {};
+            (r.credits || []).forEach((c) => {
+              const k = c.recipient || "(none)";
+              if (seenP[k]) return; seenP[k] = 1; // full-desk counts once per placement
+              const o = (m[k] = m[k] || { charge: 0, hours: 0, placements: 0 });
+              o.charge += r.charge; o.hours += r.totalHrs; o.placements++;
+            });
+          });
+          return Object.keys(m).sort((a, b) => m[b].charge - m[a].charge).map((k) => ({ key: k, charge: r2(m[k].charge), hours: r2(m[k].hours), placements: m[k].placements }));
+        })();
+
+        const total = r2(rows.reduce((s, r) => s + r.charge, 0));
+        const hours = r2(rows.reduce((s, r) => s + r.totalHrs, 0));
+        const out = {
+          ok: true,
+          summary: { weekEnding, placements: rows.length, totalCharge: total, totalHours: hours, reviewCount: review.length, loneHouse: review.filter((x) => x.flags.indexOf("lone_house") !== -1).length },
+          rollups: { byCompany: roll((r) => r.company), byEntity: roll((r) => r.entity), byBU: roll((r) => r.bu), byRecipient },
+          review,
+          rows
+        };
+        if (wantDebug) out.debug = dbg;
+        return json(out, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
+
+// ════════════════════════════════════════════════════════════════════════════
 // CHARGE REPORT — PHASE A: /charge-probe
 // ════════════════════════════════════════════════════════════════════════════
 // One-shot discovery for the Charge Report build. Read-only. Writes nothing.
@@ -5697,50 +5898,37 @@ var worker_default = {
         }
       } catch (e) { out.salesforce.tokenError = String(e.message || e); }
 
-      // ─── ONEDRIVE: 2026 Payables Worksheet ─────────────────────────────────
+      // ─── ONEDRIVE: 2026 Payable Worksheet (via share link — v2) ────────────
       try {
         const gt = await getGraphToken(env);
         const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
-        const G = "https://graph.microsoft.com/v1.0/users/" + encodeURIComponent("timecards@sparktalentinc.com") + "/drive";
-
-        let fileId = (url.searchParams.get("file") || "").trim() || null;
-        if (!fileId) {
-          const r = await fetch(G + "/root/search(q='Payables Worksheet')?$select=id,name,webUrl,parentReference,lastModifiedDateTime&$top=10", { headers: GH });
-          const d = await r.json();
-          if (!r.ok) {
-            out.graph.searchError = (d.error && d.error.message) || JSON.stringify(d).slice(0, 300);
-          } else {
-            const items = (d.value || []).map(function (v) {
-              return { id: v.id, name: v.name, path: v.parentReference && v.parentReference.path, modified: v.lastModifiedDateTime };
-            });
-            out.graph.searchMatches = items;
-            const best = items.filter(function (i) { return /2026/.test(i.name || ""); })[0] || items[0];
-            if (best) fileId = best.id;
-            else out.graph.hint = "No file matching 'Payables Worksheet' in the timecards drive. If it lives in a different account's OneDrive, tell me whose and I'll point the probe there.";
-          }
-        }
-
-        if (fileId) {
-          out.graph.fileId = fileId;
-          const wr = await fetch(G + "/items/" + fileId + "/workbook/worksheets?$select=name,position", { headers: GH });
+        const shareUrl = url.searchParams.get("shareUrl") || "https://sparktalent-my.sharepoint.com/:x:/g/personal/timecards_sparktalentinc_com/IQCNdykcRQJLRKsOAFZyxYT3ATQz4Y_-30tpSh40h2OGwSo";
+        const shareTok = "u!" + btoa(shareUrl).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+        const sR = await fetch("https://graph.microsoft.com/v1.0/shares/" + shareTok + "/driveItem?$select=id,name,webUrl,parentReference,lastModifiedDateTime", { headers: GH });
+        const sD = await sR.json();
+        if (!sR.ok) {
+          out.graph.shareResolveError = (sD.error && sD.error.message) || JSON.stringify(sD).slice(0, 300);
+        } else {
+          const driveId = sD.parentReference && sD.parentReference.driveId;
+          const itemId = sD.id;
+          out.graph.file = { name: sD.name, id: itemId, driveId, path: sD.parentReference && sD.parentReference.path, modified: sD.lastModifiedDateTime };
+          const B = "https://graph.microsoft.com/v1.0/drives/" + driveId + "/items/" + itemId;
+          const wr = await fetch(B + "/workbook/worksheets?$select=name,position", { headers: GH });
           const wd = await wr.json();
           if (!wr.ok) {
             out.graph.worksheetsError = (wd.error && wd.error.message) || JSON.stringify(wd).slice(0, 300);
           } else {
             const sheets = (wd.value || []).map(function (w) { return w.name; });
             out.graph.worksheets = sheets;
-            // Peek: explicit ?sheet=, else the first sheet whose name smells like vacation
             const want = (url.searchParams.get("sheet") || "").trim();
-            const target = want || sheets.filter(function (n) { return /vac|pto/i.test(n); })[0] || null;
+            const target = want || sheets.filter(function (n) { return /vac|pto/i.test(n); })[0] || sheets[0] || null;
             if (target) {
-              const range = (url.searchParams.get("range") || "A1:R60").replace(/[^A-Za-z0-9:]/g, "");
-              const safe = target.replace(/'/g, "''");
-              const rr = await fetch(G + "/items/" + fileId + "/workbook/worksheets('" + encodeURIComponent(safe) + "')/range(address='" + range + "')?$select=address,rowCount,columnCount,values", { headers: GH });
+              const range = (url.searchParams.get("range") || "A1:T80").replace(/[^A-Za-z0-9:]/g, "");
+              const safe = encodeURIComponent(target.replace(/'/g, "''"));
+              const rr = await fetch(B + "/workbook/worksheets('" + safe + "')/range(address='" + range + "')?$select=address,rowCount,columnCount,values", { headers: GH });
               const rd = await rr.json();
               if (!rr.ok) out.graph.peekError = (rd.error && rd.error.message) || JSON.stringify(rd).slice(0, 300);
-              else out.graph.peek = { sheet: target, address: rd.address, rows: (rd.values || []).filter(function (row) { return row.some(function (c) { return c !== "" && c != null; }); }).slice(0, 60) };
-            } else {
-              out.graph.peekHint = "No sheet name containing 'vac'/'pto'. Re-run with ?sheet=<name from worksheets>&range=A1:R60 to peek the vacation grouping.";
+              else out.graph.peek = { sheet: target, address: rd.address, rows: (rd.values || []).filter(function (row) { return row.some(function (c) { return c !== "" && c != null; }); }).slice(0, 80) };
             }
           }
         }
