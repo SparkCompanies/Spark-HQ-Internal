@@ -13174,21 +13174,21 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['knowledge'] /* SPARK_ROLE_LOCK_v1: managers keep agent knowledge; switcher/demo panes removed */,
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','match','training','standard','careers','people','tools','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: [] /* SPARK_ROLE_LOCK_v1: members get no Admin tab */,
-      navItems: ['home','command','people','leadership','terrmap','training','standard','careers' /* STANDARD_ACCESS_v2 */]
+      navItems: ['home','command','people','leadership','terrmap','chargecc','training','standard','careers' /* STANDARD_ACCESS_v2 */]
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -13234,6 +13234,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           if (ni && ni.indexOf('match') === -1) {
             var bi = ni.indexOf('boards');
             if (bi >= 0) ni.splice(bi + 1, 0, 'match'); else ni.push('match');
+          }
+        });
+        // vChargeCC — ensure Charge Report nav exists in saved sets (all roles)
+        Object.keys(merged).forEach(function(k){
+          var ni = merged[k].navItems;
+          if (Array.isArray(ni) && ni.indexOf('chargecc') === -1) {
+            var ti = ni.indexOf('terrmap');
+            if (ti !== -1) ni.splice(ti + 1, 0, 'chargecc'); else ni.push('chargecc');
           }
         });
         // v51 — ensure Finance nav exists for admin/manager saved sets (not members by default)
