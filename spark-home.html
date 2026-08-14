@@ -394,13 +394,12 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
         <textarea id="msgIn" placeholder="What did they do? Tie it to the standard."></textarea>
         <button class="btn" id="postBtn">Post recognition</button>
       </div>
-      <div class="statgrid" style="grid-template-columns:1fr 1fr 1.2fr;">
+      <!-- PULSE_CAL_REMOVE_v1: month calendar retired — the timeline band at the top
+     of Home is now the single calendar surface (it carries its own month rail),
+     and two widgets showing the same events disagreed on layout and load time. -->
+      <div class="statgrid" style="grid-template-columns:1fr 1fr;">
         <div class="statcard"><h4>MOST RECOGNIZED</h4><div id="mostRec"></div></div>
-        <div class="statcard calcard" id="pulseCalCard"><h4 id="pulseCalHead">CALENDAR</h4>
-<div id="pulseCalGrid"></div>
-<div id="pulseCalEvents"><div class="calevt"><span>Loading your calendar&hellip;</span></div></div>
-</div>
-<div class="statcard"><h4>VALUES IN ACTION</h4><div id="valAct"></div></div>
+        <div class="statcard"><h4>VALUES IN ACTION</h4><div id="valAct"></div></div>
       </div>
       <div class="feeds">
         <div class="feed"><h4>◆ RECOGNITION <b id="cRec">0</b></h4><div id="fRec"></div></div>
@@ -1209,6 +1208,7 @@ wGet('/calendar?days=45').then(function(d){hqCacheSet('hq_cal45',d);applyCalData
 /* PULSE_CAL_LIVE_v1 — the Pulse month calendar renders the signed-in user's real
    Outlook month (was a hardcoded August 2026 table with two invented events). */
 function pulseCalRender(d){
+  if(!document.getElementById('pulseCalCard')) return; /* PULSE_CAL_REMOVE_v1 */
   var head=document.getElementById('pulseCalHead');
   var grid=document.getElementById('pulseCalGrid');
   var list=document.getElementById('pulseCalEvents');
