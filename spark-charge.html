@@ -942,24 +942,26 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <script>
-/* ═══════════════════════ SPARK HQ LIVE DATA ADAPTER ═══════════════════════
-   Feeds this Command Center from the live /charge-batch engine.
-   Design & renderers by Allie — this block only swaps the data underneath.
-   Safe to keep at the bottom of the file; everything above is untouched.  */
+/* ═══════════════════════ SPARK HQ LIVE DATA ADAPTER v2 ═══════════════════════
+   Design & renderers by Allie — this block swaps the data underneath.
+   v2: official full-year history from /charge-history (imported from the running
+   Excel report + weekly snapshots), live engine for the in-progress week,
+   real targets, real ATHs, DH tracker, and a Freeze (snapshot) button.        */
 window.SPARK_LIVE = (function () {
   var SB_URL = 'https://rdyzvohphrmkkowdsoam.supabase.co';
   var SB_KEY = 'sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5';
   var WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
-  var HIST_WEEKS = 8; // how many weeks of history to auto-load for trends
 
-  var MOCK = JSON.parse(JSON.stringify(D)); // Allie's sample data, kept for un-wired panels
+  var MOCK = JSON.parse(JSON.stringify(D));
   var sb = null, batches = {}, curIso = null, loading = false;
+  var H = null;            // /charge-history payload
+  var histUnit = {};       // we -> unit -> {total, contract, direct}
+  var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
+  var master = {};         // person -> {role, entity, bu, ...aths}
 
-  // ── date helpers ──
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function sundays(n) {
-    var out = [], d = new Date();
-    d.setHours(12, 0, 0, 0);
+    var out = [], d = new Date(); d.setHours(12, 0, 0, 0);
     d.setDate(d.getDate() - ((d.getDay() + 7) % 7));
     for (var i = 0; i < n; i++) { out.push(d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())); d = new Date(d.getTime() - 7 * 864e5); }
     return out;
@@ -968,7 +970,6 @@ window.SPARK_LIVE = (function () {
   function labelWe(iso) { var p = iso.split('-'); return 'WE ' + (+p[1]) + '.' + (+p[2]) + '.' + p[0].slice(2); }
   function prevIso(iso) { var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - 7); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
-  // ── UI ──
   function setStatus(txt, color) {
     var el = document.getElementById('lvStatus');
     if (el) { el.innerHTML = '<i style="background:' + color + ';box-shadow:0 0 8px ' + color + '"></i>' + txt; el.style.color = color; }
@@ -983,26 +984,32 @@ window.SPARK_LIVE = (function () {
       '<span class="live" id="lvStatus" title="Click to retry" style="color:var(--dm);cursor:pointer"><i style="background:var(--dm)"></i>CONNECTING</span>' +
       '<select id="lvWk" class="fb" style="appearance:none;-webkit-appearance:none;padding:8px 12px;cursor:pointer">' + opts + '</select>' +
       '<button class="fb" id="lvRefresh" title="Refresh week">&#8635;</button>' +
+      '<button class="fb" id="lvFreeze" title="Freeze this week into the official books (admins)">&#10515; Freeze</button>' +
       '<div style="width:1px;height:30px;background:var(--bd)"></div>';
     search.parentNode.insertBefore(wrap, search);
     document.getElementById('lvWk').addEventListener('change', function () { selectWeek(this.value); });
     document.getElementById('lvRefresh').addEventListener('click', function () { delete batches[curIso]; selectWeek(curIso); });
-    document.getElementById('lvStatus').addEventListener('click', function () { selectWeek(curIso || sundays(1)[0]); });
+    document.getElementById('lvStatus').addEventListener('click', function () { boot(true); });
+    document.getElementById('lvFreeze').addEventListener('click', freezeWeek);
   }
-  function badgeSample() {
+  function noteAndBadges() {
+    var live = !!H;
     ['p-dh', 'p-tg'].forEach(function (id) {
-      var st = document.querySelector('#' + id + ' .st');
-      if (st && !st.querySelector('.lv-sample')) st.insertAdjacentHTML('beforeend', '<span class="pl lv-sample" style="background:rgba(255,107,43,.13);color:var(--org)">SAMPLE DATA &middot; wiring in Phase D</span>');
+      var st = document.querySelector('#' + id + ' .st'); if (!st) return;
+      var b = st.querySelector('.lv-sample');
+      if (live && b) b.remove();
+      if (!live && !b) st.insertAdjacentHTML('beforeend', '<span class="pl lv-sample" style="background:rgba(255,107,43,.13);color:var(--org)">SAMPLE DATA</span>');
     });
     var pulse = document.getElementById('p-pulse');
-    if (pulse && !document.getElementById('lvNote')) pulse.insertAdjacentHTML('beforeend', '<div id="lvNote" style="margin-top:14px;font-size:10px;color:var(--dm)">Live from Salesforce: totals, trend, entities, hierarchy, leaderboard, contractors &amp; clients for loaded weeks. Direct Hire and Targets panels show sample data until weekly snapshots land. Vacation &amp; manual pays merge automatically from the Payable Worksheet.</div>');
+    var note = document.getElementById('lvNote');
+    if (note) note.remove();
+    if (pulse) pulse.insertAdjacentHTML('beforeend', '<div id="lvNote" style="margin-top:14px;font-size:10px;color:var(--dm)">' + (live
+      ? 'Official books: full-year unit &amp; individual history, targets, ATHs and Direct Hire tracker imported from the charge report. The in-progress week runs live from Salesforce (contract side; DH joins when its report is wired). Freeze &#10515; locks a completed week into the books. BD widgets remain sample for now.'
+      : 'Sample data. Sign in via Spark HQ, then click the status pill.') + '</div>');
   }
 
-  // ── auth ──
   function getClient() {
     if (sb) return Promise.resolve(sb);
-    // Mirror Spark HQ's auth config EXACTLY (same storageKey) so this page
-    // reads the same login session the main app writes. Same origin = shared localStorage.
     return import('https://esm.sh/@supabase/supabase-js@2').then(function (m) {
       sb = m.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce', storageKey: 'spark_hq_sb_auth' } });
       return sb;
@@ -1010,115 +1017,161 @@ window.SPARK_LIVE = (function () {
   }
   function getToken() {
     return getClient().then(function (c) { return c.auth.getSession(); }).then(function (r) {
-      var s = r && r.data && r.data.session;
-      return s ? s.access_token : null;
+      var s = r && r.data && r.data.session; return s ? s.access_token : null;
+    });
+  }
+  function api(path, opts) {
+    return getToken().then(function (tok) {
+      if (!tok) throw new Error('signin');
+      opts = opts || {};
+      opts.headers = Object.assign({ Authorization: 'Bearer ' + tok }, opts.headers || {});
+      opts.cache = 'no-store';
+      return fetch(WORKER + path, opts);
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || (d.ok === false) || d.error) throw new Error((d && d.error) || 'request failed');
+      return d;
     });
   }
 
-  // ── data ──
-  function fetchBatch(iso) {
-    if (batches[iso]) return Promise.resolve(batches[iso]);
-    return getToken().then(function (tok) {
-      if (!tok) throw new Error('signin');
-      return fetch(WORKER + '/charge-batch?weekEnding=' + iso + '&t=' + Date.now(), { headers: { Authorization: 'Bearer ' + tok }, cache: 'no-store' });
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d || !d.ok) throw new Error((d && d.error) || 'load failed');
-      batches[iso] = d; return d;
+  function indexHistory() {
+    histUnit = {}; histPerson = {}; master = {};
+    (H.unitWeeks || []).forEach(function (r) {
+      var w = histUnit[r.week_ending] || (histUnit[r.week_ending] = {});
+      var u = w[r.unit] || (w[r.unit] = {});
+      u[r.kind] = Number(r.charge) || 0;
     });
+    (H.personWeeks || []).forEach(function (r) {
+      var w = histPerson[r.week_ending] || (histPerson[r.week_ending] = {});
+      w[r.person] = { sales: Number(r.sales) || 0, fd: Number(r.fd) || 0, rec: Number(r.rec) || 0, tt: Number(r.tt) || 0 };
+    });
+    (H.people || []).forEach(function (p) { master[p.person] = p; });
   }
-  function get(list, key) { var f = (list || []).find(function (x) { return x.key === key; }); return f ? f.charge : 0; }
-  function bucket(type) {
-    var t = String(type || '').toLowerCase();
-    if (t.indexOf('full') !== -1) return 'fd';
-    if (t.indexOf('recruit') !== -1) return 'rec';
-    if (t.indexOf('account') !== -1 || t.indexOf('sales') !== -1) return 'am';
-    return null;
+  function unitVal(we, unit) {
+    var u = histUnit[we] && histUnit[we][unit];
+    if (u) { if (u.total != null) return u.total; return (u.contract || 0) + (u.direct || 0); }
+    var b = batches[we];
+    if (b) {
+      var f = (b.rollups.byEntity || []).concat(b.rollups.byBU || []).find(function (x) { return x.key === unit; });
+      if (f) return f.charge;
+    }
+    return 0;
   }
-  function personWeek(batch) { // name -> {tt, rec, am, fd, en, bu}
+  function engineWeek(batch) {
     var out = {};
-    (batch.rows || []).forEach(function (r) {
+    (batch.rows || []).forEach(function (row) {
       var seen = {};
-      (r.credits || []).forEach(function (c) {
+      (row.credits || []).forEach(function (c) {
         var n = c.recipient; if (!n) return;
-        var p = out[n] || (out[n] = { tt: 0, rec: 0, am: 0, fd: 0, en: r.entity, bu: r.bu });
-        if (!seen[n]) { p.tt += r.charge; seen[n] = 1; }
-        var b = bucket(c.type); if (b) p[b] += r.charge;
-        if (r.entity) p.en = r.entity; if (r.bu) p.bu = r.bu;
+        var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
+        if (!seen[n]) { p.tt += row.charge; seen[n] = 1; }
+        var t = String(c.type || '').toLowerCase();
+        if (t.indexOf('full') !== -1) p.fd += row.charge;
+        else if (t.indexOf('recruit') !== -1) p.rec += row.charge;
+        else if (t.indexOf('account') !== -1 || t.indexOf('sales') !== -1) p.sales += row.charge;
       });
     });
     return out;
   }
+  function pweek(we) {
+    if (histPerson[we]) return histPerson[we];
+    if (batches[we]) return engineWeek(batches[we]);
+    return {};
+  }
+  function weeksThrough(cur) {
+    var set = {};
+    Object.keys(histUnit).forEach(function (w) { set[w] = 1; });
+    Object.keys(batches).forEach(function (w) { if (!set[w]) set[w] = 1; });
+    return Object.keys(set).sort().filter(function (w) { return w <= cur; });
+  }
 
   function applyAll() {
-    var isoList = Object.keys(batches).sort();
-    if (!isoList.length || !batches[curIso]) return;
-    var C = batches[curIso], P = batches[prevIso(curIso)] || null;
+    var isoList = weeksThrough(curIso);
+    if (!isoList.length) return;
+    var prev = prevIso(curIso);
+    var official = !!histPerson[curIso];
 
-    // weeks (trend + hierarchy source): BU sums first, entity sums override on name collision
-    D.weeks = isoList.map(function (iso) {
-      var b = batches[iso], o = { we: shortWe(iso) };
-      (b.rollups.byBU || []).forEach(function (r) { o[r.key] = (o[r.key] || 0) + r.charge; });
-      (b.rollups.byEntity || []).forEach(function (r) { o[r.key] = r.charge; });
+    var allUnits = {};
+    (H && H.units || []).forEach(function (u) { allUnits[u.unit] = 1; });
+    isoList.forEach(function (w) { Object.keys(histUnit[w] || {}).forEach(function (u) { allUnits[u] = 1; }); });
+    var b0 = batches[curIso];
+    if (b0) (b0.rollups.byEntity || []).concat(b0.rollups.byBU || []).forEach(function (r) { allUnits[r.key] = 1; });
+
+    D.weeks = isoList.map(function (w) {
+      var o = { we: shortWe(w) };
+      Object.keys(allUnits).forEach(function (u) { var v = unitVal(w, u); if (v) o[u] = v; });
+      ENT_KEYS.forEach(function (u) { if (o[u] == null) o[u] = unitVal(w, u); });
       return o;
     });
-    // trim weeks after the selected one so the hero number matches the picker
-    var curShort = shortWe(curIso);
-    var cut = D.weeks.map(function (w) { return w.we; }).lastIndexOf(curShort);
-    if (cut !== -1) D.weeks = D.weeks.slice(0, cut + 1);
 
-    // entities
+    var uinfo = {}; (H && H.units || []).forEach(function (u) { uinfo[u.unit] = u; });
     D.ent = ENT_KEYS.map(function (n) {
-      var ch = get(C.rollups.byEntity, n), lw = P ? get(P.rollups.byEntity, n) : 0;
-      var ath = 0, athD = '';
-      isoList.forEach(function (iso) { var v = get(batches[iso].rollups.byEntity, n); if (v > ath) { ath = v; athD = labelWe(iso); } });
+      var ch = unitVal(curIso, n), lw = unitVal(prev, n);
+      var ath = uinfo[n] && uinfo[n].ath != null ? Number(uinfo[n].ath) : 0;
+      var athD = (uinfo[n] && uinfo[n].ath_we) || '';
+      isoList.forEach(function (w) { var v = unitVal(w, n); if (v > ath) { ath = v; athD = labelWe(w); } });
       return { n: n, ch: ch, ud: ch - lw, lw: lw, ath: Math.max(ath, 1), athD: athD || '—' };
     }).sort(function (a, b) { return b.ch - a.ch; });
 
-    // raw contractors
-    D.raw = (C.rows || []).map(function (r) {
-      var c = r.credits || [];
-      return [r.company, r.bu || '—', r.candidate, r.title || '', c[0] ? c[0].recipient : '', c[1] ? c[1].recipient : '', r.totalHrs, Math.round(r.charge)];
-    });
-
-    // people: cum/mo/q across loaded weeks; tt/wow/rec/am/fd for selected week
-    var perWeek = {}; isoList.forEach(function (iso) { perWeek[iso] = personWeek(batches[iso]); });
-    var names = {}; isoList.forEach(function (iso) { Object.keys(perWeek[iso]).forEach(function (n) { names[n] = 1; }); });
-    var curMonth = +curIso.split('-')[1];
-    var pw = perWeek[curIso] || {}, pv = perWeek[prevIso(curIso)] || {};
-    D.people = Object.keys(names).map(function (n) {
-      var cum = 0, q = 0, mo = 0, en = '', bu = '';
-      isoList.forEach(function (iso) {
-        var p = perWeek[iso][n]; if (!p) return;
-        cum += p.tt;
-        if (+iso.split('-')[1] >= 7) q += p.tt;
-        if (+iso.split('-')[1] === curMonth) mo += p.tt;
-        if (p.en) en = p.en; if (p.bu) bu = p.bu;
+    if (b0) {
+      D.raw = (b0.rows || []).map(function (r) {
+        var c = r.credits || [];
+        return [r.company, r.bu || '—', r.candidate, r.title || '', c[0] ? c[0].recipient : '', c[1] ? c[1].recipient : '', r.totalHrs, Math.round(r.charge)];
       });
-      var c = pw[n] || { tt: 0, rec: 0, am: 0, fd: 0 }, l = pv[n] || { tt: 0 };
-      return { n: n, rl: '', en: en || 'Spark Talent', bu: bu || '', cum: Math.round(cum), mo: Math.round(mo), q: Math.round(q), rec: Math.round(c.rec), am: Math.round(c.am), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(c.tt - l.tt) };
+      var firstRow = {}; (b0.rows || []).forEach(function (r) { if (!firstRow[r.company]) firstRow[r.company] = r; });
+      var Pb = batches[prev];
+      D.cST = (b0.rollups.byCompany || []).map(function (r) {
+        var lw = 0;
+        if (Pb) { var f = (Pb.rollups.byCompany || []).find(function (x) { return x.key === r.key; }); if (f) lw = f.charge; }
+        var fr = firstRow[r.key] || {};
+        return { en: fr.entity || 'Spark Talent', bu: fr.bu || '—', cl: r.key, ch: Math.round(r.charge), dh: 0, ud: Math.round(r.charge - lw), lw: Math.round(lw), ath: Math.max(Math.round(r.charge), 1) };
+      }).sort(function (a, b) { return b.ch - a.ch; });
+      D.cEnt = {}; ENT_KEYS.forEach(function (e) { D.cEnt[e] = []; });
+      D.cST.forEach(function (c) { (D.cEnt[c.en] = D.cEnt[c.en] || []).push({ cl: c.cl, bu: 'Assignment', ch: c.ch, ud: c.ud, ath: c.ath }); });
+    }
+
+    var names = {};
+    isoList.forEach(function (w) { Object.keys(pweek(w)).forEach(function (n) { names[n] = 1; }); });
+    Object.keys(master).forEach(function (n) { names[n] = 1; });
+    var curMonth = +curIso.split('-')[1];
+    var cw = pweek(curIso), pv = pweek(prev);
+    D.people = Object.keys(names).map(function (n) {
+      var cum = 0, q = 0, mo = 0;
+      isoList.forEach(function (w) {
+        var p = pweek(w)[n]; if (!p) return;
+        cum += p.tt;
+        if (+w.split('-')[1] >= 7) q += p.tt;
+        if (+w.split('-')[1] === curMonth) mo += p.tt;
+      });
+      var c = cw[n] || { sales: 0, fd: 0, rec: 0, tt: 0 }, l = pv[n] || { tt: 0 };
+      var m = master[n] || {};
+      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: Math.round(cum), mo: Math.round(mo), q: Math.round(q), rec: Math.round(c.rec), am: Math.round(c.sales), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(c.tt - l.tt) };
     }).sort(function (a, b) { return b.cum - a.cum; });
 
-    // per-person weekly series for drawers
     D.iw = {};
     Object.keys(names).forEach(function (n) {
-      D.iw[n] = isoList.map(function (iso) { var p = perWeek[iso][n]; return { w: shortWe(iso), t: Math.round(p ? p.tt : 0) }; });
+      D.iw[n] = isoList.map(function (w) { var p = pweek(w)[n]; return { w: shortWe(w), t: Math.round(p ? p.tt : 0) }; });
     });
 
-    // clients
-    var firstRow = {}; (C.rows || []).forEach(function (r) { if (!firstRow[r.company]) firstRow[r.company] = r; });
-    D.cST = (C.rollups.byCompany || []).map(function (r) {
-      var lw = P ? get(P.rollups.byCompany, r.key) : 0, fr = firstRow[r.key] || {};
-      var ath = 0; isoList.forEach(function (iso) { var v = get(batches[iso].rollups.byCompany, r.key); if (v > ath) ath = v; });
-      return { en: fr.entity || 'Spark Talent', bu: fr.bu || '—', cl: r.key, ch: Math.round(r.charge), dh: 0, ud: Math.round(r.charge - lw), lw: Math.round(lw), ath: Math.max(Math.round(ath), 1) };
-    }).sort(function (a, b) { return b.ch - a.ch; });
-    D.cEnt = {};
-    ENT_KEYS.forEach(function (e) { D.cEnt[e] = []; });
-    D.cST.forEach(function (c) { (D.cEnt[c.en] = D.cEnt[c.en] || []).push({ cl: c.cl, bu: 'Assignment', ch: c.ch, ud: c.ud, ath: c.ath }); });
+    if (H) {
+      var tmap = {};
+      (H.personTargets || []).forEach(function (t) { (tmap[t.person] = tmap[t.person] || []).push(t); });
+      var cumOf = {}; D.people.forEach(function (p) { cumOf[p.n] = p.cum; });
+      D.mt = (H.people || []).map(function (p) {
+        var rows = tmap[p.person] || [];
+        var pick = rows.filter(function (t) { return t.unit === p.bu; });
+        if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
+        if (!pick.length) pick = rows;
+        var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
+        return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g('q3', 'contest'), ai: g('annual', 'igniter'), q3i: g('q3', 'igniter'), ytd: Math.round(cumOf[p.person] || 0) };
+      });
+      D.annT = {};
+      (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') D.annT[t.unit] = Number(t.amount); });
+      D.dh = (H.dh || []).map(function (r) {
+        return { en: r.entity, bu: r.bu, cl: r.company, sr: r.sales_rep, rc: r.recruiter, ch: Math.round(Number(r.charge) || 0), wk: Number(r.week_num) || 0, of: Number(r.of_weeks) || 0, rem: Number(r.weeks_remaining) || 0, emp: r.employee, st: (Number(r.weeks_remaining) || 0) > 0 ? 'active' : 'done' };
+      });
+      D.bda = MOCK.bda; D.cbd = MOCK.cbd;
+    }
 
-    // un-wired panels keep Allie's sample data
-    D.mt = MOCK.mt; D.dh = MOCK.dh; D.annT = MOCK.annT; D.bda = MOCK.bda; D.cbd = MOCK.cbd;
-
-    // recompute her globals + re-render everything
     CUR = D.weeks[D.weeks.length - 1]; PREV = D.weeks[D.weeks.length - 2] || {};
     TOTAL = wkTotal(CUR); LASTW = wkTotal(PREV);
     YTD = D.weeks.reduce(function (s, w) { return s + wkTotal(w); }, 0);
@@ -1128,10 +1181,10 @@ window.SPARK_LIVE = (function () {
     nav(); rPulse(); rHier(); rArena(); rLB(); rRaw(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
     try { heroHover(); } catch (e) {}
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
-    badgeSample();
-    var pay = C.payables || {};
-    var extra = pay.sheet ? ' · payables merged' : (pay.error ? ' · payables: check' : '');
-    setStatus('LIVE · ' + isoList.length + ' wk' + (isoList.length > 1 ? 's' : '') + ' loaded' + extra, '#00FF88');
+    noteAndBadges();
+    var tag = official ? 'OFFICIAL' : 'LIVE';
+    var pay = (b0 && b0.payables) || {};
+    setStatus(tag + ' · ' + labelWe(curIso) + (pay.sheet && !official ? ' · payables merged' : ''), official ? '#FFC800' : '#00FF88');
   }
 
   function selectWeek(iso) {
@@ -1139,45 +1192,55 @@ window.SPARK_LIVE = (function () {
     curIso = iso;
     var sel = document.getElementById('lvWk'); if (sel && sel.value !== iso) sel.value = iso;
     setStatus('LOADING ' + labelWe(iso), '#FFC800');
-    fetchBatch(iso).then(function () {
-      return fetchBatch(prevIso(iso)).catch(function () {});
-    }).then(function () { loading = false; applyAll(); loadHistory(); })
+    var needPrev = !histPerson[prevIso(iso)];
+    api('/charge-batch?weekEnding=' + iso + '&t=' + Date.now())
+      .then(function (d) { batches[iso] = d; })
+      .catch(function (e) { if (String(e.message) === 'signin') throw e; })
+      .then(function () {
+        if (!needPrev || batches[prevIso(iso)]) return;
+        return api('/charge-batch?weekEnding=' + prevIso(iso)).then(function (d) { batches[prevIso(iso)] = d; }).catch(function () {});
+      })
+      .then(function () { loading = false; applyAll(); })
       .catch(function (e) {
         loading = false;
-        if (String(e.message) === 'signin') setStatus('SIGN IN VIA SPARK HQ, THEN REFRESH', '#FF4466');
-        else setStatus('LOAD FAILED · ' + String(e.message).slice(0, 40), '#FF4466');
+        if (String(e.message) === 'signin') setStatus('SIGN IN VIA SPARK HQ, THEN CLICK HERE', '#FF4466');
+        else { setStatus('ENGINE: ' + String(e.message).slice(0, 40), '#FF6B2B'); applyAll(); }
       });
   }
 
-  var histRunning = false;
-  function loadHistory() {
-    if (histRunning) return; histRunning = true;
-    var chain = Promise.resolve(), iso = curIso;
-    for (var i = 0; i < HIST_WEEKS; i++) {
-      iso = prevIso(iso);
-      (function (w) {
-        chain = chain.then(function () {
-          if (batches[w]) return;
-          return fetchBatch(w).then(function () { applyAll(); }).catch(function () {});
-        });
-      })(iso);
-    }
-    chain.then(function () { histRunning = false; });
+  function freezeWeek() {
+    if (!curIso) return;
+    if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books? (Contract side; admins only)')) return;
+    setStatus('FREEZING ' + labelWe(curIso), '#FFC800');
+    api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST' })
+      .then(function (d) {
+        setStatus('FROZEN · ' + d.personRows + ' people, ' + d.unitRows + ' units', '#00FF88');
+        return api('/charge-history');
+      })
+      .then(function (h) { H = h; indexHistory(); applyAll(); })
+      .catch(function (e) { setStatus('FREEZE: ' + String(e.message).slice(0, 44), '#FF4466'); });
   }
 
-  function boot() {
-    injectUI(); badgeSample();
-    setStatus('SAMPLE DATA', '#FF6B2B');
+  function boot(force) {
+    if (!document.getElementById('lvStatus')) injectUI();
+    noteAndBadges();
+    setStatus('CONNECTING', '#FFC800');
     var def = sundays(1)[0];
     getToken().then(function (tok) {
-      if (tok) selectWeek(def);
-      else setStatus('SIGN IN VIA SPARK HQ, THEN REFRESH', '#FF4466');
-    }).catch(function () { setStatus('SIGN IN VIA SPARK HQ, THEN REFRESH', '#FF4466'); });
+      if (!tok) { setStatus('SIGN IN VIA SPARK HQ, THEN CLICK HERE', '#FF4466'); return; }
+      return api('/charge-history').then(function (h) {
+        H = h; indexHistory();
+        selectWeek(curIso && force ? curIso : def);
+      });
+    }).catch(function (e) {
+      if (String(e.message) === 'signin') setStatus('SIGN IN VIA SPARK HQ, THEN CLICK HERE', '#FF4466');
+      else setStatus('HISTORY: ' + String(e.message).slice(0, 44), '#FF4466');
+    });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { selectWeek: selectWeek, batches: batches, mock: MOCK };
+  return { boot: boot, selectWeek: selectWeek, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
