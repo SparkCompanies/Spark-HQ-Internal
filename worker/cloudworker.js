@@ -5076,6 +5076,77 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    // ---- Move an ATS applicant into the Placement stage (Asymbl Kanban) ----
+    if (url.pathname === "/boards-sf-stage" && request.method === "POST") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let body;
+      try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+      const boardId = String(body.boardId || "").slice(0, 60);
+      const itemId = String(body.itemId || "").slice(0, 60);
+      const dryRun = body.dryRun !== false;
+      if (!boardId || !itemId) return json({ error: "boardId and itemId required" }, 400, origin);
+      function sfid(v) {
+        let o = ""; const s = String(v || "");
+        for (let k = 0; k < s.length; k++) {
+          const c = s[k];
+          if ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9")) o += c;
+        }
+        return o.slice(0, 18);
+      }
+      try {
+        const br = await sbService(env, "GET", "spark_boards?id=eq." + encodeURIComponent(boardId) + "&select=data");
+        if (!br.ok || !br.data || !br.data[0]) return json({ error: "board not found" }, 404, origin);
+        const board = br.data[0].data;
+        let item = null;
+        (board.groups || []).forEach((g) => (g.items || []).forEach((it) => { if (it.id === itemId) item = it; }));
+        if (!item) return json({ error: "item not found" }, 404, origin);
+        if (!item.sfId) return json({ error: "No Salesforce link on this row. Run Sync first." }, 409, origin);
+        const pid = sfid(item.sfId);
+        const p = await runSalesforceQueryAll(env, "SELECT bpats__ATS_Candidate__c, bpats__ATS_Job__c FROM bpats__Placement__c WHERE Id = '" + pid + "'");
+        if (!p.ok) return json({ error: p.error }, 502, origin);
+        if (!p.records || !p.records[0]) return json({ error: "placement not found" }, 404, origin);
+        const contactId = sfid(p.records[0].bpats__ATS_Candidate__c);
+        const jobId = sfid(p.records[0].bpats__ATS_Job__c);
+        if (!contactId || !jobId) return json({ error: "placement missing candidate or job link" }, 409, origin);
+        const a = await runSalesforceQueryAll(env, "SELECT Id, bpats__Stage__c, bpats__Stage__r.Name, bpats__Stage__r.bpats__Stage_Type__c FROM bpats__ATS_Applicant__c WHERE bpats__ATS_Applicant__c = '" + contactId + "' AND bpats__Job__c = '" + jobId + "'");
+        if (!a.ok) return json({ error: a.error }, 502, origin);
+        const apps = a.records || [];
+        if (!apps.length) return json({ error: "No ATS applicant record for this candidate and job." }, 404, origin);
+        if (apps.length > 1) return json({ error: "Multiple applicant records found - resolve in Salesforce." }, 409, origin);
+        const app = apps[0];
+        const s = await runSalesforceQueryAll(env, "SELECT Id, Name FROM bpats__ATS_Stage__c WHERE bpats__Job__c = '" + jobId + "' AND bpats__Stage_Type__c = 'Placement'");
+        if (!s.ok) return json({ error: s.error }, 502, origin);
+        const stages = s.records || [];
+        if (!stages.length) return json({ error: "This job has no Placement stage." }, 404, origin);
+        if (stages.length > 1) return json({ error: "Job has multiple Placement stages." }, 409, origin);
+        const target = stages[0];
+        const cur = app.bpats__Stage__r || {};
+        const preview = { candidate: item.name, applicantId: app.Id, currentStage: cur.Name || null,
+                          currentStageType: cur.bpats__Stage_Type__c || null,
+                          targetStageId: target.Id, targetStageName: target.Name };
+        if (app.bpats__Stage__c === target.Id) return json({ ok: true, alreadyThere: true, preview }, 200, origin);
+        if (dryRun) return json({ ok: true, dryRun: true, preview }, 200, origin);
+        const tok = await getSalesforceToken(env);
+        const pr = await fetch(tok.instance_url + "/services/data/v60.0/sobjects/bpats__ATS_Applicant__c/" + encodeURIComponent(app.Id), {
+          method: "PATCH",
+          headers: { Authorization: "Bearer " + tok.access_token, "Content-Type": "application/json" },
+          body: JSON.stringify({ bpats__Stage__c: target.Id })
+        });
+        if (pr.status !== 204) {
+          let t = ""; try { t = (await pr.text()).slice(0, 300); } catch (e) {}
+          return json({ error: "Salesforce rejected the stage move: " + t }, 502, origin);
+        }
+        item.sf_stage = target.Name;
+        item.sf_stage_by = who.email;
+        item.sf_stage_at = (/* @__PURE__ */ new Date()).toISOString();
+        await sbService(env, "POST", "spark_boards?on_conflict=id", { id: boardId, data: board, updated_by: who.email, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
+        console.log("BOARDS-SF-STAGE by " + who.email + ": applicant " + app.Id + " -> " + target.Id);
+        return json({ ok: true, moved: true, preview }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/boards-sf-describe") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
