@@ -5653,12 +5653,21 @@ var worker_default = {
               const emp = cNm >= 0 ? String(row[cNm] || "").trim() : "";
               const ttl = cTi >= 0 ? String(row[cTi] || "").trim() : "";
               const burden = burdenFor(T.entity, co, emp, ttl);
+              let paidSoFar = 0, totalDrops = 0;
+              for (let c = wc; c < row.length; c++) { if (typeof row[c] === "number" && row[c] !== 0) totalDrops++; }
+              for (let c = 0; c <= wc; c++) { if (c >= 13 && typeof row[c] === "number" && row[c] !== 0 && String(grid[hr][c]).length <= 9) paidSoFar++; }
+              const cd = String(row[H2.findIndex((h) => /^Charge Details$/i.test(h))] || "");
+              const m = cd.match(/\/\s*(\d+)\s*(Week|Month|Install)/i);
+              const invType = cInv >= 0 ? String(row[cInv] || "").trim() : "";
+              let ofN = m ? Number(m[1]) : (/^3 install/i.test(invType) ? 3 : (/^lump/i.test(invType) || !invType ? 1 : paidSoFar + totalDrops - 1));
+              if (!ofN || ofN < paidSoFar) ofN = paidSoFar + Math.max(totalDrops - 1, 0);
               drops.push({
                 source: "tracker", entity: T.entity, company: co, employee: emp, title: ttl,
                 sales_rep: cSr >= 0 ? String(row[cSr] || "").trim() : "", recruiter: cRc >= 0 ? String(row[cRc] || "").trim() : "",
                 bu: cBu >= 0 ? String(row[cBu] || "").trim() : "", loc: cLoc >= 0 ? String(row[cLoc] || "").trim() : "",
-                invoicing_type: cInv >= 0 ? String(row[cInv] || "").trim() : "",
+                invoicing_type: invType,
                 invoiced: r2s(v), burden, amount: r2s(v * (1 - burden)),
+                drop: paidSoFar + " of " + ofN, remaining: Math.max(ofN - paidSoFar, 0),
                 internal: !!ENTSET[co.toLowerCase().replace(/,? llc$/, "").trim()]
               });
             }
