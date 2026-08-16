@@ -1505,25 +1505,37 @@ window.SPARK_LIVE = (function () {
     var sel = rawF[k] || [];
     var m = document.createElement('div');
     m.id = 'rawMenu';
-    m.style.cssText = 'position:fixed;z-index:999;left:' + Math.min(ev.clientX, innerWidth - 280) + 'px;top:' + (ev.clientY + 8) + 'px;width:250px;background:var(--pn,#0a0e1a);border:1px solid var(--bd);border-radius:10px;padding:10px;box-shadow:0 10px 40px rgba(0,0,0,.5);font-size:11px';
-    var hh = '<div style="display:flex;gap:6px;margin-bottom:8px"><button class="fb" style="flex:1;padding:5px" onclick="SPARK_LIVE.rawSortSet(\'' + k + '\',\'asc\')">Sort A&rarr;Z</button><button class="fb" style="flex:1;padding:5px" onclick="SPARK_LIVE.rawSortSet(\'' + k + '\',\'desc\')">Sort Z&rarr;A</button></div>';
+    m.style.cssText = 'position:fixed;z-index:9999;left:' + Math.min(ev.clientX, innerWidth - 280) + 'px;top:' + Math.min(ev.clientY + 8, innerHeight - 380) + 'px;width:250px;background:var(--pn,#0a0e1a);border:1px solid var(--bd);border-radius:10px;padding:10px;box-shadow:0 10px 40px rgba(0,0,0,.45);font-size:11px';
+    var cbs = 'appearance:auto;-webkit-appearance:checkbox;width:14px;height:14px;accent-color:var(--gold);flex:none;margin:0';
+    var hh = '<div style="display:flex;gap:6px;margin-bottom:8px"><button class="fb" data-act="asc" style="flex:1;padding:5px">Sort A&rarr;Z</button><button class="fb" data-act="desc" style="flex:1;padding:5px">Sort Z&rarr;A</button></div>';
     if (cd[2]) {
-      hh += '<input class="srch" id="rawMenuQ" placeholder="Find values..." style="width:100%;margin-bottom:6px"/>';
-      hh += '<div style="display:flex;gap:6px;margin-bottom:6px"><button class="fb" style="flex:1;padding:4px" onclick="SPARK_LIVE.rawAll(\'' + k + '\',1)">All</button><button class="fb" style="flex:1;padding:4px" onclick="SPARK_LIVE.rawAll(\'' + k + '\',0)">None</button></div>';
+      hh += '<input class="srch" id="rawMenuQ" placeholder="Find values..." style="width:100%;margin-bottom:6px;box-sizing:border-box"/>';
+      hh += '<div style="display:flex;gap:6px;margin-bottom:6px"><button class="fb" data-act="all" style="flex:1;padding:4px">All</button><button class="fb" data-act="none" style="flex:1;padding:4px">None</button></div>';
       hh += '<div id="rawMenuL" style="max-height:220px;overflow:auto;border-top:1px solid var(--bd);padding-top:6px">';
-      vals.forEach(function (v) { hh += '<label style="display:flex;gap:6px;align-items:center;padding:2px 0;cursor:pointer"><input type="checkbox" data-v="' + esc(v) + '" ' + (!sel.length || sel.indexOf(v) !== -1 ? 'checked' : '') + '/> <span>' + esc(v) + '</span></label>'; });
-      hh += '</div><div style="display:flex;gap:6px;margin-top:8px"><button class="fb" style="flex:1;padding:5px;background:var(--gold);color:#000" onclick="SPARK_LIVE.rawApply(\'' + k + '\')">Apply</button><button class="fb" style="flex:1;padding:5px" onclick="SPARK_LIVE.rawClear(\'' + k + '\')">Clear</button></div>';
+      vals.forEach(function (v) { hh += '<label style="display:flex;gap:6px;align-items:center;padding:2px 0;cursor:pointer"><input type="checkbox" style="' + cbs + '" data-v="' + esc(v) + '" ' + (!sel.length || sel.indexOf(v) !== -1 ? 'checked' : '') + '/> <span>' + (v === '' ? '(blank)' : esc(v)) + '</span></label>'; });
+      hh += '</div><div style="display:flex;gap:6px;margin-top:8px"><button class="fb" data-act="apply" style="flex:1;padding:5px;background:var(--gold)!important;color:#111!important;font-weight:700">Apply</button><button class="fb" data-act="clear" style="flex:1;padding:5px">Clear</button></div>';
     }
     m.innerHTML = hh;
     document.body.appendChild(m);
+    m.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-act]') : null;
+      if (!b) return;
+      e.stopPropagation();
+      var act = b.getAttribute('data-act');
+      if (act === 'asc' || act === 'desc') { rawSort = [{ k: k, d: act }].concat(rawSort.filter(function (s) { return s.k !== k; })).slice(0, 4); m.remove(); rRaw(); return; }
+      if (act === 'all' || act === 'none') { m.querySelectorAll('#rawMenuL input').forEach(function (c) { c.checked = act === 'all'; }); return; }
+      if (act === 'clear') { rawF[k] = []; m.remove(); rRaw(); return; }
+      if (act === 'apply') {
+        var out = [], boxes = m.querySelectorAll('#rawMenuL input');
+        boxes.forEach(function (c) { if (c.checked) out.push(c.getAttribute('data-v')); });
+        rawF[k] = out.length === boxes.length ? [] : out;
+        m.remove(); rRaw(); return;
+      }
+    });
     var q = document.getElementById('rawMenuQ');
-    if (q) q.oninput = function () { var t = this.value.toLowerCase(); document.querySelectorAll('#rawMenuL label').forEach(function (L) { L.style.display = L.textContent.toLowerCase().indexOf(t) !== -1 ? 'flex' : 'none'; }); };
-    setTimeout(function () { document.addEventListener('click', function h2(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('click', h2); } }); }, 50);
+    if (q) { q.addEventListener('click', function (e) { e.stopPropagation(); }); q.oninput = function () { var t = this.value.toLowerCase(); m.querySelectorAll('#rawMenuL label').forEach(function (L) { L.style.display = L.textContent.toLowerCase().indexOf(t) !== -1 ? 'flex' : 'none'; }); }; }
+    setTimeout(function () { document.addEventListener('click', function h2(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('click', h2); } }); }, 60);
   }
-  function rawSortSet(k, d) { rawSort = [{ k: k, d: d }].concat(rawSort.filter(function (s) { return s.k !== k; })).slice(0, 4); var m = document.getElementById('rawMenu'); if (m) m.remove(); rRaw(); }
-  function rawApply(k) { var out = []; document.querySelectorAll('#rawMenuL input:checked').forEach(function (c) { out.push(c.getAttribute('data-v')); }); var total = document.querySelectorAll('#rawMenuL input').length; rawF[k] = out.length === total ? [] : out; var m = document.getElementById('rawMenu'); if (m) m.remove(); rRaw(); }
-  function rawClear(k) { rawF[k] = []; var m = document.getElementById('rawMenu'); if (m) m.remove(); rRaw(); }
-  function rawAll(k, on) { document.querySelectorAll('#rawMenuL input').forEach(function (c) { c.checked = !!on; }); }
   function rawReset() { rawF = {}; rawQ = ''; rawSort = [{ k: 'entity', d: 'desc' }, { k: 'company', d: 'asc' }, { k: 'candidate', d: 'asc' }]; rRaw(); }
 
   
@@ -1597,7 +1609,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawSortSet: rawSortSet, rawApply: rawApply, rawClear: rawClear, rawAll: rawAll, rawReset: rawReset, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawReset: rawReset, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
