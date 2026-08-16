@@ -6009,7 +6009,7 @@ var worker_default = {
         const unitWeeks = await sbAll("charge_unit_weeks?select=week_ending,unit,kind,charge&order=week_ending.asc");
         const units = await sbAll("charge_units?select=unit,is_entity,ath,ath_we");
         const unitTargets = await sbAll("charge_unit_targets?select=unit,period,amount");
-        const people = await sbAll("charge_people?select=person,role,entity,bu,cum_raw,monthly_raw,quarterly_raw,rec_ath,sales_ath,fd_ath,tt_ath");
+        const people = await sbAll("charge_people?select=person,role,entity,bu,active,cum_raw,monthly_raw,quarterly_raw,rec_ath,sales_ath,fd_ath,tt_ath");
         const personWeeks = await sbAll("charge_person_weeks?select=week_ending,person,sales,fd,rec,tt,raw&order=week_ending.asc");
         const personTargets = await sbAll("charge_person_targets?select=person,unit,period,kind,amount");
         let dh = [];
