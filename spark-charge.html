@@ -1169,7 +1169,7 @@ window.SPARK_LIVE = (function () {
       var tmap = {};
       (H.personTargets || []).forEach(function (t) { (tmap[t.person] = tmap[t.person] || []).push(t); });
       var cumOf = {}; D.people.forEach(function (p) { cumOf[p.n] = p.cum; });
-      D.mt = (H.people || []).map(function (p) {
+      D.mt = (H.people || []).filter(function (p) { return p.active !== false; }).map(function (p) {
         var rows = tmap[p.person] || [];
         var pick = rows.filter(function (t) { return t.unit === p.bu; });
         if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
@@ -1204,6 +1204,7 @@ window.SPARK_LIVE = (function () {
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
     try { if (!official && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
+    try { teamEd(); } catch (e) {}
     var tag = official ? 'OFFICIAL' : 'LIVE';
     var pay = (b0 && b0.payables) || {};
     var dcs = dhb[curIso];
@@ -1291,6 +1292,51 @@ window.SPARK_LIVE = (function () {
     dhPost({ op: 'add_manual', row: { company: cl, employee: emp, charge: Number(amt), entity: en, bu: bu, sales_rep: am, recruiter: rc, interval: 'lump', installments: 1, first_we: curIso } });
   }
 
+  
+  // ── TEAM EDITOR (admin-gated server-side) ──
+  function teamEd() {
+    if (!H) return;
+    var host = document.getElementById('lvTeamEd');
+    if (!host) {
+      var p = document.getElementById('p-tg'); if (!p) return;
+      host = document.createElement('div'); host.id = 'lvTeamEd'; host.style.cssText = 'margin-top:16px';
+      p.appendChild(host);
+    }
+    var rows = (H.people || []).slice().sort(function (x, y) { return (y.active !== false) - (x.active !== false) || String(x.person).localeCompare(String(y.person)); });
+    var h = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="color:var(--gold)">TEAM EDITOR</b>' +
+      '<button class="fb" onclick="SPARK_LIVE.tmAdd()">+ Add Member</button><span style="font-size:10px;color:var(--dm)">Roster is the authority for BU/entity. Admin-gated.</span></div>' +
+      '<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:var(--dm);text-align:left"><th>Member</th><th>Entity</th><th>Business Unit</th><th>Status</th><th></th></tr>';
+    rows.forEach(function (p) {
+      var off = p.active === false;
+      h += '<tr style="border-top:1px solid var(--bd);opacity:' + (off ? '.45' : '1') + '"><td>' + p.person + '</td><td>' + (p.entity || '') + '</td><td>' + (p.bu || '&mdash;') + '</td>' +
+        '<td>' + (off ? '<span class="pl" style="background:rgba(255,68,102,.12);color:#FF4466">inactive</span>' : '<span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">active</span>') + '</td>' +
+        '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmEdit(\'' + String(p.person).replace(/'/g, "\\'") + '\')">edit</button> ' +
+        '<button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmToggle(\'' + String(p.person).replace(/'/g, "\\'") + '\',' + off + ')">' + (off ? 'reactivate' : 'remove') + '</button></td></tr>';
+    });
+    host.innerHTML = h + '</table>';
+  }
+  function tmPost(body) {
+    return api('/charge-people', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function () { return api('/charge-history'); })
+      .then(function (h) { H = h; indexHistory(); applyAll(); })
+      .catch(function (e) { alert('Team editor: ' + e.message); });
+  }
+  function tmEdit(name) {
+    var p = (H.people || []).find(function (x) { return x.person === name; }) || {};
+    var bu = prompt('Business Unit for ' + name + ':', p.bu || ''); if (bu === null) return;
+    var en = prompt('Entity:', p.entity || 'Spark Talent'); if (en === null) return;
+    tmPost({ person: name, bu: bu, entity: en });
+  }
+  function tmToggle(name, wasOff) {
+    if (!wasOff && !confirm('Remove ' + name + ' from the active roster? History stays; they leave targets & active views.')) return;
+    tmPost({ person: name, op: wasOff ? 'activate' : 'deactivate' });
+  }
+  function tmAdd() {
+    var nm = prompt('Member full name:'); if (!nm) return;
+    var bu = prompt('Business Unit:', 'MI Metro'); if (bu === null) return;
+    tmPost({ person: nm, bu: bu });
+  }
+
     function freezeWeek() {
     if (!curIso) return;
     if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books? (Contract side; admins only)')) return;
@@ -1323,7 +1369,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
