@@ -1223,7 +1223,7 @@ window.SPARK_LIVE = (function () {
       .catch(function (e) { if (String(e.message) === 'signin') throw e; })
       .then(function () {
         if (histPerson[iso]) return;
-        return api('/dh-batch?weekEnding=' + iso).then(function (d) { dhb[iso] = d; }).catch(function () {});
+        return api('/charge-dh?weekEnding=' + iso).then(function (d) { dhb[iso] = d; }).catch(function () {});
       })
       .then(function () {
         if (!needPrev || batches[prevIso(iso)]) return;
@@ -1262,7 +1262,7 @@ window.SPARK_LIVE = (function () {
   function dhPost(body) {
     body.week_ending = curIso;
     return api('/dh-override', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function () { delete dhb[curIso]; return api('/dh-batch?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
+      .then(function () { delete dhb[curIso]; return api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
       .catch(function (e) { alert('DH editor: ' + e.message); });
   }
   function dhEdit(i) {
