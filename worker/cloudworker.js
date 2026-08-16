@@ -5613,7 +5613,7 @@ var worker_default = {
           const c = String(company || "").toLowerCase(), e = String(employee || "") + " " + String(title || "");
           if (c.indexOf("cupertino") !== -1) return 0;
           if (entity === "Spark Companies" && /bpo/i.test(e + " " + c)) return 0;
-          if (entity === "Bolt Creative" && /content/i.test(e)) return 0;
+          if (entity === "Bolt Creative" && /content|social|media|creative|marketing/i.test(e + " " + c)) return 0;
           return 0.05;
         };
         const gt = await getGraphToken(env);
@@ -5702,6 +5702,35 @@ var worker_default = {
           if (k < 0 || k >= (n - paid)) continue;
           drops.push({ source: "manual", schedId: s.id, entity: s.entity, company: s.company, employee: s.employee, title: "", sales_rep: s.sales_rep || "", recruiter: s.recruiter || "", bu: s.bu || "", invoicing_type: s.interval, invoiced: null, burden: null, amount: r2s(total / n), internal: false, drop: (paid + k + 1) + " of " + n });
         }
+        // ── resolve tracker short names to roster full names (charge_people) ──
+        try {
+          const pplR = await sbService(env, "GET", "charge_people?select=person");
+          const roster = ((pplR.ok && pplR.data) || []).map((x) => String(x.person || ""));
+          const byFI = {}, byFirst = {};
+          roster.forEach((full) => {
+            const t = full.trim().split(/\s+/);
+            if (!t.length) return;
+            const f = t[0].toLowerCase();
+            const li = t.length > 1 ? t[t.length - 1][0].toLowerCase() : "";
+            const k = f + "|" + li;
+            byFI[k] = byFI[k] === void 0 ? full : null;
+            byFirst[f] = byFirst[f] === void 0 ? full : null;
+          });
+          const resolve = (nm) => {
+            const s = String(nm || "").trim();
+            if (!s || /^house$/i.test(s)) return s;
+            if (roster.indexOf(s) !== -1) return s;
+            const t = s.split(/\s+/);
+            if (t.length === 2 && t[1].replace(".", "").length === 1) {
+              const hit = byFI[t[0].toLowerCase() + "|" + t[1][0].toLowerCase()];
+              if (hit) return hit;
+            }
+            if (t.length === 1) { const hit = byFirst[t[0].toLowerCase()]; if (hit) return hit; }
+            if (t.length === 2) { const hit = byFI[t[0].toLowerCase() + "|" + t[1][0].toLowerCase()]; if (hit) return hit; }
+            return s;
+          };
+          drops.forEach((d) => { d.sales_rep = resolve(d.sales_rep); d.recruiter = resolve(d.recruiter); });
+        } catch (e) {}
         // ── geographic BU: client state → territory → BU ──
         const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
         const stateBU = {};
