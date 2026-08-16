@@ -5854,6 +5854,15 @@ var worker_default = {
     // The roster (charge_people) is the authority for who's active and which
     // BU/entity each internal member belongs to.
     // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/charge-admin-check") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      return json({ ok: true, admin: MAP_ADMINS.indexOf(email) !== -1 }, 200, origin);
+    }
+
     if (url.pathname === "/charge-people") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
