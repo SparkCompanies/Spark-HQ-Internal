@@ -955,6 +955,7 @@ window.SPARK_LIVE = (function () {
   var MOCK = JSON.parse(JSON.stringify(D));
   var sb = null, batches = {}, curIso = null, loading = false;
   var H = null;            // /charge-history payload
+  var dhb = {};            // /dh-batch payloads for live weeks
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
@@ -1074,8 +1075,20 @@ window.SPARK_LIVE = (function () {
   }
   function pweek(we) {
     if (histPerson[we]) return histPerson[we];
-    if (batches[we]) return engineWeek(batches[we]);
-    return {};
+    var base = batches[we] ? engineWeek(batches[we]) : {};
+    var d = dhb[we];
+    if (d && d.byPerson) Object.keys(d.byPerson).forEach(function (n) {
+      var x = d.byPerson[n];
+      var p = base[n] || (base[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
+      p.sales += x.sales; p.fd += x.fd; p.rec += x.rec; p.tt += x.tt;
+    });
+    return base;
+  }
+  function entCh(we, unit) {
+    var v = unitVal(we, unit);
+    var d = dhb[we];
+    if (d && !histPerson[we]) { if (d.byEntity && d.byEntity[unit]) v += d.byEntity[unit]; if (d.byBU && d.byBU[unit]) v += d.byBU[unit]; }
+    return v;
   }
   function weeksThrough(cur) {
     var set = {};
@@ -1098,17 +1111,17 @@ window.SPARK_LIVE = (function () {
 
     D.weeks = isoList.map(function (w) {
       var o = { we: shortWe(w) };
-      Object.keys(allUnits).forEach(function (u) { var v = unitVal(w, u); if (v) o[u] = v; });
-      ENT_KEYS.forEach(function (u) { if (o[u] == null) o[u] = unitVal(w, u); });
+      Object.keys(allUnits).forEach(function (u) { var v = entCh(w, u); if (v) o[u] = v; });
+      ENT_KEYS.forEach(function (u) { if (o[u] == null) o[u] = entCh(w, u); });
       return o;
     });
 
     var uinfo = {}; (H && H.units || []).forEach(function (u) { uinfo[u.unit] = u; });
     D.ent = ENT_KEYS.map(function (n) {
-      var ch = unitVal(curIso, n), lw = unitVal(prev, n);
+      var ch = entCh(curIso, n), lw = entCh(prev, n);
       var ath = uinfo[n] && uinfo[n].ath != null ? Number(uinfo[n].ath) : 0;
       var athD = (uinfo[n] && uinfo[n].ath_we) || '';
-      isoList.forEach(function (w) { var v = unitVal(w, n); if (v > ath) { ath = v; athD = labelWe(w); } });
+      isoList.forEach(function (w) { var v = entCh(w, n); if (v > ath) { ath = v; athD = labelWe(w); } });
       return { n: n, ch: ch, ud: ch - lw, lw: lw, ath: Math.max(ath, 1), athD: athD || '—' };
     }).sort(function (a, b) { return b.ch - a.ch; });
 
@@ -1166,9 +1179,17 @@ window.SPARK_LIVE = (function () {
       });
       D.annT = {};
       (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') D.annT[t.unit] = Number(t.amount); });
-      D.dh = (H.dh || []).map(function (r) {
-        return { en: r.entity, bu: r.bu, cl: r.company, sr: r.sales_rep, rc: r.recruiter, ch: Math.round(Number(r.charge) || 0), wk: Number(r.week_num) || 0, of: Number(r.of_weeks) || 0, rem: Number(r.weeks_remaining) || 0, emp: r.employee, st: (Number(r.weeks_remaining) || 0) > 0 ? 'active' : 'done' };
-      });
+      var dcur = dhb[curIso];
+      if (!official && dcur && dcur.drops && dcur.drops.length) {
+        D.dh = dcur.drops.map(function (d) {
+          var wk = parseInt(d.drop, 10) || 1, of = parseInt(String(d.drop).split('of')[1], 10) || 1;
+          return { en: d.entity, bu: d.bu, cl: d.company + (d.split ? ' · split' : ''), sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: Math.round(d.amount), wk: wk, of: of, rem: d.remaining, emp: d.employee, st: d.remaining > 0 ? 'active' : 'done' };
+        });
+      } else {
+        D.dh = (H.dh || []).map(function (r) {
+          return { en: r.entity, bu: r.bu, cl: r.company, sr: r.sales_rep, rc: r.recruiter, ch: Math.round(Number(r.charge) || 0), wk: Number(r.week_num) || 0, of: Number(r.of_weeks) || 0, rem: Number(r.weeks_remaining) || 0, emp: r.employee, st: (Number(r.weeks_remaining) || 0) > 0 ? 'active' : 'done' };
+        });
+      }
       D.bda = MOCK.bda; D.cbd = MOCK.cbd;
     }
 
@@ -1182,9 +1203,12 @@ window.SPARK_LIVE = (function () {
     try { heroHover(); } catch (e) {}
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
+    try { if (!official && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
     var tag = official ? 'OFFICIAL' : 'LIVE';
     var pay = (b0 && b0.payables) || {};
-    setStatus(tag + ' · ' + labelWe(curIso) + (pay.sheet && !official ? ' · payables merged' : ''), official ? '#FFC800' : '#00FF88');
+    var dcs = dhb[curIso];
+    var dhTxt = !official && dcs ? ' · DH $' + Math.round(dcs.total).toLocaleString() + (dcs.intake && dcs.intake.created ? ' · ' + dcs.intake.created + ' new start(s) — verify billing type' : '') : '';
+    setStatus(tag + ' · ' + labelWe(curIso) + (pay.sheet && !official ? ' · payables merged' : '') + dhTxt, official ? '#FFC800' : '#00FF88');
   }
 
   function selectWeek(iso) {
@@ -1197,6 +1221,10 @@ window.SPARK_LIVE = (function () {
       .then(function (d) { batches[iso] = d; })
       .catch(function (e) { if (String(e.message) === 'signin') throw e; })
       .then(function () {
+        if (histPerson[iso]) return;
+        return api('/dh-batch?weekEnding=' + iso).then(function (d) { dhb[iso] = d; }).catch(function () {});
+      })
+      .then(function () {
         if (!needPrev || batches[prevIso(iso)]) return;
         return api('/charge-batch?weekEnding=' + prevIso(iso)).then(function (d) { batches[prevIso(iso)] = d; }).catch(function () {});
       })
@@ -1208,7 +1236,61 @@ window.SPARK_LIVE = (function () {
       });
   }
 
-  function freezeWeek() {
+
+  // ── DH EDITOR (admin-gated server-side; UI for add/edit/hide) ──
+  function dhEd() {
+    var dcur = dhb[curIso];
+    var rows = (dcur && dcur.drops) || [];
+    var host = document.getElementById('lvDhEd');
+    if (!host) {
+      var p = document.getElementById('p-dh'); if (!p) return;
+      host = document.createElement('div'); host.id = 'lvDhEd'; host.style.cssText = 'margin-top:14px';
+      p.appendChild(host);
+    }
+    var h = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="color:var(--gold)">DH EDITOR &middot; ' + labelWe(curIso) + '</b>' +
+      '<button class="fb" onclick="SPARK_LIVE.dhAdd()">+ Add Direct Hire</button><span style="font-size:10px;color:var(--dm)">Edits live in the agent &mdash; tracker files are never modified. Admin-gated.</span></div>' +
+      '<table style="width:100%;font-size:11px;border-collapse:collapse">' +
+      '<tr style="color:var(--dm);text-align:left"><th>Entity</th><th>Client</th><th>Employee</th><th>AM</th><th>Recruiter</th><th>BU</th><th style="text-align:right">Charge</th><th></th></tr>';
+    rows.forEach(function (d, i) {
+      h += '<tr style="border-top:1px solid var(--bd)"><td>' + (d.entity || '') + '</td><td>' + (d.company || '') + (d.split ? ' <span class="pl" style="background:rgba(255,200,0,.12);color:var(--gold)">SPLIT</span>' : '') + (d.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + '</td><td>' + (d.employee || '') + '</td><td>' + (d.sales_rep || '') + '</td><td>' + (d.recruiter || '') + '</td><td>' + (d.bu || '&mdash;') + '</td>' +
+        '<td style="text-align:right">$' + Math.round(d.amount).toLocaleString() + '</td>' +
+        '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhEdit(' + i + ')">edit</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhHide(' + i + ')">hide</button></td></tr>';
+    });
+    host.innerHTML = h + '</table>';
+  }
+  function dhPost(body) {
+    body.week_ending = curIso;
+    return api('/dh-override', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function () { delete dhb[curIso]; return api('/dh-batch?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
+      .catch(function (e) { alert('DH editor: ' + e.message); });
+  }
+  function dhEdit(i) {
+    var d = (dhb[curIso].drops || [])[i]; if (!d) return;
+    var amt = prompt('Charge amount for ' + d.employee + ' @ ' + d.company + ':', Math.round(d.amount));
+    if (amt === null) return;
+    var bu = prompt('Business Unit:', d.bu || ''); if (bu === null) return;
+    var am = prompt('AM / Sales Rep:', d.sales_rep || ''); if (am === null) return;
+    var rc = prompt('Recruiter:', d.recruiter || ''); if (rc === null) return;
+    var cl = prompt('Client:', d.company || ''); if (cl === null) return;
+    dhPost({ action: 'patch', match_entity: d.entity, match_company: d.company, match_employee: d.employee, fields: { amount: Number(amt), bu: bu, sales_rep: am, recruiter: rc, company: cl } });
+  }
+  function dhHide(i) {
+    var d = (dhb[curIso].drops || [])[i]; if (!d) return;
+    if (!confirm('Hide ' + d.employee + ' @ ' + d.company + ' from ' + labelWe(curIso) + '? (Tracker file untouched)')) return;
+    dhPost({ action: 'hide', match_entity: d.entity, match_company: d.company, match_employee: d.employee });
+  }
+  function dhAdd() {
+    var cl = prompt('Client:'); if (!cl) return;
+    var emp = prompt('Employee / description:'); if (!emp) return;
+    var amt = prompt('Charge amount (post-burden, what hits the report):'); if (!amt) return;
+    var en = prompt('Entity:', 'Spark Talent'); if (en === null) return;
+    var bu = prompt('Business Unit (blank = geographic):', ''); if (bu === null) return;
+    var am = prompt('AM / Sales Rep:', ''); if (am === null) return;
+    var rc = prompt('Recruiter:', ''); if (rc === null) return;
+    dhPost({ op: 'add_manual', row: { company: cl, employee: emp, charge: Number(amt), entity: en, bu: bu, sales_rep: am, recruiter: rc, interval: 'lump', installments: 1, first_we: curIso } });
+  }
+
+    function freezeWeek() {
     if (!curIso) return;
     if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books? (Contract side; admins only)')) return;
     setStatus('FREEZING ' + labelWe(curIso), '#FFC800');
@@ -1240,7 +1322,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
