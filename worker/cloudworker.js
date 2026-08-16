@@ -5877,6 +5877,15 @@ var worker_default = {
       ["bu","entity","role"].forEach((k) => { if (body[k] !== void 0) row[k] = body[k]; });
       if (!row.entity && row.bu) row.entity = row.bu === "Ignite Search" ? "Ignite Search" : (row.bu === "BPO" ? "Spark Companies" : "Spark Talent");
       const r = await sbService(env, "POST", "charge_people?on_conflict=person", [row]);
+      if (r.ok && body.targets && typeof body.targets === "object") {
+        const unit = (r.data && r.data[0] && r.data[0].bu) || row.bu || "";
+        if (unit) {
+          const map = { q3i: ["q3", "igniter"], ai: ["annual", "igniter"], q3c: ["q3", "contest"], ac: ["annual", "contest"] };
+          const trows = [];
+          Object.keys(map).forEach((k) => { const v = Number(body.targets[k]); if (isFinite(v) && v > 0) trows.push({ person, unit, period: map[k][0], kind: map[k][1], amount: v }); });
+          if (trows.length) await sbService(env, "POST", "charge_person_targets?on_conflict=person,unit,period,kind", trows);
+        }
+      }
       return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
     }
 
