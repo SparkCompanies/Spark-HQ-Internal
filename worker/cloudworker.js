@@ -5579,7 +5579,7 @@ var worker_default = {
     // and grown weekly by /charge-snapshot, which freezes the live engine's week.
     // ══════════════════════════════════════════════════════════════════════
     // ══════════════════════════════════════════════════════════════════════
-    // DIRECT HIRE — ENGINE v2 (tracker-live): /dh-batch
+    // DIRECT HIRE — ENGINE v2 (tracker-live): /charge-dh
     // Reads the week's column straight from all seven live tracker workbooks
     // (credit notes & mid-week edits included), applies overrides (editor),
     // manual adds, split rules (deal counted exactly once), burden rules
@@ -5587,7 +5587,7 @@ var worker_default = {
     // geographic BU via terr_territories, and cross-checks SF perm starts.
     // Week rule: WE Sunday S owns tracker column labeled Monday S+1.
     // ══════════════════════════════════════════════════════════════════════
-    if (url.pathname === "/dh-batch") {
+    if (url.pathname === "/charge-dh") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       const weekEnding = (url.searchParams.get("weekEnding") || "").trim();
@@ -5997,7 +5997,7 @@ var worker_default = {
         // merge DH drops into the freeze (self-fetch dh-batch)
         let dhInfo = null;
         try {
-          const dR = await fetch(url.origin + "/dh-batch?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
+          const dR = await fetch(url.origin + "/charge-dh?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
           const dj = await dR.json();
           if (dj && dj.ok) {
             dhInfo = { total: dj.total, drops: dj.drops.length };
