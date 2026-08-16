@@ -1096,7 +1096,7 @@ window.SPARK_LIVE = (function () {
       var seen = {};
       (row.credits || []).forEach(function (c) {
         var n = c.recipient; if (!n) return;
-        var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
+        var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0, live: 1 });
         if (!seen[n]) { p.tt += row.charge; seen[n] = 1; }
         var t = String(c.type || '').toLowerCase();
         if (t.indexOf('full') !== -1) p.fd += row.charge;
@@ -1175,7 +1175,7 @@ window.SPARK_LIVE = (function () {
       D.cST.forEach(function (c) { (D.cEnt[c.en] = D.cEnt[c.en] || []).push({ cl: c.cl, bu: 'Assignment', ch: c.ch, ud: c.ud, ath: c.ath }); });
     }
 
-    var rawOf = function (p) { return p ? (p.raw != null ? p.raw : (p.fd || 0) + ((p.sales || 0) + (p.rec || 0)) / 2) : 0; };
+    var rawOf = function (p) { if (!p) return 0; if (p.raw != null) return p.raw; var s = p.sales || 0, f = p.fd || 0, r = p.rec || 0; return p.live ? f + (s + r) / 2 : (s + f + r) / 2; };
     var names = {};
     Object.keys(master).forEach(function (n) { if (master[n].active !== false) names[n] = 1; });
     var curMonth = +curIso.split('-')[1];
