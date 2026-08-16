@@ -5578,6 +5578,94 @@ var worker_default = {
     // History tables are loaded from the running Excel report (charge_history.sql)
     // and grown weekly by /charge-snapshot, which freezes the live engine's week.
     // ══════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
+    // DIRECT HIRE — PROBE: /dh-probe
+    // Read-only recon of (1) the SF Direct Hire report and (2) the seven
+    // manual DH tracker workbooks, so the DH engine is built on verified shapes.
+    // Optional params: &report=<id>  &tracker=<index>&sheet=<name>&range=A1:P40
+    // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/dh-probe") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const out = { ok: true, at: new Date().toISOString() };
+      // ── 1) Salesforce DH report: describe + run ──
+      const reportId = (url.searchParams.get("report") || "00OV50000042t1JMAQ").replace(/[^a-zA-Z0-9]/g, "");
+      try {
+        const tok = await getSalesforceToken(env);
+        const H = { "Authorization": "Bearer " + tok.access_token, "Accept": "application/json" };
+        const dR = await fetch(tok.instance_url + "/services/data/v60.0/analytics/reports/" + reportId + "/describe", { headers: H });
+        const dD = await dR.json();
+        if (!dR.ok) throw new Error(JSON.stringify(dD).slice(0, 200));
+        const meta = dD.reportMetadata || {};
+        const cols = {};
+        const detCols = meta.detailColumns || [];
+        const extended = (dD.reportExtendedMetadata && dD.reportExtendedMetadata.detailColumnInfo) || {};
+        detCols.forEach((c) => { cols[c] = (extended[c] && extended[c].label) || c; });
+        out.sfReport = {
+          name: meta.name, reportType: meta.reportType && meta.reportType.type,
+          detailColumns: cols,
+          filters: (meta.reportFilters || []).map((f) => f.column + " " + f.operator + " " + f.value),
+          dateFilter: meta.standardDateFilter || null
+        };
+        const rR = await fetch(tok.instance_url + "/services/data/v60.0/analytics/reports/" + reportId + "?includeDetails=true", { headers: H });
+        const rD = await rR.json();
+        if (!rR.ok) throw new Error(JSON.stringify(rD).slice(0, 200));
+        const fm = rD.factMap || {};
+        let rows = [];
+        for (const k of Object.keys(fm)) {
+          if (fm[k] && Array.isArray(fm[k].rows) && fm[k].rows.length) { rows = fm[k].rows; break; }
+        }
+        out.sfReport.sampleRows = rows.slice(0, 8).map((r) => (r.dataCells || []).map((c) => (c.label !== void 0 ? c.label : c.value)));
+        out.sfReport.rowCount = rows.length;
+        out.sfReport.allData = rD.allData;
+      } catch (e) { out.sfError = String(e.message || e); }
+      // ── 2) Tracker workbooks via Graph share resolution ──
+      const TRACKERS = [
+        { name: "Master (2024 Direct Hire Tracker Master)", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BDF08D9CB-5CF1-4744-9075-619F14A9F552%7D&file=2024%20Direct%20Hire%20Tracker%20Master.xlsx&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Packaging", share: "https://sparktalent.sharepoint.com/:x:/r/sites/SparkPackagingTeamSite/_layouts/15/Doc.aspx?sourcedoc=%7BC44470F8-DCDB-4F3E-85B6-77BD869BFE9B%7D&file=Packaging-%202024%20DH%20Tracker%20Template.xlsx&action=default&mobileredirect=true&wdsle=0&CID=897E83FE-F4C8-4BFE-9EE5-4FB5FA115F50&wdLOR=c551251C0-BE60-4FEB-B4C8-714E2DC31E12" },
+        { name: "JJP", share: "https://sparktalent.sharepoint.com/:x:/r/sites/JohnJosephPartnersLLC/_layouts/15/Doc.aspx?sourcedoc=%7BE9CA7E68-DBC8-4F6E-B05C-63034B37BB33%7D&file=JJP-%202024%20DH%20Tracker%20Template.xlsx&wdLOR=cF6BF3837-577D-4480-AE57-6FB1A2121FC8&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Flex", share: "https://sparktalent.sharepoint.com/:x:/r/sites/FlexWorkforceSolutions/_layouts/15/Doc.aspx?sourcedoc=%7BF5371A1C-0C10-4B1F-A090-55B57B95516C%7D&file=Flex-%202024%20DH%20Tracker.xlsx&wdLOR=cB7D5741D-ABB1-455C-9750-1CC6D43D7DB1&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Ignite", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BF52BF0E1-3985-4FA2-B8C3-C063279E71B5%7D&file=Ignite-%202024%20DH%20Tracker.xlsx&wdLOR=c49888525-0F93-458A-B3E2-61064DF907B1&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Spark Companies", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7B0542B573-F958-41FF-9BB1-4E5CB04CF363%7D&file=Spark%20Companies%202024%20DH%20Tracker.xlsx&wdLOR=c81E484C9-98DD-453A-9B76-637D59E3F685&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Bolt", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BC6BA04FD-8A6E-4D2F-B5A1-224A9880F10A%7D&file=Bolt-%202025%20DH%20Tracker%20-%20Copy.xlsx&action=default&mobileredirect=true&CID=72A32F3D-08A6-476E-AAF7-9CF051163281&wdLOR=cC295F8FA-ECD8-496A-AEA7-CBBA88BF8E91" }
+      ];
+      const onlyIdx = url.searchParams.get("tracker");
+      const wantSheet = url.searchParams.get("sheet");
+      const wantRange = (url.searchParams.get("range") || "A1:P40").replace(/[^A-Za-z0-9:]/g, "");
+      out.trackers = [];
+      try {
+        const gt = await getGraphToken(env);
+        const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
+        for (let i = 0; i < TRACKERS.length; i++) {
+          if (onlyIdx !== null && onlyIdx !== "" && Number(onlyIdx) !== i) continue;
+          const t = { i, name: TRACKERS[i].name };
+          try {
+            const shareTok = "u!" + btoa(TRACKERS[i].share).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+            const sR = await fetch("https://graph.microsoft.com/v1.0/shares/" + shareTok + "/driveItem?$select=id,name,parentReference", { headers: GH });
+            const sD = await sR.json();
+            if (!sR.ok) throw new Error((sD.error && sD.error.message) || ("share " + sR.status));
+            t.file = sD.name;
+            const B = "https://graph.microsoft.com/v1.0/drives/" + sD.parentReference.driveId + "/items/" + sD.id;
+            const wR = await fetch(B + "/workbook/worksheets?$select=name,visibility", { headers: GH });
+            const wD = await wR.json();
+            if (!wR.ok) throw new Error((wD.error && wD.error.message) || ("sheets " + wR.status));
+            t.sheets = (wD.value || []).map((x) => x.name);
+            const pick = wantSheet && t.sheets.indexOf(wantSheet) !== -1 ? wantSheet : t.sheets[t.sheets.length - 1];
+            if (pick) {
+              const safe = encodeURIComponent(pick.replace(/'/g, "''"));
+              const rR = await fetch(B + "/workbook/worksheets('" + safe + "')/range(address='" + wantRange + "')?$select=values", { headers: GH });
+              const rD = await rR.json();
+              if (!rR.ok) throw new Error((rD.error && rD.error.message) || ("range " + rR.status));
+              t.sampledSheet = pick;
+              t.sample = (rD.values || []).filter((row) => row.some((c) => c !== null && c !== "" && c !== 0)).slice(0, 14);
+            }
+          } catch (e) { t.error = String(e.message || e); }
+          out.trackers.push(t);
+        }
+      } catch (e) { out.graphError = String(e.message || e); }
+      return json(out, 200, origin);
+    }
+
     if (url.pathname === "/charge-history") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
