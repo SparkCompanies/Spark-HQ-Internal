@@ -1193,7 +1193,7 @@ window.SPARK_LIVE = (function () {
       });
       var c = cw[n] || { sales: 0, fd: 0, rec: 0, tt: 0 }, l = pv[n] || { tt: 0 };
       var m = master[n] || {};
-      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: Math.round(cum), mo: Math.round(mo), q: Math.round(q), cumRaw: Math.round(cumRaw), moRaw: Math.round(moRaw), qRaw: Math.round(qRaw), wkRaw: Math.round(rawOf(c)), rec: Math.round(c.rec), am: Math.round(c.sales), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(rawOf(c) - rawOf(l)) };
+      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: Math.round(cumRaw), mo: Math.round(moRaw), q: Math.round(qRaw), cumRaw: Math.round(cumRaw), moRaw: Math.round(moRaw), qRaw: Math.round(qRaw), wkRaw: Math.round(rawOf(c)), rec: Math.round(c.rec), am: Math.round(c.sales), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(rawOf(c) - rawOf(l)) };
     }).sort(function (a, b) { return b.cumRaw - a.cumRaw; });
 
     D.iw = {};
