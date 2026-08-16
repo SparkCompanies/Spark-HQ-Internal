@@ -1207,7 +1207,8 @@ window.SPARK_LIVE = (function () {
     var tag = official ? 'OFFICIAL' : 'LIVE';
     var pay = (b0 && b0.payables) || {};
     var dcs = dhb[curIso];
-    var dhTxt = !official && dcs ? ' · DH $' + Math.round(dcs.total).toLocaleString() + (dcs.intake && dcs.intake.created ? ' · ' + dcs.intake.created + ' new start(s) — verify billing type' : '') : '';
+    var dhMiss = dcs && dcs.intake && dcs.intake.missingFromTrackers ? dcs.intake.missingFromTrackers.length : 0;
+    var dhTxt = !official && dcs ? ' · DH $' + Math.round(Number(dcs.total) || 0).toLocaleString() + (dcs.weekCol ? '' : ' (old engine — redeploy worker)') + (dhMiss ? ' · ' + dhMiss + ' SF start(s) missing from trackers' : '') : '';
     setStatus(tag + ' · ' + labelWe(curIso) + (pay.sheet && !official ? ' · payables merged' : '') + dhTxt, official ? '#FFC800' : '#00FF88');
   }
 
