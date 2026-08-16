@@ -296,13 +296,13 @@ var TABS=[
  {id:'pulse',l:'Pulse',ic:'M22 12h-4l-3 9L9 3l-3 9H2'},
  {id:'hier',l:'Company &rarr; Unit &rarr; Person',ic:'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z'},
  {id:'arena',l:'Rankings Arena',ic:'M8 21h8m-4-4v4m-4.5-8a4.5 4.5 0 01-2.5-8.2V3h14v1.8a4.5 4.5 0 01-2.5 8.2M12 3v10'},
- {id:'lb',l:'Leaderboard',ic:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
+ {id:'lb',l:'Rankings',ic:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
  {id:'raw',l:'Contractors',ic:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'},
  {id:'cl',l:'Clients',ic:'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'},
  {id:'dh',l:'Direct Hires',ic:'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'},
  {id:'tg',l:'Targets & Pacing',ic:'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z'},
 ];
-var TT={pulse:'Pulse',arena:'Rankings Arena',hier:'Company / Unit / Person',lb:'Leaderboard',raw:'Contractors',cl:'Clients',dh:'Direct Hires',tg:'Targets & Pacing'};
+var TT={pulse:'Pulse',arena:'Rankings Arena',hier:'Company / Unit / Person',lb:'Rankings',raw:'Contractors',cl:'Clients',dh:'Direct Hires',tg:'Targets & Pacing'};
 var cur='pulse';
 function nav(){
   document.getElementById('nav').innerHTML=TABS.map(function(t){
@@ -1043,7 +1043,7 @@ window.SPARK_LIVE = (function () {
     });
     (H.personWeeks || []).forEach(function (r) {
       var w = histPerson[r.week_ending] || (histPerson[r.week_ending] = {});
-      w[r.person] = { sales: Number(r.sales) || 0, fd: Number(r.fd) || 0, rec: Number(r.rec) || 0, tt: Number(r.tt) || 0 };
+      w[r.person] = { sales: Number(r.sales) || 0, fd: Number(r.fd) || 0, rec: Number(r.rec) || 0, tt: Number(r.tt) || 0, raw: r.raw == null ? null : Number(r.raw) };
     });
     (H.people || []).forEach(function (p) { master[p.person] = p; });
   }
@@ -1142,23 +1142,24 @@ window.SPARK_LIVE = (function () {
       D.cST.forEach(function (c) { (D.cEnt[c.en] = D.cEnt[c.en] || []).push({ cl: c.cl, bu: 'Assignment', ch: c.ch, ud: c.ud, ath: c.ath }); });
     }
 
+    var rawOf = function (p) { return p ? (p.raw != null ? p.raw : (p.fd || 0) + ((p.sales || 0) + (p.rec || 0)) / 2) : 0; };
     var names = {};
-    isoList.forEach(function (w) { Object.keys(pweek(w)).forEach(function (n) { names[n] = 1; }); });
-    Object.keys(master).forEach(function (n) { names[n] = 1; });
+    Object.keys(master).forEach(function (n) { if (master[n].active !== false) names[n] = 1; });
     var curMonth = +curIso.split('-')[1];
     var cw = pweek(curIso), pv = pweek(prev);
     D.people = Object.keys(names).map(function (n) {
-      var cum = 0, q = 0, mo = 0;
+      var cum = 0, q = 0, mo = 0, cumRaw = 0, qRaw = 0, moRaw = 0;
       isoList.forEach(function (w) {
         var p = pweek(w)[n]; if (!p) return;
-        cum += p.tt;
-        if (+w.split('-')[1] >= 7) q += p.tt;
-        if (+w.split('-')[1] === curMonth) mo += p.tt;
+        var rw = rawOf(p);
+        cum += p.tt; cumRaw += rw;
+        if (+w.split('-')[1] >= 7) { q += p.tt; qRaw += rw; }
+        if (+w.split('-')[1] === curMonth) { mo += p.tt; moRaw += rw; }
       });
       var c = cw[n] || { sales: 0, fd: 0, rec: 0, tt: 0 }, l = pv[n] || { tt: 0 };
       var m = master[n] || {};
-      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: Math.round(cum), mo: Math.round(mo), q: Math.round(q), rec: Math.round(c.rec), am: Math.round(c.sales), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(c.tt - l.tt) };
-    }).sort(function (a, b) { return b.cum - a.cum; });
+      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: Math.round(cum), mo: Math.round(mo), q: Math.round(q), cumRaw: Math.round(cumRaw), moRaw: Math.round(moRaw), qRaw: Math.round(qRaw), wkRaw: Math.round(rawOf(c)), rec: Math.round(c.rec), am: Math.round(c.sales), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(rawOf(c) - rawOf(l)) };
+    }).sort(function (a, b) { return b.cumRaw - a.cumRaw; });
 
     D.iw = {};
     Object.keys(names).forEach(function (n) {
@@ -1350,7 +1351,49 @@ window.SPARK_LIVE = (function () {
       .catch(function (e) { setStatus('FREEZE: ' + String(e.message).slice(0, 44), '#FF4466'); });
   }
 
-  function boot(force) {
+
+  // ── RANKINGS BOARD: override Allie's rLB with the raw-charge column regime ──
+  var lbQ = '';
+  window.rLB = function () {
+    var el = document.getElementById('p-lb'); if (!el) return;
+    if (typeof lbS === 'undefined' || !lbS || ['cumRaw','wkRaw','moRaw','qRaw','am','rec','fd','wow'].indexOf(lbS.f) === -1) lbS = { f: 'cumRaw', d: 'desc' };
+    var list = D.people.slice();
+    if (typeof lbE !== 'undefined' && lbE !== 'All') list = list.filter(function (p) { return p.en === lbE; });
+    if (lbQ) { var qq = lbQ.toLowerCase(); list = list.filter(function (p) { return (p.n + ' ' + p.rl + ' ' + p.bu).toLowerCase().indexOf(qq) !== -1; }); }
+    list.sort(function (x, y) { return lbS.d === 'desc' ? (y[lbS.f] || 0) - (x[lbS.f] || 0) : (x[lbS.f] || 0) - (y[lbS.f] || 0); });
+    var ents = []; D.people.forEach(function (p) { if (ents.indexOf(p.en) < 0) ents.push(p.en); });
+    var h = '<div class="st">Rankings &mdash; ' + labelWe(curIso) + '</div>';
+    h += '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">';
+    ['All'].concat(ents).forEach(function (e) { h += '<button class="fb' + ((typeof lbE !== 'undefined' ? lbE : 'All') === e ? ' on' : '') + '" onclick="lbE=\'' + esc(e) + '\';rLB()">' + e + '</button>'; });
+    h += '<span style="flex:1"></span><input class="srch" id="lb-s" placeholder="Search name, role, BU..." /></div>';
+    h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th><th>Name</th><th>Business Unit</th>';
+    [['cumRaw','Cumulative Raw'],['wkRaw','Raw (Wk)'],['moRaw','Monthly Raw'],['qRaw','Quarterly Raw'],['am','Account Manager'],['rec','Recruiter'],['fd','Full Desk'],['wow','WoW']].forEach(function (cd) {
+      var ar = lbS.f === cd[0] ? (lbS.d === 'desc' ? ' &#9662;' : ' &#9652;') : '';
+      h += '<th class="r" onclick="lbS={f:\'' + cd[0] + '\',d:lbS.f===\'' + cd[0] + '\'&&lbS.d===\'desc\'?\'asc\':\'desc\'};rLB()">' + cd[1] + ar + '</th>';
+    });
+    h += '</tr></thead><tbody>';
+    list.forEach(function (p, i) {
+      var c = ecol(p.en);
+      h += '<tr onclick="openPerson(\'' + esc(p.n) + '\')" style="cursor:pointer">';
+      h += '<td>' + bdg(i) + '</td>';
+      h += '<td><div style="font-weight:600;font-size:12px">' + p.n + '</div><div style="font-size:10px;color:var(--dm)">' + (p.rl || '&mdash;') + '</div></td>';
+      h += '<td>' + pill(p.en, c) + (p.bu ? '<span style="font-size:10px;color:var(--dm);margin-left:5px">' + p.bu + '</span>' : '') + '</td>';
+      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (p.cumRaw >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(p.cumRaw) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (p.wkRaw > 0 ? 'var(--y)' : p.wkRaw < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.wkRaw ? fmt(p.wkRaw) : '--') + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + fK(p.moRaw) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + fK(p.qRaw) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (p.am > 0 ? 'var(--blu)' : p.am < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.am ? fmt(p.am) : '--') + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (p.rec > 0 ? 'var(--tea)' : p.rec < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.rec ? fmt(p.rec) : '--') + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (p.fd > 0 ? 'var(--y)' : p.fd < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.fd ? fmt(p.fd) : '--') + '</td>';
+      h += '<td class="r">' + dl(p.wow) + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    el.innerHTML = h;
+    var s = document.getElementById('lb-s');
+    if (s) { s.value = lbQ; s.oninput = function () { lbQ = this.value; var pos = this.selectionStart; rLB(); var s2 = document.getElementById('lb-s'); if (s2) { s2.focus(); try { s2.setSelectionRange(pos, pos); } catch (e) {} } }; }
+  };
+
+    function boot(force) {
     if (!document.getElementById('lvStatus')) injectUI();
     noteAndBadges();
     setStatus('CONNECTING', '#FFC800');
