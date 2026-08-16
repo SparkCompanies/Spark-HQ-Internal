@@ -5845,6 +5845,37 @@ var worker_default = {
       return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // TEAM EDITOR: /charge-people — GET roster · POST admin upsert/deactivate
+    // The roster (charge_people) is the authority for who's active and which
+    // BU/entity each internal member belongs to.
+    // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/charge-people") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      if (request.method === "GET") {
+        const r = await sbService(env, "GET", "charge_people?select=person,role,entity,bu,active&order=person.asc");
+        return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
+      }
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+      const person = String(body.person || "").trim();
+      if (!person) return json({ error: "person required" }, 400, origin);
+      if (body.op === "deactivate" || body.op === "activate") {
+        const r = await sbService(env, "PATCH", "charge_people?person=eq." + encodeURIComponent(person), { active: body.op === "activate" });
+        return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
+      }
+      const row = { person, active: true };
+      ["bu","entity","role"].forEach((k) => { if (body[k] !== void 0) row[k] = body[k]; });
+      if (!row.entity && row.bu) row.entity = row.bu === "Ignite Search" ? "Ignite Search" : (row.bu === "BPO" ? "Spark Companies" : "Spark Talent");
+      const r = await sbService(env, "POST", "charge_people?on_conflict=person", [row]);
+      return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
+    }
+
     if (url.pathname === "/dh-schedule") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
