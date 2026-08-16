@@ -1552,12 +1552,14 @@ window.SPARK_LIVE = (function () {
 
     function boot(force) {
     try {
-      if (typeof NV !== 'undefined' && Array.isArray(NV)) {
+      if (typeof TABS !== 'undefined' && Array.isArray(TABS)) {
         var _ord = ['pulse', 'arena', 'lb', 'cl', 'dh', 'raw', 'tg'];
-        var _nv = _ord.map(function (id) { return NV.find(function (x) { return x.id === id; }); }).filter(Boolean);
-        if (_nv.length === _ord.length) { NV.length = 0; _nv.forEach(function (x) { NV.push(x); }); }
-        var _r = NV.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
-        if (typeof TT !== 'undefined') TT.raw = 'Contract Team Members';
+        window.__settingsTab = TABS.find(function (x) { return x.id === 'hier'; }) || null;
+        var _nv = _ord.map(function (id) { return TABS.find(function (x) { return x.id === id; }); }).filter(Boolean);
+        if (_nv.length === _ord.length) { TABS.length = 0; _nv.forEach(function (x) { TABS.push(x); }); }
+        var _r = TABS.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
+        if (typeof TT !== 'undefined') { TT.raw = 'Contract Team Members'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
+        try { nav(); } catch (e2) {}
       }
     } catch (e) {}
     if (!document.getElementById('lvStatus')) injectUI();
@@ -1566,6 +1568,13 @@ window.SPARK_LIVE = (function () {
     var def = sundays(1)[0];
     getToken().then(function (tok) {
       if (!tok) { setStatus('SIGN IN VIA SPARK HQ, THEN CLICK HERE', '#FF4466'); return; }
+      api('/charge-admin-check').then(function (j) {
+        if (j.admin && window.__settingsTab && typeof TABS !== 'undefined' && !TABS.some(function (x) { return x.id === 'hier'; })) {
+          window.__settingsTab.l = 'Settings';
+          TABS.push(window.__settingsTab);
+          try { nav(); } catch (e) {}
+        }
+      }).catch(function () {});
       return api('/charge-history').then(function (h) {
         H = h; indexHistory();
         selectWeek(curIso && force ? curIso : def);
