@@ -5706,27 +5706,31 @@ var worker_default = {
         try {
           const pplR = await sbService(env, "GET", "charge_people?select=person");
           const roster = ((pplR.ok && pplR.data) || []).map((x) => String(x.person || ""));
-          const byFI = {}, byFirst = {};
-          roster.forEach((full) => {
+          const parsed = roster.map((full) => {
             const t = full.trim().split(/\s+/);
-            if (!t.length) return;
-            const f = t[0].toLowerCase();
-            const li = t.length > 1 ? t[t.length - 1][0].toLowerCase() : "";
-            const k = f + "|" + li;
-            byFI[k] = byFI[k] === void 0 ? full : null;
-            byFirst[f] = byFirst[f] === void 0 ? full : null;
+            return { full, first: (t[0] || "").toLowerCase(), li: t.length > 1 ? t[t.length - 1][0].toLowerCase() : "" };
           });
+          const uniq = (list) => (list.length === 1 ? list[0].full : null);
           const resolve = (nm) => {
             const s = String(nm || "").trim();
             if (!s || /^house$/i.test(s)) return s;
             if (roster.indexOf(s) !== -1) return s;
             const t = s.split(/\s+/);
-            if (t.length === 2 && t[1].replace(".", "").length === 1) {
-              const hit = byFI[t[0].toLowerCase() + "|" + t[1][0].toLowerCase()];
-              if (hit) return hit;
+            const f = (t[0] || "").toLowerCase();
+            const firstMatch = (p) => p.first === f || p.first.indexOf(f) === 0 || f.indexOf(p.first) === 0;
+            if (t.length >= 2 && t[1].replace(".", "").length >= 1) {
+              const li = t[1][0].toLowerCase();
+              const exact = uniq(parsed.filter((p) => p.first === f && p.li === li));
+              if (exact) return exact;
+              const pre = uniq(parsed.filter((p) => firstMatch(p) && p.li === li));
+              if (pre) return pre;
             }
-            if (t.length === 1) { const hit = byFirst[t[0].toLowerCase()]; if (hit) return hit; }
-            if (t.length === 2) { const hit = byFI[t[0].toLowerCase() + "|" + t[1][0].toLowerCase()]; if (hit) return hit; }
+            if (t.length === 1) {
+              const exact = uniq(parsed.filter((p) => p.first === f));
+              if (exact) return exact;
+              const pre = uniq(parsed.filter((p) => firstMatch(p)));
+              if (pre) return pre;
+            }
             return s;
           };
           drops.forEach((d) => { d.sales_rep = resolve(d.sales_rep); d.recruiter = resolve(d.recruiter); });
