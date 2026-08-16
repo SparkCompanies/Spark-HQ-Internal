@@ -151,7 +151,6 @@ body.tv .tvbar{display:block}
 @media(max-width:920px){.sb{width:60px}.sb-h,.sb-f,.ni span{display:none}.ni{justify-content:center;padding:10px}.g5,.g4{grid-template-columns:1fr 1fr}.g3,.g2{grid-template-columns:1fr}}
 </style>
 <style id="lightTheme">
-/* SPARK HQ LIGHT THEME - full override of hardcoded darks */
 body.light{--bg:#f6f5f1;--pn:#ffffff;--bd:#e6e3da;--tx:#17171b;--dm:#6f6c64;--mt:#a5a29a;--gold:#c79a06;--y:#a07708;--red:#c62828;--tea:#0c7d68;--blu:#2757c4;--org:#c05e12;--grn:#0c7d3f;}
 body.light{background:#f6f5f1!important;color:#17171b}
 body.light::after{display:none!important}
@@ -179,8 +178,7 @@ body.light .drb{background:rgba(20,20,26,.35)!important}
 body.light .cp,body.light #rawMenu{background:#ffffff!important;border-color:#dcd9d0!important;color:#17171b!important}
 body.light ::-webkit-scrollbar-thumb{background:#cfccc2}
 body.light ::-webkit-scrollbar-track{background:#efede6}
-</style>
-</head>
+</style></head>
 <body>
 
 <div class="sb">
@@ -327,12 +325,12 @@ var TABS=[
  {id:'hier',l:'Company &rarr; Unit &rarr; Person',ic:'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z'},
  {id:'arena',l:'Rankings Arena',ic:'M8 21h8m-4-4v4m-4.5-8a4.5 4.5 0 01-2.5-8.2V3h14v1.8a4.5 4.5 0 01-2.5 8.2M12 3v10'},
  {id:'lb',l:'Rankings',ic:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
- {id:'raw',l:'Assignment Team Members',ic:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'},
+ {id:'raw',l:'Contract Team Members',ic:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'},
  {id:'cl',l:'Clients',ic:'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'},
  {id:'dh',l:'Direct Hires',ic:'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'},
  {id:'tg',l:'Targets & Pacing',ic:'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z'},
 ];
-var TT={pulse:'Pulse',arena:'Rankings Arena',hier:'Company / Unit / Person',lb:'Rankings',raw:'Assignment Team Members',cl:'Clients',dh:'Direct Hires',tg:'Targets & Pacing'};
+var TT={pulse:'Pulse',arena:'Rankings Arena',hier:'Company / Unit / Person',lb:'Rankings',raw:'Contract Team Members',cl:'Clients',dh:'Direct Hires',tg:'Targets & Pacing'};
 var cur='pulse';
 function nav(){
   document.getElementById('nav').innerHTML=TABS.map(function(t){
@@ -380,7 +378,7 @@ function openPerson(name){
   var t=D.mt.find(function(x){return x.n===p.n});
   if(t&&(t.q3i||t.ai)){
     h+='<div class="cd" style="padding:18px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;margin-bottom:12px">Target Pacing</div>';
-    if(t.q3i){var qp=t.ytd/t.q3i*100;h+='<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dm);margin-bottom:4px"><span>Q3 Igniter</span><span class="m" style="font-weight:700;color:'+pC(qp)+'">'+Math.round(qp)+'%</span></div><div style="height:8px;background:var(--ft);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,qp)+'%;background:'+pC(qp)+';border-radius:5px;box-shadow:0 0 10px '+pC(qp)+'40"></div></div><div class="m" style="display:flex;justify-content:space-between;font-size:9px;color:var(--mt);margin-top:3px"><span>'+fK(t.ytd)+' YTD</span><span>'+fK(t.q3i)+' Q3 target</span></div></div>'}
+    if(t.q3i){var qp=(t.q3||0)/t.q3i*100;h+='<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dm);margin-bottom:4px"><span>Q3 Igniter</span><span class="m" style="font-weight:700;color:'+pC(qp)+'">'+Math.round(qp)+'%</span></div><div style="height:8px;background:var(--ft);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,qp)+'%;background:'+pC(qp)+';border-radius:5px;box-shadow:0 0 10px '+pC(qp)+'40"></div></div><div class="m" style="display:flex;justify-content:space-between;font-size:9px;color:var(--mt);margin-top:3px"><span>'+fK(t.q3||0)+' Q3 QTD</span><span>'+fK(t.q3i)+' Q3 target</span></div></div>'}
     if(t.ai){var ap=t.ytd/t.ai*100;h+='<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dm);margin-bottom:4px"><span>Annual Igniter</span><span class="m" style="font-weight:700;color:'+pC(ap)+'">'+Math.round(ap)+'%</span></div><div style="height:8px;background:var(--ft);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,ap)+'%;background:'+pC(ap)+';border-radius:5px"></div></div><div class="m" style="display:flex;justify-content:space-between;font-size:9px;color:var(--mt);margin-top:3px"><span>'+fK(t.ytd)+' YTD</span><span>'+fK(t.ai)+' annual</span></div></div>'}
     h+='</div>';
   }
@@ -451,13 +449,13 @@ function rPulse(){
 
   // Achievement banner
   var fires=D.people.filter(function(p){return p.tt>=10000}).sort(function(a,b){return b.tt-a.tt});
-  var hitQ3=D.mt.filter(function(t){return t.q3i>0&&t.ytd/t.q3i>=1}).sort(function(a,b){return b.ytd/b.q3i-a.ytd/a.q3i});
+  var hitQ3=D.mt.filter(function(t){return t.q3i>0&&(t.q3||0)/t.q3i>=1}).sort(function(a,b){return (b.q3||0)/b.q3i-(a.q3||0)/a.q3i});
   if(hitQ3.length||fires.length){
     h+='<div class="cd" style="margin-bottom:16px;border-color:rgba(255,200,0,.14)">';
     if(hitQ3.length){
       h+='<div style="padding:13px 20px;border-bottom:1px solid var(--bd);background:linear-gradient(90deg,rgba(255,200,0,.055),transparent)">';
       h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--y)" stroke-width="2"><path d="M8 21h8m-4-4v4m-4.5-8a4.5 4.5 0 01-2.5-8.2V3h14v1.8a4.5 4.5 0 01-2.5 8.2"/></svg><span style="font-size:10px;font-weight:700;color:var(--y);text-transform:uppercase;letter-spacing:1.6px">Q3 Igniter Achieved</span></div><div style="display:flex;gap:7px;flex-wrap:wrap">';
-      hitQ3.forEach(function(t){h+='<div onclick="openPerson(\''+esc(t.n)+'\')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.13);border-radius:8px;cursor:pointer"><span style="font-size:12px;font-weight:700;color:var(--y)">'+t.n+'</span><span class="m" style="font-size:10px;color:var(--tx2)">'+Math.round(t.ytd/t.q3i*100)+'%</span></div>'});
+      hitQ3.forEach(function(t){h+='<div onclick="openPerson(\''+esc(t.n)+'\')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,200,0,.07);border:1px solid rgba(255,200,0,.13);border-radius:8px;cursor:pointer"><span style="font-size:12px;font-weight:700;color:var(--y)">'+t.n+'</span><span class="m" style="font-size:10px;color:var(--tx2)">'+Math.round((t.q3||0)/t.q3i*100)+'%</span></div>'});
       h+='</div></div>';
     }
     if(fires.length){
@@ -735,7 +733,7 @@ function rArena(){
   if(arScope==='people'){
     D.people.forEach(function(p){
       var v;
-      if(arM==='pace'){var t=D.mt.find(function(x){return x.n===p.n});v=t&&t.q3i>0?Math.round(t.ytd/t.q3i*100):null;if(v===null)return;}
+      if(arM==='pace'){var t=D.mt.find(function(x){return x.n===p.n});v=t&&t.q3i>0?Math.round((t.q3||0)/t.q3i*100):null;if(v===null)return;}
       else v=p[arM]||0;
       rows.push({n:p.n,sub:p.rl,en:p.en,v:v,c:ecol(p.en),sp:D.iw[p.n]?D.iw[p.n].map(function(w){return w.t}):null,mv:rankMove(p.n),obj:p});
     });
@@ -952,7 +950,7 @@ function rTG(){
   h+='<div style="margin-bottom:12px"><input class="srch" id="tg-s" placeholder="Search team member..." /></div>';
   h+='<div class="cd"><div class="cdh">Individual Targets ('+D.mt.length+' members)</div><div class="scr"><table class="tb" id="tg-t"><thead><tr><th style="width:36px">#</th><th>Team Member</th><th>Unit</th><th class="r">YTD</th><th class="r">Q3 Igniter</th><th class="r" style="width:70px">Q3 Pace</th><th class="r">Annual Igniter</th><th class="r" style="width:70px">Ann Pace</th><th class="r">Contest</th></tr></thead><tbody>';
   D.mt.slice().sort(function(a,b){return b.ytd-a.ytd}).forEach(function(t,i){
-    var qp=t.q3i>0?t.ytd/t.q3i*100:0, ap=t.ai>0?t.ytd/t.ai*100:0;
+    var qp=t.q3i>0?(t.q3||0)/t.q3i*100:0, ap=t.ai>0?t.ytd/t.ai*100:0;
     h+='<tr onclick="openPerson(\''+esc(t.n)+'\')" style="cursor:pointer"><td>'+bdg(i)+'</td>';
     h+='<td style="font-weight:600;font-size:12px">'+t.n+'</td><td style="font-size:10px;color:var(--dm)">'+t.bu+'</td>';
     h+='<td class="r m" style="font-weight:700;font-size:11px;color:'+(t.ytd>0?'var(--tx)':'var(--red)')+'">'+fmt(t.ytd)+'</td>';
@@ -1206,14 +1204,14 @@ window.SPARK_LIVE = (function () {
     if (H) {
       var tmap = {};
       (H.personTargets || []).forEach(function (t) { (tmap[t.person] = tmap[t.person] || []).push(t); });
-      var cumOf = {}; D.people.forEach(function (p) { cumOf[p.n] = p.cum; });
+      var cumOf = {}, q3Of = {}; D.people.forEach(function (p) { cumOf[p.n] = p.cumRaw; q3Of[p.n] = p.qRaw; });
       D.mt = (H.people || []).filter(function (p) { return p.active !== false; }).map(function (p) {
         var rows = tmap[p.person] || [];
         var pick = rows.filter(function (t) { return t.unit === p.bu; });
         if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
         if (!pick.length) pick = rows;
         var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
-        return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g('q3', 'contest'), ai: g('annual', 'igniter'), q3i: g('q3', 'igniter'), ytd: Math.round(cumOf[p.person] || 0) };
+        return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g('q3', 'contest'), ai: g('annual', 'igniter'), q3i: g('q3', 'igniter'), ytd: Math.round(cumOf[p.person] || 0), q3: Math.round(q3Of[p.person] || 0) };
       });
       D.annT = {};
       (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') D.annT[t.unit] = Number(t.amount); });
@@ -1364,7 +1362,13 @@ window.SPARK_LIVE = (function () {
     var p = (H.people || []).find(function (x) { return x.person === name; }) || {};
     var bu = prompt('Business Unit for ' + name + ':', p.bu || ''); if (bu === null) return;
     var en = prompt('Entity:', p.entity || 'Spark Talent'); if (en === null) return;
-    tmPost({ person: name, bu: bu, entity: en });
+    var mt0 = (D.mt || []).find(function (x) { return x.n === name; }) || {};
+    var q3i = prompt('Q3 Igniter (blank = keep):', mt0.q3i || ''); if (q3i === null) return;
+    var ai = prompt('Annual Igniter (blank = keep):', mt0.ai || ''); if (ai === null) return;
+    var q3c = prompt('Q3 Contest (blank = keep):', mt0.q3c || ''); if (q3c === null) return;
+    var ac = prompt('Annual Contest (blank = keep):', mt0.ac || ''); if (ac === null) return;
+    var tg = {}; if (q3i) tg.q3i = Number(q3i); if (ai) tg.ai = Number(ai); if (q3c) tg.q3c = Number(q3c); if (ac) tg.ac = Number(ac);
+    tmPost({ person: name, bu: bu, entity: en, targets: tg });
   }
   function tmToggle(name, wasOff) {
     if (!wasOff && !confirm('Remove ' + name + ' from the active roster? History stays; they leave targets & active views.')) return;
@@ -1458,7 +1462,7 @@ window.SPARK_LIVE = (function () {
       return 0;
     });
     var totC = 0, totH = 0; list.forEach(function (r) { totC += r.charge; totH += r.tot; });
-    var h = '<div class="st">Assignment Team Members &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + list.length + ' of ' + all.length + '</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totC).toLocaleString() + ' &middot; ' + Math.round(totH).toLocaleString() + ' hrs</span></div>';
+    var h = '<div class="st">Contract Team Members &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + list.length + ' of ' + all.length + '</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totC).toLocaleString() + ' &middot; ' + Math.round(totH).toLocaleString() + ' hrs</span></div>';
     h += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center"><input class="srch" id="raw-s" placeholder="Search anything..." style="max-width:260px"/><button class="fb" onclick="SPARK_LIVE.rawReset()">Reset filters</button></div>';
     h += '<div class="cd"><div class="scr" style="max-height:62vh"><table class="tb"><thead><tr>';
     RAW_COLS.forEach(function (cd, i) {
@@ -1512,7 +1516,50 @@ window.SPARK_LIVE = (function () {
   function rawAll(k, on) { document.querySelectorAll('#rawMenuL input').forEach(function (c) { c.checked = !!on; }); }
   function rawReset() { rawF = {}; rawQ = ''; rawSort = [{ k: 'entity', d: 'desc' }, { k: 'company', d: 'asc' }, { k: 'candidate', d: 'asc' }]; rRaw(); }
 
+  
+  // ── Targets & Pacing: raw-anchored pacing + run-rate projections ──
+  window.rTG = function () {
+    var el = document.getElementById('p-tg'); if (!el) return;
+    var d1 = new Date(curIso + 'T12:00:00Z');
+    var wkN = Math.round((d1 - new Date('2026-01-04T12:00:00Z')) / (7 * 864e5)) + 1;
+    var q3wk = (+curIso.split('-')[1] >= 7) ? Math.round((d1 - new Date('2026-07-05T12:00:00Z')) / (7 * 864e5)) + 1 : 0;
+    var rows = (D.mt || []).filter(function (t) { return t.q3i || t.ai || t.ac || t.q3c; }).map(function (t) {
+      var qp = t.q3i ? (t.q3 || 0) / t.q3i * 100 : null;
+      var q3cp = t.q3c ? (t.q3 || 0) / t.q3c * 100 : null;
+      var ap = t.ai ? t.ytd / t.ai * 100 : null;
+      var acp = t.ac ? t.ytd / t.ac * 100 : null;
+      var proj = wkN > 0 ? t.ytd / wkN * 52 : 0;
+      var need = t.ai && t.ai > t.ytd && wkN < 52 ? (t.ai - t.ytd) / (52 - wkN) : 0;
+      return { t: t, qp: qp, q3cp: q3cp, ap: ap, acp: acp, proj: proj, need: need };
+    }).sort(function (x, y) { return (y.qp || 0) - (x.qp || 0); });
+    var pct = function (v) { return v == null ? '<span style="color:var(--mt)">--</span>' : '<span class="m" style="font-weight:700;color:' + pC(v) + '">' + Math.round(v) + '%</span>'; };
+    var h = '<div class="st">Targets &amp; Pacing &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">week ' + wkN + ' of 52' + (q3wk ? ' &middot; Q3 week ' + q3wk + ' of 13' : '') + '</span></div>';
+    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th><th>Team Member</th><th class="r">Q3 QTD Raw</th><th class="r">Q3 Igniter</th><th class="r">Q3 %</th><th class="r">Q3 Contest %</th><th class="r">YTD Raw</th><th class="r">Ann Igniter</th><th class="r">Ann %</th><th class="r">Contest %</th><th class="r">Run Rate (FY)</th><th class="r">Need $/wk</th></tr></thead><tbody>';
+    rows.forEach(function (r, i) {
+      var t = r.t;
+      h += '<tr onclick="openPerson(\'' + esc(t.n) + '\')" style="cursor:pointer"><td>' + bdg(i) + '</td>';
+      h += '<td><div style="font-weight:600;font-size:12px">' + t.n + '</div><div style="font-size:10px;color:var(--dm)">' + (t.bu || '') + '</div></td>';
+      h += '<td class="r m" style="font-size:11px;font-weight:700">' + fmt(t.q3 || 0) + '</td><td class="r m" style="font-size:10px;color:var(--dm)">' + fK(t.q3i) + '</td>';
+      h += '<td class="r">' + pct(r.qp) + '</td><td class="r">' + pct(r.q3cp) + '</td>';
+      h += '<td class="r m" style="font-size:11px;font-weight:700">' + fmt(t.ytd) + '</td><td class="r m" style="font-size:10px;color:var(--dm)">' + fK(t.ai) + '</td>';
+      h += '<td class="r">' + pct(r.ap) + '</td><td class="r">' + pct(r.acp) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--tea)">' + fK(Math.round(r.proj)) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (r.need > 0 ? 'var(--org)' : 'var(--grn)') + '">' + (r.need > 0 ? fK(Math.round(r.need)) : '&#10003; ahead') + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    el.innerHTML = h;
+  };
+
     function boot(force) {
+    try {
+      if (typeof NV !== 'undefined' && Array.isArray(NV)) {
+        var _ord = ['pulse', 'arena', 'lb', 'cl', 'dh', 'raw', 'tg'];
+        var _nv = _ord.map(function (id) { return NV.find(function (x) { return x.id === id; }); }).filter(Boolean);
+        if (_nv.length === _ord.length) { NV.length = 0; _nv.forEach(function (x) { NV.push(x); }); }
+        var _r = NV.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
+        if (typeof TT !== 'undefined') TT.raw = 'Contract Team Members';
+      }
+    } catch (e) {}
     if (!document.getElementById('lvStatus')) injectUI();
     noteAndBadges();
     setStatus('CONNECTING', '#FFC800');
