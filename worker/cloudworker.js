@@ -6121,8 +6121,6 @@ var worker_default = {
           });
         });
         const personRows = Object.keys(ppl).map((n) => ({ week_ending: weekEnding, person: n, sales: r2s(ppl[n].sales), fd: r2s(ppl[n].fd), rec: r2s(ppl[n].rec), tt: r2s(ppl[n].tt), raw: null }));
-        const u1 = await sbService(env, "POST", "charge_unit_weeks?on_conflict=week_ending,unit,kind", unitRows);
-        if (!u1.ok) return json({ error: "unit upsert failed: " + JSON.stringify(u1.data).slice(0, 160) }, 502, origin);
         // merge DH drops into the freeze (self-fetch dh-batch)
         let dhInfo = null;
         try {
@@ -6144,6 +6142,11 @@ var worker_default = {
             }
           }
         } catch (e) {}
+        // wipe the week first so re-freezes fully reconcile (BU moves, removed rows, stale \u00b7 DH lines)
+        await sbService(env, "DELETE", "charge_unit_weeks?week_ending=eq." + weekEnding);
+        await sbService(env, "DELETE", "charge_person_weeks?week_ending=eq." + weekEnding);
+        const u1 = await sbService(env, "POST", "charge_unit_weeks?on_conflict=week_ending,unit,kind", unitRows);
+        if (!u1.ok) return json({ error: "unit upsert failed: " + JSON.stringify(u1.data).slice(0, 160) }, 502, origin);
         const u2 = await sbService(env, "POST", "charge_person_weeks?on_conflict=week_ending,person", personRows);
         if (!u2.ok) return json({ error: "person upsert failed: " + JSON.stringify(u2.data).slice(0, 160) }, 502, origin);
         return json({ ok: true, weekEnding, unitRows: unitRows.length, personRows: personRows.length, contractTotal: b.summary && b.summary.totalCharge, dh: dhInfo, note: "Contract + DH frozen into the books." }, 200, origin);
