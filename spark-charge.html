@@ -1271,7 +1271,7 @@ window.SPARK_LIVE = (function () {
 
   function selectWeek(iso) {
     if (loading) return; loading = true;
-    curIso = iso;
+    curIso = iso; dhEditIdx = -1;
     var sel = document.getElementById('lvWk'); if (sel && sel.value !== iso) sel.value = iso;
     setStatus('LOADING ' + labelWe(iso), '#FFC800');
     var needPrev = !histPerson[prevIso(iso)];
@@ -1296,6 +1296,8 @@ window.SPARK_LIVE = (function () {
 
 
   // ── DH EDITOR (admin-gated server-side; UI for add/edit/hide) ──
+  var dhEditIdx = -1;
+  function dhAtt(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
   function dhEd() {
     var dcur = dhb[curIso];
     var rows = (dcur && dcur.drops) || [];
@@ -1305,14 +1307,27 @@ window.SPARK_LIVE = (function () {
       host = document.createElement('div'); host.id = 'lvDhEd'; host.style.cssText = 'margin-top:14px';
       p.appendChild(host);
     }
+    var inp = 'width:95%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:6px;padding:4px 6px;font:inherit;font-size:11px';
     var h = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="color:var(--gold)">DH EDITOR &middot; ' + labelWe(curIso) + '</b>' +
       '<button class="fb" onclick="SPARK_LIVE.dhAdd()">+ Add Direct Hire</button><span style="font-size:10px;color:var(--dm)">Edits live in the agent &mdash; tracker files are never modified. Admin-gated.</span></div>' +
       '<table style="width:100%;font-size:11px;border-collapse:collapse">' +
       '<tr style="color:var(--dm);text-align:left"><th>Entity</th><th>Client</th><th>Employee</th><th>AM</th><th>Recruiter</th><th>BU</th><th style="text-align:right">Charge</th><th></th></tr>';
     rows.forEach(function (d, i) {
-      h += '<tr style="border-top:1px solid var(--bd)"><td>' + (d.entity || '') + '</td><td>' + (d.company || '') + (d.split || d.pairSplit ? ' <span class="pl" style="background:rgba(255,200,0,.12);color:var(--gold)">SPLIT</span>' : '') + (d.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + '</td><td>' + (d.employee || '') + '</td><td>' + (d.sales_rep || '') + '</td><td>' + (d.recruiter || '') + '</td><td>' + (d.bu || '&mdash;') + '</td>' +
+      if (i === dhEditIdx) {
+        var fld = function (id, val, extra) { return '<input id="' + id + '" style="' + inp + (extra || '') + '" value="' + dhAtt(val) + '" onkeydown="if(event.key===\'Enter\')SPARK_LIVE.dhSave(' + i + ')"/>'; };
+        h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.05)"><td>' + (d.entity || '') + '</td>' +
+          '<td>' + fld('lvDhF_cl', d.company) + '</td>' +
+          '<td>' + fld('lvDhF_emp', d.employee) + '</td>' +
+          '<td>' + fld('lvDhF_am', d.sales_rep) + '</td>' +
+          '<td>' + fld('lvDhF_rc', d.recruiter) + '</td>' +
+          '<td>' + fld('lvDhF_bu', d.bu) + '</td>' +
+          '<td style="text-align:right">' + fld('lvDhF_amt', d.amount, ';width:90px;text-align:right') + '</td>' +
+          '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="SPARK_LIVE.dhSave(' + i + ')">save</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhCancel()">cancel</button></td></tr>';
+        return;
+      }
+      h += '<tr style="border-top:1px solid var(--bd)"><td>' + (d.entity || '') + '</td><td>' + (d.company || '') + (d.split || d.pairSplit ? ' <span class="pl" style="background:rgba(255,200,0,.12);color:var(--gold)">SPLIT</span>' : '') + (d.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + (d.source === 'manual' ? ' <span class="pl" style="background:rgba(0,229,255,.1);color:var(--tea,#00E5FF)">MANUAL</span>' : '') + '</td><td>' + (d.employee || '') + '</td><td>' + (d.sales_rep || '') + '</td><td>' + (d.recruiter || '') + '</td><td>' + (d.bu || '&mdash;') + '</td>' +
         '<td style="text-align:right">$' + Math.round(d.amount).toLocaleString() + '</td>' +
-        '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhEdit(' + i + ')">edit</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhHide(' + i + ')">hide</button></td></tr>';
+        '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhEdit(' + i + ')">edit</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhHide(' + i + ')">hide</button>' + (d.edited && d.source !== 'manual' ? ' <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhRevert(' + i + ')">revert</button>' : '') + '</td></tr>';
     });
     host.innerHTML = h + '</table>';
   }
@@ -1322,22 +1337,53 @@ window.SPARK_LIVE = (function () {
       .then(function () { delete dhb[curIso]; return api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
       .catch(function (e) { alert('DH editor: ' + e.message); });
   }
+  function dhSched(body) {
+    return api('/dh-schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function () { delete dhb[curIso]; return api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
+      .catch(function (e) { alert('DH editor: ' + e.message); });
+  }
   function dhEdit(i) {
     if (!ensurePin()) return;
-    var d = (dhb[curIso].drops || [])[i]; if (!d) return;
-    var amt = prompt('Charge amount for ' + d.employee + ' @ ' + d.company + ':', Math.round(d.amount));
-    if (amt === null) return;
-    var bu = prompt('Business Unit:', d.bu || ''); if (bu === null) return;
-    var am = prompt('AM / Sales Rep:', d.sales_rep || ''); if (am === null) return;
-    var rc = prompt('Recruiter:', d.recruiter || ''); if (rc === null) return;
-    var cl = prompt('Client:', d.company || ''); if (cl === null) return;
-    dhPost({ action: 'patch', match_entity: d.entity, match_company: d.company, match_employee: d.employee, fields: { amount: Number(amt), bu: bu, sales_rep: am, recruiter: rc, company: cl } });
+    dhEditIdx = i; dhEd();
+    try { var f = document.getElementById('lvDhF_amt'); if (f) f.focus(); } catch (e) {}
+  }
+  function dhCancel() { dhEditIdx = -1; dhEd(); }
+  function dhSave(i) {
+    var d = (dhb[curIso].drops || [])[i]; if (!d) { dhCancel(); return; }
+    var gv = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
+    var st = function (v) { return String(v == null ? '' : v).trim(); };
+    var cl = gv('lvDhF_cl'), emp = gv('lvDhF_emp'), am = gv('lvDhF_am'), rc = gv('lvDhF_rc'), bu = gv('lvDhF_bu'), amt = gv('lvDhF_amt');
+    var f = {};
+    if (cl !== null && st(cl) !== st(d.company)) f.company = st(cl);
+    if (emp !== null && st(emp) !== st(d.employee)) f.employee = st(emp);
+    if (am !== null && st(am) !== st(d.sales_rep)) f.sales_rep = st(am);
+    if (rc !== null && st(rc) !== st(d.recruiter)) f.recruiter = st(rc);
+    if (bu !== null && st(bu) !== st(d.bu)) f.bu = st(bu);
+    var n = Number(amt);
+    if (amt !== null && st(amt) !== '' && isFinite(n) && Math.abs(n - Number(d.amount)) > 0.004) f.amount = n;
+    dhEditIdx = -1;
+    if (!Object.keys(f).length) { dhEd(); return; }
+    if (d.source === 'manual' && d.schedId) {
+      var body = { id: d.schedId };
+      ['company', 'employee', 'sales_rep', 'recruiter', 'bu'].forEach(function (k) { if (f[k] !== void 0) body[k] = f[k]; });
+      if (f.amount !== void 0) body.charge = f.amount;
+      dhSched(body);
+      return;
+    }
+    dhPost({ action: 'patch', match_entity: d.m_entity || d.entity, match_company: d.m_company || d.company, match_employee: d.m_employee || d.employee, fields: f });
+  }
+  function dhRevert(i) {
+    if (!ensurePin()) return;
+    var d = (dhb[curIso].drops || [])[i]; if (!d || !d.edited) return;
+    if (!confirm('Remove all edits on ' + (d.employee || d.company) + ' for ' + labelWe(curIso) + ' and restore tracker + engine values?')) return;
+    dhPost({ op: 'revert', match_entity: d.m_entity || d.entity, match_company: d.m_company || d.company, match_employee: d.m_employee || d.employee });
   }
   function dhHide(i) {
     if (!ensurePin()) return;
     var d = (dhb[curIso].drops || [])[i]; if (!d) return;
     if (!confirm('Hide ' + d.employee + ' @ ' + d.company + ' from ' + labelWe(curIso) + '? (Tracker file untouched)')) return;
-    dhPost({ action: 'hide', match_entity: d.entity, match_company: d.company, match_employee: d.employee });
+    if (d.source === 'manual' && d.schedId) { dhSched({ id: d.schedId, status: 'removed' }); return; }
+    dhPost({ action: 'hide', match_entity: d.m_entity || d.entity, match_company: d.m_company || d.company, match_employee: d.m_employee || d.employee });
   }
   function dhAdd() {
     if (!ensurePin()) return;
@@ -1351,7 +1397,6 @@ window.SPARK_LIVE = (function () {
     dhPost({ op: 'add_manual', row: { company: cl, employee: emp, charge: Number(amt), entity: en, bu: bu, sales_rep: am, recruiter: rc, interval: 'lump', installments: 1, first_we: curIso } });
   }
 
-  
   // ── TEAM EDITOR (admin-gated server-side) ──
   function teamEd() {
     if (!H) return;
@@ -1638,7 +1683,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawReset: rawReset, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawReset: rawReset, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
