@@ -5684,7 +5684,8 @@ var worker_default = {
             if (o.action === "patch" && o.fields) {
               const f = o.fields;
               ["company","employee","sales_rep","recruiter","bu","entity","title"].forEach((k) => { if (f[k] !== void 0) d[k] = f[k]; });
-              if (f.amount !== void 0) { d.amount = r2s(f.amount); d.invoiced = null; d.burden = null; }
+              if (f.bu !== void 0) d.buEdited = true;
+              if (f.amount !== void 0) { d.amount = r2s(f.amount); d.invoiced = null; d.burden = null; d.amtEdited = true; }
               d.edited = true;
             }
           }
@@ -5735,6 +5736,8 @@ var worker_default = {
           };
           drops.forEach((d) => { d.sales_rep = resolve(d.sales_rep); d.recruiter = resolve(d.recruiter); });
         } catch (e) {}
+        // ── Bolt Creative: all DH lands in its own unit ──
+        drops.forEach((d) => { if (/^bolt/i.test(String(d.entity || "")) && !d.buEdited) d.bu = "Bolt Creative Strategies"; });
         // ── geographic BU: client state → territory → BU ──
         const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
         const stateBU = {};
@@ -5758,6 +5761,31 @@ var worker_default = {
           } catch (e) {}
         }
         drops.forEach((d) => { if (!d.bu && !d.internal) review.push({ company: d.company, candidate: d.employee, flags: ["dh_no_bu"], credits: ["No BU: set in DH Editor or check account state"] }); });
+        // ── inter-entity placement splits: pair the owning entity's client invoice with
+        //    the placing entity's inter-company invoice. Owner keeps only the spread (its
+        //    retained %) as House Full Desk in the hire's unit; placer keeps its invoice
+        //    with its own AM/recruiter credits. The deal counts exactly once. ──
+        const entCanon = (s) => String(s || "").toLowerCase().replace(/[.,]/g, "").replace(/\s+(llc|inc|co)$/i, "").trim();
+        const txtCanon = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        for (const pd of drops) {
+          if (pd.edited === true && pd.amtEdited) continue;
+          if (pd.pairSplit || pd.split || !(pd.amount > 0)) continue;
+          const ownerEnt = entCanon(pd.company);
+          if (!ownerEnt) continue;
+          const ptxt = txtCanon(pd.employee);
+          const own = drops.find((x) => x !== pd && !x.pairSplit && !x.split && !x.amtEdited &&
+            entCanon(x.entity) === ownerEnt && entCanon(pd.entity) !== ownerEnt && x.amount > pd.amount &&
+            ((txtCanon(x.company).length >= 6 && ptxt.indexOf(txtCanon(x.company).slice(0, 10)) !== -1) ||
+             (txtCanon(x.employee).length >= 6 && ptxt.indexOf(txtCanon(x.employee).slice(0, 8)) !== -1)));
+          if (!own) continue;
+          const retained = r2s(own.amount - pd.amount);
+          const hireBU = own.bu || pd.bu || "";
+          if (hireBU) { if (!own.buEdited) own.bu = hireBU; if (!pd.buEdited) pd.bu = hireBU; }
+          review.push({ company: own.company, candidate: own.employee, flags: ["dh_entity_split"], credits: [own.entity + " retains $" + retained + " as House FD; " + pd.entity + " keeps $" + pd.amount + " \u2192 " + (pd.sales_rep || "?") + " / " + (pd.recruiter || "?") + "; both coded to " + (hireBU || "no BU")] });
+          own.amount = retained;
+          own.sales_rep = "House"; own.recruiter = "House";
+          own.pairSplit = true; pd.pairSplit = true;
+        }
         // ── splits: allocate the deal exactly once, suppress sibling counterparts ──
         const spR = await sbService(env, "GET", "charge_splits?select=*&active=eq.true");
         const splits = (spR.ok && spR.data) || [];
@@ -5774,7 +5802,7 @@ var worker_default = {
           if (rule) { d.split = true; ruled.push(d); }
         }
         drops = drops.filter((d) => {
-          if (!d.internal || d.split) return true;
+          if (!d.internal || d.split || d.pairSplit) return true;
           const twin = ruled.find((x) => x.entity !== d.entity && Math.abs(Math.abs(d.amount) - Math.abs(x.amount) * 0.9) <= Math.abs(x.amount) * 0.02);
           if (twin) { review.push({ company: d.company, candidate: d.employee, flags: ["dh_split_suppressed"], credits: ["Sibling invoice of " + twin.company + " — counted once via split rule"] }); return false; }
           review.push({ company: d.company, candidate: d.employee, flags: ["dh_internal"], credits: ["Inter-entity: counted for " + d.entity] });
