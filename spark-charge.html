@@ -448,7 +448,7 @@ function rPulse(){
   h+='</div>';
 
   // Achievement banner
-  var fires=D.people.filter(function(p){return p.tt>=10000}).sort(function(a,b){return b.tt-a.tt});
+  var fires=D.people.filter(function(p){return (p.wkRaw||0)>=10000}).sort(function(a,b){return (b.wkRaw||0)-(a.wkRaw||0)});
   var hitQ3=D.mt.filter(function(t){return t.q3i>0&&(t.q3||0)/t.q3i>=1}).sort(function(a,b){return (b.q3||0)/b.q3i-(a.q3||0)/a.q3i});
   if(hitQ3.length||fires.length){
     h+='<div class="cd" style="margin-bottom:16px;border-color:rgba(255,200,0,.14)">';
@@ -459,8 +459,8 @@ function rPulse(){
       h+='</div></div>';
     }
     if(fires.length){
-      h+='<div style="padding:13px 20px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--org)" stroke-width="2"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg><span style="font-size:10px;font-weight:700;color:var(--org);text-transform:uppercase;letter-spacing:1.6px">On Fire This Week ($10K+ True Total)</span></div><div style="display:flex;gap:7px;flex-wrap:wrap">';
-      fires.forEach(function(p){h+='<div onclick="openPerson(\''+esc(p.n)+'\')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,107,43,.06);border:1px solid rgba(255,107,43,.11);border-radius:8px;cursor:pointer"><span style="font-size:12px;font-weight:700">'+p.n+'</span><span class="m cy" style="font-size:10px;font-weight:700">'+fK(p.tt)+'</span></div>'});
+      h+='<div style="padding:13px 20px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--org)" stroke-width="2"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg><span style="font-size:10px;font-weight:700;color:var(--org);text-transform:uppercase;letter-spacing:1.6px">On Fire This Week ($10K+ Raw Charge)</span></div><div style="display:flex;gap:7px;flex-wrap:wrap">';
+      fires.forEach(function(p){h+='<div onclick="openPerson(\''+esc(p.n)+'\')" style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,107,43,.06);border:1px solid rgba(255,107,43,.11);border-radius:8px;cursor:pointer"><span style="font-size:12px;font-weight:700">'+p.n+'</span><span class="m cy" style="font-size:10px;font-weight:700">'+fK(p.wkRaw||0)+'</span></div>'});
       h+='</div></div>';
     }
     h+='</div>';
@@ -987,6 +987,8 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
+  var IS_ADMIN = false;    // set by /charge-admin-check
+  var PIN_KEY = 'spark_charge_pin';
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function sundays(n) {
@@ -1014,7 +1016,7 @@ window.SPARK_LIVE = (function () {
       '<select id="lvWk" class="fb" style="appearance:none;-webkit-appearance:none;padding:8px 12px;cursor:pointer">' + opts + '</select>' +
       '<button class="fb" id="lvRefresh" title="Refresh week">&#8635;</button>' +
       '<button class="fb" id="lvTheme" title="Light / dark">&#9788;</button>' +
-      '<button class="fb" id="lvFreeze" title="Freeze this week into the official books (admins)">&#10515; Freeze</button>' +
+      '<button class="fb" id="lvFreeze" style="display:none" title="Freeze this week into the official books (admins)">&#10515; Freeze</button>' +
       '<div style="width:1px;height:30px;background:var(--bd)"></div>';
     search.parentNode.insertBefore(wrap, search);
     document.getElementById('lvWk').addEventListener('change', function () { selectWeek(this.value); });
@@ -1058,13 +1060,34 @@ window.SPARK_LIVE = (function () {
     return getToken().then(function (tok) {
       if (!tok) throw new Error('signin');
       opts = opts || {};
-      opts.headers = Object.assign({ Authorization: 'Bearer ' + tok }, opts.headers || {});
+      var hdrs = { Authorization: 'Bearer ' + tok };
+      try { var _pin = sessionStorage.getItem(PIN_KEY); if (_pin) hdrs['X-Admin-Pin'] = _pin; } catch (e) {}
+      opts.headers = Object.assign(hdrs, opts.headers || {});
       opts.cache = 'no-store';
       return fetch(WORKER + path, opts);
     }).then(function (r) { return r.json(); }).then(function (d) {
-      if (!d || (d.ok === false) || d.error) throw new Error((d && d.error) || 'request failed');
+      if (!d || (d.ok === false) || d.error) {
+        var _msg = (d && d.error) || 'request failed';
+        if (String(_msg).indexOf('bad admin pin') !== -1) { try { sessionStorage.removeItem(PIN_KEY); } catch (e) {} _msg = 'Wrong admin PIN'; }
+        throw new Error(_msg);
+      }
       return d;
     });
+  }
+
+  function ensurePin() {
+    if (!IS_ADMIN) { alert('Admin access required.'); return false; }
+    var p = null; try { p = sessionStorage.getItem(PIN_KEY); } catch (e) {}
+    if (p) return true;
+    p = prompt('Enter admin PIN:');
+    if (p === null || p === '') return false;
+    try { sessionStorage.setItem(PIN_KEY, p); } catch (e) {}
+    return true;
+  }
+  function updateAdminUI() {
+    var f = document.getElementById('lvFreeze'); if (f) f.style.display = IS_ADMIN ? '' : 'none';
+    try { if (IS_ADMIN && curIso && !histPerson[curIso] && dhb[curIso]) dhEd(); } catch (e) {}
+    try { if (IS_ADMIN && H) teamEd(); } catch (e) {}
   }
 
   function indexHistory() {
@@ -1240,14 +1263,10 @@ window.SPARK_LIVE = (function () {
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
     try { document.querySelectorAll('.cd').forEach(function (c) { if (c.querySelector('canvas')) c.classList.add('dk'); }); } catch (e) {}
-    try { if (!official && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
-    try { teamEd(); } catch (e) {}
-    var tag = official ? 'OFFICIAL' : 'LIVE';
-    var pay = (b0 && b0.payables) || {};
-    var dcs = dhb[curIso];
-    var dhMiss = dcs && dcs.intake && dcs.intake.missingFromTrackers ? dcs.intake.missingFromTrackers.length : 0;
-    var dhTxt = !official && dcs ? ' · DH $' + Math.round(Number(dcs.total) || 0).toLocaleString() + (dcs.weekCol ? '' : ' (old engine — redeploy worker)') + (dhMiss ? ' · ' + dhMiss + ' SF start(s) missing from trackers' : '') : '';
-    setStatus(tag + ' · ' + labelWe(curIso) + (pay.sheet && !official ? ' · payables merged' : '') + dhTxt, official ? '#FFC800' : '#00FF88');
+    try { if (IS_ADMIN && !official && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
+    try { if (IS_ADMIN) teamEd(); else { var _t = document.getElementById('lvTeamEd'); if (_t) _t.remove(); } } catch (e) {}
+    var tag = official ? 'FINALIZED' : 'LIVE';
+    setStatus(tag + ' \u00b7 ' + labelWe(curIso), official ? '#FFC800' : '#00FF88');
   }
 
   function selectWeek(iso) {
@@ -1304,6 +1323,7 @@ window.SPARK_LIVE = (function () {
       .catch(function (e) { alert('DH editor: ' + e.message); });
   }
   function dhEdit(i) {
+    if (!ensurePin()) return;
     var d = (dhb[curIso].drops || [])[i]; if (!d) return;
     var amt = prompt('Charge amount for ' + d.employee + ' @ ' + d.company + ':', Math.round(d.amount));
     if (amt === null) return;
@@ -1314,11 +1334,13 @@ window.SPARK_LIVE = (function () {
     dhPost({ action: 'patch', match_entity: d.entity, match_company: d.company, match_employee: d.employee, fields: { amount: Number(amt), bu: bu, sales_rep: am, recruiter: rc, company: cl } });
   }
   function dhHide(i) {
+    if (!ensurePin()) return;
     var d = (dhb[curIso].drops || [])[i]; if (!d) return;
     if (!confirm('Hide ' + d.employee + ' @ ' + d.company + ' from ' + labelWe(curIso) + '? (Tracker file untouched)')) return;
     dhPost({ action: 'hide', match_entity: d.entity, match_company: d.company, match_employee: d.employee });
   }
   function dhAdd() {
+    if (!ensurePin()) return;
     var cl = prompt('Client:'); if (!cl) return;
     var emp = prompt('Employee / description:'); if (!emp) return;
     var amt = prompt('Charge amount (post-burden, what hits the report):'); if (!amt) return;
@@ -1359,6 +1381,7 @@ window.SPARK_LIVE = (function () {
       .catch(function (e) { alert('Team editor: ' + e.message); });
   }
   function tmEdit(name) {
+    if (!ensurePin()) return;
     var p = (H.people || []).find(function (x) { return x.person === name; }) || {};
     var bu = prompt('Business Unit for ' + name + ':', p.bu || ''); if (bu === null) return;
     var en = prompt('Entity:', p.entity || 'Spark Talent'); if (en === null) return;
@@ -1371,10 +1394,12 @@ window.SPARK_LIVE = (function () {
     tmPost({ person: name, bu: bu, entity: en, targets: tg });
   }
   function tmToggle(name, wasOff) {
+    if (!ensurePin()) return;
     if (!wasOff && !confirm('Remove ' + name + ' from the active roster? History stays; they leave targets & active views.')) return;
     tmPost({ person: name, op: wasOff ? 'activate' : 'deactivate' });
   }
   function tmAdd() {
+    if (!ensurePin()) return;
     var nm = prompt('Member full name:'); if (!nm) return;
     var bu = prompt('Business Unit:', 'MI Metro'); if (bu === null) return;
     tmPost({ person: nm, bu: bu });
@@ -1382,7 +1407,8 @@ window.SPARK_LIVE = (function () {
 
     function freezeWeek() {
     if (!curIso) return;
-    if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books? (Contract side; admins only)')) return;
+    if (!ensurePin()) return;
+    if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books?')) return;
     setStatus('FREEZING ' + labelWe(curIso), '#FFC800');
     api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST' })
       .then(function (d) {
@@ -1587,18 +1613,21 @@ window.SPARK_LIVE = (function () {
     if (!document.getElementById('lvStatus')) injectUI();
     noteAndBadges();
     setStatus('CONNECTING', '#FFC800');
-    var def = sundays(1)[0];
     getToken().then(function (tok) {
       if (!tok) { setStatus('SIGN IN VIA SPARK HQ, THEN CLICK HERE', '#FF4466'); return; }
       api('/charge-admin-check').then(function (j) {
-        if (j.admin && window.__settingsTab && typeof TABS !== 'undefined' && !TABS.some(function (x) { return x.id === 'hier'; })) {
+        IS_ADMIN = !!(j && j.admin);
+        if (IS_ADMIN && window.__settingsTab && typeof TABS !== 'undefined' && !TABS.some(function (x) { return x.id === 'hier'; })) {
           window.__settingsTab.l = 'Settings';
           TABS.push(window.__settingsTab);
           try { nav(); } catch (e) {}
         }
+        updateAdminUI();
       }).catch(function () {});
       return api('/charge-history').then(function (h) {
         H = h; indexHistory();
+        var s2 = sundays(2);
+        var def = histPerson[s2[0]] ? s2[0] : (s2[1] || s2[0]);
         selectWeek(curIso && force ? curIso : def);
       });
     }).catch(function (e) {
