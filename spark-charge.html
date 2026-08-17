@@ -1258,7 +1258,7 @@ window.SPARK_LIVE = (function () {
     Q3WKS = D.weeks.filter(function (w) { var p = w.we.split('/'); return +p[0] >= 7; });
     Q3 = Q3WKS.reduce(function (s, w) { return s + wkTotal(w); }, 0);
     var we = document.getElementById('lvWe'); if (we) we.textContent = labelWe(curIso);
-    nav(); rPulse(); rHier(); rArena(); rLB(); rRaw(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
+    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rRaw(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
     try { heroHover(); } catch (e) {}
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
@@ -1471,13 +1471,15 @@ window.SPARK_LIVE = (function () {
     var el = document.getElementById('p-lb'); if (!el) return;
     if (typeof lbS === 'undefined' || !lbS || ['cumRaw','wkRaw','moRaw','qRaw','am','rec','fd','wow'].indexOf(lbS.f) === -1) lbS = { f: 'cumRaw', d: 'desc' };
     var list = D.people.slice();
-    if (typeof lbE !== 'undefined' && lbE !== 'All') list = list.filter(function (p) { return p.en === lbE; });
+    var _bu = (typeof lbBU !== 'undefined' && lbBU) ? lbBU : 'All';
+    if (_bu !== 'All') list = list.filter(function (p) { return (p.bu || p.en) === _bu; });
     if (lbQ) { var qq = lbQ.toLowerCase(); list = list.filter(function (p) { return (p.n + ' ' + p.rl + ' ' + p.bu).toLowerCase().indexOf(qq) !== -1; }); }
     list.sort(function (x, y) { return lbS.d === 'desc' ? (y[lbS.f] || 0) - (x[lbS.f] || 0) : (x[lbS.f] || 0) - (y[lbS.f] || 0); });
-    var ents = []; D.people.forEach(function (p) { if (ents.indexOf(p.en) < 0) ents.push(p.en); });
+    var bus = []; D.people.forEach(function (p) { var b = p.bu || p.en; if (b && bus.indexOf(b) < 0) bus.push(b); });
+    bus.sort(function (a, b) { return a.localeCompare(b); });
     var h = '<div class="st">Rankings &mdash; ' + labelWe(curIso) + '</div>';
     h += '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">';
-    ['All'].concat(ents).forEach(function (e) { h += '<button class="fb' + ((typeof lbE !== 'undefined' ? lbE : 'All') === e ? ' on' : '') + '" onclick="lbE=\'' + esc(e) + '\';rLB()">' + e + '</button>'; });
+    ['All'].concat(bus).forEach(function (e) { h += '<button class="fb' + (_bu === e ? ' on' : '') + '" onclick="lbBU=\'' + esc(e) + '\';rLB()">' + e + '</button>'; });
     h += '<span style="flex:1"></span><input class="srch" id="lb-s" placeholder="Search name, role, BU..." /></div>';
     h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th><th>Name</th><th>Business Unit</th>';
     [['cumRaw','Cumulative Raw'],['wkRaw','Raw (Wk)'],['moRaw','Monthly Raw'],['qRaw','Quarterly Raw'],['am','Account Manager'],['rec','Recruiter'],['fd','Full Desk'],['wow','WoW']].forEach(function (cd) {
@@ -1507,6 +1509,66 @@ window.SPARK_LIVE = (function () {
   };
 
   
+  // ── BUSINESS UNITS: weekly ranking + YTD + igniter pacing ──
+  function buOpen(u) { window.lbBU = u; try { rLB(); } catch (e) {} try { go('lb'); } catch (e) {} }
+  window.rBU = function () {
+    var el = document.getElementById('p-bu'); if (!el) return;
+    if (!H) { el.innerHTML = '<div class="st">Business Units</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
+    var entSet = {}; (H.units || []).forEach(function (u) { if (u.is_entity) entSet[u.unit] = 1; });
+    var isoList = weeksThrough(curIso);
+    var set = {};
+    (H.people || []).forEach(function (p) { if (p.active !== false && p.bu) set[p.bu] = 1; });
+    Object.keys(histUnit).forEach(function (w) { Object.keys(histUnit[w]).forEach(function (u) { var base = u.replace(/ \u00b7 DH$/, ''); if (base && !entSet[base]) set[base] = 1; }); });
+    var b0 = batches[curIso], dc = dhb[curIso];
+    if (b0 && b0.rollups) (b0.rollups.byBU || []).forEach(function (x) { if (x.key && !entSet[x.key]) set[x.key] = 1; });
+    if (dc && dc.byBU) Object.keys(dc.byBU).forEach(function (u) { if (u && !entSet[u]) set[u] = 1; });
+    var wkOf = function (we, u) {
+      if (histPerson[we]) return unitVal(we, u) + unitVal(we, u + ' \u00b7 DH');
+      var v = 0, b = batches[we];
+      if (b && b.rollups) { var f = (b.rollups.byBU || []).find(function (x) { return x.key === u; }); if (f) v += f.charge; }
+      var d = dhb[we]; if (d && d.byBU && d.byBU[u]) v += d.byBU[u];
+      return v;
+    };
+    var tg = {}; (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') tg[t.unit] = Number(t.amount) || 0; });
+    var prev = prevIso(curIso);
+    var rows = Object.keys(set).map(function (u) {
+      var wk = wkOf(curIso, u), cum = 0;
+      isoList.forEach(function (w) { cum += wkOf(w, u); });
+      var goal = tg[u] || 0;
+      return { u: u, wk: Math.round(wk), cum: Math.round(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null, wow: Math.round(wk - wkOf(prev, u)) };
+    }).filter(function (r) { return r.wk || r.cum || r.goal; });
+    rows.sort(function (a, b) { return b.wk - a.wk || b.cum - a.cum; });
+    var bar = function (pct) {
+      if (pct == null) return '<span style="color:var(--dm)">--</span>';
+      var w = Math.max(0, Math.min(pct, 100)), lit = pct >= 100;
+      var col = lit ? '#FF6B2B' : pct >= 70 ? '#FFC800' : pct >= 40 ? '#CC9F00' : '#8a8578';
+      return '<div style="display:flex;align-items:center;gap:10px;min-width:230px">' +
+        '<div style="position:relative;flex:1;height:8px;border-radius:6px;background:rgba(128,128,128,.16)">' +
+        '<div style="position:absolute;left:0;top:0;bottom:0;width:' + w.toFixed(1) + '%;border-radius:6px;background:linear-gradient(90deg,#CC9F00,#FFC800' + (lit ? ',#FF6B2B' : '') + ')' + (lit ? ';animation:buGlow 1.6s ease infinite' : '') + '"></div>' +
+        '<svg style="position:absolute;left:calc(' + w.toFixed(1) + '% - 8px);top:-12px' + (lit ? ';animation:buFlick 1s ease infinite' : '') + '" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + col + '" stroke-width="2.4"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>' +
+        '</div>' +
+        '<span class="m" style="font-size:11px;font-weight:800;min-width:42px;text-align:right;color:' + (lit ? '#FF6B2B' : 'var(--tx)') + '">' + Math.round(pct) + '%</span>' +
+        (lit ? '<span class="pl" style="background:rgba(255,107,43,.14);color:#FF6B2B;font-weight:800">IGNITED</span>' : '') + '</div>';
+    };
+    var totWk = rows.reduce(function (s2, r) { return s2 + r.wk; }, 0);
+    var h = '<style>@keyframes buFlick{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}@keyframes buGlow{0%,100%{box-shadow:0 0 5px rgba(255,107,43,.35)}50%{box-shadow:0 0 14px rgba(255,107,43,.8)}}</style>';
+    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + totWk.toLocaleString() + ' this week</span></div>';
+    h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th><th>Business Unit</th><th class="r">Charge (Wk)</th><th class="r">WoW</th><th class="r">Cumulative (YTD)</th><th class="r">Igniter Goal</th><th style="padding-left:26px">% to Ignite</th></tr></thead><tbody>';
+    rows.forEach(function (r, i) {
+      h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer">';
+      h += '<td>' + bdg(i) + '</td>';
+      h += '<td style="font-weight:700;font-size:12px">' + r.u + '</td>';
+      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.wk > 0 ? 'var(--y)' : r.wk < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (r.wk ? fmt(r.wk) : '--') + '</td>';
+      h += '<td class="r">' + dl(r.wow) + '</td>';
+      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.cum >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.cum) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.goal ? fK(r.goal) : '--') + '</td>';
+      h += '<td style="padding-left:26px">' + bar(r.pct) + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Week charge = contract + direct hire coded to the unit &middot; click a unit to open its Rankings</div>';
+    el.innerHTML = h;
+  };
+
   // ── ASSIGNMENT TEAM MEMBERS: override rRaw with Excel-style filters/sorts ──
   var rawF = {}, rawQ = '', rawSort = [{ k: 'entity', d: 'desc' }, { k: 'company', d: 'asc' }, { k: 'candidate', d: 'asc' }];
   function rawRows() {
@@ -1649,9 +1711,15 @@ window.SPARK_LIVE = (function () {
         var _ord = ['pulse', 'arena', 'lb', 'cl', 'dh', 'raw', 'tg'];
         window.__settingsTab = TABS.find(function (x) { return x.id === 'hier'; }) || null;
         var _nv = _ord.map(function (id) { return TABS.find(function (x) { return x.id === id; }); }).filter(Boolean);
-        if (_nv.length === _ord.length) { TABS.length = 0; _nv.forEach(function (x) { TABS.push(x); }); }
+        if (_nv.length === _ord.length) {
+          TABS.length = 0;
+          _nv.forEach(function (x) { TABS.push(x); if (x.id === 'lb') TABS.push({ id: 'bu', l: 'Business Units', ic: 'M3 21h18M7 21V9M12 21V3M17 21v-6' }); });
+        }
         var _r = TABS.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
-        if (typeof TT !== 'undefined') { TT.raw = 'Contract Team Members'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
+        if (typeof TT !== 'undefined') { TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
+        var _plb = document.getElementById('p-lb');
+        if (_plb && !document.getElementById('p-bu')) _plb.insertAdjacentHTML('afterend', '<div class="pnl" id="p-bu"></div>');
+        try { if (window.rBU) rBU(); } catch (e3) {}
         try { nav(); } catch (e2) {}
       }
     } catch (e) {}
@@ -1683,7 +1751,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawReset: rawReset, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
