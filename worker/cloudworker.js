@@ -5925,8 +5925,9 @@ var worker_default = {
         const r = await sbService(env, "PATCH", "charge_people?person=eq." + encodeURIComponent(person), { active: body.op === "activate" });
         return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
       }
-      const row = { person, active: true };
+      const row = { person };
       ["bu","entity","role"].forEach((k) => { if (body[k] !== void 0) row[k] = body[k]; });
+      if (body.active === true) row.active = true;
       if (!row.entity && row.bu) row.entity = row.bu === "Ignite Search" ? "Ignite Search" : (row.bu === "BPO" ? "Spark Companies" : "Spark Talent");
       const r = await sbService(env, "POST", "charge_people?on_conflict=person", [row]);
       if (r.ok && body.targets && typeof body.targets === "object") {
