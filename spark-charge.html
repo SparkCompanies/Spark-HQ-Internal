@@ -176,6 +176,10 @@ body.light .hrow:hover,body.light .hsub:hover{border-color:#d8d4c8!important}
 body.light .hrow.open{border-color:rgba(199,154,6,.45)!important}
 body.light .hbody{background:#faf9f5!important;border-color:#e6e3da!important}
 body.light .hhead:hover{background:rgba(199,154,6,.06)!important}
+body.light .dr{background:#ffffff!important;border-color:#e6e3da!important;box-shadow:-14px 0 50px rgba(20,20,26,.18)!important}
+body.light .drb{background:rgba(20,20,26,.38)!important}
+body.light .drx{background:#f0eee7!important;border:1px solid #dcd9d0!important;color:#5b584f!important}
+body.light .drx:hover{color:#17171b!important;border-color:#c9c5b8!important}
 body.light .cd.dk .st{color:#e8e8ea!important}
 body.light .dr{background:#ffffff!important;color:#17171b!important;border-color:#e6e3da!important}
 body.light .dr *{color:inherit}
@@ -1402,27 +1406,63 @@ window.SPARK_LIVE = (function () {
     dhPost({ op: 'add_manual', row: { company: cl, employee: emp, charge: Number(amt), entity: en, bu: bu, sales_rep: am, recruiter: rc, interval: 'lump', installments: 1, first_we: curIso } });
   }
 
-  // ── TEAM EDITOR (admin-gated server-side) ──
+  // ── TEAM EDITOR (Settings tab · admin-gated server-side) ──
+  var tmEditName = null, tmQ = '';
   function teamEd() {
     if (!H) return;
+    var panel = document.getElementById('p-hier'); if (!panel) return;
     var host = document.getElementById('lvTeamEd');
-    if (!host) {
-      var p = document.getElementById('p-tg'); if (!p) return;
-      host = document.createElement('div'); host.id = 'lvTeamEd'; host.style.cssText = 'margin-top:16px';
-      p.appendChild(host);
-    }
+    if (!host) { host = document.createElement('div'); host.id = 'lvTeamEd'; host.style.cssText = 'margin-bottom:22px'; }
+    if (host.parentNode !== panel || panel.firstChild !== host) panel.insertBefore(host, panel.firstChild);
+    var tmap = {};
+    (H.personTargets || []).forEach(function (t) { (tmap[t.person] = tmap[t.person] || []).push(t); });
+    var tgOf = function (p) {
+      var rows = tmap[p.person] || [];
+      var pick = rows.filter(function (t) { return t.unit === p.bu; });
+      if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
+      if (!pick.length) pick = rows;
+      var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
+      return { q3i: g('q3', 'igniter'), ai: g('annual', 'igniter'), q3c: g('q3', 'contest'), ac: g('annual', 'contest') };
+    };
     var rows = (H.people || []).slice().sort(function (x, y) { return (y.active !== false) - (x.active !== false) || String(x.person).localeCompare(String(y.person)); });
-    var h = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><b style="color:var(--gold)">TEAM EDITOR</b>' +
-      '<button class="fb" onclick="SPARK_LIVE.tmAdd()">+ Add Member</button><span style="font-size:10px;color:var(--dm)">Roster is the authority for BU/entity. Admin-gated.</span></div>' +
-      '<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="color:var(--dm);text-align:left"><th>Member</th><th>Entity</th><th>Business Unit</th><th>Status</th><th></th></tr>';
+    if (tmQ) { var q = tmQ.toLowerCase(); rows = rows.filter(function (p) { return (p.person + ' ' + (p.role || '') + ' ' + (p.entity || '') + ' ' + (p.bu || '')).toLowerCase().indexOf(q) !== -1; }); }
+    var inp = 'width:95%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:6px;padding:4px 6px;font:inherit;font-size:11px';
+    var fmtT = function (v) { return v ? '$' + Math.round(v).toLocaleString() : '\u2014'; };
+    var h = '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap"><b style="color:var(--gold)">TEAM EDITOR</b>' +
+      '<button class="fb" onclick="SPARK_LIVE.tmAdd()">+ Add Member</button>' +
+      '<input class="srch" id="lvTmS" placeholder="Filter members..." style="max-width:220px"/>' +
+      '<span style="font-size:10px;color:var(--dm)">Roster is the authority for role, entity/BU and igniters. Admin-gated.</span></div>' +
+      '<table style="width:100%;font-size:11px;border-collapse:collapse">' +
+      '<tr style="color:var(--dm);text-align:left"><th>Member</th><th>Role / Title</th><th>Entity</th><th>Business Unit</th><th style="text-align:right">Q3 Igniter</th><th style="text-align:right">Annual Igniter</th><th style="text-align:right">Q3 Contest</th><th style="text-align:right">Annual Contest</th><th>Status</th><th></th></tr>';
     rows.forEach(function (p) {
       var off = p.active === false;
-      h += '<tr style="border-top:1px solid var(--bd);opacity:' + (off ? '.45' : '1') + '"><td>' + p.person + '</td><td>' + (p.entity || '') + '</td><td>' + (p.bu || '&mdash;') + '</td>' +
+      var t = tgOf(p);
+      var nm = String(p.person).replace(/'/g, "\\'");
+      if (p.person === tmEditName) {
+        h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.05)"><td style="font-weight:700">' + p.person + '</td>' +
+          '<td><input id="lvTmF_rl" style="' + inp + '" value="' + dhAtt(p.role) + '"/></td>' +
+          '<td><input id="lvTmF_en" style="' + inp + '" value="' + dhAtt(p.entity) + '"/></td>' +
+          '<td><input id="lvTmF_bu" style="' + inp + '" value="' + dhAtt(p.bu) + '"/></td>' +
+          '<td><input id="lvTmF_q3i" style="' + inp + ';text-align:right" value="' + (t.q3i || '') + '"/></td>' +
+          '<td><input id="lvTmF_ai" style="' + inp + ';text-align:right" value="' + (t.ai || '') + '"/></td>' +
+          '<td><input id="lvTmF_q3c" style="' + inp + ';text-align:right" value="' + (t.q3c || '') + '"/></td>' +
+          '<td><input id="lvTmF_ac" style="' + inp + ';text-align:right" value="' + (t.ac || '') + '"/></td>' +
+          '<td></td>' +
+          '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="SPARK_LIVE.tmSave(\'' + nm + '\')">save</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmCancel()">cancel</button></td></tr>';
+        return;
+      }
+      h += '<tr style="border-top:1px solid var(--bd);opacity:' + (off ? '.45' : '1') + '"><td style="font-weight:600">' + p.person + '</td>' +
+        '<td style="color:var(--dm)">' + (p.role || '\u2014') + '</td><td>' + (p.entity || '') + '</td><td>' + (p.bu || '\u2014') + '</td>' +
+        '<td style="text-align:right" class="m">' + fmtT(t.q3i) + '</td><td style="text-align:right" class="m">' + fmtT(t.ai) + '</td>' +
+        '<td style="text-align:right" class="m">' + fmtT(t.q3c) + '</td><td style="text-align:right" class="m">' + fmtT(t.ac) + '</td>' +
         '<td>' + (off ? '<span class="pl" style="background:rgba(255,68,102,.12);color:#FF4466">inactive</span>' : '<span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">active</span>') + '</td>' +
-        '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmEdit(\'' + String(p.person).replace(/'/g, "\\'") + '\')">edit</button> ' +
-        '<button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmToggle(\'' + String(p.person).replace(/'/g, "\\'") + '\',' + off + ')">' + (off ? 'reactivate' : 'remove') + '</button></td></tr>';
+        '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmEdit(\'' + nm + '\')">edit</button> ' +
+        '<button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmToggle(\'' + nm + '\',' + off + ')">' + (off ? 'reactivate' : 'remove') + '</button></td></tr>';
     });
-    host.innerHTML = h + '</table>';
+    h += '</table>';
+    host.innerHTML = h;
+    var sIn = document.getElementById('lvTmS');
+    if (sIn) { sIn.value = tmQ; sIn.oninput = function () { var pos = this.selectionStart; tmQ = this.value; teamEd(); var s2 = document.getElementById('lvTmS'); if (s2) { s2.focus(); try { s2.setSelectionRange(pos, pos); } catch (e) {} } }; }
   }
   function tmPost(body) {
     return api('/charge-people', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -1432,16 +1472,35 @@ window.SPARK_LIVE = (function () {
   }
   function tmEdit(name) {
     if (!ensurePin()) return;
-    var p = (H.people || []).find(function (x) { return x.person === name; }) || {};
-    var bu = prompt('Business Unit for ' + name + ':', p.bu || ''); if (bu === null) return;
-    var en = prompt('Entity:', p.entity || 'Spark Talent'); if (en === null) return;
-    var mt0 = (D.mt || []).find(function (x) { return x.n === name; }) || {};
-    var q3i = prompt('Q3 Igniter (blank = keep):', mt0.q3i || ''); if (q3i === null) return;
-    var ai = prompt('Annual Igniter (blank = keep):', mt0.ai || ''); if (ai === null) return;
-    var q3c = prompt('Q3 Contest (blank = keep):', mt0.q3c || ''); if (q3c === null) return;
-    var ac = prompt('Annual Contest (blank = keep):', mt0.ac || ''); if (ac === null) return;
-    var tg = {}; if (q3i) tg.q3i = Number(q3i); if (ai) tg.ai = Number(ai); if (q3c) tg.q3c = Number(q3c); if (ac) tg.ac = Number(ac);
-    tmPost({ person: name, bu: bu, entity: en, targets: tg });
+    tmEditName = name; teamEd();
+    try { var f = document.getElementById('lvTmF_bu'); if (f) f.focus(); } catch (e) {}
+  }
+  function tmCancel() { tmEditName = null; teamEd(); }
+  function tmSave(name) {
+    var p = (H.people || []).find(function (x) { return x.person === name; });
+    if (!p) { tmCancel(); return; }
+    var rows = (H.personTargets || []).filter(function (t) { return t.person === name; });
+    var pick = rows.filter(function (t) { return t.unit === p.bu; });
+    if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
+    if (!pick.length) pick = rows;
+    var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
+    var gv = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
+    var st = function (v) { return String(v == null ? '' : v).trim(); };
+    var body = { person: name }, any = false;
+    var rl = gv('lvTmF_rl'), en = gv('lvTmF_en'), bu = gv('lvTmF_bu');
+    if (rl !== null && st(rl) !== st(p.role)) { body.role = st(rl); any = true; }
+    if (en !== null && st(en) !== st(p.entity)) { body.entity = st(en); any = true; }
+    if (bu !== null && st(bu) !== st(p.bu)) { body.bu = st(bu); any = true; }
+    var tg = {};
+    [['lvTmF_q3i', 'q3i', g('q3', 'igniter')], ['lvTmF_ai', 'ai', g('annual', 'igniter')], ['lvTmF_q3c', 'q3c', g('q3', 'contest')], ['lvTmF_ac', 'ac', g('annual', 'contest')]].forEach(function (d) {
+      var v = gv(d[0]); if (v === null || st(v) === '') return;
+      var n = Number(String(v).replace(/[$,]/g, ''));
+      if (isFinite(n) && n > 0 && Math.abs(n - d[2]) > 0.4) { tg[d[1]] = n; any = true; }
+    });
+    if (Object.keys(tg).length) body.targets = tg;
+    tmEditName = null;
+    if (!any) { teamEd(); return; }
+    tmPost(body);
   }
   function tmToggle(name, wasOff) {
     if (!ensurePin()) return;
@@ -1451,8 +1510,9 @@ window.SPARK_LIVE = (function () {
   function tmAdd() {
     if (!ensurePin()) return;
     var nm = prompt('Member full name:'); if (!nm) return;
+    var rl = prompt('Role / Title:', ''); if (rl === null) return;
     var bu = prompt('Business Unit:', 'MI Metro'); if (bu === null) return;
-    tmPost({ person: nm, bu: bu });
+    tmPost({ person: nm, role: rl, bu: bu, active: true });
   }
 
     function freezeWeek() {
@@ -1756,7 +1816,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
