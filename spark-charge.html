@@ -1242,7 +1242,7 @@ window.SPARK_LIVE = (function () {
       if (!official && dcur && dcur.drops && dcur.drops.length) {
         D.dh = dcur.drops.map(function (d) {
           var wk = parseInt(d.drop, 10) || 1, of = parseInt(String(d.drop).split('of')[1], 10) || 1;
-          return { en: d.entity, bu: d.bu, cl: d.company + (d.split ? ' · split' : ''), sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: Math.round(d.amount), wk: wk, of: of, rem: d.remaining, emp: d.employee, st: d.remaining > 0 ? 'active' : 'done' };
+          return { en: d.entity, bu: d.bu, cl: d.company + (d.split || d.pairSplit ? ' · split' : ''), sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: Math.round(d.amount), wk: wk, of: of, rem: d.remaining, emp: d.employee, st: d.remaining > 0 ? 'active' : 'done' };
         });
       } else {
         D.dh = (H.dh || []).map(function (r) {
@@ -1310,7 +1310,7 @@ window.SPARK_LIVE = (function () {
       '<table style="width:100%;font-size:11px;border-collapse:collapse">' +
       '<tr style="color:var(--dm);text-align:left"><th>Entity</th><th>Client</th><th>Employee</th><th>AM</th><th>Recruiter</th><th>BU</th><th style="text-align:right">Charge</th><th></th></tr>';
     rows.forEach(function (d, i) {
-      h += '<tr style="border-top:1px solid var(--bd)"><td>' + (d.entity || '') + '</td><td>' + (d.company || '') + (d.split ? ' <span class="pl" style="background:rgba(255,200,0,.12);color:var(--gold)">SPLIT</span>' : '') + (d.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + '</td><td>' + (d.employee || '') + '</td><td>' + (d.sales_rep || '') + '</td><td>' + (d.recruiter || '') + '</td><td>' + (d.bu || '&mdash;') + '</td>' +
+      h += '<tr style="border-top:1px solid var(--bd)"><td>' + (d.entity || '') + '</td><td>' + (d.company || '') + (d.split || d.pairSplit ? ' <span class="pl" style="background:rgba(255,200,0,.12);color:var(--gold)">SPLIT</span>' : '') + (d.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + '</td><td>' + (d.employee || '') + '</td><td>' + (d.sales_rep || '') + '</td><td>' + (d.recruiter || '') + '</td><td>' + (d.bu || '&mdash;') + '</td>' +
         '<td style="text-align:right">$' + Math.round(d.amount).toLocaleString() + '</td>' +
         '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhEdit(' + i + ')">edit</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.dhHide(' + i + ')">hide</button></td></tr>';
     });
