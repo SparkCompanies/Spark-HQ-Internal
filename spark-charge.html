@@ -402,7 +402,7 @@ function openPerson(name){
   }
   // True total
   h+='<div class="cd" style="padding:20px;display:flex;justify-content:space-between;align-items:center">';
-  h+='<div><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">True Total</div><div class="m" style="font-size:32px;font-weight:900;color:'+(p.tt>0?'var(--y)':p.tt<0?'var(--red)':'var(--dm)')+';margin-top:4px;letter-spacing:-1px">'+fmt(p.tt)+'</div></div>';
+  h+='<div><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Raw Charge (Wk)</div><div class="m" style="font-size:32px;font-weight:900;color:'+((p.wkRaw||0)>0?'var(--y)':(p.wkRaw||0)<0?'var(--red)':'var(--dm)')+';margin-top:4px;letter-spacing:-1px">'+fmt((p.wkRaw||0))+'</div></div>';
   h+='<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">WoW</div><div style="margin-top:6px">'+dl(p.wow,15)+'</div></div></div>';
   document.getElementById('drb').innerHTML=h;
   document.getElementById('dro').classList.add('on');
@@ -445,11 +445,11 @@ function rPulse(){
   // HERO
   h+='<div class="cd" style="padding:26px 30px;margin-bottom:16px;background:linear-gradient(135deg,var(--sf) 0%,var(--bg2) 100%)">';
   h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px">';
-  h+='<div><div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:2.5px;font-weight:700">Portfolio Charge &middot; WE 8.2.26</div>';
+  h+='<div><div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:2.5px;font-weight:700">Portfolio Raw Charge &middot; '+(window.__weLabel||'WE 8.2.26')+'</div>';
   h+='<div class="m" style="font-size:52px;font-weight:900;letter-spacing:-3px;line-height:1.05;margin-top:6px;background:linear-gradient(135deg,#FFC800 20%,#CC9F00 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 18px rgba(255,200,0,.15))" id="heroNum">'+fmt(TOTAL)+'</div>';
   h+='<div style="margin-top:8px;display:flex;gap:14px;align-items:center">'+dl(TOTAL-LASTW,13)+'<span style="font-size:11px;color:var(--dm)">vs last week</span></div></div>';
   h+='<div style="display:flex;gap:26px;flex-wrap:wrap">';
-  [['YTD Charge',fK(YTD),'var(--tx)'],['Q3 QTD',fK(Q3),'var(--y)'],['Q3 Target',fK(Q3T),'var(--dm)'],['Q3 Pace',Math.round(Q3/Q3T*100)+'%',pC(Q3/Q3T*100)]].forEach(function(k){
+  [['YTD Raw Charge',fK(YTD),'var(--tx)'],['Q3 QTD',fK(Q3),'var(--y)'],['Q3 Target',fK(Q3T),'var(--dm)'],['Q3 Pace',Math.round(Q3/Q3T*100)+'%',pC(Q3/Q3T*100)]].forEach(function(k){
     h+='<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:21px;font-weight:800;color:'+k[2]+';margin-top:3px;letter-spacing:-.5px">'+k[1]+'</div></div>';
   });
   h+='</div></div>';
@@ -612,8 +612,8 @@ function tgl(id){document.getElementById(id).classList.toggle('open')}
 function rTicker(){
   var items=[];
   D.ent.forEach(function(e){items.push({n:e.n,v:e.ch,d:e.ud,fn:"go('hier')"})});
-  D.people.slice().sort(function(a,b){return b.tt-a.tt}).slice(0,14).forEach(function(p){
-    items.push({n:p.n,v:p.tt,d:p.wow,fn:"openPerson('"+esc(p.n)+"')"})});
+  D.people.slice().sort(function(a,b){return (b.wkRaw||0)-(a.wkRaw||0)}).slice(0,14).forEach(function(p){
+    items.push({n:p.n,v:(p.wkRaw||0),d:p.wow,fn:"openPerson('"+esc(p.n)+"')"})});
   var one=items.map(function(it){
     var ar=it.d>0?'<span class="m cg" style="font-size:10px">&#9650;'+fK(it.d)+'</span>':it.d<0?'<span class="m cr" style="font-size:10px">&#9660;'+fK(Math.abs(it.d))+'</span>':'';
     return '<span class="tik-i" onclick="'+it.fn+'"><span class="tik-n">'+it.n+'</span><span class="m" style="color:var(--y);font-weight:700">'+fK(it.v)+'</span>'+ar+'</span>';
@@ -711,7 +711,7 @@ function heroHover(){
 
 // ═══ RANKINGS ARENA ═══
 var arM='mo', arScope='people';
-var AR_METRICS=[['mo','Monthly'],['q','Quarterly'],['cum','Cumulative'],['tt','True Total'],['wow','WoW'],['pace','Q3 Pace']];
+var AR_METRICS=[['mo','Monthly Raw'],['q','Quarterly Raw'],['cum','Cumulative Raw'],['wkRaw','Raw (Wk)'],['wow','WoW'],['pace','Q3 Pace']];
 function initials(n){var p=n.split(' ');return (p[0][0]+(p[p.length-1][0]||'')).toUpperCase()}
 function rankMove(name){
   // rank by last week vs prior week from iw
@@ -856,7 +856,7 @@ function rRaw(){
     h+='<div class="cd" style="padding:16px 20px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.8px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:23px;font-weight:800;margin-top:4px;letter-spacing:-.8px;color:'+k[2]+'">'+k[1]+'</div></div>'});
   h+='</div>';
   h+='<div style="margin-bottom:12px"><input class="srch" id="rw-s" placeholder="Search client, employee, rep, title, BU..." style="width:360px" /></div>';
-  h+='<div class="cd"><div class="cdh">All '+D.raw.length+' Contractors <span style="font-weight:400;font-size:10px;color:var(--dm)">&middot; click client to drill down</span></div><div class="scr" style="max-height:620px"><table class="tb" id="rw-t"><thead><tr><th>Client</th><th>BU</th><th>Employee</th><th>Title</th><th>AM/Sales</th><th>Recruiter</th><th class="r">Hrs</th><th class="r">Charge</th></tr></thead><tbody>';
+  h+='<div class="cd"><div class="cdh">All '+D.raw.length+' Contractors <span style="font-weight:400;font-size:10px;color:var(--dm)">&middot; click client to drill down</span></div><div class="scr" style="max-height:620px"><table class="tb" id="rw-t"><thead><tr><th>Client</th><th>BU</th><th>Employee</th><th>Title</th><th>AM/Sales</th><th>Recruiter</th><th class="r">Hrs</th><th class="r">Raw Charge</th></tr></thead><tbody>';
   D.raw.slice().sort(function(a,b){return b[7]-a[7]}).forEach(function(r){
     h+='<tr><td onclick="openClient(\''+esc(r[0])+'\')" style="font-weight:600;font-size:11px;color:var(--y);cursor:pointer">'+r[0]+'</td>';
     h+='<td>'+pill(r[1],'var(--dm)')+'</td>';
@@ -877,7 +877,7 @@ function rCL(){
   var act=D.cST.filter(function(c){return c.ch>0});
   var h='<div class="st">Client Rankings</div>';
   h+='<div style="margin-bottom:12px"><input class="srch" id="cl-s" placeholder="Search clients..." /></div>';
-  h+='<div class="cd" style="margin-bottom:16px"><div class="cdh">Spark Talent ('+act.length+' active of '+D.cST.length+')</div><div class="scr" style="max-height:480px"><table class="tb" id="cl-t"><thead><tr><th style="width:36px">#</th><th>Client</th><th>BU</th><th class="r">Charge</th><th class="r">DH</th><th class="r">WoW</th><th class="r">ATH</th><th class="r" style="width:60px">ATH%</th></tr></thead><tbody>';
+  h+='<div class="cd" style="margin-bottom:16px"><div class="cdh">Spark Talent ('+act.length+' active of '+D.cST.length+')</div><div class="scr" style="max-height:480px"><table class="tb" id="cl-t"><thead><tr><th style="width:36px">#</th><th>Client</th><th>BU</th><th class="r">Raw Charge</th><th class="r">DH</th><th class="r">WoW</th><th class="r">ATH</th><th class="r" style="width:60px">ATH%</th></tr></thead><tbody>';
   D.cST.forEach(function(cc,i){
     var ap=cc.ath>0?Math.min(100,Math.abs(cc.ch)/cc.ath*100):0;
     h+='<tr><td>'+bdg(i)+'</td><td onclick="openClient(\''+esc(cc.cl)+'\')" style="font-weight:600;color:var(--y);cursor:pointer">'+cc.cl+'</td>';
@@ -893,7 +893,7 @@ function rCL(){
   Object.keys(D.cEnt).forEach(function(en){
     var cls=D.cEnt[en];if(!cls.length)return;
     var c=ecol(en),actN=cls.filter(function(x){return x.ch>0}).length;
-    h+='<div class="cd" style="margin-bottom:14px"><div class="cdh"><div style="width:7px;height:7px;border-radius:50%;background:'+c+';box-shadow:0 0 6px '+c+'60"></div>'+en+' <span style="font-weight:400;font-size:10px;color:var(--dm)">'+actN+' active / '+cls.length+'</span></div><div class="scr" style="max-height:260px"><table class="tb"><thead><tr><th>Client</th><th>BU</th><th class="r">Charge</th><th class="r">WoW</th><th class="r">ATH</th></tr></thead><tbody>';
+    h+='<div class="cd" style="margin-bottom:14px"><div class="cdh"><div style="width:7px;height:7px;border-radius:50%;background:'+c+';box-shadow:0 0 6px '+c+'60"></div>'+en+' <span style="font-weight:400;font-size:10px;color:var(--dm)">'+actN+' active / '+cls.length+'</span></div><div class="scr" style="max-height:260px"><table class="tb"><thead><tr><th>Client</th><th>BU</th><th class="r">Raw Charge</th><th class="r">WoW</th><th class="r">ATH</th></tr></thead><tbody>';
     cls.forEach(function(cc){
       h+='<tr style="cursor:default"><td style="font-weight:'+(cc.ch>0?'600':'400')+';color:'+(cc.ch>0?'var(--tx)':'var(--dm)')+'">'+cc.cl+'</td><td style="font-size:10px;color:var(--dm)">'+cc.bu+'</td>';
       h+='<td class="r m" style="color:'+(cc.ch>0?'var(--y)':cc.ch<0?'var(--red)':'var(--mt)')+'">'+(cc.ch?fmt(cc.ch):'--')+'</td>';
@@ -917,7 +917,7 @@ function rDH(){
   h+='</div>';
   function dhTable(rows,title,color){
     if(!rows.length)return '';
-    var t='<div class="cd" style="margin-bottom:14px"><div class="cdh" style="color:'+color+'">'+title+' ('+rows.length+')</div><div class="scr" style="max-height:300px"><table class="tb"><thead><tr><th>Entity</th><th>BU</th><th>Client</th><th>Employee</th><th class="r">Charge</th><th style="text-align:center">Week</th><th style="text-align:center">Left</th><th>Sales</th><th>Rec</th></tr></thead><tbody>';
+    var t='<div class="cd" style="margin-bottom:14px"><div class="cdh" style="color:'+color+'">'+title+' ('+rows.length+')</div><div class="scr" style="max-height:300px"><table class="tb"><thead><tr><th>Entity</th><th>BU</th><th>Client</th><th>Employee</th><th class="r">Raw Charge</th><th style="text-align:center">Week</th><th style="text-align:center">Left</th><th>Sales</th><th>Rec</th></tr></thead><tbody>';
     rows.sort(function(a,b){return b.ch-a.ch}).forEach(function(d){
       var rc=d.rem>6?'var(--red)':d.rem>3?'var(--org)':'var(--grn)';
       t+='<tr style="cursor:default"><td>'+pill(d.en.split(' ')[0],ecol(d.en))+'</td><td style="font-size:10px;color:var(--dm)">'+d.bu+'</td>';
@@ -1230,7 +1230,7 @@ window.SPARK_LIVE = (function () {
 
     D.iw = {};
     Object.keys(names).forEach(function (n) {
-      D.iw[n] = isoList.map(function (w) { var p = pweek(w)[n]; return { w: shortWe(w), t: Math.round(p ? p.tt : 0) }; });
+      D.iw[n] = isoList.map(function (w) { var p = pweek(w)[n]; return { w: shortWe(w), t: Math.round(p ? rawOf(p) : 0) }; });
     });
 
     if (H) {
@@ -1274,6 +1274,8 @@ window.SPARK_LIVE = (function () {
     try { document.querySelectorAll('.cd').forEach(function (c) { if (c.querySelector('canvas')) c.classList.add('dk'); }); } catch (e) {}
     try { if (IS_ADMIN && !official && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
     try { if (IS_ADMIN) teamEd(); else { var _t = document.getElementById('lvTeamEd'); if (_t) _t.remove(); } } catch (e) {}
+    window.__weLabel = labelWe(curIso);
+    try { var _sl = document.querySelector('.sb-lb'); if (_sl) _sl.textContent = 'Portfolio Raw \u00b7 ' + labelWe(curIso); } catch (e) {}
     var tag = official ? 'FINALIZED' : 'LIVE';
     setStatus(tag + ' \u00b7 ' + labelWe(curIso), official ? '#FFC800' : '#00FF88');
   }
@@ -1579,6 +1581,8 @@ window.SPARK_LIVE = (function () {
   window.rBU = function () {
     var el = document.getElementById('p-bu'); if (!el) return;
     if (!H) { el.innerHTML = '<div class="st">Business Units</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
+    if (typeof window.buS === 'undefined' || !window.buS) window.buS = { f: 'wk', d: 'desc' };
+    var bs = window.buS;
     var entSet = {}; (H.units || []).forEach(function (u) { if (u.is_entity) entSet[u.unit] = 1; });
     var isoList = weeksThrough(curIso);
     var set = {};
@@ -1596,13 +1600,24 @@ window.SPARK_LIVE = (function () {
     };
     var tg = {}; (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') tg[t.unit] = Number(t.amount) || 0; });
     var prev = prevIso(curIso);
+    var moKey = curIso.slice(0, 7), yKey = curIso.slice(0, 4);
+    var qIdx = Math.floor((Number(curIso.slice(5, 7)) - 1) / 3);
     var rows = Object.keys(set).map(function (u) {
-      var wk = wkOf(curIso, u), cum = 0;
-      isoList.forEach(function (w) { cum += wkOf(w, u); });
+      var wk = wkOf(curIso, u), cum = 0, mo = 0, qv = 0;
+      isoList.forEach(function (w) {
+        var v = wkOf(w, u); cum += v;
+        if (w.slice(0, 7) === moKey) mo += v;
+        if (w.slice(0, 4) === yKey && Math.floor((Number(w.slice(5, 7)) - 1) / 3) === qIdx) qv += v;
+      });
       var goal = tg[u] || 0;
-      return { u: u, wk: Math.round(wk), cum: Math.round(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null, wow: Math.round(wk - wkOf(prev, u)) };
+      return { u: u, wk: Math.round(wk), wow: Math.round(wk - wkOf(prev, u)), mo: Math.round(mo), q: Math.round(qv), cum: Math.round(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null };
     }).filter(function (r) { return r.wk || r.cum || r.goal; });
-    rows.sort(function (a, b) { return b.wk - a.wk || b.cum - a.cum; });
+    rows.sort(function (x, y) {
+      var f = bs.f, dd = bs.d === 'desc' ? -1 : 1;
+      if (f === 'u') return String(x.u).localeCompare(String(y.u)) * dd;
+      var xv = x[f] == null ? -1e15 : x[f], yv = y[f] == null ? -1e15 : y[f];
+      return (xv - yv) * dd;
+    });
     var bar = function (pct) {
       if (pct == null) return '<span style="color:var(--dm)">--</span>';
       var w = Math.max(0, Math.min(pct, 100)), lit = pct >= 100;
@@ -1617,20 +1632,30 @@ window.SPARK_LIVE = (function () {
     };
     var totWk = rows.reduce(function (s2, r) { return s2 + r.wk; }, 0);
     var h = '<style>@keyframes buFlick{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}@keyframes buGlow{0%,100%{box-shadow:0 0 5px rgba(255,107,43,.35)}50%{box-shadow:0 0 14px rgba(255,107,43,.8)}}</style>';
-    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + totWk.toLocaleString() + ' this week</span></div>';
-    h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th><th>Business Unit</th><th class="r">Charge (Wk)</th><th class="r">WoW</th><th class="r">Cumulative (YTD)</th><th class="r">Igniter Goal</th><th style="padding-left:26px">% to Ignite</th></tr></thead><tbody>';
+    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + totWk.toLocaleString() + ' raw this week</span></div>';
+    var cols = [['u', 'Business Unit'], ['wk', 'Raw Charge (Wk)'], ['wow', 'WoW'], ['mo', 'Monthly Raw'], ['q', 'Quarterly Raw'], ['cum', 'Cumulative Raw'], ['goal', 'Igniter Goal'], ['pct', '% to Ignite']];
+    h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th>';
+    cols.forEach(function (cd) {
+      var ar = bs.f === cd[0] ? (bs.d === 'desc' ? ' &#9662;' : ' &#9652;') : '';
+      var cls = (cd[0] === 'u' || cd[0] === 'pct') ? '' : ' class="r"';
+      var sty = cd[0] === 'pct' ? 'padding-left:26px;cursor:pointer;white-space:nowrap' : 'cursor:pointer;white-space:nowrap';
+      h += '<th' + cls + ' style="' + sty + '" onclick="buS={f:\'' + cd[0] + '\',d:(typeof buS!==\'undefined\'&&buS&&buS.f===\'' + cd[0] + '\'&&buS.d===\'desc\')?\'asc\':\'desc\'};rBU()">' + cd[1] + ar + '</th>';
+    });
+    h += '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
       h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer">';
       h += '<td>' + bdg(i) + '</td>';
       h += '<td style="font-weight:700;font-size:12px">' + r.u + '</td>';
       h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.wk > 0 ? 'var(--y)' : r.wk < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (r.wk ? fmt(r.wk) : '--') + '</td>';
       h += '<td class="r">' + dl(r.wow) + '</td>';
+      h += '<td class="r m" style="font-size:11px">' + (r.mo ? fmt(r.mo) : '--') + '</td>';
+      h += '<td class="r m" style="font-size:11px">' + (r.q ? fmt(r.q) : '--') + '</td>';
       h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.cum >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.cum) + '</td>';
       h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.goal ? fK(r.goal) : '--') + '</td>';
       h += '<td style="padding-left:26px">' + bar(r.pct) + '</td></tr>';
     });
     h += '</tbody></table></div></div>';
-    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Week charge = contract + direct hire coded to the unit &middot; click a unit to open its Rankings</div>';
+    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; click a unit to open its Rankings</div>';
     el.innerHTML = h;
   };
 
@@ -1640,11 +1665,11 @@ window.SPARK_LIVE = (function () {
     var b = batches[curIso];
     if (b && b.rows) return b.rows.map(function (r) {
       var c = r.credits || [];
-      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: (r.otHrs || 0) + (r.dtHrs || 0), vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge) };
+      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge) };
     });
-    return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, vac: 0, tot: r[6], charge: r[7] }; });
+    return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
-  var RAW_COLS = [['entity','Inv. Entity',1],['company','Client',1],['bu','BU',1],['candidate','Team Member',1],['title','Title',1],['am','AM/Sales',1],['rec','Recruiter',1],['rt','RT',0],['ot','OT/DT',0],['vac','Vac',0],['tot','Hrs',0],['charge','Charge',0]];
+  var RAW_COLS = [['entity','Inv. Entity',1],['company','Client',1],['bu','BU',1],['candidate','Team Member',1],['title','Title',1],['am','AM/Sales',1],['rec','Recruiter',1],['rt','RT',0],['ot','OT',0],['dt','DT',0],['vac','Vac',0],['tot','Hrs',0],['charge','Raw Charge',0]];
   window.rRaw = function () {
     var el = document.getElementById('p-raw'); if (!el) return;
     var all = rawRows(), list = all.slice();
@@ -1676,16 +1701,18 @@ window.SPARK_LIVE = (function () {
       h += '<td style="font-size:11px">' + esc(r.candidate) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.title) + '</td>';
       h += '<td style="font-size:10px">' + esc(r.am) + '</td><td style="font-size:10px">' + esc(r.rec) + '</td>';
       h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px;color:' + (r.ot ? 'var(--org)' : 'var(--mt)') + '">' + (r.ot || '--') + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (r.dt ? 'var(--red)' : 'var(--mt)') + '">' + (r.dt || '--') + '</td>';
       h += '<td class="r m" style="font-size:10px;color:' + (r.vac ? 'var(--blu)' : 'var(--mt)') + '">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
       h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.charge >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.charge) + '</td></tr>';
     });
-    var sRT = 0, sOT = 0, sV = 0, sH = 0;
-    list.forEach(function (r) { sRT += r.rt; sOT += r.ot; sV += r.vac; sH += r.tot; });
+    var sRT = 0, sOT = 0, sDT = 0, sV = 0, sH = 0;
+    list.forEach(function (r) { sRT += r.rt; sOT += r.ot; sDT += r.dt || 0; sV += r.vac; sH += r.tot; });
     var h1 = function (v) { return Math.round(v * 10) / 10; };
     var ftd = 'position:sticky;bottom:0;background:var(--pn);border-top:2px solid var(--gold);font-weight:700;font-size:11px;padding:8px 10px';
     h += '<tr><td colspan="7" style="' + ftd + ';text-align:right;color:var(--dm);letter-spacing:.6px">TOTAL &middot; ' + list.length + ' rows</td>';
     h += '<td class="r m" style="' + ftd + '">' + h1(sRT).toLocaleString() + '</td>';
     h += '<td class="r m" style="' + ftd + ';color:var(--org)">' + (sOT ? h1(sOT).toLocaleString() : '--') + '</td>';
+    h += '<td class="r m" style="' + ftd + ';color:var(--red)">' + (sDT ? h1(sDT).toLocaleString() : '--') + '</td>';
     h += '<td class="r m" style="' + ftd + ';color:var(--blu)">' + (sV ? h1(sV).toLocaleString() : '--') + '</td>';
     h += '<td class="r m" style="' + ftd + '">' + h1(sH).toLocaleString() + '</td>';
     h += '<td class="r m" style="' + ftd + ';color:' + (totC >= 0 ? 'var(--gold)' : 'var(--red)') + ';font-size:12px">' + fmt(Math.round(totC)) + '</td></tr>';
