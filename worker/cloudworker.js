@@ -112,7 +112,7 @@ function corsHeaders(origin) {
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Admin-Pin",
     "Access-Control-Max-Age": "86400"
   };
 }
@@ -1895,7 +1895,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-address") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a map admin" }, 403, origin);
@@ -1923,7 +1923,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-address-bulk") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a map admin" }, 403, origin);
@@ -1959,7 +1959,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-bu-bulk") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || who.user && who.user.email || "").toLowerCase();
       if (email === "") {
         try {
@@ -2026,7 +2026,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-bu") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || who.user && who.user.email || "").toLowerCase();
       if (email === "") {
         try {
@@ -2082,7 +2082,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-job-bu") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || who.user && who.user.email || "").toLowerCase();
       if (!email) {
         try {
@@ -2129,7 +2129,7 @@ var worker_default = {
     if (url.pathname === "/terr-map-config") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       const sbHeaders = { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
       if (request.method === "GET") {
         const r = await fetch(env.SUPABASE_URL + "/rest/v1/terr_map_config?id=eq.1&select=data,updated_at,updated_by", { headers: sbHeaders });
@@ -5828,10 +5828,12 @@ var worker_default = {
         const r = await sbService(env, "GET", "charge_dh_overrides?select=*&order=edited_at.desc&limit=300");
         return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
       }
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
       if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
       let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
       if (body.op === "delete" && body.id) {
@@ -5857,7 +5859,7 @@ var worker_default = {
     if (url.pathname === "/charge-admin-check") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       return json({ ok: true, admin: MAP_ADMINS.indexOf(email) !== -1 }, 200, origin);
@@ -5870,10 +5872,12 @@ var worker_default = {
         const r = await sbService(env, "GET", "charge_people?select=person,role,entity,bu,active&order=person.asc");
         return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
       }
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
       if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
       let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
       const person = String(body.person || "").trim();
@@ -5905,10 +5909,12 @@ var worker_default = {
         const r = await sbService(env, "GET", "charge_dh_schedule?select=*&order=created_at.desc&limit=500");
         return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
       }
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
       if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
       let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
       const id = Number(body && body.id);
@@ -6046,10 +6052,12 @@ var worker_default = {
     if (url.pathname === "/charge-snapshot") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
       if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
       const weekEnding = (url.searchParams.get("weekEnding") || "").trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
