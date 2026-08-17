@@ -5678,17 +5678,20 @@ var worker_default = {
         const ovs = (ovR.ok && ovR.data) || [];
         const okey = (e, c, n) => (String(e || "") + "|" + String(c || "") + "|" + String(n || "")).toLowerCase();
         drops = drops.filter((d) => {
+          const k0 = { entity: d.entity, company: d.company, employee: d.employee };
           const hit = ovs.filter((o) => okey(o.match_entity || d.entity, o.match_company, o.match_employee) === okey(d.entity, d.company, d.employee));
           for (const o of hit) {
             if (o.action === "hide") { review.push({ company: d.company, candidate: d.employee, flags: ["dh_hidden"], credits: ["Hidden by editor" + (o.notes ? ": " + o.notes : "")] }); return false; }
             if (o.action === "patch" && o.fields) {
               const f = o.fields;
               ["company","employee","sales_rep","recruiter","bu","entity","title"].forEach((k) => { if (f[k] !== void 0) d[k] = f[k]; });
+              if (f.sales_rep !== void 0 || f.recruiter !== void 0) d.credEdited = true;
               if (f.bu !== void 0) d.buEdited = true;
               if (f.amount !== void 0) { d.amount = r2s(f.amount); d.invoiced = null; d.burden = null; d.amtEdited = true; }
               d.edited = true;
             }
           }
+          if (d.edited) { d.m_entity = k0.entity; d.m_company = k0.company; d.m_employee = k0.employee; }
           return true;
         });
         // ── manual adds (editor) from charge_dh_schedule source='manual' ──
@@ -5783,7 +5786,7 @@ var worker_default = {
           if (hireBU) { if (!own.buEdited) own.bu = hireBU; if (!pd.buEdited) pd.bu = hireBU; }
           review.push({ company: own.company, candidate: own.employee, flags: ["dh_entity_split"], credits: [own.entity + " retains $" + retained + " as House FD; " + pd.entity + " keeps $" + pd.amount + " \u2192 " + (pd.sales_rep || "?") + " / " + (pd.recruiter || "?") + "; both coded to " + (hireBU || "no BU")] });
           own.amount = retained;
-          own.sales_rep = "House"; own.recruiter = "House";
+          if (!own.credEdited) { own.sales_rep = "House"; own.recruiter = "House"; }
           own.pairSplit = true; pd.pairSplit = true;
         }
         // ── splits: allocate the deal exactly once, suppress sibling counterparts ──
@@ -5868,6 +5871,14 @@ var worker_default = {
         const r = await sbService(env, "DELETE", "charge_dh_overrides?id=eq." + Number(body.id));
         return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
       }
+      if (body.op === "revert") {
+        const wk = String(body.week_ending || "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "week_ending required" }, 400, origin);
+        let q = "charge_dh_overrides?week_ending=eq." + wk + "&match_company=eq." + encodeURIComponent(String(body.match_company || "")) + "&match_employee=eq." + encodeURIComponent(String(body.match_employee || ""));
+        if (body.match_entity) q += "&match_entity=eq." + encodeURIComponent(String(body.match_entity));
+        const r = await sbService(env, "DELETE", q);
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
       if (body.op === "add_manual") {
         const m = body.row || {};
         const ins = await sbService(env, "POST", "charge_dh_schedule", [{ source: "manual", entity: m.entity || null, bu: m.bu || null, company: m.company || "", employee: m.employee || "", sales_rep: m.sales_rep || null, recruiter: m.recruiter || null, invoicing: null, burden_pct: 0, charge: Number(m.charge) || 0, interval: m.interval === "month" || m.interval === "week" ? m.interval : "lump", installments: Number(m.installments) || 1, weeks_paid: 0, first_we: m.first_we || body.week_ending, status: "active", notes: "manual add by " + email }]);
@@ -5948,7 +5959,7 @@ var worker_default = {
       const id = Number(body && body.id);
       if (!id) return json({ error: "id required" }, 400, origin);
       const patch = {};
-      ["interval","installments","weeks_paid","first_we","status","burden_pct","invoicing","charge","sales_rep","recruiter","entity","bu","notes"].forEach((k) => { if (body[k] !== void 0) patch[k] = body[k]; });
+      ["interval","installments","weeks_paid","first_we","status","burden_pct","invoicing","charge","sales_rep","recruiter","entity","bu","company","employee","notes"].forEach((k) => { if (body[k] !== void 0) patch[k] = body[k]; });
       if (patch.invoicing !== void 0 && patch.charge === void 0) { const b = patch.burden_pct !== void 0 ? Number(patch.burden_pct) : null; if (b !== null) patch.charge = Math.round(Number(patch.invoicing) * (1 - b) * 100) / 100; }
       const r = await sbService(env, "PATCH", "charge_dh_schedule?id=eq." + id, patch);
       return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
