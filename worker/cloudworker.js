@@ -5741,6 +5741,8 @@ var worker_default = {
         } catch (e) {}
         // ── Bolt Creative: all DH lands in its own unit ──
         drops.forEach((d) => { if (/^bolt/i.test(String(d.entity || "")) && !d.buEdited) d.bu = "Bolt Creative Strategies"; });
+        // ── BPO services always code to the BPO unit ──
+        drops.forEach((d) => { if (/\bbpo\b/i.test(String(d.employee || "") + " " + String(d.title || "")) && !d.buEdited) d.bu = "BPO"; });
         // ── geographic BU: client state → territory → BU ──
         const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
         const stateBU = {};
@@ -6493,6 +6495,22 @@ var worker_default = {
               rows.forEach((r) => { r.charge = r2(r.regHrs * r.regMargin + r.otHrs * r.otMargin + r.dtHrs * r.dtMargin + (r.vacHrs || 0) * r.vacMargin); });
             }
           } catch (e) { payables.error = String(e.message || e); }
+        // ── 4.6) Weekly constants (e.g., Spark Companies shared services) ──
+        try {
+          const kR = await sbService(env, "GET", "charge_weekly_constants?select=*&active=eq.true");
+          ((kR.ok && kR.data) || []).forEach((k) => {
+            rows.push({
+              entity: k.entity || "Spark Companies", company: k.company || "", bu: k.bu || "", candidate: k.candidate || "", title: k.title || "",
+              credits: [{ recipient: k.am || "House Account", type: "Account Manager" }, { recipient: k.rec || k.am || "House Account", type: "Recruiter" }],
+              pay: 0, otPay: 0, dtPay: 0, bill: 0, otBill: 0, dtBill: 0, otMult: null, dtMult: null, burden: 0,
+              regHrs: Number(k.hours) || 0, otHrs: 0, dtHrs: 0, vacHrs: 0, totalHrs: Number(k.hours) || 0,
+              regMargin: 0, otMargin: 0, dtMargin: 0, vacMargin: 0,
+              charge: r2(Number(k.charge) || 0),
+              flags: ["constant"], source: "constant"
+            });
+          });
+        } catch (e) {}
+
         }
         // ── 4.7) Admin overrides: credits / BU / title / hide (live in the agent) ──
         try {
