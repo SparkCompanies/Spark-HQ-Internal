@@ -5942,6 +5942,29 @@ var worker_default = {
       return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
     }
 
+    if (url.pathname === "/contract-override") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.error }, 401, origin);
+      const email = String(who.email || "").toLowerCase();
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "POST only" }, 405, origin);
+      const body = await request.json().catch(() => ({}));
+      const wk = String(body.week_ending || "");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "week_ending required" }, 400, origin);
+      if (body.op === "revert") {
+        const q = "charge_contract_overrides?week_ending=eq." + wk + "&match_candidate=eq." + encodeURIComponent(String(body.match_candidate || "")) + "&match_company=eq." + encodeURIComponent(String(body.match_company || ""));
+        const r = await sbService(env, "DELETE", q);
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
+      if (body.action !== "patch" && body.action !== "hide") return json({ error: "action must be patch|hide" }, 400, origin);
+      const rec = { week_ending: wk, match_candidate: String(body.match_candidate || ""), match_company: String(body.match_company || ""), action: body.action, fields: body.fields || null, created_by: email };
+      const r = await sbService(env, "POST", "charge_contract_overrides", rec);
+      return json({ ok: r.ok, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
+    }
+
     if (url.pathname === "/dh-schedule") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -6143,6 +6166,7 @@ var worker_default = {
             }
           }
         } catch (e) {}
+        personRows.forEach((row) => { row.raw = r2s((Number(row.fd) || 0) + ((Number(row.sales) || 0) + (Number(row.rec) || 0)) / 2); });
         // wipe the week first so re-freezes fully reconcile (BU moves, removed rows, stale \u00b7 DH lines)
         await sbService(env, "DELETE", "charge_unit_weeks?week_ending=eq." + weekEnding);
         await sbService(env, "DELETE", "charge_person_weeks?week_ending=eq." + weekEnding);
@@ -6187,6 +6211,11 @@ var worker_default = {
         try {
           const r = await sbService(env, "GET", "fin_ot_dt_rules?select=sf_account_name,rate_mode,ot_multiplier,dt_multiplier");
           if (r && r.ok && Array.isArray(r.data)) r.data.forEach((m) => { rateRules[m.sf_account_name] = { mode: m.rate_mode || "unset", ot: m.ot_multiplier, dt: m.dt_multiplier }; });
+        } catch (e) {}
+        const rrKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(corporation|corp|incorporated|inc|llc|company|co)\b/g, "").replace(/\s+/g, " ").trim();
+        const rrNorm = {};
+        Object.keys(rateRules).forEach((k) => { rrNorm[rrKey(k)] = rateRules[k]; });
+        try {
         } catch (e) {}
         const recipAlias = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan" };
         try {
@@ -6236,12 +6265,14 @@ var worker_default = {
           const totH = Number(ts.ASYMBL_Time__Total_Hours_Logged__c) || 0;
 
           // OT/DT bill rates: rate rule multiplier wins; else timesheet's explicit rates; else 0
-          const rule = rateRules[acct] || null;
+          const rule = rateRules[acct] || rrNorm[rrKey(acct)] || null;
           if (!rule && (otH > 0 || dtH > 0)) dbg.missingRateRule[acct] = (dbg.missingRateRule[acct] || 0) + 1;
           const otMult = rule && rule.mode === "multiplier" && rule.ot != null ? Number(rule.ot) : null;
           const dtMult = rule && rule.mode === "multiplier" && rule.dt != null ? Number(rule.dt) : null;
-          const otBill = otMult != null ? bill * otMult : (Number(ts.ASYMBL_Time__Overtime_Bill_Rate__c) || 0);
-          const dtBill = dtMult != null ? bill * dtMult : (Number(ts.ASYMBL_Time__Double_Time_Bill_Rate__c) || 0);
+          const otBillSF = Number(ts.ASYMBL_Time__Overtime_Bill_Rate__c) || 0;
+          const dtBillSF = Number(ts.ASYMBL_Time__Double_Time_Bill_Rate__c) || 0;
+          const otBill = otMult != null ? bill * otMult : (otBillSF || bill * 1.5);
+          const dtBill = dtMult != null ? bill * dtMult : (dtBillSF || bill * 2);
           const otPay = pay * 1.5, dtPay = pay * 2;
 
           const regM = bill - pay * (1 + burden);
@@ -6274,7 +6305,7 @@ var worker_default = {
           else { kept = credits; if (credits.length > 2) flags.push("extra_credits"); }
           if (!map) flags.push("unmapped_account");
           if (!bu) flags.push("no_bu");
-          if ((otH > 0 && otBill === 0) || (dtH > 0 && dtBill === 0)) flags.push("unbilled_ot");
+          if ((otH > 0 && otMult == null && !otBillSF) || (dtH > 0 && dtMult == null && !dtBillSF)) flags.push("ot_rate_assumed");
 
           const creditsOut = kept.map((c) => ({
             id: c.id,
@@ -6457,6 +6488,38 @@ var worker_default = {
             }
           } catch (e) { payables.error = String(e.message || e); }
         }
+        // ── 4.7) Admin overrides: credits / BU / title / hide (live in the agent) ──
+        try {
+          const cwk = String(url.searchParams.get("weekEnding") || "");
+          const ovR = await sbService(env, "GET", "charge_contract_overrides?select=*&or=(week_ending.eq." + cwk + ",week_ending.is.null)");
+          const ovs = (ovR.ok && ovR.data) || [];
+          if (ovs.length) {
+            const ck = (s) => String(s || "").trim().toLowerCase();
+            for (let i = rows.length - 1; i >= 0; i--) {
+              const r = rows[i];
+              const oc = r.candidate, oco = r.company;
+              const hit = ovs.filter((o) => ck(o.match_candidate) === ck(oc) && ck(o.match_company) === ck(oco));
+              let hide = false;
+              for (const o of hit) {
+                if (o.action === "hide") { hide = true; break; }
+                if (o.action === "patch" && o.fields) {
+                  const f = o.fields;
+                  if (f.am !== void 0 || f.rec !== void 0) {
+                    const am = f.am !== void 0 ? f.am : ((r.credits && r.credits[0] && r.credits[0].recipient) || "");
+                    const rc = f.rec !== void 0 ? f.rec : ((r.credits && r.credits[1] && r.credits[1].recipient) || am);
+                    r.credits = [{ recipient: am, type: "Account Manager" }, { recipient: rc, type: "Recruiter" }];
+                  }
+                  ["bu", "entity", "title", "company", "candidate"].forEach((k) => { if (f[k] !== void 0) r[k] = f[k]; });
+                  if (f.charge !== void 0) r.charge = r2(Number(f.charge) || 0);
+                  r.edited = true; r.m_candidate = oc; r.m_company = oco;
+                  if (r.flags && r.flags.indexOf("edited") === -1) r.flags.push("edited");
+                }
+              }
+              if (hide) rows.splice(i, 1);
+            }
+          }
+        } catch (e) {}
+
 
         // ── 5) Rollups ───────────────────────────────────────────────────────
         const roll = (keyFn) => {
