@@ -996,7 +996,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0818-8';
+  var BUILD = 'b0818-9';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1689,6 +1689,18 @@ window.SPARK_LIVE = (function () {
     el.innerHTML = h;
   };
 
+  // ── WoW shared: quarter colors + direction-colored cells ──
+  var WOWQ = ['#FFC800', '#00E5FF', '#FF6B2B', '#00FF88'];
+  var WOWQBG = ['rgba(255,200,0,.05)', 'rgba(0,229,255,.05)', 'rgba(255,107,43,.05)', 'rgba(0,255,136,.05)'];
+  function wowQi(w) { return Math.floor((Number(w.slice(5, 7)) - 1) / 3); }
+  function wowCell(v, pv, strong) {
+    var n = Math.round(v || 0), p = pv == null ? null : Math.round(pv || 0);
+    if (!n && !p) return '<td class="m r" style="padding:4px 9px;color:var(--mt)">--</td>';
+    var col = 'var(--tx)';
+    if (p != null) { if (n > p) col = 'var(--grn)'; else if (n < p) col = 'var(--red)'; }
+    return '<td class="m r" style="padding:4px 9px;font-weight:' + (strong ? '800' : '600') + ';color:' + col + '">' + fmt(n) + '</td>';
+  }
+
   // ── BUSINESS UNITS · WoW: weeks by quarter down the left, units across ──
   window.rBUW = function () {
     var el = document.getElementById('p-buw'); if (!el) return;
@@ -1724,41 +1736,39 @@ window.SPARK_LIVE = (function () {
     };
     var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
     var isoList = weeksThrough(curIso);
-    var vals = {}, cum = {};
     var units = Object.keys(GROUPS);
+    var vals = {}, cum = {}, portV = {}, portCum = 0;
     units.forEach(function (u) { cum[u] = 0; });
+    var hasPort = Object.keys(PORT).length > 0;
     isoList.forEach(function (w) {
       vals[w] = {};
       units.forEach(function (u) { var v = grpOf(w, GROUPS[u]); vals[w][u] = v; cum[u] += v; });
+      if (hasPort) { portV[w] = grpOf(w, PORT); portCum += portV[w]; }
     });
     units = units.filter(function (u) { return Math.abs(cum[u]) > 0.5; });
-    units.sort(function (a, b) { return cum[b] - cum[a]; });
-    var hasPort = Object.keys(PORT).length > 0;
-    var cell = function (v, strong) {
-      var n = Math.round(v || 0);
-      if (!n) return '<td class="m r" style="padding:4px 8px;color:var(--mt)">--</td>';
-      return '<td class="m r" style="padding:4px 8px;' + (strong ? 'font-weight:800;' : '') + 'color:' + (n < 0 ? 'var(--red)' : strong ? 'var(--gold)' : 'var(--tx)') + '">' + fmt(n) + '</td>';
-    };
-    var h = '<div class="st">Business Units \u00b7 Week over Week &mdash; 2026<span class="pl" style="margin-left:10px">raw charge per week</span></div>';
-    h += '<div class="cd"><div class="scr" style="max-height:72vh;overflow:auto"><table class="tb" style="white-space:nowrap"><thead><tr><th>Qtr</th><th>Week Ending</th>';
+    units.sort(function (x, y) { return cum[y] - cum[x]; });
+    var h = '<style>#p-buw thead th{position:sticky;top:0;z-index:2;background:#10141D}body.light #p-buw thead th{background:#f2f0e9}</style>';
+    h += '<div class="st">Business Units \u00b7 Week over Week &mdash; 2026<span class="pl" style="margin-left:10px">raw charge per week</span><span class="pl" style="margin-left:6px;background:rgba(0,255,136,.1);color:var(--grn)">green = up vs prior week</span><span class="pl" style="margin-left:6px;background:rgba(255,68,102,.1);color:var(--red)">red = down</span></div>';
+    h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap"><thead><tr><th style="width:64px">Qtr</th><th>Week Ending</th>';
     units.forEach(function (u) { h += '<th class="r">' + u + '</th>'; });
     if (hasPort) h += '<th class="r" style="color:var(--gold)">Portfolio Total</th>';
     h += '</tr></thead><tbody>';
     var lastQ = '';
-    isoList.forEach(function (w) {
-      var m = Number(w.slice(5, 7));
-      var q = 'Q' + (Math.floor((m - 1) / 3) + 1) + ' ' + w.slice(0, 4);
-      h += '<tr style="border-top:1px solid var(--bd)">';
-      h += '<td class="m" style="padding:4px 8px;font-weight:800;font-size:9px;color:var(--gold)">' + (q !== lastQ ? q : '') + '</td>';
+    isoList.forEach(function (w, wi) {
+      var qi = wowQi(w), qc = WOWQ[qi];
+      var q = 'Q' + (qi + 1) + ' ' + w.slice(0, 4);
+      var pw = wi > 0 ? isoList[wi - 1] : null;
+      h += '<tr style="border-top:1px solid var(--bd);background:' + WOWQBG[qi] + '">';
+      h += '<td style="padding:4px 9px;border-left:3px solid ' + qc + '">' + (q !== lastQ ? '<span class="pl" style="background:' + WOWQBG[qi].replace('.05', '.16') + ';color:' + qc + ';font-weight:800">' + q + '</span>' : '') + '</td>';
       lastQ = q;
-      h += '<td class="m" style="padding:4px 8px;color:var(--dm)">' + labelWe(w) + '</td>';
-      units.forEach(function (u) { h += cell(vals[w][u], false); });
-      if (hasPort) h += cell(grpOf(w, PORT), true);
+      h += '<td class="m" style="padding:4px 9px;color:var(--dm)">' + labelWe(w) + '</td>';
+      units.forEach(function (u) { h += wowCell(vals[w][u], pw ? vals[pw][u] : null, false); });
+      if (hasPort) h += wowCell(portV[w], pw ? portV[pw] : null, true);
       h += '</tr>';
     });
-    h += '<tr style="border-top:2px solid var(--gold)"><td class="m" style="padding:5px 8px;font-weight:900;color:var(--gold)">\u03a3</td><td class="m" style="padding:5px 8px;font-weight:800;color:var(--gold)">YTD</td>';
-    units.forEach(function (u) { h += cell(cum[u], true); });
-    if (hasPort) { var pc = 0; isoList.forEach(function (w) { pc += grpOf(w, PORT); }); h += cell(pc, true); }
+    h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.06)"><td class="m" style="padding:5px 9px;font-weight:900;color:var(--gold);border-left:3px solid var(--gold)">\u03a3</td><td class="m" style="padding:5px 9px;font-weight:800;color:var(--gold)">YTD</td>';
+    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)">' + fmt(Math.round(cum[u])) + '</td>'; });
+    if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)">' + fmt(Math.round(portCum)) + '</td>';
     h += '</tr></tbody></table></div></div>';
     el.innerHTML = h;
   };
@@ -1768,34 +1778,33 @@ window.SPARK_LIVE = (function () {
     var host = document.getElementById('drb'); if (!host || !H) return;
     var old = document.getElementById('lvPWow'); if (old) old.remove();
     var isoList = weeksThrough(curIso);
-    var dash = '<td class="m" style="text-align:right;padding:3px 8px;color:var(--mt)">--</td>';
-    var cell = function (v, strong) {
-      var n = Math.round(v || 0);
-      if (!n) return dash;
-      return '<td class="m" style="text-align:right;padding:3px 8px;' + (strong ? 'font-weight:800;' : '') + 'color:' + (n < 0 ? 'var(--red)' : strong ? 'var(--gold)' : 'var(--tx)') + '">' + fmt(n) + '</td>';
-    };
-    var h = '<div class="cd" id="lvPWow" style="margin-top:14px;padding:14px 16px"><div style="font-weight:800;font-size:12px;margin-bottom:8px">Week over Week &mdash; 2026</div>' +
-      '<div style="max-height:340px;overflow:auto"><table style="width:100%;font-size:10px;border-collapse:collapse">' +
-      '<tr style="color:var(--dm);text-align:right"><th style="text-align:left;padding:3px 8px">Qtr</th><th style="text-align:left;padding:3px 8px">Week Ending</th><th style="padding:3px 8px">Sales</th><th style="padding:3px 8px">Full Desk</th><th style="padding:3px 8px">Recruiting</th><th style="padding:3px 8px">Raw</th></tr>';
-    var lastQ = '';
+    var thS = 'padding:4px 9px;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dm);font-weight:700;';
+    var h = '<div class="cd" id="lvPWow" style="margin-top:14px;padding:14px 16px"><div style="font-weight:800;font-size:12px;margin-bottom:2px">Week over Week &mdash; 2026</div>' +
+      '<div style="font-size:9px;color:var(--dm);margin-bottom:8px"><span style="color:var(--grn)">green</span> = up vs prior week &middot; <span style="color:var(--red)">red</span> = down</div>' +
+      '<div style="max-height:360px;overflow:auto"><table style="width:100%;font-size:10px;border-collapse:collapse">' +
+      '<tr style="text-align:right"><th style="text-align:left;' + thS + '">Qtr</th><th style="text-align:left;' + thS + '">Week Ending</th><th style="' + thS + 'text-align:right">Sales</th><th style="' + thS + 'text-align:right">Full Desk</th><th style="' + thS + 'text-align:right">Recruiting</th><th style="' + thS + 'text-align:right">Raw</th></tr>';
+    var lastQ = '', prev = null;
     isoList.forEach(function (w) {
-      var m = Number(w.slice(5, 7));
-      var q = 'Q' + (Math.floor((m - 1) / 3) + 1) + ' ' + w.slice(0, 4);
-      var p = pweek(w)[name];
-      h += '<tr style="border-top:1px solid var(--bd)">';
-      h += '<td class="m" style="padding:3px 8px;font-weight:800;font-size:9px;color:var(--gold)">' + (q !== lastQ ? q : '') + '</td>';
+      var qi = wowQi(w), qc = WOWQ[qi];
+      var q = 'Q' + (qi + 1) + ' ' + w.slice(0, 4);
+      var p = pweek(w)[name] || null;
+      var cur = p ? { s: p.sales || 0, f: p.fd || 0, r: p.rec || 0, raw: rawOf(p) } : { s: 0, f: 0, r: 0, raw: 0 };
+      h += '<tr style="border-top:1px solid var(--bd);background:' + WOWQBG[qi] + '">';
+      h += '<td style="padding:3px 9px;border-left:3px solid ' + qc + '">' + (q !== lastQ ? '<span class="pl" style="background:' + WOWQBG[qi].replace('.05', '.16') + ';color:' + qc + ';font-weight:800;font-size:9px">' + q + '</span>' : '') + '</td>';
       lastQ = q;
-      h += '<td class="m" style="padding:3px 8px;color:var(--dm)">' + labelWe(w) + '</td>';
-      if (p) h += cell(p.sales, false) + cell(p.fd, false) + cell(p.rec, false) + cell(rawOf(p), true);
-      else h += dash + dash + dash + dash;
+      h += '<td class="m" style="padding:3px 9px;color:var(--dm)">' + labelWe(w) + '</td>';
+      h += wowCell(cur.s, prev ? prev.s : null, false) + wowCell(cur.f, prev ? prev.f : null, false) + wowCell(cur.r, prev ? prev.r : null, false) + wowCell(cur.raw, prev ? prev.raw : null, true);
       h += '</tr>';
+      prev = cur;
     });
     h += '</table></div></div>';
-    host.insertAdjacentHTML('beforeend', h);
+    var kids = host.children, anchor = null;
+    for (var i = 0; i < kids.length; i++) { if (/Weekly Trend/.test(kids[i].textContent || '')) { anchor = kids[i]; break; } }
+    if (anchor) anchor.insertAdjacentHTML('afterend', h); else host.insertAdjacentHTML('beforeend', h);
   }
   try {
     var _op0 = window.openPerson;
-    if (typeof _op0 === 'function') window.openPerson = function (n) { _op0(n); try { drawWow(n); } catch (e) {} };
+    if (typeof _op0 === 'function') window.openPerson = function (n) { _op0(n); try { drawWow(n); } catch (e) { try { console.warn('[wow]', e); } catch (e2) {} } };
   } catch (e) {}
 
   // ── ASSIGNMENT TEAM MEMBERS: override rRaw with Excel-style filters/sorts ──
