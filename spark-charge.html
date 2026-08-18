@@ -1693,14 +1693,14 @@ window.SPARK_LIVE = (function () {
     var b = batches[curIso];
     if (b && b.rows) return b.rows.map(function (r) {
       var c = r.credits || [];
-      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
+      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
     });
     return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
   var RAW_COLS = [['entity','Inv. Entity',1],['company','Client',1],['bu','BU',1],['candidate','Team Member',1],['title','Title',1],['am','AM/Sales',1],['rec','Recruiter',1],['rt','RT',0],['ot','OT',0],['dt','DT',0],['vac','Vac',0],['tot','Hrs',0],['charge','Raw Charge',0]];
   var ctKey = null, ctAdding = false;
-  function ctFind() { if (!ctKey) return null; var b = batches[curIso]; var rr = (b && b.rows) || []; return rr.find(function (r) { return (r.m_candidate || r.candidate || '') === ctKey.c && (r.m_company || r.company || '') === ctKey.o; }) || null; }
-  function ctEdit(cand, co) { if (!ensurePin()) return; ctKey = { c: cand, o: co }; rRaw(); }
+  function ctFind() { if (!ctKey) return null; var b = batches[curIso]; var rr = (b && b.rows) || []; if (ctKey.id) return rr.find(function (r) { return r.ovId === ctKey.id; }) || null; return rr.find(function (r) { return (r.m_candidate || r.candidate || '') === ctKey.c && (r.m_company || r.company || '') === ctKey.o && r.source !== 'manual_add'; }) || null; }
+  function ctEdit(cand, co, id) { if (!ensurePin()) return; ctKey = id ? { id: id } : { c: cand, o: co }; rRaw(); }
   function ctCancel() { ctKey = null; rRaw(); }
   function ctPost(body) {
     body.week_ending = curIso;
@@ -1712,6 +1712,13 @@ window.SPARK_LIVE = (function () {
     var r = ctFind(); if (!r) { ctCancel(); return; }
     var gv = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
     var st = function (v) { return String(v == null ? '' : v).trim(); };
+    if (r.ovId) {
+      var n2 = Number(String(gv('lvCtF_ch') || '').replace(/[$,]/g, ''));
+      var f2 = { entity: r.entity || '', company: r.company || '', candidate: r.candidate || '', bu: st(gv('lvCtF_bu')), title: st(gv('lvCtF_ti')), am: gv('lvCtF_am') || 'House Account', rec: gv('lvCtF_rc') || 'House Account', charge: (isFinite(n2) && n2) ? n2 : (Number(r.charge) || 0) };
+      var id2 = r.ovId; ctKey = null;
+      ctPost({ op: 'edit_add', id: id2, fields: f2 });
+      return;
+    }
     var f = {};
     var bu = gv('lvCtF_bu'), ti = gv('lvCtF_ti'), am = gv('lvCtF_am'), rc = gv('lvCtF_rc'), ch = gv('lvCtF_ch');
     var c = r.credits || [];
@@ -1736,6 +1743,11 @@ window.SPARK_LIVE = (function () {
     if (!isFinite(n) || !n) { alert('Enter a charge amount (negative is OK).'); return; }
     ctAdding = false;
     ctPost({ action: 'add', match_candidate: cn, match_company: co, fields: { entity: st(gv('lvCtA_en')) || 'Spark Talent', company: co, bu: st(gv('lvCtA_bu')), candidate: cn, title: st(gv('lvCtA_ti')) || 'Manual adjustment', am: gv('lvCtA_am') || 'House Account', rec: gv('lvCtA_rc') || 'House Account', charge: n } });
+  }
+  function ctDel(id) {
+    if (!ensurePin()) return;
+    if (!confirm('Delete this manual line for ' + labelWe(curIso) + '?')) return;
+    ctPost({ op: 'delete_add', id: id });
   }
   function ctRevert(cand, co) {
     if (!ensurePin()) return;
@@ -1793,7 +1805,7 @@ window.SPARK_LIVE = (function () {
       h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="SPARK_LIVE.ctAddSave()">add</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.ctAddCancel()">cancel</button></td></tr>';
     }
     list.forEach(function (r) {
-      var editing = ctKey && ctKey.c === r.mcand && ctKey.o === r.mco;
+      var editing = ctKey && (ctKey.id ? ctKey.id === r.ovId : (ctKey.c === r.mcand && ctKey.o === r.mco));
       if (editing) {
         h += '<tr style="background:rgba(255,200,0,.05)">';
         h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + '</td>';
@@ -1808,14 +1820,14 @@ window.SPARK_LIVE = (function () {
         return;
       }
       h += '<tr onclick="openClient(\'' + esc(r.company) + '\')" style="cursor:pointer">';
-      h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + (r.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.bu) + '</td>';
+      h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + (r.manual ? ' <span class="pl" style="background:rgba(0,229,255,.1);color:var(--tea,#00E5FF)">MANUAL</span>' : (r.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '')) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.bu) + '</td>';
       h += '<td style="font-size:11px">' + esc(r.candidate) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.title) + '</td>';
       h += '<td style="font-size:10px">' + esc(r.am) + '</td><td style="font-size:10px">' + esc(r.rec) + '</td>';
       h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px;color:' + (r.ot ? 'var(--org)' : 'var(--mt)') + '">' + (r.ot || '--') + '</td>';
       h += '<td class="r m" style="font-size:10px;color:' + (r.dt ? 'var(--red)' : 'var(--mt)') + '">' + (r.dt || '--') + '</td>';
       h += '<td class="r m" style="font-size:10px;color:' + (r.vac ? 'var(--blu)' : 'var(--mt)') + '">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
       h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.charge >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.charge) + '</td>';
-      if (IS_ADMIN) h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctEdit(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">edit</button>' + (r.edited ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctRevert(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">revert</button>' : '') + '</td>';
+      if (IS_ADMIN) h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctEdit(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\',' + (r.ovId || 0) + ')">edit</button>' + (r.manual ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctDel(' + r.ovId + ')">delete</button>' : (r.edited ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctRevert(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">revert</button>' : '')) + '</td>';
       h += '</tr>';
     });
     var sRT = 0, sOT = 0, sDT = 0, sV = 0, sH = 0;
@@ -1956,7 +1968,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
