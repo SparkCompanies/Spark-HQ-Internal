@@ -1698,7 +1698,7 @@ window.SPARK_LIVE = (function () {
     return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
   var RAW_COLS = [['entity','Inv. Entity',1],['company','Client',1],['bu','BU',1],['candidate','Team Member',1],['title','Title',1],['am','AM/Sales',1],['rec','Recruiter',1],['rt','RT',0],['ot','OT',0],['dt','DT',0],['vac','Vac',0],['tot','Hrs',0],['charge','Raw Charge',0]];
-  var ctKey = null;
+  var ctKey = null, ctAdding = false;
   function ctFind() { if (!ctKey) return null; var b = batches[curIso]; var rr = (b && b.rows) || []; return rr.find(function (r) { return (r.m_candidate || r.candidate || '') === ctKey.c && (r.m_company || r.company || '') === ctKey.o; }) || null; }
   function ctEdit(cand, co) { if (!ensurePin()) return; ctKey = { c: cand, o: co }; rRaw(); }
   function ctCancel() { ctKey = null; rRaw(); }
@@ -1725,6 +1725,18 @@ window.SPARK_LIVE = (function () {
     if (!Object.keys(f).length) { rRaw(); return; }
     ctPost({ action: 'patch', match_candidate: key.c, match_company: key.o, fields: f });
   }
+  function ctAddOpen() { if (!ensurePin()) return; ctAdding = true; rRaw(); }
+  function ctAddCancel() { ctAdding = false; rRaw(); }
+  function ctAddSave() {
+    var gv = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
+    var st = function (v) { return String(v == null ? '' : v).trim(); };
+    var cn = st(gv('lvCtA_cn')), co = st(gv('lvCtA_co'));
+    if (!cn || !co) { alert('Client and Member / label are both required.'); return; }
+    var n = Number(String(gv('lvCtA_ch') || '').replace(/[$,]/g, ''));
+    if (!isFinite(n) || !n) { alert('Enter a charge amount (negative is OK).'); return; }
+    ctAdding = false;
+    ctPost({ action: 'add', match_candidate: cn, match_company: co, fields: { entity: st(gv('lvCtA_en')) || 'Spark Talent', company: co, bu: st(gv('lvCtA_bu')), candidate: cn, title: st(gv('lvCtA_ti')) || 'Manual adjustment', am: gv('lvCtA_am') || 'House Account', rec: gv('lvCtA_rc') || 'House Account', charge: n } });
+  }
   function ctRevert(cand, co) {
     if (!ensurePin()) return;
     if (!confirm('Remove all edits on ' + cand + ' @ ' + co + ' for ' + labelWe(curIso) + ' and restore Salesforce values?')) return;
@@ -1746,7 +1758,7 @@ window.SPARK_LIVE = (function () {
     });
     var totC = 0, totH = 0; list.forEach(function (r) { totC += r.charge; totH += r.tot; });
     var h = '<div class="st">Contract Team Members &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + list.length + ' of ' + all.length + '</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totC).toLocaleString() + ' &middot; ' + Math.round(totH).toLocaleString() + ' hrs</span></div>';
-    h += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center"><input class="srch" id="raw-s" placeholder="Search anything..." style="max-width:260px"/><button class="fb" onclick="SPARK_LIVE.rawReset()">Reset filters</button></div>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center"><input class="srch" id="raw-s" placeholder="Search anything..." style="max-width:260px"/><button class="fb" onclick="SPARK_LIVE.rawReset()">Reset filters</button>' + (IS_ADMIN ? '<button class="fb" style="margin-left:6px" onclick="SPARK_LIVE.ctAddOpen()">+ Add Line</button>' : '') + '</div>';
     h += '<div class="cd"><div class="scr" style="max-height:62vh"><table class="tb"><thead><tr>';
     RAW_COLS.forEach(function (cd, i) {
       var active = rawF[cd[0]] && rawF[cd[0]].length;
@@ -1756,25 +1768,38 @@ window.SPARK_LIVE = (function () {
     });
     if (IS_ADMIN) h += '<th></th>';
     h += '</tr></thead><tbody>';
+    var fin = 'width:95%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:6px;padding:3px 5px;font:inherit;font-size:10px';
+    var ctOpts = function (cur) {
+      var names = ['House Account'];
+      (H && H.people || []).forEach(function (p) { if (p.active !== false && p.person) names.push(p.person); });
+      names = names.filter(function (v, i2) { return names.indexOf(v) === i2; });
+      names.sort(function (a, b2) { return a === 'House Account' ? -1 : b2 === 'House Account' ? 1 : a.localeCompare(b2); });
+      if (cur && names.indexOf(cur) === -1) names.unshift(cur);
+      var o = cur ? '' : '<option value="" selected></option>';
+      names.forEach(function (nm) { o += '<option value="' + dhAtt(nm) + '"' + (nm === cur ? ' selected' : '') + '>' + dhAtt(nm) + '</option>'; });
+      return o;
+    };
+    if (IS_ADMIN && ctAdding) {
+      h += '<tr style="background:rgba(255,200,0,.06)">';
+      h += '<td><input id="lvCtA_en" style="' + fin + '" value="Spark Talent"/></td>';
+      h += '<td><input id="lvCtA_co" style="' + fin + '" placeholder="Client"/></td>';
+      h += '<td><input id="lvCtA_bu" style="' + fin + '" placeholder="BU"/></td>';
+      h += '<td><input id="lvCtA_cn" style="' + fin + '" placeholder="Member / label"/></td>';
+      h += '<td><input id="lvCtA_ti" style="' + fin + '" value="Manual adjustment"/></td>';
+      h += '<td><select id="lvCtA_am" style="' + fin + '">' + ctOpts('House Account') + '</select></td>';
+      h += '<td><select id="lvCtA_rc" style="' + fin + '">' + ctOpts('House Account') + '</select></td>';
+      h += '<td colspan="5" style="font-size:9px;color:var(--dm)">no hours &middot; negative charge OK &middot; same name in AM + Rec = Full Desk only</td>';
+      h += '<td class="r"><input id="lvCtA_ch" style="' + fin + ';width:80px;text-align:right" placeholder="0"/></td>';
+      h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="SPARK_LIVE.ctAddSave()">add</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.ctAddCancel()">cancel</button></td></tr>';
+    }
     list.forEach(function (r) {
       var editing = ctKey && ctKey.c === r.mcand && ctKey.o === r.mco;
       if (editing) {
-        var fin = 'width:95%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:6px;padding:3px 5px;font:inherit;font-size:10px';
         h += '<tr style="background:rgba(255,200,0,.05)">';
         h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + '</td>';
         h += '<td><input id="lvCtF_bu" style="' + fin + '" value="' + dhAtt(r.bu === '\u2014' ? '' : r.bu) + '"/></td>';
         h += '<td style="font-size:11px">' + esc(r.candidate) + '</td>';
         h += '<td><input id="lvCtF_ti" style="' + fin + '" value="' + dhAtt(r.title) + '"/></td>';
-        var ctOpts = function (cur) {
-          var names = ['House Account'];
-          (H && H.people || []).forEach(function (p) { if (p.active !== false && p.person) names.push(p.person); });
-          names = names.filter(function (v, i2) { return names.indexOf(v) === i2; });
-          names.sort(function (a, b2) { return a === 'House Account' ? -1 : b2 === 'House Account' ? 1 : a.localeCompare(b2); });
-          if (cur && names.indexOf(cur) === -1) names.unshift(cur);
-          var o = cur ? '' : '<option value="" selected></option>';
-          names.forEach(function (nm) { o += '<option value="' + dhAtt(nm) + '"' + (nm === cur ? ' selected' : '') + '>' + dhAtt(nm) + '</option>'; });
-          return o;
-        };
         h += '<td><select id="lvCtF_am" style="' + fin + '">' + ctOpts(r.am) + '</select></td>';
         h += '<td><select id="lvCtF_rc" style="' + fin + '">' + ctOpts(r.rec) + '</select></td>';
         h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px">' + (r.ot || '--') + '</td><td class="r m" style="font-size:10px">' + (r.dt || '--') + '</td><td class="r m" style="font-size:10px">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
@@ -1931,7 +1956,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
