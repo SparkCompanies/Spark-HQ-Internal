@@ -996,7 +996,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0818-9';
+  var BUILD = 'b0818-10';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1689,9 +1689,10 @@ window.SPARK_LIVE = (function () {
     el.innerHTML = h;
   };
 
-  // ── WoW shared: quarter colors + direction-colored cells ──
-  var WOWQ = ['#FFC800', '#00E5FF', '#FF6B2B', '#00FF88'];
-  var WOWQBG = ['rgba(255,200,0,.05)', 'rgba(0,229,255,.05)', 'rgba(255,107,43,.05)', 'rgba(0,255,136,.05)'];
+  // ── WoW shared: alternating quarter bands + direction-colored cells ──
+  var WOWQ = ['var(--gold)', '#9aa0a6', 'var(--gold)', '#9aa0a6'];
+  var WOWQBG = ['rgba(255,200,0,.10)', 'rgba(128,131,140,.09)', 'rgba(255,200,0,.10)', 'rgba(128,131,140,.09)'];
+  var WOWQCH = ['rgba(255,200,0,.20)', 'rgba(128,131,140,.20)', 'rgba(255,200,0,.20)', 'rgba(128,131,140,.20)'];
   function wowQi(w) { return Math.floor((Number(w.slice(5, 7)) - 1) / 3); }
   function wowCell(v, pv, strong) {
     var n = Math.round(v || 0), p = pv == null ? null : Math.round(pv || 0);
@@ -1700,29 +1701,31 @@ window.SPARK_LIVE = (function () {
     if (p != null) { if (n > p) col = 'var(--grn)'; else if (n < p) col = 'var(--red)'; }
     return '<td class="m r" style="padding:4px 9px;font-weight:' + (strong ? '800' : '600') + ';color:' + col + '">' + fmt(n) + '</td>';
   }
+  function wowQtd(w, lastQ) {
+    var qi = wowQi(w), qc = WOWQ[qi];
+    var q = 'Q' + (qi + 1) + ' ' + w.slice(0, 4);
+    var td = '<td style="padding:4px 9px;border-left:3px solid ' + qc + '">' + (q !== lastQ ? '<span class="pl" style="background:' + WOWQCH[qi] + ';color:' + qc + ';font-weight:800;font-size:9px">' + q + '</span>' : '') + '</td>';
+    return { td: td, q: q, bg: WOWQBG[qi] };
+  }
 
-  // ── BUSINESS UNITS · WoW: weeks by quarter down the left, units across ──
+  // ── BUSINESS UNITS · WoW: fixed column order, BUs then entities ──
   window.rBUW = function () {
     var el = document.getElementById('p-buw'); if (!el) return;
     if (!H) { el.innerHTML = '<div class="st">Business Units \u00b7 WoW</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
-    var CANON = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners' };
+    var CANON = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners', 'flex workforce solutions': 'Flex Workforce', 'flex workforce': 'Flex Workforce' };
     var canonU = function (u) { var k = String(u || '').trim(); return CANON[k.toLowerCase()] || k; };
-    var ALLOW = { 'Ignite Search': 1, 'Bolt Creative Strategies': 1, 'John Joseph Partners': 1 };
-    var entSet = {}; (H.units || []).forEach(function (u) { if (u.is_entity) entSet[u.unit] = 1; });
     var GROUPS = {}, PORT = {};
     var addName = function (raw) {
       raw = String(raw || '').trim(); if (!raw) return;
       if (/portfolio/i.test(raw)) { PORT[raw] = 1; return; }
       var c = canonU(raw);
-      if (entSet[raw] && !ALLOW[c]) return;
       (GROUPS[c] = GROUPS[c] || {})[raw] = 1;
     };
     (H.people || []).forEach(function (p) { if (p.active !== false && p.bu) addName(p.bu); });
     Object.keys(histUnit).forEach(function (w) { Object.keys(histUnit[w]).forEach(function (u) { addName(u.replace(/ \u00b7 DH$/, '')); }); });
     var b0 = batches[curIso], dc = dhb[curIso];
-    if (b0 && b0.rollups) (b0.rollups.byBU || []).forEach(function (x) { addName(x.key); });
+    if (b0 && b0.rollups) { (b0.rollups.byBU || []).forEach(function (x) { addName(x.key); }); (b0.rollups.byEntity || []).forEach(function (x) { addName(x.key); }); }
     if (dc && dc.byBU) Object.keys(dc.byBU).forEach(function (u) { addName(u); });
-    ['Ignite Search', 'Bolt Creative', 'John Joseph Partners'].forEach(function (e) { var c = canonU(e); (GROUPS[c] = GROUPS[c] || {})[e] = 1; });
     var one = function (we, raw) {
       if (histPerson[we]) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
       var v = 0, b = batches[we];
@@ -1736,17 +1739,20 @@ window.SPARK_LIVE = (function () {
     };
     var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
     var isoList = weeksThrough(curIso);
-    var units = Object.keys(GROUPS);
+    var ORDER = ['MI Metro', 'Automation', 'Light Industrial', 'Central', 'Southeast', 'Southwest', 'Northwest', 'Northeast', 'Spark Talent', 'Ignite Search', 'Spark Companies', 'BPO', 'Spark Companies - Other', 'Spark Packaging', 'Flex Workforce'];
+    ORDER.forEach(function (u) { GROUPS[u] = GROUPS[u] || {}; GROUPS[u][u] = 1; });
     var vals = {}, cum = {}, portV = {}, portCum = 0;
-    units.forEach(function (u) { cum[u] = 0; });
+    var allU = Object.keys(GROUPS);
+    allU.forEach(function (u) { cum[u] = 0; });
     var hasPort = Object.keys(PORT).length > 0;
     isoList.forEach(function (w) {
       vals[w] = {};
-      units.forEach(function (u) { var v = grpOf(w, GROUPS[u]); vals[w][u] = v; cum[u] += v; });
+      allU.forEach(function (u) { var v = grpOf(w, GROUPS[u]); vals[w][u] = v; cum[u] += v; });
       if (hasPort) { portV[w] = grpOf(w, PORT); portCum += portV[w]; }
     });
-    units = units.filter(function (u) { return Math.abs(cum[u]) > 0.5; });
-    units.sort(function (x, y) { return cum[y] - cum[x]; });
+    var extras = allU.filter(function (u) { return ORDER.indexOf(u) === -1 && Math.abs(cum[u]) > 0.5; });
+    extras.sort(function (x, y) { return cum[y] - cum[x]; });
+    var units = ORDER.concat(extras);
     var h = '<style>#p-buw thead th{position:sticky;top:0;z-index:2;background:#10141D}body.light #p-buw thead th{background:#f2f0e9}</style>';
     h += '<div class="st">Business Units \u00b7 Week over Week &mdash; 2026<span class="pl" style="margin-left:10px">raw charge per week</span><span class="pl" style="margin-left:6px;background:rgba(0,255,136,.1);color:var(--grn)">green = up vs prior week</span><span class="pl" style="margin-left:6px;background:rgba(255,68,102,.1);color:var(--red)">red = down</span></div>';
     h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap"><thead><tr><th style="width:64px">Qtr</th><th>Week Ending</th>';
@@ -1755,56 +1761,87 @@ window.SPARK_LIVE = (function () {
     h += '</tr></thead><tbody>';
     var lastQ = '';
     isoList.forEach(function (w, wi) {
-      var qi = wowQi(w), qc = WOWQ[qi];
-      var q = 'Q' + (qi + 1) + ' ' + w.slice(0, 4);
+      var qt = wowQtd(w, lastQ); lastQ = qt.q;
       var pw = wi > 0 ? isoList[wi - 1] : null;
-      h += '<tr style="border-top:1px solid var(--bd);background:' + WOWQBG[qi] + '">';
-      h += '<td style="padding:4px 9px;border-left:3px solid ' + qc + '">' + (q !== lastQ ? '<span class="pl" style="background:' + WOWQBG[qi].replace('.05', '.16') + ';color:' + qc + ';font-weight:800">' + q + '</span>' : '') + '</td>';
-      lastQ = q;
+      h += '<tr style="border-top:1px solid var(--bd);background:' + qt.bg + '">' + qt.td;
       h += '<td class="m" style="padding:4px 9px;color:var(--dm)">' + labelWe(w) + '</td>';
       units.forEach(function (u) { h += wowCell(vals[w][u], pw ? vals[pw][u] : null, false); });
       if (hasPort) h += wowCell(portV[w], pw ? portV[pw] : null, true);
       h += '</tr>';
     });
     h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.06)"><td class="m" style="padding:5px 9px;font-weight:900;color:var(--gold);border-left:3px solid var(--gold)">\u03a3</td><td class="m" style="padding:5px 9px;font-weight:800;color:var(--gold)">YTD</td>';
-    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)">' + fmt(Math.round(cum[u])) + '</td>'; });
+    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)">' + (Math.abs(cum[u]) > 0.5 ? fmt(Math.round(cum[u])) : '--') + '</td>'; });
     if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)">' + fmt(Math.round(portCum)) + '</td>';
     h += '</tr></tbody></table></div></div>';
     el.innerHTML = h;
   };
 
-  // ── PERSON DRAWER · WoW: Sales / Full Desk / Recruiting / Raw by week ──
+  // ── PERSON WoW: companion panel docked to the LEFT of the drawer ──
+  function wowPanel() {
+    var p = document.getElementById('lvPWow');
+    if (p) return p;
+    p = document.createElement('div');
+    p.id = 'lvPWow';
+    p.style.cssText = 'position:fixed;top:0;bottom:0;display:none;flex-direction:column;z-index:70;background:#0a0d13;border-left:1px solid var(--bd);border-right:1px solid var(--bd);box-shadow:-10px 0 30px rgba(0,0,0,.35);padding:18px 16px;overflow:auto';
+    if (!document.getElementById('lvPWowCss')) {
+      var st = document.createElement('style');
+      st.id = 'lvPWowCss';
+      st.textContent = 'body.light #lvPWow{background:#ffffff!important;border-color:#e6e3da!important;box-shadow:-10px 0 30px rgba(20,20,26,.14)!important}';
+      document.head.appendChild(st);
+    }
+    document.body.appendChild(p);
+    return p;
+  }
+  function wowHide() { var p = document.getElementById('lvPWow'); if (p) p.style.display = 'none'; }
   function drawWow(name) {
-    var host = document.getElementById('drb'); if (!host || !H) return;
-    var old = document.getElementById('lvPWow'); if (old) old.remove();
+    if (!H) return;
+    var pv = D.people && D.people.find(function (x) { return x.n === name; });
+    if (!pv) { wowHide(); return; }
+    var panel = wowPanel();
+    var dr = document.querySelector('#dro .dr');
+    var drW = dr ? dr.offsetWidth : 560;
+    var w = Math.min(460, Math.max(300, window.innerWidth - drW - 60));
+    panel.style.right = (drW + 6) + 'px';
+    panel.style.width = w + 'px';
     var isoList = weeksThrough(curIso);
     var thS = 'padding:4px 9px;font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dm);font-weight:700;';
-    var h = '<div class="cd" id="lvPWow" style="margin-top:14px;padding:14px 16px"><div style="font-weight:800;font-size:12px;margin-bottom:2px">Week over Week &mdash; 2026</div>' +
-      '<div style="font-size:9px;color:var(--dm);margin-bottom:8px"><span style="color:var(--grn)">green</span> = up vs prior week &middot; <span style="color:var(--red)">red</span> = down</div>' +
-      '<div style="max-height:360px;overflow:auto"><table style="width:100%;font-size:10px;border-collapse:collapse">' +
-      '<tr style="text-align:right"><th style="text-align:left;' + thS + '">Qtr</th><th style="text-align:left;' + thS + '">Week Ending</th><th style="' + thS + 'text-align:right">Sales</th><th style="' + thS + 'text-align:right">Full Desk</th><th style="' + thS + 'text-align:right">Recruiting</th><th style="' + thS + 'text-align:right">Raw</th></tr>';
+    var h = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><div style="font-weight:800;font-size:13px;flex:1">' + name + ' \u2014 Week over Week</div><button class="fb" style="padding:2px 8px" onclick="document.getElementById(\'lvPWow\').style.display=\'none\'">\u2715</button></div>';
+    h += '<div style="font-size:9px;color:var(--dm);margin-bottom:8px"><span style="color:var(--grn)">green</span> = up vs prior week \u00b7 <span style="color:var(--red)">red</span> = down</div>';
+    h += '<table style="width:100%;font-size:10px;border-collapse:collapse">';
+    h += '<tr style="text-align:right"><th style="text-align:left;' + thS + '">Qtr</th><th style="text-align:left;' + thS + '">Week Ending</th><th style="' + thS + 'text-align:right">Sales</th><th style="' + thS + 'text-align:right">Full Desk</th><th style="' + thS + 'text-align:right">Recruiting</th><th style="' + thS + 'text-align:right">Raw</th></tr>';
     var lastQ = '', prev = null;
-    isoList.forEach(function (w) {
-      var qi = wowQi(w), qc = WOWQ[qi];
-      var q = 'Q' + (qi + 1) + ' ' + w.slice(0, 4);
-      var p = pweek(w)[name] || null;
+    isoList.forEach(function (wk) {
+      var qt = wowQtd(wk, lastQ); lastQ = qt.q;
+      var p = pweek(wk)[name] || null;
       var cur = p ? { s: p.sales || 0, f: p.fd || 0, r: p.rec || 0, raw: rawOf(p) } : { s: 0, f: 0, r: 0, raw: 0 };
-      h += '<tr style="border-top:1px solid var(--bd);background:' + WOWQBG[qi] + '">';
-      h += '<td style="padding:3px 9px;border-left:3px solid ' + qc + '">' + (q !== lastQ ? '<span class="pl" style="background:' + WOWQBG[qi].replace('.05', '.16') + ';color:' + qc + ';font-weight:800;font-size:9px">' + q + '</span>' : '') + '</td>';
-      lastQ = q;
-      h += '<td class="m" style="padding:3px 9px;color:var(--dm)">' + labelWe(w) + '</td>';
+      h += '<tr style="border-top:1px solid var(--bd);background:' + qt.bg + '">' + qt.td;
+      h += '<td class="m" style="padding:3px 9px;color:var(--dm)">' + labelWe(wk) + '</td>';
       h += wowCell(cur.s, prev ? prev.s : null, false) + wowCell(cur.f, prev ? prev.f : null, false) + wowCell(cur.r, prev ? prev.r : null, false) + wowCell(cur.raw, prev ? prev.raw : null, true);
       h += '</tr>';
       prev = cur;
     });
-    h += '</table></div></div>';
-    var kids = host.children, anchor = null;
-    for (var i = 0; i < kids.length; i++) { if (/Weekly Trend/.test(kids[i].textContent || '')) { anchor = kids[i]; break; } }
-    if (anchor) anchor.insertAdjacentHTML('afterend', h); else host.insertAdjacentHTML('beforeend', h);
+    h += '</table>';
+    panel.innerHTML = h;
+    panel.style.display = 'flex';
   }
+  // hooks: wrap openPerson AND watch the drawer so the panel always tracks it
   try {
     var _op0 = window.openPerson;
     if (typeof _op0 === 'function') window.openPerson = function (n) { _op0(n); try { drawWow(n); } catch (e) { try { console.warn('[wow]', e); } catch (e2) {} } };
+  } catch (e) {}
+  try {
+    var _dro = document.getElementById('dro'), _drbEl = document.getElementById('drb');
+    if (_dro && _drbEl && window.MutationObserver) {
+      new MutationObserver(function () { if (!_dro.classList.contains('on')) wowHide(); }).observe(_dro, { attributes: true, attributeFilter: ['class'] });
+      new MutationObserver(function () {
+        try {
+          if (!_dro.classList.contains('on')) { wowHide(); return; }
+          var head = _drbEl.firstElementChild && _drbEl.firstElementChild.firstElementChild;
+          var nm = head ? String(head.textContent || '').trim() : '';
+          if (nm && D.people && D.people.some(function (x) { return x.n === nm; })) drawWow(nm); else wowHide();
+        } catch (e) { }
+      }).observe(_drbEl, { childList: true });
+    }
   } catch (e) {}
 
   // ── ASSIGNMENT TEAM MEMBERS: override rRaw with Excel-style filters/sorts ──
