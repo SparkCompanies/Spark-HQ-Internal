@@ -6527,11 +6527,14 @@ var worker_default = {
           const ovs = (ovR.ok && ovR.data) || [];
           if (ovs.length) {
             const ck = (s) => String(s || "").trim().toLowerCase();
+            const exA = (cr) => { for (const c of (cr || [])) { const t = String(c.type || "").toLowerCase(); if (t.indexOf("account") !== -1 || t.indexOf("sales") !== -1 || t.indexOf("full") !== -1) return c.recipient || ""; } return (cr && cr[0] && cr[0].recipient) || ""; };
+            const exR = (cr) => { for (const c of (cr || [])) { const t = String(c.type || "").toLowerCase(); if (t.indexOf("recruit") !== -1 || t.indexOf("full") !== -1) return c.recipient || ""; } return (cr && cr[1] && cr[1].recipient) || ""; };
+            const mkCred = (am, rc) => (am && ck(am) === ck(rc)) ? [{ recipient: am, type: "Full Desk" }] : [{ recipient: am, type: "Account Manager" }, { recipient: rc, type: "Recruiter" }];
             ovs.forEach((o) => {
               if (o.action !== "add" || !o.fields) return;
               const f = o.fields;
               const am = f.am || "House Account", rc = f.rec || f.am || "House Account";
-              rows.push({ entity: f.entity || "Spark Talent", company: f.company || String(o.match_company || ""), bu: f.bu || "", candidate: f.candidate || String(o.match_candidate || ""), title: f.title || "Manual adjustment", credits: [{ recipient: am, type: "Account Manager" }, { recipient: rc, type: "Recruiter" }], pay: 0, otPay: 0, dtPay: 0, bill: 0, otBill: 0, dtBill: 0, otMult: null, dtMult: null, burden: 0, regHrs: 0, otHrs: 0, dtHrs: 0, vacHrs: 0, totalHrs: 0, regMargin: 0, otMargin: 0, dtMargin: 0, vacMargin: 0, charge: r2(Number(f.charge) || 0), flags: ["manual_add"], source: "manual_add", ovId: o.id, edited: true, m_candidate: String(o.match_candidate || f.candidate || ""), m_company: String(o.match_company || f.company || "") });
+              rows.push({ entity: f.entity || "Spark Talent", company: f.company || String(o.match_company || ""), bu: f.bu || "", candidate: f.candidate || String(o.match_candidate || ""), title: f.title || "Manual adjustment", credits: mkCred(am, rc), pay: 0, otPay: 0, dtPay: 0, bill: 0, otBill: 0, dtBill: 0, otMult: null, dtMult: null, burden: 0, regHrs: 0, otHrs: 0, dtHrs: 0, vacHrs: 0, totalHrs: 0, regMargin: 0, otMargin: 0, dtMargin: 0, vacMargin: 0, charge: r2(Number(f.charge) || 0), flags: ["manual_add"], source: "manual_add", ovId: o.id, edited: true, m_candidate: String(o.match_candidate || f.candidate || ""), m_company: String(o.match_company || f.company || "") });
             });
             for (let i = rows.length - 1; i >= 0; i--) {
               const r = rows[i];
@@ -6544,9 +6547,9 @@ var worker_default = {
                 if (o.action === "patch" && o.fields) {
                   const f = o.fields;
                   if (f.am !== void 0 || f.rec !== void 0) {
-                    const am = f.am !== void 0 ? f.am : ((r.credits && r.credits[0] && r.credits[0].recipient) || "");
-                    const rc = f.rec !== void 0 ? f.rec : ((r.credits && r.credits[1] && r.credits[1].recipient) || am);
-                    r.credits = [{ recipient: am, type: "Account Manager" }, { recipient: rc, type: "Recruiter" }];
+                    const am = f.am !== void 0 ? f.am : exA(r.credits);
+                    const rc = f.rec !== void 0 ? f.rec : exR(r.credits);
+                    r.credits = mkCred(am, rc);
                   }
                   ["bu", "entity", "title", "company", "candidate"].forEach((k) => { if (f[k] !== void 0) r[k] = f[k]; });
                   if (f.charge !== void 0) r.charge = r2(Number(f.charge) || 0);
