@@ -1097,6 +1097,7 @@ window.SPARK_LIVE = (function () {
     var f = document.getElementById('lvFreeze'); if (f) f.style.display = IS_ADMIN ? '' : 'none';
     try { if (IS_ADMIN && curIso && !histPerson[curIso] && dhb[curIso]) dhEd(); } catch (e) {}
     try { if (IS_ADMIN && H) teamEd(); } catch (e) {}
+    try { rRaw(); } catch (e) {}
   }
 
   function indexHistory() {
@@ -1147,6 +1148,7 @@ window.SPARK_LIVE = (function () {
       var p = base[n] || (base[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
       p.sales += x.sales; p.fd += x.fd; p.rec += x.rec; p.tt += x.tt;
     });
+    Object.keys(base).forEach(function (n) { base[n].live = true; });
     return base;
   }
   function entCh(we, unit) {
@@ -1583,41 +1585,59 @@ window.SPARK_LIVE = (function () {
     if (!H) { el.innerHTML = '<div class="st">Business Units</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
     if (typeof window.buS === 'undefined' || !window.buS) window.buS = { f: 'wk', d: 'desc' };
     var bs = window.buS;
+    var CANON = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners' };
+    var canonU = function (u) { var k = String(u || '').trim(); return CANON[k.toLowerCase()] || k; };
+    var ALLOW = { 'Ignite Search': 1, 'Bolt Creative Strategies': 1, 'John Joseph Partners': 1 };
     var entSet = {}; (H.units || []).forEach(function (u) { if (u.is_entity) entSet[u.unit] = 1; });
     var isoList = weeksThrough(curIso);
-    var set = {};
-    (H.people || []).forEach(function (p) { if (p.active !== false && p.bu) set[p.bu] = 1; });
-    Object.keys(histUnit).forEach(function (w) { Object.keys(histUnit[w]).forEach(function (u) { var base = u.replace(/ \u00b7 DH$/, ''); if (base && !entSet[base]) set[base] = 1; }); });
+    var GROUPS = {}, PORT = {};
+    var addName = function (raw) {
+      raw = String(raw || '').trim(); if (!raw) return;
+      if (/portfolio/i.test(raw)) { PORT[raw] = 1; return; }
+      var c = canonU(raw);
+      if (entSet[raw] && !ALLOW[c]) return;
+      (GROUPS[c] = GROUPS[c] || {})[raw] = 1;
+    };
+    (H.people || []).forEach(function (p) { if (p.active !== false && p.bu) addName(p.bu); });
+    Object.keys(histUnit).forEach(function (w) { Object.keys(histUnit[w]).forEach(function (u) { addName(u.replace(/ \u00b7 DH$/, '')); }); });
     var b0 = batches[curIso], dc = dhb[curIso];
-    if (b0 && b0.rollups) (b0.rollups.byBU || []).forEach(function (x) { if (x.key && !entSet[x.key]) set[x.key] = 1; });
-    if (dc && dc.byBU) Object.keys(dc.byBU).forEach(function (u) { if (u && !entSet[u]) set[u] = 1; });
-    var wkOf = function (we, u) {
-      if (histPerson[we]) return unitVal(we, u) + unitVal(we, u + ' \u00b7 DH');
+    if (b0 && b0.rollups) (b0.rollups.byBU || []).forEach(function (x) { addName(x.key); });
+    if (dc && dc.byBU) Object.keys(dc.byBU).forEach(function (u) { addName(u); });
+    ['Ignite Search', 'Bolt Creative', 'John Joseph Partners'].forEach(function (e) { var c = canonU(e); (GROUPS[c] = GROUPS[c] || {})[e] = 1; });
+    var one = function (we, raw) {
+      if (histPerson[we]) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
       var v = 0, b = batches[we];
-      if (b && b.rollups) { var f = (b.rollups.byBU || []).find(function (x) { return x.key === u; }); if (f) v += f.charge; }
-      var d = dhb[we]; if (d && d.byBU && d.byBU[u]) v += d.byBU[u];
+      if (b && b.rollups) {
+        var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
+        var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge;
+      }
+      var d = dhb[we];
+      if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
       return v;
     };
-    var tg = {}; (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') tg[t.unit] = Number(t.amount) || 0; });
+    var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
+    var tg = {}; (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') tg[canonU(t.unit)] = (tg[canonU(t.unit)] || 0) + (Number(t.amount) || 0); });
     var prev = prevIso(curIso);
     var moKey = curIso.slice(0, 7), yKey = curIso.slice(0, 4);
     var qIdx = Math.floor((Number(curIso.slice(5, 7)) - 1) / 3);
-    var rows = Object.keys(set).map(function (u) {
-      var wk = wkOf(curIso, u), cum = 0, mo = 0, qv = 0;
+    var calc = function (names, label) {
+      var wk = grpOf(curIso, names), cum = 0, mo = 0, qv = 0;
       isoList.forEach(function (w) {
-        var v = wkOf(w, u); cum += v;
+        var v = grpOf(w, names); cum += v;
         if (w.slice(0, 7) === moKey) mo += v;
         if (w.slice(0, 4) === yKey && Math.floor((Number(w.slice(5, 7)) - 1) / 3) === qIdx) qv += v;
       });
-      var goal = tg[u] || 0;
-      return { u: u, wk: Math.round(wk), wow: Math.round(wk - wkOf(prev, u)), mo: Math.round(mo), q: Math.round(qv), cum: Math.round(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null };
-    }).filter(function (r) { return r.wk || r.cum || r.goal; });
+      var goal = tg[label] || 0;
+      return { u: label, wk: Math.round(wk), wow: Math.round(wk - grpOf(prev, names)), mo: Math.round(mo), q: Math.round(qv), cum: Math.round(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null };
+    };
+    var rows = Object.keys(GROUPS).map(function (c) { return calc(GROUPS[c], c); }).filter(function (r) { return r.wk || r.cum || r.goal; });
     rows.sort(function (x, y) {
       var f = bs.f, dd = bs.d === 'desc' ? -1 : 1;
       if (f === 'u') return String(x.u).localeCompare(String(y.u)) * dd;
       var xv = x[f] == null ? -1e15 : x[f], yv = y[f] == null ? -1e15 : y[f];
       return (xv - yv) * dd;
     });
+    var port = Object.keys(PORT).length ? calc(PORT, 'Spark Portfolio Total') : null;
     var bar = function (pct) {
       if (pct == null) return '<span style="color:var(--dm)">--</span>';
       var w = Math.max(0, Math.min(pct, 100)), lit = pct >= 100;
@@ -1629,6 +1649,22 @@ window.SPARK_LIVE = (function () {
         '</div>' +
         '<span class="m" style="font-size:11px;font-weight:800;min-width:42px;text-align:right;color:' + (lit ? '#FF6B2B' : 'var(--tx)') + '">' + Math.round(pct) + '%</span>' +
         (lit ? '<span class="pl" style="background:rgba(255,107,43,.14);color:#FF6B2B;font-weight:800">IGNITED</span>' : '') + '</div>';
+    };
+    var rk = function (i) {
+      var c = i === 0 ? '#FFC800' : i === 1 ? '#C0C0C8' : i === 2 ? '#CD7F32' : null;
+      if (c) return '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:' + c + ';color:#1a1a2e;font-weight:900;font-size:10px" class="m">' + (i + 1) + '</span>';
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--bd);color:var(--dm);font-weight:800;font-size:10px" class="m">' + (i + 1) + '</span>';
+    };
+    var cell = function (r, pinned) {
+      var o = '<td style="font-weight:700;font-size:12px' + (pinned ? ';color:var(--gold);letter-spacing:.5px' : '') + '">' + r.u + '</td>';
+      o += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.wk > 0 ? 'var(--y)' : r.wk < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (r.wk ? fmt(r.wk) : '--') + '</td>';
+      o += '<td class="r">' + dl(r.wow) + '</td>';
+      o += '<td class="r m" style="font-size:11px">' + (r.mo ? fmt(r.mo) : '--') + '</td>';
+      o += '<td class="r m" style="font-size:11px">' + (r.q ? fmt(r.q) : '--') + '</td>';
+      o += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.cum >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.cum) + '</td>';
+      o += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.goal ? fK(r.goal) : '--') + '</td>';
+      o += '<td style="padding-left:26px">' + bar(r.pct) + '</td>';
+      return o;
     };
     var totWk = rows.reduce(function (s2, r) { return s2 + r.wk; }, 0);
     var h = '<style>@keyframes buFlick{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}@keyframes buGlow{0%,100%{box-shadow:0 0 5px rgba(255,107,43,.35)}50%{box-shadow:0 0 14px rgba(255,107,43,.8)}}</style>';
@@ -1643,19 +1679,11 @@ window.SPARK_LIVE = (function () {
     });
     h += '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
-      h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer">';
-      h += '<td>' + bdg(i) + '</td>';
-      h += '<td style="font-weight:700;font-size:12px">' + r.u + '</td>';
-      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.wk > 0 ? 'var(--y)' : r.wk < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (r.wk ? fmt(r.wk) : '--') + '</td>';
-      h += '<td class="r">' + dl(r.wow) + '</td>';
-      h += '<td class="r m" style="font-size:11px">' + (r.mo ? fmt(r.mo) : '--') + '</td>';
-      h += '<td class="r m" style="font-size:11px">' + (r.q ? fmt(r.q) : '--') + '</td>';
-      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.cum >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.cum) + '</td>';
-      h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.goal ? fK(r.goal) : '--') + '</td>';
-      h += '<td style="padding-left:26px">' + bar(r.pct) + '</td></tr>';
+      h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer"><td>' + rk(i) + '</td>' + cell(r, false) + '</tr>';
     });
+    if (port) h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.04)"><td style="color:var(--gold);font-weight:900;font-size:10px" class="m">\u03a3</td>' + cell(port, true) + '</tr>';
     h += '</tbody></table></div></div>';
-    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; click a unit to open its Rankings</div>';
+    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; Spark Portfolio Total stays pinned at the bottom</div>';
     el.innerHTML = h;
   };
 
@@ -1665,11 +1693,43 @@ window.SPARK_LIVE = (function () {
     var b = batches[curIso];
     if (b && b.rows) return b.rows.map(function (r) {
       var c = r.credits || [];
-      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge) };
+      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
     });
     return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
   var RAW_COLS = [['entity','Inv. Entity',1],['company','Client',1],['bu','BU',1],['candidate','Team Member',1],['title','Title',1],['am','AM/Sales',1],['rec','Recruiter',1],['rt','RT',0],['ot','OT',0],['dt','DT',0],['vac','Vac',0],['tot','Hrs',0],['charge','Raw Charge',0]];
+  var ctKey = null;
+  function ctFind() { if (!ctKey) return null; var b = batches[curIso]; var rr = (b && b.rows) || []; return rr.find(function (r) { return (r.m_candidate || r.candidate || '') === ctKey.c && (r.m_company || r.company || '') === ctKey.o; }) || null; }
+  function ctEdit(cand, co) { if (!ensurePin()) return; ctKey = { c: cand, o: co }; rRaw(); }
+  function ctCancel() { ctKey = null; rRaw(); }
+  function ctPost(body) {
+    body.week_ending = curIso;
+    return api('/contract-override', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function () { delete batches[curIso]; selectWeek(curIso); })
+      .catch(function (e) { alert('Contract editor: ' + e.message); });
+  }
+  function ctSave() {
+    var r = ctFind(); if (!r) { ctCancel(); return; }
+    var gv = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
+    var st = function (v) { return String(v == null ? '' : v).trim(); };
+    var f = {};
+    var bu = gv('lvCtF_bu'), ti = gv('lvCtF_ti'), am = gv('lvCtF_am'), rc = gv('lvCtF_rc'), ch = gv('lvCtF_ch');
+    var c = r.credits || [];
+    if (bu !== null && st(bu) !== st(r.bu)) f.bu = st(bu);
+    if (ti !== null && st(ti) !== st(r.title)) f.title = st(ti);
+    if (am !== null && st(am) !== st(c[0] ? c[0].recipient : '')) f.am = st(am);
+    if (rc !== null && st(rc) !== st(c[1] ? c[1].recipient : '')) f.rec = st(rc);
+    var n = Number(String(ch == null ? '' : ch).replace(/[$,]/g, ''));
+    if (ch !== null && st(ch) !== '' && isFinite(n) && Math.abs(n - Number(r.charge)) > 0.6) f.charge = n;
+    var key = ctKey; ctKey = null;
+    if (!Object.keys(f).length) { rRaw(); return; }
+    ctPost({ action: 'patch', match_candidate: key.c, match_company: key.o, fields: f });
+  }
+  function ctRevert(cand, co) {
+    if (!ensurePin()) return;
+    if (!confirm('Remove all edits on ' + cand + ' @ ' + co + ' for ' + labelWe(curIso) + ' and restore Salesforce values?')) return;
+    ctPost({ op: 'revert', match_candidate: cand, match_company: co });
+  }
   window.rRaw = function () {
     var el = document.getElementById('p-raw'); if (!el) return;
     var all = rawRows(), list = all.slice();
@@ -1694,16 +1754,34 @@ window.SPARK_LIVE = (function () {
       var mark = sIdx === -1 ? '' : (rawSort[sIdx].d === 'desc' ? ' &#9662;' : ' &#9652;') + (sIdx > 0 ? '<sup style="font-size:8px">' + (sIdx + 1) + '</sup>' : '');
       h += '<th class="' + (i >= 7 ? 'r ' : '') + '" style="white-space:nowrap;cursor:pointer;' + (active ? 'color:var(--gold)' : '') + '" onclick="SPARK_LIVE.rawMenu(event,' + i + ')">' + cd[1] + mark + (cd[2] ? ' <span style="opacity:.55">&#9776;</span>' : '') + '</th>';
     });
+    if (IS_ADMIN) h += '<th></th>';
     h += '</tr></thead><tbody>';
     list.forEach(function (r) {
+      var editing = ctKey && ctKey.c === r.mcand && ctKey.o === r.mco;
+      if (editing) {
+        var fin = 'width:95%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:6px;padding:3px 5px;font:inherit;font-size:10px';
+        h += '<tr style="background:rgba(255,200,0,.05)">';
+        h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + '</td>';
+        h += '<td><input id="lvCtF_bu" style="' + fin + '" value="' + dhAtt(r.bu === '\u2014' ? '' : r.bu) + '"/></td>';
+        h += '<td style="font-size:11px">' + esc(r.candidate) + '</td>';
+        h += '<td><input id="lvCtF_ti" style="' + fin + '" value="' + dhAtt(r.title) + '"/></td>';
+        h += '<td><input id="lvCtF_am" style="' + fin + '" value="' + dhAtt(r.am) + '"/></td>';
+        h += '<td><input id="lvCtF_rc" style="' + fin + '" value="' + dhAtt(r.rec) + '"/></td>';
+        h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px">' + (r.ot || '--') + '</td><td class="r m" style="font-size:10px">' + (r.dt || '--') + '</td><td class="r m" style="font-size:10px">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
+        h += '<td class="r"><input id="lvCtF_ch" style="' + fin + ';width:80px;text-align:right" value="' + dhAtt(r.charge) + '"/></td>';
+        h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="event.stopPropagation();SPARK_LIVE.ctSave()">save</button> <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctCancel()">cancel</button></td></tr>';
+        return;
+      }
       h += '<tr onclick="openClient(\'' + esc(r.company) + '\')" style="cursor:pointer">';
-      h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.bu) + '</td>';
+      h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + (r.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '') + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.bu) + '</td>';
       h += '<td style="font-size:11px">' + esc(r.candidate) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.title) + '</td>';
       h += '<td style="font-size:10px">' + esc(r.am) + '</td><td style="font-size:10px">' + esc(r.rec) + '</td>';
       h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px;color:' + (r.ot ? 'var(--org)' : 'var(--mt)') + '">' + (r.ot || '--') + '</td>';
       h += '<td class="r m" style="font-size:10px;color:' + (r.dt ? 'var(--red)' : 'var(--mt)') + '">' + (r.dt || '--') + '</td>';
       h += '<td class="r m" style="font-size:10px;color:' + (r.vac ? 'var(--blu)' : 'var(--mt)') + '">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
-      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.charge >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.charge) + '</td></tr>';
+      h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.charge >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.charge) + '</td>';
+      if (IS_ADMIN) h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctEdit(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">edit</button>' + (r.edited ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctRevert(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">revert</button>' : '') + '</td>';
+      h += '</tr>';
     });
     var sRT = 0, sOT = 0, sDT = 0, sV = 0, sH = 0;
     list.forEach(function (r) { sRT += r.rt; sOT += r.ot; sDT += r.dt || 0; sV += r.vac; sH += r.tot; });
@@ -1715,7 +1793,7 @@ window.SPARK_LIVE = (function () {
     h += '<td class="r m" style="' + ftd + ';color:var(--red)">' + (sDT ? h1(sDT).toLocaleString() : '--') + '</td>';
     h += '<td class="r m" style="' + ftd + ';color:var(--blu)">' + (sV ? h1(sV).toLocaleString() : '--') + '</td>';
     h += '<td class="r m" style="' + ftd + '">' + h1(sH).toLocaleString() + '</td>';
-    h += '<td class="r m" style="' + ftd + ';color:' + (totC >= 0 ? 'var(--gold)' : 'var(--red)') + ';font-size:12px">' + fmt(Math.round(totC)) + '</td></tr>';
+    h += '<td class="r m" style="' + ftd + ';color:' + (totC >= 0 ? 'var(--gold)' : 'var(--red)') + ';font-size:12px">' + fmt(Math.round(totC)) + '</td>' + (IS_ADMIN ? '<td style="' + ftd + '"></td>' : '') + '</tr>';
     h += '</tbody></table></div></div>';
     el.innerHTML = h;
     var s = document.getElementById('raw-s');
@@ -1843,7 +1921,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
