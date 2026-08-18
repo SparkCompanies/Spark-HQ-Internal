@@ -996,7 +996,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0818-10';
+  var BUILD = 'b0818-11';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1659,12 +1659,12 @@ window.SPARK_LIVE = (function () {
     };
     var cell = function (r, pinned) {
       var o = '<td style="font-weight:700;font-size:12px' + (pinned ? ';color:var(--gold);letter-spacing:.5px' : '') + '">' + r.u + '</td>';
-      o += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.wk > 0 ? 'var(--y)' : r.wk < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (r.wk ? fmt(r.wk) : '--') + '</td>';
+      o += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.wk > 0 ? 'var(--y)' : r.wk < 0 ? 'var(--red)' : 'var(--mt)') + '!important">' + (r.wk ? fmt(r.wk) : '--') + '</td>';
       o += '<td class="r">' + dl(r.wow) + '</td>';
       o += '<td class="r m" style="font-size:11px">' + (r.mo ? fmt(r.mo) : '--') + '</td>';
       o += '<td class="r m" style="font-size:11px">' + (r.q ? fmt(r.q) : '--') + '</td>';
-      o += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.cum >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.cum) + '</td>';
-      o += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.goal ? fK(r.goal) : '--') + '</td>';
+      o += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.cum >= 0 ? 'var(--tx)' : 'var(--red)') + '!important">' + fmt(r.cum) + '</td>';
+      o += '<td class="r m" style="font-size:10px;color:var(--dm)!important">' + (r.goal ? fK(r.goal) : '--') + '</td>';
       o += '<td style="padding-left:26px">' + bar(r.pct) + '</td>';
       return o;
     };
@@ -1696,10 +1696,10 @@ window.SPARK_LIVE = (function () {
   function wowQi(w) { return Math.floor((Number(w.slice(5, 7)) - 1) / 3); }
   function wowCell(v, pv, strong) {
     var n = Math.round(v || 0), p = pv == null ? null : Math.round(pv || 0);
-    if (!n && !p) return '<td class="m r" style="padding:4px 9px;color:var(--mt)">--</td>';
+    if (!n && !p) return '<td class="m r" style="padding:4px 9px;color:var(--mt)!important">--</td>';
     var col = 'var(--tx)';
     if (p != null) { if (n > p) col = 'var(--grn)'; else if (n < p) col = 'var(--red)'; }
-    return '<td class="m r" style="padding:4px 9px;font-weight:' + (strong ? '800' : '600') + ';color:' + col + '">' + fmt(n) + '</td>';
+    return '<td class="m r" style="padding:4px 9px;font-weight:' + (strong ? '800' : '600') + ';color:' + col + '!important">' + fmt(n) + '</td>';
   }
   function wowQtd(w, lastQ) {
     var qi = wowQi(w), qc = WOWQ[qi];
@@ -1764,14 +1764,14 @@ window.SPARK_LIVE = (function () {
       var qt = wowQtd(w, lastQ); lastQ = qt.q;
       var pw = wi > 0 ? isoList[wi - 1] : null;
       h += '<tr style="border-top:1px solid var(--bd);background:' + qt.bg + '">' + qt.td;
-      h += '<td class="m" style="padding:4px 9px;color:var(--dm)">' + labelWe(w) + '</td>';
+      h += '<td class="m" style="padding:4px 9px;color:var(--dm)!important">' + labelWe(w) + '</td>';
       units.forEach(function (u) { h += wowCell(vals[w][u], pw ? vals[pw][u] : null, false); });
       if (hasPort) h += wowCell(portV[w], pw ? portV[pw] : null, true);
       h += '</tr>';
     });
     h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.06)"><td class="m" style="padding:5px 9px;font-weight:900;color:var(--gold);border-left:3px solid var(--gold)">\u03a3</td><td class="m" style="padding:5px 9px;font-weight:800;color:var(--gold)">YTD</td>';
-    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)">' + (Math.abs(cum[u]) > 0.5 ? fmt(Math.round(cum[u])) : '--') + '</td>'; });
-    if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)">' + fmt(Math.round(portCum)) + '</td>';
+    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)!important">' + (Math.abs(cum[u]) > 0.5 ? fmt(Math.round(cum[u])) : '--') + '</td>'; });
+    if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)!important">' + fmt(Math.round(portCum)) + '</td>';
     h += '</tr></tbody></table></div></div>';
     el.innerHTML = h;
   };
@@ -1790,6 +1790,7 @@ window.SPARK_LIVE = (function () {
       document.head.appendChild(st);
     }
     document.body.appendChild(p);
+    try { var _dz = parseInt(getComputedStyle(document.getElementById('dro')).zIndex, 10); p.style.zIndex = String(isFinite(_dz) && _dz > 0 ? _dz + 1 : 100000); } catch (e) { p.style.zIndex = '100000'; }
     return p;
   }
   function wowHide() { var p = document.getElementById('lvPWow'); if (p) p.style.display = 'none'; }
