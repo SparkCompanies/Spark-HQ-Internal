@@ -1765,8 +1765,18 @@ window.SPARK_LIVE = (function () {
         h += '<td><input id="lvCtF_bu" style="' + fin + '" value="' + dhAtt(r.bu === '\u2014' ? '' : r.bu) + '"/></td>';
         h += '<td style="font-size:11px">' + esc(r.candidate) + '</td>';
         h += '<td><input id="lvCtF_ti" style="' + fin + '" value="' + dhAtt(r.title) + '"/></td>';
-        h += '<td><input id="lvCtF_am" style="' + fin + '" value="' + dhAtt(r.am) + '"/></td>';
-        h += '<td><input id="lvCtF_rc" style="' + fin + '" value="' + dhAtt(r.rec) + '"/></td>';
+        var ctOpts = function (cur) {
+          var names = ['House Account'];
+          (H && H.people || []).forEach(function (p) { if (p.active !== false && p.person) names.push(p.person); });
+          names = names.filter(function (v, i2) { return names.indexOf(v) === i2; });
+          names.sort(function (a, b2) { return a === 'House Account' ? -1 : b2 === 'House Account' ? 1 : a.localeCompare(b2); });
+          if (cur && names.indexOf(cur) === -1) names.unshift(cur);
+          var o = cur ? '' : '<option value="" selected></option>';
+          names.forEach(function (nm) { o += '<option value="' + dhAtt(nm) + '"' + (nm === cur ? ' selected' : '') + '>' + dhAtt(nm) + '</option>'; });
+          return o;
+        };
+        h += '<td><select id="lvCtF_am" style="' + fin + '">' + ctOpts(r.am) + '</select></td>';
+        h += '<td><select id="lvCtF_rc" style="' + fin + '">' + ctOpts(r.rec) + '</select></td>';
         h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px">' + (r.ot || '--') + '</td><td class="r m" style="font-size:10px">' + (r.dt || '--') + '</td><td class="r m" style="font-size:10px">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
         h += '<td class="r"><input id="lvCtF_ch" style="' + fin + ';width:80px;text-align:right" value="' + dhAtt(r.charge) + '"/></td>';
         h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="event.stopPropagation();SPARK_LIVE.ctSave()">save</button> <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctCancel()">cancel</button></td></tr>';
