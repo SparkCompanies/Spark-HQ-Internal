@@ -1689,11 +1689,13 @@ window.SPARK_LIVE = (function () {
 
   // ── ASSIGNMENT TEAM MEMBERS: override rRaw with Excel-style filters/sorts ──
   var rawF = {}, rawQ = '', rawSort = [{ k: 'entity', d: 'desc' }, { k: 'company', d: 'asc' }, { k: 'candidate', d: 'asc' }];
+  function ctAmOf(c) { c = c || []; for (var i = 0; i < c.length; i++) { var t = String(c[i].type || '').toLowerCase(); if (t.indexOf('account') !== -1 || t.indexOf('sales') !== -1 || t.indexOf('full') !== -1) return c[i].recipient || ''; } return (c[0] ? c[0].recipient : '') || ''; }
+  function ctRecOf(c) { c = c || []; for (var i = 0; i < c.length; i++) { var t = String(c[i].type || '').toLowerCase(); if (t.indexOf('recruit') !== -1 || t.indexOf('full') !== -1) return c[i].recipient || ''; } return (c[1] ? c[1].recipient : '') || ''; }
   function rawRows() {
     var b = batches[curIso];
     if (b && b.rows) return b.rows.map(function (r, bi) {
       var c = r.credits || [];
-      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: (c[0] ? c[0].recipient : '') || '', rec: (c[1] ? c[1].recipient : '') || '', rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, bi: bi, mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
+      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: ctAmOf(c), rec: ctRecOf(c), rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, bi: bi, mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
     });
     return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
@@ -1724,13 +1726,14 @@ window.SPARK_LIVE = (function () {
     var c = r.credits || [];
     if (bu !== null && st(bu) !== st(r.bu)) f.bu = st(bu);
     if (ti !== null && st(ti) !== st(r.title)) f.title = st(ti);
-    if (am !== null && st(am) !== st(c[0] ? c[0].recipient : '')) f.am = st(am);
-    if (rc !== null && st(rc) !== st(c[1] ? c[1].recipient : '')) f.rec = st(rc);
+    if (am !== null && st(am) !== st(ctAmOf(r.credits))) f.am = st(am);
+    if (rc !== null && st(rc) !== st(ctRecOf(r.credits))) f.rec = st(rc);
     var n = Number(String(ch == null ? '' : ch).replace(/[$,]/g, ''));
     if (ch !== null && st(ch) !== '' && isFinite(n) && Math.abs(n - Number(r.charge)) > 0.6) f.charge = n;
-    var key = ctKey; ctKey = null;
+    var mc = r.m_candidate || r.candidate || '', mo = r.m_company || r.company || '';
+    ctKey = null;
     if (!Object.keys(f).length) { rRaw(); return; }
-    ctPost({ action: 'patch', match_candidate: key.c, match_company: key.o, fields: f });
+    ctPost({ action: 'patch', match_candidate: mc, match_company: mo, fields: f });
   }
   function ctAddOpen() { if (!ensurePin()) return; ctAdding = true; rRaw(); }
   function ctAddCancel() { ctAdding = false; rRaw(); }
