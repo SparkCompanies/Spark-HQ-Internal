@@ -6215,6 +6215,11 @@ var worker_default = {
         const rrKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(corporation|corp|incorporated|inc|llc|company|co)\b/g, "").replace(/\s+/g, " ").trim();
         const rrNorm = {};
         Object.keys(rateRules).forEach((k) => { rrNorm[rrKey(k)] = rateRules[k]; });
+        const workerRates = {};
+        try {
+          const wrR = await sbService(env, "GET", "fin_worker_ot_rates?select=sf_account_name,candidate,ot_bill,dt_bill");
+          if (wrR.ok && Array.isArray(wrR.data)) wrR.data.forEach((m) => { workerRates[rrKey(m.sf_account_name) + "|" + String(m.candidate || "").trim().toLowerCase()] = m; });
+        } catch (e) {}
         try {
         } catch (e) {}
         const recipAlias = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan" };
@@ -6271,8 +6276,9 @@ var worker_default = {
           const dtMult = rule && rule.mode === "multiplier" && rule.dt != null ? Number(rule.dt) : null;
           const otBillSF = Number(ts.ASYMBL_Time__Overtime_Bill_Rate__c) || 0;
           const dtBillSF = Number(ts.ASYMBL_Time__Double_Time_Bill_Rate__c) || 0;
-          const otBill = otMult != null ? bill * otMult : (otBillSF || bill * 1.5);
-          const dtBill = dtMult != null ? bill * dtMult : (dtBillSF || bill * 2);
+          const wr = workerRates[rrKey(acct) + "|" + String(cand || "").trim().toLowerCase()] || null;
+          const otBill = wr && Number(wr.ot_bill) ? Number(wr.ot_bill) : (otMult != null ? bill * otMult : (otBillSF || bill * 1.5));
+          const dtBill = wr && Number(wr.dt_bill) ? Number(wr.dt_bill) : (dtMult != null ? bill * dtMult : (dtBillSF || bill * 2));
           const otPay = pay * 1.5, dtPay = pay * 2;
 
           const regM = bill - pay * (1 + burden);
@@ -6305,7 +6311,7 @@ var worker_default = {
           else { kept = credits; if (credits.length > 2) flags.push("extra_credits"); }
           if (!map) flags.push("unmapped_account");
           if (!bu) flags.push("no_bu");
-          if ((otH > 0 && otMult == null && !otBillSF) || (dtH > 0 && dtMult == null && !dtBillSF)) flags.push("ot_rate_assumed");
+          if ((otH > 0 && !(wr && Number(wr.ot_bill)) && otMult == null && !otBillSF) || (dtH > 0 && !(wr && Number(wr.dt_bill)) && dtMult == null && !dtBillSF)) flags.push("ot_rate_assumed");
 
           const creditsOut = kept.map((c) => ({
             id: c.id,
