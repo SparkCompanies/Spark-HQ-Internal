@@ -5957,8 +5957,16 @@ var worker_default = {
       const wk = String(body.week_ending || "");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "week_ending required" }, 400, origin);
       if (body.op === "revert") {
-        const q = "charge_contract_overrides?week_ending=eq." + wk + "&match_candidate=eq." + encodeURIComponent(String(body.match_candidate || "")) + "&match_company=eq." + encodeURIComponent(String(body.match_company || ""));
+        const q = "charge_contract_overrides?week_ending=eq." + wk + "&match_candidate=eq." + encodeURIComponent(String(body.match_candidate || "")) + "&match_company=eq." + encodeURIComponent(String(body.match_company || "")) + "&action=neq.add";
         const r = await sbService(env, "DELETE", q);
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
+      if (body.op === "edit_add" && body.id) {
+        const r = await sbService(env, "PATCH", "charge_contract_overrides?id=eq." + Number(body.id), { fields: body.fields || {} });
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
+      if (body.op === "delete_add" && body.id) {
+        const r = await sbService(env, "DELETE", "charge_contract_overrides?id=eq." + Number(body.id));
         return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
       }
       if (body.action !== "patch" && body.action !== "hide" && body.action !== "add") return json({ error: "action must be patch|hide|add" }, 400, origin);
@@ -6523,10 +6531,11 @@ var worker_default = {
               if (o.action !== "add" || !o.fields) return;
               const f = o.fields;
               const am = f.am || "House Account", rc = f.rec || f.am || "House Account";
-              rows.push({ entity: f.entity || "Spark Talent", company: f.company || String(o.match_company || ""), bu: f.bu || "", candidate: f.candidate || String(o.match_candidate || ""), title: f.title || "Manual adjustment", credits: [{ recipient: am, type: "Account Manager" }, { recipient: rc, type: "Recruiter" }], pay: 0, otPay: 0, dtPay: 0, bill: 0, otBill: 0, dtBill: 0, otMult: null, dtMult: null, burden: 0, regHrs: 0, otHrs: 0, dtHrs: 0, vacHrs: 0, totalHrs: 0, regMargin: 0, otMargin: 0, dtMargin: 0, vacMargin: 0, charge: r2(Number(f.charge) || 0), flags: ["manual_add"], source: "manual_add", edited: true, m_candidate: String(o.match_candidate || f.candidate || ""), m_company: String(o.match_company || f.company || "") });
+              rows.push({ entity: f.entity || "Spark Talent", company: f.company || String(o.match_company || ""), bu: f.bu || "", candidate: f.candidate || String(o.match_candidate || ""), title: f.title || "Manual adjustment", credits: [{ recipient: am, type: "Account Manager" }, { recipient: rc, type: "Recruiter" }], pay: 0, otPay: 0, dtPay: 0, bill: 0, otBill: 0, dtBill: 0, otMult: null, dtMult: null, burden: 0, regHrs: 0, otHrs: 0, dtHrs: 0, vacHrs: 0, totalHrs: 0, regMargin: 0, otMargin: 0, dtMargin: 0, vacMargin: 0, charge: r2(Number(f.charge) || 0), flags: ["manual_add"], source: "manual_add", ovId: o.id, edited: true, m_candidate: String(o.match_candidate || f.candidate || ""), m_company: String(o.match_company || f.company || "") });
             });
             for (let i = rows.length - 1; i >= 0; i--) {
               const r = rows[i];
+              if (r.source === "manual_add") continue;
               const oc = r.candidate, oco = r.company;
               const hit = ovs.filter((o) => ck(o.match_candidate) === ck(oc) && ck(o.match_company) === ck(oco));
               let hide = false;
