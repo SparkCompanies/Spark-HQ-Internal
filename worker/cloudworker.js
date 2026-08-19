@@ -5723,10 +5723,22 @@ var worker_default = {
             return { full, first: (t[0] || "").toLowerCase(), li: t.length > 1 ? t[t.length - 1][0].toLowerCase() : "" };
           });
           const uniq = (list) => (list.length === 1 ? list[0].full : null);
+          const codeMap = {};
+          roster.forEach((full) => {
+            const t = full.trim().split(/\s+/);
+            if (t.length >= 2) {
+              const code = (t[0][0] + t[t.length - 1].slice(0, 3)).toUpperCase();
+              codeMap[code] = Object.prototype.hasOwnProperty.call(codeMap, code) ? null : full;
+            }
+          });
           const resolve = (nm) => {
             const s = String(nm || "").trim();
             if (!s || /^house$/i.test(s)) return s;
             if (roster.indexOf(s) !== -1) return s;
+            // tracker initials codes: KMAC / JROU2 / CMCC... and house tokens HSE / SPA
+            const up = s.toUpperCase().replace(/\d+$/, "");
+            if (/^(HSE|SPA|HOUSE)$/.test(up)) return "House";
+            if (/^[A-Z]{4}$/.test(up) && codeMap[up]) return codeMap[up];
             const t = s.split(/\s+/);
             const f = (t[0] || "").toLowerCase();
             const firstMatch = (p) => p.first === f || p.first.indexOf(f) === 0 || f.indexOf(p.first) === 0;
