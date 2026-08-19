@@ -996,7 +996,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-1';
+  var BUILD = 'b0819-2';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1854,7 +1854,7 @@ window.SPARK_LIVE = (function () {
     var b = batches[curIso];
     if (b && b.rows) return b.rows.map(function (r, bi) {
       var c = r.credits || [];
-      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: ctAmOf(c), rec: ctRecOf(c), rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, bi: bi, mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
+      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: ctAmOf(c), rec: ctRecOf(c), rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, bi: bi, flags: r.flags || [], plid: r.placementId || '', needsRev: (r.flags || []).some(function (f) { return f === 'no_credits' || f === 'lone_house' || f === 'no_recruiter'; }), mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
     });
     return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
@@ -2017,7 +2017,7 @@ window.SPARK_LIVE = (function () {
     });
     var totC = 0, totH = 0; list.forEach(function (r) { totC += r.charge; totH += r.tot; });
     var h = '<div class="st">Contract Team Members &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + list.length + ' of ' + all.length + '</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totC).toLocaleString() + ' &middot; ' + Math.round(totH).toLocaleString() + ' hrs</span></div>';
-    h += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center"><input class="srch" id="raw-s" placeholder="Search anything..." style="max-width:260px"/><button class="fb" onclick="SPARK_LIVE.rawReset()">Reset filters</button>' + '<button class="fb" style="margin-left:6px" onclick="SPARK_LIVE.ctExport()">Export</button>' + (IS_ADMIN ? '<button class="fb" style="margin-left:6px" onclick="SPARK_LIVE.ctAddOpen()">+ Add Line</button>' : '') + '</div>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center"><input class="srch" id="raw-s" placeholder="Search anything..." style="max-width:260px"/><button class="fb" onclick="SPARK_LIVE.rawReset()">Reset filters</button>' + '<button class="fb" style="margin-left:6px" onclick="SPARK_LIVE.ctExport()">Export</button>' + (IS_ADMIN ? '<button class="fb" id="lvRevChip" style="margin-left:6px" onclick="SPARK_LIVE.ctRevToggle()">\u26a0 Needs Review</button>' : '') + (IS_ADMIN ? '<button class="fb" style="margin-left:6px" onclick="SPARK_LIVE.ctAddOpen()">+ Add Line</button>' : '') + '</div>';
     h += '<div class="cd"><div class="scr" style="max-height:62vh"><table class="tb"><thead><tr>';
     RAW_COLS.forEach(function (cd, i) {
       var active = rawF[cd[0]] && rawF[cd[0]].length;
@@ -2038,7 +2038,10 @@ window.SPARK_LIVE = (function () {
       names.forEach(function (nm) { o += '<option value="' + dhAtt(nm) + '"' + (nm === cur ? ' selected' : '') + '>' + dhAtt(nm) + '</option>'; });
       return o;
     };
+    if (window.ctRevOnly) list = list.filter(function (r) { return r.needsRev; });
     ctLastList = list;
+    var _rc = list.filter(function (r) { return r.needsRev; }).length;
+    try { var _chip = document.getElementById('lvRevChip'); if (_chip) { _chip.classList.toggle('on', !!window.ctRevOnly); _chip.innerHTML = '\u26a0 Needs Review' + (_rc ? ' (' + _rc + ')' : ''); } } catch (e) {}
     var editShown = false;
     if (IS_ADMIN && ctAdding) {
       h += '<tr style="background:rgba(255,200,0,.06)">';
@@ -2070,7 +2073,7 @@ window.SPARK_LIVE = (function () {
         return;
       }
       h += '<tr onclick="openClient(\'' + esc(r.company) + '\')" style="cursor:pointer">';
-      h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + (r.manual ? ' <span class="pl" style="background:rgba(0,229,255,.1);color:var(--tea,#00E5FF)">MANUAL</span>' : (r.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '')) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.bu) + '</td>';
+      h += '<td style="font-size:10px">' + esc(r.entity) + '</td><td style="font-weight:600;font-size:11px">' + esc(r.company) + (r.manual ? ' <span class="pl" style="background:rgba(0,229,255,.1);color:var(--tea,#00E5FF)">MANUAL</span>' : (r.edited ? ' <span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">EDITED</span>' : '')) + (r.needsRev ? ' <span class="pl" style="background:rgba(255,107,43,.14);color:#FF6B2B;font-weight:800">REVIEW</span>' : '') + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.bu) + '</td>';
       h += '<td style="font-size:11px">' + esc(r.candidate) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.title) + '</td>';
       h += '<td style="font-size:10px">' + esc(r.am) + '</td><td style="font-size:10px">' + esc(r.rec) + '</td>';
       h += '<td class="r m" style="font-size:10px">' + (r.rt || '--') + '</td><td class="r m" style="font-size:10px;color:' + (r.ot ? 'var(--org)' : 'var(--mt)') + '">' + (r.ot || '--') + '</td>';
