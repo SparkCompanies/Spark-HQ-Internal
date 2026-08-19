@@ -999,7 +999,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-5';
+  var BUILD = 'b0819-6';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1255,7 +1255,7 @@ window.SPARK_LIVE = (function () {
       D.annT = {};
       (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') D.annT[t.unit] = Number(t.amount); });
       var dcur = dhb[curIso];
-      if (!official && dcur && dcur.drops && dcur.drops.length) {
+      if (dcur && dcur.drops && dcur.drops.length) {
         D.dh = dcur.drops.map(function (d) {
           var wk = parseInt(d.drop, 10) || 1, of = parseInt(String(d.drop).split('of')[1], 10) || 1;
           return { en: d.entity, bu: d.bu, cl: d.company + (d.split || d.pairSplit ? ' · split' : ''), sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: Math.round(d.amount), wk: wk, of: of, rem: d.remaining, emp: d.employee, st: d.remaining > 0 ? 'active' : 'done' };
@@ -1297,7 +1297,6 @@ window.SPARK_LIVE = (function () {
       .then(function (d) { batches[iso] = d; })
       .catch(function (e) { if (String(e.message) === 'signin') throw e; })
       .then(function () {
-        if (histPerson[iso]) return;
         return api('/charge-dh?weekEnding=' + iso).then(function (d) { dhb[iso] = d; }).catch(function () {});
       })
       .then(function () {
