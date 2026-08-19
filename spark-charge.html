@@ -996,7 +996,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0818-12';
+  var BUILD = 'b0818-13';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1526,7 +1526,7 @@ window.SPARK_LIVE = (function () {
     if (!ensurePin()) return;
     if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books?')) return;
     setStatus('FREEZING ' + labelWe(curIso), '#FFC800');
-    api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST' })
+    api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[curIso] || null, dh: dhb[curIso] || null }) })
       .then(function (d) {
         setStatus('FROZEN · ' + d.personRows + ' people, ' + d.unitRows + ' units', '#00FF88');
         return api('/charge-history');
