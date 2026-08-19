@@ -5850,9 +5850,18 @@ var worker_default = {
           if (rule) { d.split = true; ruled.push(d); }
         }
         const sibCanon = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        // a company that *is* one of our entities, however it's suffixed
+        const isOurEntity = (co) => {
+          const c = sibCanon(co);
+          if (!c) return false;
+          if (ENTSET[String(co || "").toLowerCase().replace(/,? llc$/, "").trim()]) return true;
+          return /^(sparktalent|sparkcompanies|sparkpackaging|ignite|bolt|johnjoseph|jjp|flexworkforce|cupertinobpo)/.test(c);
+        };
         drops = drops.filter((d) => {
-          if (!d.internal || d.split || d.pairSplit) return true;
+          if (d.split || d.pairSplit) return true;
           const dtxt = sibCanon(String(d.employee || "") + " " + String(d.title || ""));
+          const looksInternal = d.internal || isOurEntity(d.company);
+          if (!looksInternal) return true;
           const twin = ruled.find((x) => {
             if (x.entity === d.entity && sibCanon(x.company) === sibCanon(d.company)) return false;
             // (a) the internal row names the parent client in its text
