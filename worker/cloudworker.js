@@ -112,7 +112,7 @@ function corsHeaders(origin) {
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Admin-Pin",
     "Access-Control-Max-Age": "86400"
   };
 }
@@ -1064,6 +1064,101 @@ var worker_default = {
         return sbxJson({ error: String(e.message || e).slice(0, 200) }, 502);
       }
     }
+    if (url.pathname === "/sandbox-jobmeta") {
+      /* SBX_JOBMETA_v1 — live Job metadata for the ATS training sandbox */
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: sbxCors() });
+      const t = url.searchParams.get("token") || "";
+      if (!env.SANDBOX_TOKEN || t !== env.SANDBOX_TOKEN) return sbxJson({ error: "Unauthorized" }, 401);
+      const OBJ = "bpats__Job__c";
+      try {
+        const tok = await getSalesforceToken(env);
+        const H = { "Authorization": "Bearer " + tok.access_token };
+
+        /* 1) full describe: fields, picklists, controllers */
+        const dr = await fetch(tok.instance_url + "/services/data/v60.0/sobjects/" + OBJ + "/describe", { headers: H });
+        if (!dr.ok) return sbxJson({ error: "describe failed: " + dr.status }, 502);
+        const desc = await dr.json();
+        const byName = {};
+        (desc.fields || []).forEach((f) => { byName[f.name] = f; });
+
+        const fields = {};
+        const picklists = {};
+        (desc.fields || []).forEach((f) => {
+          fields[f.name] = {
+            label: f.label,
+            type: f.type,
+            required: !!(f.createable && !f.nillable && !f.defaultedOnCreate),
+            calculated: !!f.calculated
+          };
+          if (f.type === "picklist" || f.type === "multipicklist") {
+            picklists[f.name] = (f.picklistValues || []).filter((v) => v.active !== false).map((v) => v.label || v.value);
+          }
+        });
+
+        /* 2) dependent picklists: decode validFor bitmaps against the controller */
+        const bits = (b64) => {
+          const s = atob(b64 || ""); const out = [];
+          for (let i = 0; i < s.length; i++) {
+            const byte = s.charCodeAt(i);
+            for (let bit = 0; bit < 8; bit++) if (byte & (128 >> bit)) out.push(i * 8 + bit);
+          }
+          return out;
+        };
+        const dependencies = {};
+        (desc.fields || []).forEach((f) => {
+          if (!f.controllerName || !(f.type === "picklist" || f.type === "multipicklist")) return;
+          const ctl = byName[f.controllerName];
+          if (!ctl) return;
+          const ctlVals = (ctl.picklistValues || []).map((v) => v.label || v.value);
+          const map = {};
+          ctlVals.forEach((cv) => { map[cv] = []; });
+          (f.picklistValues || []).forEach((v) => {
+            if (v.active === false || !v.validFor) return;
+            bits(v.validFor).forEach((idx) => {
+              if (ctlVals[idx] !== undefined) map[ctlVals[idx]].push(v.label || v.value);
+            });
+          });
+          dependencies[f.name] = { controller: f.controllerName, controllerLabel: ctl.label, map };
+        });
+
+        /* 3) validation rules: Tooling query, then per-Id fetch for formulas */
+        const rules = [];
+        try {
+          const q = encodeURIComponent(
+            "SELECT Id, ValidationName, Active, ErrorDisplayField, ErrorMessage FROM ValidationRule " +
+            "WHERE EntityDefinition.QualifiedApiName = '" + OBJ + "'"
+          );
+          const vr = await fetch(tok.instance_url + "/services/data/v60.0/tooling/query/?q=" + q, { headers: H });
+          if (vr.ok) {
+            const vd = await vr.json();
+            for (const rec of (vd.records || []).slice(0, 25)) {
+              let formula = null;
+              try {
+                const fr = await fetch(tok.instance_url + "/services/data/v60.0/tooling/sobjects/ValidationRule/" + rec.Id, { headers: H });
+                if (fr.ok) { const fd = await fr.json(); formula = fd.Metadata ? fd.Metadata.errorConditionFormula : null; }
+              } catch (e) {}
+              rules.push({
+                name: rec.ValidationName,
+                active: !!rec.Active,
+                field: rec.ErrorDisplayField || null,
+                fieldLabel: rec.ErrorDisplayField && fields[rec.ErrorDisplayField] ? fields[rec.ErrorDisplayField].label : null,
+                message: rec.ErrorMessage,
+                formula
+              });
+            }
+          }
+        } catch (e) {}
+
+        return sbxJson({
+          ok: true,
+          object: OBJ,
+          generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          fields, picklists, dependencies, rules
+        });
+      } catch (e) {
+        return sbxJson({ error: String(e.message || e).slice(0, 300) }, 502);
+      }
+    }
     if (url.pathname === "/sandbox-result") {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: sbxCors() });
       if (request.method !== "POST") return sbxJson({ error: "POST required" }, 405);
@@ -1895,7 +1990,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-address") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a map admin" }, 403, origin);
@@ -1923,7 +2018,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-address-bulk") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
       if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
       if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a map admin" }, 403, origin);
@@ -1959,7 +2054,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-bu-bulk") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || who.user && who.user.email || "").toLowerCase();
       if (email === "") {
         try {
@@ -2026,7 +2121,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-account-bu") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || who.user && who.user.email || "").toLowerCase();
       if (email === "") {
         try {
@@ -2082,7 +2177,7 @@ var worker_default = {
     if (url.pathname === "/sf-update-job-bu") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       let email = String(who.email || who.user && who.user.email || "").toLowerCase();
       if (!email) {
         try {
@@ -2129,7 +2224,7 @@ var worker_default = {
     if (url.pathname === "/terr-map-config") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com"];
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
       const sbHeaders = { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
       if (request.method === "GET") {
         const r = await fetch(env.SUPABASE_URL + "/rest/v1/terr_map_config?id=eq.1&select=data,updated_at,updated_by", { headers: sbHeaders });
@@ -5555,10 +5650,10 @@ var worker_default = {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// CHARGE REPORT — PHASE B: /charge-batch  (read-only compute engine)
+// CHARGE REPORT — PHASE B+C: /charge-batch  (read-only compute engine)
 // ════════════════════════════════════════════════════════════════════════════
 // GET /charge-batch?weekEnding=YYYY-MM-DD   (a Sunday; defaults to latest week in SF)
-// Optional: &debug=1 for extra diagnostics.
+// Optional: &debug=1 diagnostics · &payables=0 to skip the Payable Worksheet merge.
 //
 // Pulls the week straight from Salesforce (no report export needed), applies the
 // finance agent's rules (fin_client_map, fin_ot_dt_rules), computes the verified
@@ -5569,8 +5664,592 @@ var worker_default = {
 //   regMargin = bill - pay*(1+burden)
 //   otMargin  = otBill - otPay*(1+burden)      dtMargin likewise
 //   vacMargin = -(bill - pay)*(1+burden)
-//   charge    = reg*regM + ot*otM + dt*dtM + vac*vacM   (vac hours wired in Phase C)
+//   charge    = reg*regM + ot*otM + dt*dtM + vac*vacM
+// Phase C: vacation hours + manual pays merged in from the 2026 Payable Worksheet.
 // ════════════════════════════════════════════════════════════════════════════
+
+    // ══════════════════════════════════════════════════════════════════════
+    // CHARGE REPORT — PHASE D: /charge-history (official books) + /charge-snapshot
+    // History tables are loaded from the running Excel report (charge_history.sql)
+    // and grown weekly by /charge-snapshot, which freezes the live engine's week.
+    // ══════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
+    // DIRECT HIRE — ENGINE v2 (tracker-live): /charge-dh
+    // Reads the week's column straight from all seven live tracker workbooks
+    // (credit notes & mid-week edits included), applies overrides (editor),
+    // manual adds, split rules (deal counted exactly once), burden rules
+    // (5% off except Cupertino / Spark Companies BPO / Bolt content = 100%),
+    // geographic BU via terr_territories, and cross-checks SF perm starts.
+    // Week rule: WE Sunday S owns tracker column labeled Monday S+1.
+    // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/charge-dh") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const weekEnding = (url.searchParams.get("weekEnding") || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
+      try {
+        const r2s = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const d0 = new Date(weekEnding + "T12:00:00Z");
+        const mon = new Date(d0.getTime() + 864e5);
+        const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const monSerial = Math.round(mon.getTime() / 864e5) + 25569;
+        const labelCandidates = [mon.getUTCDate() + "-" + MONTHS[mon.getUTCMonth()], String(mon.getUTCDate()).padStart(2, "0") + "-" + MONTHS[mon.getUTCMonth()]];
+        const TRACKERS = [
+          { entity: "Spark Talent", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BDF08D9CB-5CF1-4744-9075-619F14A9F552%7D&file=2024%20Direct%20Hire%20Tracker%20Master.xlsx&fromShare=true&action=default&mobileredirect=true" },
+          { entity: "Spark Packaging", share: "https://sparktalent.sharepoint.com/:x:/r/sites/SparkPackagingTeamSite/_layouts/15/Doc.aspx?sourcedoc=%7BC44470F8-DCDB-4F3E-85B6-77BD869BFE9B%7D&file=Packaging-%202024%20DH%20Tracker%20Template.xlsx&action=default&mobileredirect=true&wdsle=0&CID=897E83FE-F4C8-4BFE-9EE5-4FB5FA115F50&wdLOR=c551251C0-BE60-4FEB-B4C8-714E2DC31E12" },
+          { entity: "John Joseph Partners", share: "https://sparktalent.sharepoint.com/:x:/r/sites/JohnJosephPartnersLLC/_layouts/15/Doc.aspx?sourcedoc=%7BE9CA7E68-DBC8-4F6E-B05C-63034B37BB33%7D&file=JJP-%202024%20DH%20Tracker%20Template.xlsx&wdLOR=cF6BF3837-577D-4480-AE57-6FB1A2121FC8&fromShare=true&action=default&mobileredirect=true" },
+          { entity: "Flex Workforce", share: "https://sparktalent.sharepoint.com/:x:/r/sites/FlexWorkforceSolutions/_layouts/15/Doc.aspx?sourcedoc=%7BF5371A1C-0C10-4B1F-A090-55B57B95516C%7D&file=Flex-%202024%20DH%20Tracker.xlsx&wdLOR=cB7D5741D-ABB1-455C-9750-1CC6D43D7DB1&fromShare=true&action=default&mobileredirect=true" },
+          { entity: "Ignite Search", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BF52BF0E1-3985-4FA2-B8C3-C063279E71B5%7D&file=Ignite-%202024%20DH%20Tracker.xlsx&wdLOR=c49888525-0F93-458A-B3E2-61064DF907B1&fromShare=true&action=default&mobileredirect=true" },
+          { entity: "Spark Companies", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7B0542B573-F958-41FF-9BB1-4E5CB04CF363%7D&file=Spark%20Companies%202024%20DH%20Tracker.xlsx&wdLOR=c81E484C9-98DD-453A-9B76-637D59E3F685&fromShare=true&action=default&mobileredirect=true" },
+          { entity: "Bolt Creative", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BC6BA04FD-8A6E-4D2F-B5A1-224A9880F10A%7D&file=Bolt-%202025%20DH%20Tracker%20-%20Copy.xlsx&action=default&mobileredirect=true&CID=72A32F3D-08A6-476E-AAF7-9CF051163281&wdLOR=cC295F8FA-ECD8-496A-AEA7-CBBA88BF8E91" }
+        ];
+        const ENTSET = { "spark talent": 1, "spark packaging": 1, "john joseph partners": 1, "flex workforce": 1, "ignite search": 1, "spark companies": 1, "bolt creative": 1, "jjp": 1 };
+        const burdenFor = (entity, company, employee, title) => {
+          const c = String(company || "").toLowerCase(), e = String(employee || "") + " " + String(title || "");
+          if (c.indexOf("cupertino") !== -1) return 0;
+          if (entity === "Spark Companies" && /bpo/i.test(e + " " + c)) return 0;
+          if (entity === "Bolt Creative" && /content|social|media|creative|marketing/i.test(e + " " + c)) return 0;
+          return 0.05;
+        };
+        const gt = await getGraphToken(env);
+        const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
+        const review = [];
+        let drops = [];
+        for (const T of TRACKERS) {
+          try {
+            const shareTok = "u!" + btoa(T.share).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+            const sR = await fetch("https://graph.microsoft.com/v1.0/shares/" + shareTok + "/driveItem?$select=id,parentReference", { headers: GH });
+            const sD = await sR.json();
+            if (!sR.ok) throw new Error((sD.error && sD.error.message) || "share");
+            const B = "https://graph.microsoft.com/v1.0/drives/" + sD.parentReference.driveId + "/items/" + sD.id;
+            const rR = await fetch(B + "/workbook/worksheets('Direct%20Hire%20Tracker')/range(address='A1:BR300')?$select=values", { headers: GH });
+            const rD = await rR.json();
+            if (!rR.ok) throw new Error((rD.error && rD.error.message) || "range");
+            const grid = rD.values || [];
+            let hr = -1;
+            for (let i = 0; i < Math.min(6, grid.length); i++) { if ((grid[i] || []).some((c) => String(c).trim() === "Company")) { hr = i; break; } }
+            if (hr < 0) throw new Error("no header row");
+            const H2 = grid[hr].map((c) => String(c || "").trim());
+            const col = (re) => H2.findIndex((h) => re.test(h));
+            const cCo = col(/^Company$/i), cSr = col(/^Sales Rep$/i), cRc = col(/^Recruiter$/i), cNm = col(/^Team Member/i), cTi = col(/^Title$/i), cBu = col(/^Business Unit$/i), cLoc = col(/^Work Location$/i), cInv = col(/^Invoicing$/i);
+            let wc = -1;
+            for (let c = 0; c < H2.length; c++) {
+              const h = grid[hr][c];
+              if (typeof h === "number" && Math.round(h) === monSerial) { wc = c; break; }
+              if (labelCandidates.indexOf(String(h).trim()) !== -1) { wc = c; break; }
+            }
+            if (wc < 0) { review.push({ company: T.entity, candidate: "(tracker)", flags: ["dh_week_col_missing"], credits: ["No column for Mon " + labelCandidates[0]] }); continue; }
+            for (let r = hr + 1; r < grid.length; r++) {
+              const row = grid[r] || [];
+              const co = String(row[cCo] || "").trim();
+              if (!co) continue;
+              const v = row[wc];
+              if (typeof v !== "number" || !isFinite(v) || v === 0) continue;
+              const emp = cNm >= 0 ? String(row[cNm] || "").trim() : "";
+              const ttl = cTi >= 0 ? String(row[cTi] || "").trim() : "";
+              const burden = burdenFor(T.entity, co, emp, ttl);
+              let paidSoFar = 0, totalDrops = 0;
+              for (let c = wc; c < row.length; c++) { if (typeof row[c] === "number" && row[c] !== 0) totalDrops++; }
+              for (let c = 0; c <= wc; c++) { if (c >= 13 && typeof row[c] === "number" && row[c] !== 0 && String(grid[hr][c]).length <= 9) paidSoFar++; }
+              const cd = String(row[H2.findIndex((h) => /^Charge Details$/i.test(h))] || "");
+              const m = cd.match(/\/\s*(\d+)\s*(Week|Month|Install)/i);
+              const invType = cInv >= 0 ? String(row[cInv] || "").trim() : "";
+              let ofN = m ? Number(m[1]) : (/^3 install/i.test(invType) ? 3 : (/^lump/i.test(invType) || !invType ? 1 : paidSoFar + totalDrops - 1));
+              if (!ofN || ofN < paidSoFar) ofN = paidSoFar + Math.max(totalDrops - 1, 0);
+              drops.push({
+                source: "tracker", entity: T.entity, company: co, employee: emp, title: ttl,
+                sales_rep: cSr >= 0 ? String(row[cSr] || "").trim() : "", recruiter: cRc >= 0 ? String(row[cRc] || "").trim() : "",
+                bu: cBu >= 0 ? String(row[cBu] || "").trim() : "", loc: cLoc >= 0 ? String(row[cLoc] || "").trim() : "",
+                invoicing_type: invType,
+                invoiced: r2s(v), burden, amount: r2s(v * (1 - burden)),
+                drop: paidSoFar + " of " + ofN, remaining: Math.max(ofN - paidSoFar, 0),
+                internal: !!ENTSET[co.toLowerCase().replace(/,? llc$/, "").trim()]
+              });
+            }
+          } catch (e) { review.push({ company: T.entity, candidate: "(tracker)", flags: ["dh_tracker_error"], credits: [String(e.message || e).slice(0, 100)] }); }
+        }
+        // ── overrides (editor): hide / patch ──
+        const ovR = await sbService(env, "GET", "charge_dh_overrides?select=*&or=(week_ending.eq." + weekEnding + ",week_ending.is.null)");
+        const ovs = (ovR.ok && ovR.data) || [];
+        const okey = (e, c, n) => (String(e || "") + "|" + String(c || "") + "|" + String(n || "")).toLowerCase();
+        drops = drops.filter((d) => {
+          const k0 = { entity: d.entity, company: d.company, employee: d.employee };
+          const hit = ovs.filter((o) => okey(o.match_entity || d.entity, o.match_company, o.match_employee) === okey(d.entity, d.company, d.employee));
+          for (const o of hit) {
+            if (o.action === "hide") { review.push({ company: d.company, candidate: d.employee, flags: ["dh_hidden"], credits: ["Hidden by editor" + (o.notes ? ": " + o.notes : "")] }); return false; }
+            if (o.action === "patch" && o.fields) {
+              const f = o.fields;
+              ["company","employee","sales_rep","recruiter","bu","entity","title"].forEach((k) => { if (f[k] !== void 0) d[k] = f[k]; });
+              if (f.sales_rep !== void 0 || f.recruiter !== void 0) d.credEdited = true;
+              if (f.bu !== void 0) d.buEdited = true;
+              if (f.amount !== void 0) { d.amount = r2s(f.amount); d.invoiced = null; d.burden = null; d.amtEdited = true; }
+              d.edited = true;
+            }
+          }
+          if (d.edited) { d.m_entity = k0.entity; d.m_company = k0.company; d.m_employee = k0.employee; }
+          return true;
+        });
+        // ── manual adds (editor) from charge_dh_schedule source='manual' ──
+        const mR = await sbService(env, "GET", "charge_dh_schedule?select=*&source=eq.manual&status=eq.active");
+        const monthsBetween = (a, b) => (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth());
+        for (const s of ((mR.ok && mR.data) || [])) {
+          const first = new Date(s.first_we + "T12:00:00Z");
+          const n = Number(s.installments) || 1, paid = Number(s.weeks_paid) || 0, total = Number(s.charge) || 0;
+          let k = -1;
+          if (s.interval === "month") { const m = monthsBetween(first, d0); const target = new Date(first.getTime()); target.setUTCMonth(target.getUTCMonth() + m); if (m >= 0 && Math.abs(d0.getTime() - target.getTime()) / 864e5 <= 3) k = m; }
+          else { const wks = Math.round((d0.getTime() - first.getTime()) / (7 * 864e5)); if (wks >= 0 && (d0.getTime() - first.getTime()) % (7 * 864e5) === 0) k = wks; }
+          if (k < 0 || k >= (n - paid)) continue;
+          drops.push({ source: "manual", schedId: s.id, entity: s.entity, company: s.company, employee: s.employee, title: "", sales_rep: s.sales_rep || "", recruiter: s.recruiter || "", bu: s.bu || "", invoicing_type: s.interval, invoiced: null, burden: null, amount: r2s(total / n), internal: false, drop: (paid + k + 1) + " of " + n });
+        }
+        // ── resolve tracker short names to roster full names (charge_people) ──
+        try {
+          const pplR = await sbService(env, "GET", "charge_people?select=person");
+          const roster = ((pplR.ok && pplR.data) || []).map((x) => String(x.person || ""));
+          const parsed = roster.map((full) => {
+            const t = full.trim().split(/\s+/);
+            return { full, first: (t[0] || "").toLowerCase(), li: t.length > 1 ? t[t.length - 1][0].toLowerCase() : "" };
+          });
+          const uniq = (list) => (list.length === 1 ? list[0].full : null);
+          const resolve = (nm) => {
+            const s = String(nm || "").trim();
+            if (!s || /^house$/i.test(s)) return s;
+            if (roster.indexOf(s) !== -1) return s;
+            const t = s.split(/\s+/);
+            const f = (t[0] || "").toLowerCase();
+            const firstMatch = (p) => p.first === f || p.first.indexOf(f) === 0 || f.indexOf(p.first) === 0;
+            if (t.length >= 2 && t[1].replace(".", "").length >= 1) {
+              const li = t[1][0].toLowerCase();
+              const exact = uniq(parsed.filter((p) => p.first === f && p.li === li));
+              if (exact) return exact;
+              const pre = uniq(parsed.filter((p) => firstMatch(p) && p.li === li));
+              if (pre) return pre;
+            }
+            if (t.length === 1) {
+              const exact = uniq(parsed.filter((p) => p.first === f));
+              if (exact) return exact;
+              const pre = uniq(parsed.filter((p) => firstMatch(p)));
+              if (pre) return pre;
+            }
+            return s;
+          };
+          drops.forEach((d) => { d.sales_rep = resolve(d.sales_rep); d.recruiter = resolve(d.recruiter); });
+        } catch (e) {}
+        // ── Bolt Creative: all DH lands in its own unit ──
+        drops.forEach((d) => { if (/^bolt/i.test(String(d.entity || "")) && !d.buEdited) d.bu = "Bolt Creative Strategies"; });
+        // ── geographic BU: client state → territory → BU ──
+        const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
+        const stateBU = {};
+        for (const t of ((terrR.ok && terrR.data) || [])) {
+          let nm = String(t.name || "");
+          let bu = /michigan|metro/i.test(nm) ? "MI Metro" : nm.replace(/^National\s+/i, "").replace(/\s+/g, "");
+          if (bu === "SouthEast") bu = "Southeast";
+          const g = t.geo || {};
+          (g.states || []).forEach((st) => { stateBU[String(st).toUpperCase()] = bu; });
+        }
+        const needState = drops.filter((d) => !d.bu && !d.internal);
+        const locState = (loc) => { const m = String(loc || "").match(/,\s*([A-Z]{2})\b/); return m ? m[1] : null; };
+        needState.forEach((d) => { const st = locState(d.loc); if (st && stateBU[st]) d.bu = stateBU[st]; });
+        const missing = [...new Set(needState.filter((d) => !d.bu).map((d) => d.company))].slice(0, 40);
+        if (missing.length) {
+          try {
+            const names = missing.map((n) => "'" + n.replace(/'/g, "\\'") + "'").join(",");
+            const q = await runSalesforceQuery(env, "SELECT Name, BillingState, ShippingState FROM Account WHERE Name IN (" + names + ")");
+            const st2 = {}; ((q.ok && q.records) || []).forEach((a) => { st2[a.Name.toLowerCase()] = (a.ShippingState || a.BillingState || "").toUpperCase().slice(0, 2); });
+            needState.forEach((d) => { if (!d.bu) { const st = st2[String(d.company).toLowerCase()]; if (st && stateBU[st]) d.bu = stateBU[st]; } });
+          } catch (e) {}
+        }
+        drops.forEach((d) => { if (!d.bu && !d.internal) review.push({ company: d.company, candidate: d.employee, flags: ["dh_no_bu"], credits: ["No BU: set in DH Editor or check account state"] }); });
+        // ── inter-entity placement splits: pair the owning entity's client invoice with
+        //    the placing entity's inter-company invoice. Owner keeps only the spread (its
+        //    retained %) as House Full Desk in the hire's unit; placer keeps its invoice
+        //    with its own AM/recruiter credits. The deal counts exactly once. ──
+        const entCanon = (s) => String(s || "").toLowerCase().replace(/[.,]/g, "").replace(/\s+(llc|inc|co)$/i, "").trim();
+        const txtCanon = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        for (const pd of drops) {
+          if (pd.edited === true && pd.amtEdited) continue;
+          if (pd.pairSplit || pd.split || !(pd.amount > 0)) continue;
+          const ownerEnt = entCanon(pd.company);
+          if (!ownerEnt) continue;
+          const ptxt = txtCanon(pd.employee);
+          const own = drops.find((x) => x !== pd && !x.pairSplit && !x.split && !x.amtEdited &&
+            entCanon(x.entity) === ownerEnt && entCanon(pd.entity) !== ownerEnt && x.amount > pd.amount &&
+            ((txtCanon(x.company).length >= 6 && ptxt.indexOf(txtCanon(x.company).slice(0, 10)) !== -1) ||
+             (txtCanon(x.employee).length >= 6 && ptxt.indexOf(txtCanon(x.employee).slice(0, 8)) !== -1)));
+          if (!own) continue;
+          const retained = r2s(own.amount - pd.amount);
+          const hireBU = own.bu || pd.bu || "";
+          if (hireBU) { if (!own.buEdited) own.bu = hireBU; if (!pd.buEdited) pd.bu = hireBU; }
+          review.push({ company: own.company, candidate: own.employee, flags: ["dh_entity_split"], credits: [own.entity + " retains $" + retained + " as House FD; " + pd.entity + " keeps $" + pd.amount + " \u2192 " + (pd.sales_rep || "?") + " / " + (pd.recruiter || "?") + "; both coded to " + (hireBU || "no BU")] });
+          own.amount = retained;
+          if (!own.credEdited) { own.sales_rep = "House"; own.recruiter = "House"; }
+          own.pairSplit = true; pd.pairSplit = true;
+        }
+        // ── splits: allocate the deal exactly once, suppress sibling counterparts ──
+        const spR = await sbService(env, "GET", "charge_splits?select=*&active=eq.true");
+        const splits = (spR.ok && spR.data) || [];
+        const byEntity = {}, byBU = {}, byPerson = {};
+        const addU = (m, k, v) => { if (k) m[k] = r2s((m[k] || 0) + v); };
+        const addP = (name, bucket, v) => { if (!name || /^house$/i.test(name)) return; const p = byPerson[name] || (byPerson[name] = { sales: 0, fd: 0, rec: 0, tt: 0 }); p[bucket] = r2s(p[bucket] + v); p.tt = r2s(p.tt + v); };
+        const ruled = [];
+        for (const d of drops) {
+          const rule = splits.find((sp) => {
+            const c = String(sp.match_company || "").replace(/%/g, "").toLowerCase();
+            const e = String(sp.match_employee || "").replace(/%/g, "").toLowerCase();
+            return c && String(d.company || "").toLowerCase().indexOf(c) !== -1 && (!e || String(d.employee || "").toLowerCase().indexOf(e) !== -1);
+          });
+          if (rule) { d.split = true; ruled.push(d); }
+        }
+        drops = drops.filter((d) => {
+          if (!d.internal || d.split || d.pairSplit) return true;
+          const twin = ruled.find((x) => x.entity !== d.entity && Math.abs(Math.abs(d.amount) - Math.abs(x.amount) * 0.9) <= Math.abs(x.amount) * 0.02);
+          if (twin) { review.push({ company: d.company, candidate: d.employee, flags: ["dh_split_suppressed"], credits: ["Sibling invoice of " + twin.company + " — counted once via split rule"] }); return false; }
+          review.push({ company: d.company, candidate: d.employee, flags: ["dh_internal"], credits: ["Inter-entity: counted for " + d.entity] });
+          return true;
+        });
+        for (const d of drops) {
+          if (d.split) {
+            const rule = splits.find((sp) => String(d.company || "").toLowerCase().indexOf(String(sp.match_company || "").replace(/%/g, "").toLowerCase()) !== -1);
+            (rule.allocations || []).forEach((a) => {
+              const amt = r2s(d.amount * (Number(a.pct) || 0) / 100);
+              addU(byEntity, a.entity || d.entity, amt);
+              addU(byBU, a.bu || d.bu, amt);
+              addP(a.person, a.bucket === "sales" || a.bucket === "rec" ? a.bucket : "fd", amt);
+            });
+          } else {
+            addU(byEntity, d.entity, d.amount);
+            addU(byBU, d.bu, d.amount);
+            const sr = d.sales_rep, rc = d.recruiter;
+            if (sr && rc && sr.toLowerCase() !== rc.toLowerCase()) { addP(sr, "sales", d.amount); addP(rc, "rec", d.amount); }
+            else addP(rc || sr, "fd", d.amount);
+          }
+        }
+        // ── SF completeness check: perm starts in window vs tracker presence ──
+        const iso = (dt) => dt.toISOString().slice(0, 10);
+        const winStart = iso(new Date(d0.getTime() + 864e5)), winEnd = iso(new Date(d0.getTime() + 7 * 864e5));
+        const intake = { window: winStart + " .. " + winEnd, found: 0, missingFromTrackers: [] };
+        try {
+          const sf = await runSalesforceQueryAll(env, "SELECT Id, bpats__Start_Date__c, bpats__Account__r.Name, bpats__ATS_Candidate__r.Name, Placement_Fee_Amount__c FROM bpats__Placement__c WHERE bpats__ATS_Job__r.bpats__Type__c = 'Permanent' AND Terminated_Date__c = null AND bpats__Start_Date__c >= " + winStart + " AND bpats__Start_Date__c <= " + winEnd);
+          if (sf.ok) {
+            intake.found = (sf.records || []).length;
+            const canon = (s) => String(s || "").toLowerCase().replace(/[^a-z]/g, "");
+            for (const p of sf.records || []) {
+              const nm = canon(p.bpats__ATS_Candidate__r && p.bpats__ATS_Candidate__r.Name);
+              if (!drops.some((dd) => canon(dd.employee).indexOf(nm.slice(0, 12)) !== -1 || nm.indexOf(canon(dd.employee).slice(0, 12)) !== -1)) {
+                const miss = { company: (p.bpats__Account__r && p.bpats__Account__r.Name) || "", employee: (p.bpats__ATS_Candidate__r && p.bpats__ATS_Candidate__r.Name) || "", fee: Number(p.Placement_Fee_Amount__c) || 0, start: p.bpats__Start_Date__c };
+                intake.missingFromTrackers.push(miss);
+                review.push({ company: miss.company, candidate: miss.employee, flags: ["dh_missing_from_tracker"], credits: ["SF perm start " + miss.start + " ($" + miss.fee + ") not found in any tracker — add via DH Editor or tracker"] });
+              }
+            }
+          }
+        } catch (e) {}
+        const total = r2s(drops.reduce((s, d) => s + (d.split ? d.amount : d.amount), 0));
+        return json({ ok: true, weekEnding, weekCol: labelCandidates[0], total, drops, byEntity, byBU, byPerson, review, intake }, 200, origin);
+      } catch (e) { return json({ error: "dh-batch failed: " + String(e.message || e) }, 502, origin); }
+    }
+
+    if (url.pathname === "/dh-override") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      if (request.method === "GET") {
+        const r = await sbService(env, "GET", "charge_dh_overrides?select=*&order=edited_at.desc&limit=300");
+        return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
+      }
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+      if (body.op === "delete" && body.id) {
+        const r = await sbService(env, "DELETE", "charge_dh_overrides?id=eq." + Number(body.id));
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
+      if (body.op === "revert") {
+        const wk = String(body.week_ending || "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "week_ending required" }, 400, origin);
+        let q = "charge_dh_overrides?week_ending=eq." + wk + "&match_company=eq." + encodeURIComponent(String(body.match_company || "")) + "&match_employee=eq." + encodeURIComponent(String(body.match_employee || ""));
+        if (body.match_entity) q += "&match_entity=eq." + encodeURIComponent(String(body.match_entity));
+        const r = await sbService(env, "DELETE", q);
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
+      if (body.op === "add_manual") {
+        const m = body.row || {};
+        const ins = await sbService(env, "POST", "charge_dh_schedule", [{ source: "manual", entity: m.entity || null, bu: m.bu || null, company: m.company || "", employee: m.employee || "", sales_rep: m.sales_rep || null, recruiter: m.recruiter || null, invoicing: null, burden_pct: 0, charge: Number(m.charge) || 0, interval: m.interval === "month" || m.interval === "week" ? m.interval : "lump", installments: Number(m.installments) || 1, weeks_paid: 0, first_we: m.first_we || body.week_ending, status: "active", notes: "manual add by " + email }]);
+        return json({ ok: ins.ok, row: ins.data && ins.data[0] }, ins.ok ? 200 : 502, origin);
+      }
+      const o = { week_ending: body.week_ending || null, match_entity: body.match_entity || null, match_company: String(body.match_company || ""), match_employee: String(body.match_employee || ""), action: body.action === "hide" ? "hide" : "patch", fields: body.fields || null, edited_by: email, notes: body.notes || null };
+      if (!o.match_company || !o.match_employee) return json({ error: "match_company & match_employee required" }, 400, origin);
+      const r = await sbService(env, "POST", "charge_dh_overrides", [o]);
+      return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // TEAM EDITOR: /charge-people — GET roster · POST admin upsert/deactivate
+    // The roster (charge_people) is the authority for who's active and which
+    // BU/entity each internal member belongs to.
+    // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/charge-admin-check") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      return json({ ok: true, admin: MAP_ADMINS.indexOf(email) !== -1 }, 200, origin);
+    }
+
+    if (url.pathname === "/charge-people") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      if (request.method === "GET") {
+        const r = await sbService(env, "GET", "charge_people?select=person,role,entity,bu,active&order=person.asc");
+        return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
+      }
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+      const person = String(body.person || "").trim();
+      if (!person) return json({ error: "person required" }, 400, origin);
+      if (body.op === "deactivate" || body.op === "activate") {
+        const r = await sbService(env, "PATCH", "charge_people?person=eq." + encodeURIComponent(person), { active: body.op === "activate" });
+        return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
+      }
+      const row = { person };
+      ["bu","entity","role"].forEach((k) => { if (body[k] !== void 0) row[k] = body[k]; });
+      if (body.active === true) row.active = true;
+      if (!row.entity && row.bu) row.entity = row.bu === "Ignite Search" ? "Ignite Search" : (row.bu === "BPO" ? "Spark Companies" : "Spark Talent");
+      const r = await sbService(env, "POST", "charge_people?on_conflict=person", [row]);
+      if (r.ok && body.targets && typeof body.targets === "object") {
+        const unit = (r.data && r.data[0] && r.data[0].bu) || row.bu || "";
+        if (unit) {
+          const map = { q3i: ["q3", "igniter"], ai: ["annual", "igniter"], q3c: ["q3", "contest"], ac: ["annual", "contest"] };
+          const trows = [];
+          Object.keys(map).forEach((k) => { const v = Number(body.targets[k]); if (isFinite(v) && v > 0) trows.push({ person, unit, period: map[k][0], kind: map[k][1], amount: v }); });
+          if (trows.length) await sbService(env, "POST", "charge_person_targets?on_conflict=person,unit,period,kind", trows);
+        }
+      }
+      return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
+    }
+
+    if (url.pathname === "/dh-schedule") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      if (request.method === "GET") {
+        const r = await sbService(env, "GET", "charge_dh_schedule?select=*&order=created_at.desc&limit=500");
+        return json({ ok: r.ok, rows: r.data }, r.ok ? 200 : 502, origin);
+      }
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+      const id = Number(body && body.id);
+      if (!id) return json({ error: "id required" }, 400, origin);
+      const patch = {};
+      ["interval","installments","weeks_paid","first_we","status","burden_pct","invoicing","charge","sales_rep","recruiter","entity","bu","company","employee","notes"].forEach((k) => { if (body[k] !== void 0) patch[k] = body[k]; });
+      if (patch.invoicing !== void 0 && patch.charge === void 0) { const b = patch.burden_pct !== void 0 ? Number(patch.burden_pct) : null; if (b !== null) patch.charge = Math.round(Number(patch.invoicing) * (1 - b) * 100) / 100; }
+      const r = await sbService(env, "PATCH", "charge_dh_schedule?id=eq." + id, patch);
+      return json({ ok: r.ok, row: r.data && r.data[0] }, r.ok ? 200 : 502, origin);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // DIRECT HIRE — PROBE: /dh-probe
+    // Read-only recon of (1) the SF Direct Hire report and (2) the seven
+    // manual DH tracker workbooks, so the DH engine is built on verified shapes.
+    // Optional params: &report=<id>  &tracker=<index>&sheet=<name>&range=A1:P40
+    // ══════════════════════════════════════════════════════════════════════
+    if (url.pathname === "/dh-probe") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const out = { ok: true, at: new Date().toISOString() };
+      // ── 1) Salesforce DH report: describe + run ──
+      const reportId = (url.searchParams.get("report") || "00OV50000042t1JMAQ").replace(/[^a-zA-Z0-9]/g, "");
+      try {
+        const tok = await getSalesforceToken(env);
+        const H = { "Authorization": "Bearer " + tok.access_token, "Accept": "application/json" };
+        const dR = await fetch(tok.instance_url + "/services/data/v60.0/analytics/reports/" + reportId + "/describe", { headers: H });
+        const dD = await dR.json();
+        if (!dR.ok) throw new Error(JSON.stringify(dD).slice(0, 200));
+        const meta = dD.reportMetadata || {};
+        const cols = {};
+        const detCols = meta.detailColumns || [];
+        const extended = (dD.reportExtendedMetadata && dD.reportExtendedMetadata.detailColumnInfo) || {};
+        detCols.forEach((c) => { cols[c] = (extended[c] && extended[c].label) || c; });
+        out.sfReport = {
+          name: meta.name, reportType: meta.reportType && meta.reportType.type,
+          detailColumns: cols,
+          filters: (meta.reportFilters || []).map((f) => f.column + " " + f.operator + " " + f.value),
+          dateFilter: meta.standardDateFilter || null
+        };
+        const rR = await fetch(tok.instance_url + "/services/data/v60.0/analytics/reports/" + reportId + "?includeDetails=true", { headers: H });
+        const rD = await rR.json();
+        if (!rR.ok) throw new Error(JSON.stringify(rD).slice(0, 200));
+        const fm = rD.factMap || {};
+        let rows = [];
+        for (const k of Object.keys(fm)) {
+          if (fm[k] && Array.isArray(fm[k].rows) && fm[k].rows.length) { rows = fm[k].rows; break; }
+        }
+        out.sfReport.sampleRows = rows.slice(0, 8).map((r) => (r.dataCells || []).map((c) => (c.label !== void 0 ? c.label : c.value)));
+        out.sfReport.rowCount = rows.length;
+        out.sfReport.allData = rD.allData;
+      } catch (e) { out.sfError = String(e.message || e); }
+      // ── 2) Tracker workbooks via Graph share resolution ──
+      const TRACKERS = [
+        { name: "Master (2024 Direct Hire Tracker Master)", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BDF08D9CB-5CF1-4744-9075-619F14A9F552%7D&file=2024%20Direct%20Hire%20Tracker%20Master.xlsx&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Packaging", share: "https://sparktalent.sharepoint.com/:x:/r/sites/SparkPackagingTeamSite/_layouts/15/Doc.aspx?sourcedoc=%7BC44470F8-DCDB-4F3E-85B6-77BD869BFE9B%7D&file=Packaging-%202024%20DH%20Tracker%20Template.xlsx&action=default&mobileredirect=true&wdsle=0&CID=897E83FE-F4C8-4BFE-9EE5-4FB5FA115F50&wdLOR=c551251C0-BE60-4FEB-B4C8-714E2DC31E12" },
+        { name: "JJP", share: "https://sparktalent.sharepoint.com/:x:/r/sites/JohnJosephPartnersLLC/_layouts/15/Doc.aspx?sourcedoc=%7BE9CA7E68-DBC8-4F6E-B05C-63034B37BB33%7D&file=JJP-%202024%20DH%20Tracker%20Template.xlsx&wdLOR=cF6BF3837-577D-4480-AE57-6FB1A2121FC8&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Flex", share: "https://sparktalent.sharepoint.com/:x:/r/sites/FlexWorkforceSolutions/_layouts/15/Doc.aspx?sourcedoc=%7BF5371A1C-0C10-4B1F-A090-55B57B95516C%7D&file=Flex-%202024%20DH%20Tracker.xlsx&wdLOR=cB7D5741D-ABB1-455C-9750-1CC6D43D7DB1&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Ignite", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BF52BF0E1-3985-4FA2-B8C3-C063279E71B5%7D&file=Ignite-%202024%20DH%20Tracker.xlsx&wdLOR=c49888525-0F93-458A-B3E2-61064DF907B1&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Spark Companies", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7B0542B573-F958-41FF-9BB1-4E5CB04CF363%7D&file=Spark%20Companies%202024%20DH%20Tracker.xlsx&wdLOR=c81E484C9-98DD-453A-9B76-637D59E3F685&fromShare=true&action=default&mobileredirect=true" },
+        { name: "Bolt", share: "https://sparktalent.sharepoint.com/:x:/r/_layouts/15/Doc.aspx?sourcedoc=%7BC6BA04FD-8A6E-4D2F-B5A1-224A9880F10A%7D&file=Bolt-%202025%20DH%20Tracker%20-%20Copy.xlsx&action=default&mobileredirect=true&CID=72A32F3D-08A6-476E-AAF7-9CF051163281&wdLOR=cC295F8FA-ECD8-496A-AEA7-CBBA88BF8E91" }
+      ];
+      const onlyIdx = url.searchParams.get("tracker");
+      const wantSheet = url.searchParams.get("sheet");
+      const wantRange = (url.searchParams.get("range") || "A1:P40").replace(/[^A-Za-z0-9:]/g, "");
+      out.trackers = [];
+      try {
+        const gt = await getGraphToken(env);
+        const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
+        for (let i = 0; i < TRACKERS.length; i++) {
+          if (onlyIdx !== null && onlyIdx !== "" && Number(onlyIdx) !== i) continue;
+          const t = { i, name: TRACKERS[i].name };
+          try {
+            const shareTok = "u!" + btoa(TRACKERS[i].share).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+            const sR = await fetch("https://graph.microsoft.com/v1.0/shares/" + shareTok + "/driveItem?$select=id,name,parentReference", { headers: GH });
+            const sD = await sR.json();
+            if (!sR.ok) throw new Error((sD.error && sD.error.message) || ("share " + sR.status));
+            t.file = sD.name;
+            const B = "https://graph.microsoft.com/v1.0/drives/" + sD.parentReference.driveId + "/items/" + sD.id;
+            const wR = await fetch(B + "/workbook/worksheets?$select=name,visibility", { headers: GH });
+            const wD = await wR.json();
+            if (!wR.ok) throw new Error((wD.error && wD.error.message) || ("sheets " + wR.status));
+            t.sheets = (wD.value || []).map((x) => x.name);
+            const pick = wantSheet && t.sheets.indexOf(wantSheet) !== -1 ? wantSheet : t.sheets[t.sheets.length - 1];
+            if (pick) {
+              const safe = encodeURIComponent(pick.replace(/'/g, "''"));
+              const rR = await fetch(B + "/workbook/worksheets('" + safe + "')/range(address='" + wantRange + "')?$select=values", { headers: GH });
+              const rD = await rR.json();
+              if (!rR.ok) throw new Error((rD.error && rD.error.message) || ("range " + rR.status));
+              t.sampledSheet = pick;
+              t.sample = (rD.values || []).filter((row) => row.some((c) => c !== null && c !== "" && c !== 0)).slice(0, 14);
+            }
+          } catch (e) { t.error = String(e.message || e); }
+          out.trackers.push(t);
+        }
+      } catch (e) { out.graphError = String(e.message || e); }
+      return json(out, 200, origin);
+    }
+
+    if (url.pathname === "/charge-history") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const sbAll = async (path) => {
+          let out = [], off = 0;
+          for (;;) {
+            const sep = path.indexOf("?") === -1 ? "?" : "&";
+            const r = await sbService(env, "GET", path + sep + "limit=1000&offset=" + off);
+            if (!r.ok) throw new Error(path.split("?")[0] + ": " + JSON.stringify(r.data).slice(0, 160));
+            const rows = Array.isArray(r.data) ? r.data : [];
+            out = out.concat(rows);
+            if (rows.length < 1000) return out;
+            off += 1000;
+          }
+        };
+        const unitWeeks = await sbAll("charge_unit_weeks?select=week_ending,unit,kind,charge&order=week_ending.asc");
+        const units = await sbAll("charge_units?select=unit,is_entity,ath,ath_we");
+        const unitTargets = await sbAll("charge_unit_targets?select=unit,period,amount");
+        const people = await sbAll("charge_people?select=person,role,entity,bu,active,cum_raw,monthly_raw,quarterly_raw,rec_ath,sales_ath,fd_ath,tt_ath");
+        const personWeeks = await sbAll("charge_person_weeks?select=week_ending,person,sales,fd,rec,tt,raw&order=week_ending.asc");
+        const personTargets = await sbAll("charge_person_targets?select=person,unit,period,kind,amount");
+        let dh = [];
+        const dhLatest = await sbService(env, "GET", "charge_dh_snap?select=week_ending&order=week_ending.desc&limit=1");
+        if (dhLatest.ok && Array.isArray(dhLatest.data) && dhLatest.data[0]) {
+          dh = await sbAll("charge_dh_snap?select=week_ending,entity,bu,company,sales_rep,recruiter,charge,week_num,of_weeks,weeks_remaining,employee&week_ending=eq." + dhLatest.data[0].week_ending);
+        }
+        let lastImported = null;
+        unitWeeks.forEach((r) => { if (!lastImported || r.week_ending > lastImported) lastImported = r.week_ending; });
+        return json({ ok: true, lastImported, unitWeeks, units, unitTargets, people, personWeeks, personTargets, dh }, 200, origin);
+      } catch (e) {
+        return json({ error: "history failed: " + String(e.message || e) }, 502, origin);
+      }
+    }
+
+    if (url.pathname === "/charge-snapshot") {
+      const who = await verifyUser(request, env);
+      if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+      const weekEnding = (url.searchParams.get("weekEnding") || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(weekEnding)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
+      try {
+        // Re-run the live engine for that week and freeze its output.
+        const bR = await fetch(url.origin + "/charge-batch?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
+        const b = await bR.json();
+        if (!b || !b.ok) return json({ error: "engine failed: " + ((b && b.error) || bR.status) }, 502, origin);
+        const r2s = (n) => Math.round((Number(n) || 0) * 100) / 100;
+        const unitRows = [];
+        ((b.rollups && b.rollups.byEntity) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
+        ((b.rollups && b.rollups.byBU) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
+        const bucket = (t) => { t = String(t || "").toLowerCase(); if (t.indexOf("full") !== -1) return "fd"; if (t.indexOf("recruit") !== -1) return "rec"; if (t.indexOf("account") !== -1 || t.indexOf("sales") !== -1) return "sales"; return null; };
+        const ppl = {};
+        (b.rows || []).forEach((row) => {
+          const seen = {};
+          (row.credits || []).forEach((c) => {
+            const n = c.recipient; if (!n) return;
+            const p = ppl[n] || (ppl[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
+            if (!seen[n]) { p.tt += row.charge; seen[n] = 1; }
+            const bk = bucket(c.type); if (bk) p[bk] += row.charge;
+          });
+        });
+        const personRows = Object.keys(ppl).map((n) => ({ week_ending: weekEnding, person: n, sales: r2s(ppl[n].sales), fd: r2s(ppl[n].fd), rec: r2s(ppl[n].rec), tt: r2s(ppl[n].tt), raw: null }));
+        // merge DH drops into the freeze (self-fetch dh-batch)
+        let dhInfo = null;
+        try {
+          const dR = await fetch(url.origin + "/charge-dh?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
+          const dj = await dR.json();
+          if (dj && dj.ok) {
+            dhInfo = { total: dj.total, drops: dj.drops.length };
+            Object.keys(dj.byEntity || {}).forEach((u) => unitRows.push({ week_ending: weekEnding, unit: u, kind: "direct", charge: dj.byEntity[u] }));
+            Object.keys(dj.byBU || {}).forEach((u) => unitRows.push({ week_ending: weekEnding, unit: u + " \u00b7 DH", kind: "direct", charge: dj.byBU[u] }));
+            Object.keys(dj.byPerson || {}).forEach((n) => {
+              const p = dj.byPerson[n];
+              let row = personRows.find((x) => x.person === n);
+              if (!row) { row = { week_ending: weekEnding, person: n, sales: 0, fd: 0, rec: 0, tt: 0, raw: null }; personRows.push(row); }
+              row.sales = r2s(row.sales + p.sales); row.fd = r2s(row.fd + p.fd); row.rec = r2s(row.rec + p.rec); row.tt = r2s(row.tt + p.tt);
+            });
+            // advance paid counters for dropped schedules
+            for (const d of dj.drops) {
+              try { await sbService(env, "PATCH", "charge_dh_schedule?id=eq." + d.id, { weeks_paid: (Number(d.drop.split(" ")[0]) || 0), status: d.remaining <= 0 ? "done" : "active" }); } catch (e2) {}
+            }
+          }
+        } catch (e) {}
+        // wipe the week first so re-freezes fully reconcile (BU moves, removed rows, stale \u00b7 DH lines)
+        await sbService(env, "DELETE", "charge_unit_weeks?week_ending=eq." + weekEnding);
+        await sbService(env, "DELETE", "charge_person_weeks?week_ending=eq." + weekEnding);
+        const u1 = await sbService(env, "POST", "charge_unit_weeks?on_conflict=week_ending,unit,kind", unitRows);
+        if (!u1.ok) return json({ error: "unit upsert failed: " + JSON.stringify(u1.data).slice(0, 160) }, 502, origin);
+        const u2 = await sbService(env, "POST", "charge_person_weeks?on_conflict=week_ending,person", personRows);
+        if (!u2.ok) return json({ error: "person upsert failed: " + JSON.stringify(u2.data).slice(0, 160) }, 502, origin);
+        return json({ ok: true, weekEnding, unitRows: unitRows.length, personRows: personRows.length, contractTotal: b.summary && b.summary.totalCharge, dh: dhInfo, note: "Contract + DH frozen into the books." }, 200, origin);
+      } catch (e) {
+        return json({ error: "snapshot failed: " + String(e.message || e) }, 502, origin);
+      }
+    }
 
     if (url.pathname === "/charge-batch") {
       const who = await verifyUser(request, env);
@@ -5715,6 +6394,165 @@ var worker_default = {
 
         rows.sort((a, b) => (a.company || "").localeCompare(b.company || "") || (a.candidate || "").localeCompare(b.candidate || ""));
 
+        // ── 4.5) Phase C: Payable Worksheet — vacation + manual pays (v3) ───
+        const payables = { attempted: false };
+        if (url.searchParams.get("payables") !== "0") {
+          payables.attempted = true;
+          try {
+            const gt = await getGraphToken(env);
+            const GH = { "Authorization": "Bearer " + gt, "Accept": "application/json" };
+            const shareUrl = "https://sparktalent-my.sharepoint.com/:x:/g/personal/timecards_sparktalentinc_com/IQCNdykcRQJLRKsOAFZyxYT3ATQz4Y_-30tpSh40h2OGwSo";
+            const shareTok = "u!" + btoa(shareUrl).replace(/=+$/, "").replace(/\//g, "_").replace(/\+/g, "-");
+            const sR = await fetch("https://graph.microsoft.com/v1.0/shares/" + shareTok + "/driveItem?$select=id,parentReference", { headers: GH });
+            const sD = await sR.json();
+            if (!sR.ok) throw new Error((sD.error && sD.error.message) || "share resolve failed");
+            const B = "https://graph.microsoft.com/v1.0/drives/" + sD.parentReference.driveId + "/items/" + sD.id;
+            const wr = await fetch(B + "/workbook/worksheets?$select=name", { headers: GH });
+            const wd = await wr.json();
+            if (!wr.ok) throw new Error((wd.error && wd.error.message) || "worksheets failed");
+            const parts = weekEnding.split("-");
+            const short = Number(parts[1]) + "-" + Number(parts[2]) + "-" + parts[0].slice(2);
+            const normName = (s) => String(s).trim().toLowerCase().replace(/^we\s+/, "");
+            const target = (wd.value || []).map((x) => x.name).find((n) => normName(n) === short) || null;
+            payables.sheet = target || null;
+            if (!target) { payables.note = "No sheet named '" + short + "' or 'WE " + short + "' yet."; }
+            else {
+              const safe = encodeURIComponent(target.replace(/'/g, "''"));
+              const rr = await fetch(B + "/workbook/worksheets('" + safe + "')/range(address='A1:X200')?$select=values", { headers: GH });
+              const rd = await rr.json();
+              if (!rr.ok) throw new Error((rd.error && rd.error.message) || "range failed");
+              const grid = rd.values || [];
+              const SECTION = /^(advance|exepnses|expenses|shift premium|overpayment|bonus|reimburse|deduction|two rates|manual pay|vacation)/i;
+              const findCell = (re) => { for (let r = 0; r < grid.length; r++) { const row = grid[r] || []; for (let c = 0; c < row.length; c++) { if (re.test(String(row[c] || "").trim())) return { r, c }; } } return null; };
+              // A block title can sit in a vertically-merged cell, so the header row
+              // ("Team Member"...) may be a few rows off from the title cell. Hunt ±4.
+              const findHeader = (anchor) => {
+                for (let dr = -4; dr <= 4; dr++) {
+                  const r = anchor.r + dr; if (r < 0 || r >= grid.length) continue;
+                  const row = grid[r] || [];
+                  for (let c = anchor.c; c < Math.min(row.length, anchor.c + 6); c++) {
+                    if (/team member/i.test(String(row[c] || ""))) return { r, cName: c };
+                  }
+                }
+                return null;
+              };
+              const labelCol = (rowIdx, fromC, re, span) => { const row = grid[rowIdx] || []; for (let c = fromC; c < Math.min(row.length, fromC + (span || 10)); c++) { if (re.test(String(row[c] || "").trim().toLowerCase())) return c; } return null; };
+              const canon = (s) => String(s || "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+              const lev = (a, b) => { const m = a.length, n = b.length; if (!m) return n; if (!n) return m; let prev = []; for (let j = 0; j <= n; j++) prev[j] = j; for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) { const c = a[i - 1] === b[j - 1] ? 0 : 1; cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c); } prev = cur; } return prev[n]; };
+              const ratio = (a, b) => { const L = Math.max(a.length, b.length); return L === 0 ? 1 : 1 - lev(a, b) / L; };
+              const pool = rows.map((r, i) => ({ i, nk: canon(r.candidate), ak: canon(r.account + " " + r.company) }));
+              const matchRow = (name, client) => {
+                const nk = canon(name); if (!nk) return -1;
+                const ct = canon(client).split(" ").filter((w) => w.length >= 3)[0] || "";
+                let best = null;
+                for (const p of pool) {
+                  let s = p.nk === nk ? 1 : ratio(nk, p.nk);
+                  if (s < 0.7) continue;
+                  if (ct && p.ak.indexOf(ct) !== -1) s += 0.08;
+                  if (!best || s > best.s) best = { p, s };
+                }
+                return best && best.s >= 0.86 ? best.p.i : -1;
+              };
+              const readNames = (hdr, cb) => {
+                for (let r = hdr.r + 1; r < grid.length; r++) {
+                  const row = grid[r] || []; const name = String(row[hdr.cName] || "").trim();
+                  if (!name) { const nxt = String((grid[r + 1] || [])[hdr.cName] || "").trim(); if (!nxt) break; else continue; }
+                  if (SECTION.test(name) || /team member/i.test(name)) break;
+                  cb(row, name);
+                }
+              };
+              // Vacation block
+              const vacEntries = [];
+              const vT = findCell(/^vacation$/i);
+              const vH = vT && findHeader(vT);
+              if (vH) {
+                const cC = labelCol(vH.r, vH.cName, /^client/), cH = labelCol(vH.r, vH.cName, /total hours|^hours$/);
+                if (cH != null) readNames(vH, (row, name) => {
+                  const h = Number(row[cH]);
+                  if (h) vacEntries.push({ name, client: cC != null ? String(row[cC] || "").trim() : "", hours: h });
+                });
+              }
+              // Manual Pay block — columns read BY HEADER LABEL: Regular / OT / DT
+              const manEntries = [];
+              const mT = findCell(/^manual pay/i);
+              const mH = mT && findHeader(mT);
+              if (mH) {
+                const cC = labelCol(mH.r, mH.cName, /^client/);
+                const cW = labelCol(mH.r, mH.cName, /weekend/);
+                let cReg = labelCol(mH.r, mH.cName, /^reg/), cOt = labelCol(mH.r, mH.cName, /^ot$/), cDt = labelCol(mH.r, mH.cName, /^dt$|double/);
+                if (cReg == null && cW != null) { cReg = cW + 1; cOt = cW + 2; cDt = cW + 3; } // positional fallback
+                if (cReg != null) readNames(mH, (row, name) => {
+                  const n = (c) => { const v = c != null ? row[c] : null; return typeof v === "number" && isFinite(v) ? v : 0; };
+                  const reg = n(cReg), ot = n(cOt), dt = n(cDt);
+                  if (reg || ot || dt) manEntries.push({ name, client: cC != null ? String(row[cC] || "").trim() : "", reg, ot, dt });
+                });
+              }
+              // Merge vacation
+              payables.vacation = { entries: vacEntries.length, matched: 0, vacationOnlyAdded: 0, unmatched: [] };
+              const vacOnly = [];
+              vacEntries.forEach((e) => {
+                const i = matchRow(e.name, e.client);
+                if (i < 0) { vacOnly.push(e); return; }
+                const r = rows[i]; r.vacHrs = r2((r.vacHrs || 0) + e.hours); if (r.flags.indexOf("vacation") === -1) r.flags.push("vacation");
+                payables.vacation.matched++;
+              });
+              // Full-week vacation (no timesheet): look their placement up in SF and add a vacation-only row
+              for (const e of vacOnly.slice(0, 10)) {
+                let added = false;
+                try {
+                  const toks = canon(e.name).split(" ").filter((w) => w.length >= 3);
+                  if (toks.length >= 2) {
+                    const like = "%" + toks[0].replace(/'/g, "\\'") + "%" + toks[toks.length - 1].replace(/'/g, "\\'") + "%";
+                    const q = await runSalesforceQuery(env, "SELECT Id, Name, bpats__Pay_Rate__c, bpats__Bill_Rate__c, bpats__Burden_Percentage__c, Division__c, bpats__Account__r.Name, bpats__ATS_Job__c, bpats__ATS_Job__r.Subdivision__c, bpats__Candidate__r.Name FROM bpats__Placement__c WHERE bpats__Candidate__r.Name LIKE '" + like + "' ORDER BY CreatedDate DESC LIMIT 5");
+                    if (q.ok && q.records && q.records.length) {
+                      const ct = canon(e.client).split(" ").filter((w) => w.length >= 3)[0] || "";
+                      const pick = q.records.find((p) => ct && canon((p.bpats__Account__r && p.bpats__Account__r.Name) || "").indexOf(ct) !== -1) || q.records[0];
+                      const acct = (pick.bpats__Account__r && pick.bpats__Account__r.Name) || "(no account)";
+                      const map = clientMap[acct];
+                      const pay = Number(pick.bpats__Pay_Rate__c) || 0, bill = Number(pick.bpats__Bill_Rate__c) || 0;
+                      let burden = Number(pick.bpats__Burden_Percentage__c) || 0; if (burden > 1) burden = burden / 100;
+                      const vacM = -(bill - pay) * (1 + burden);
+                      let title = String(pick.Name || "");
+                      if (title.toLowerCase().indexOf(String(acct).toLowerCase()) === 0) title = title.slice(String(acct).length);
+                      title = title.replace(/^[\s\-–]+/, "");
+                      rows.push({
+                        tsId: null, placementId: pick.Id, jobId: pick.bpats__ATS_Job__c || null,
+                        company: map ? map.company : acct, entity: pick.Division__c || (map && map.entity) || null,
+                        bu: (pick.bpats__ATS_Job__r && pick.bpats__ATS_Job__r.Subdivision__c) || null,
+                        title, account: acct, candidate: (pick.bpats__Candidate__r && pick.bpats__Candidate__r.Name) || e.name,
+                        pay: r2(pay), otPay: r2(pay * 1.5), dtPay: r2(pay * 2), bill: r2(bill), otBill: 0, dtBill: 0,
+                        otMult: null, dtMult: null, burden: r4(burden),
+                        regHrs: 0, otHrs: 0, dtHrs: 0, vacHrs: e.hours, totalHrs: 0,
+                        regMargin: r4(bill - pay * (1 + burden)), otMargin: 0, dtMargin: 0, vacMargin: r4(vacM),
+                        charge: r2(e.hours * vacM),
+                        credits: [], flags: ["vacation", "vacation_only"]
+                      });
+                      review.push({ tsId: null, placementId: pick.Id, company: map ? map.company : acct, candidate: e.name, flags: ["vacation_only"], credits: ["Full-week vacation " + e.hours + "h — no timesheet; credits not attributed"] });
+                      payables.vacation.vacationOnlyAdded++;
+                      added = true;
+                    }
+                  }
+                } catch (e2) {}
+                if (!added) { payables.vacation.unmatched.push(e); review.push({ tsId: null, placementId: null, company: e.client || "(payables)", candidate: e.name, flags: ["vac_unmatched"], credits: ["Vacation " + e.hours + "h — no match found"] }); }
+              }
+              // Merge manual pays (Regular / OT / DT by header)
+              payables.manualPay = { entries: manEntries.length, matched: 0, unmatched: [] };
+              manEntries.forEach((e) => {
+                const i = matchRow(e.name, e.client);
+                if (i < 0) { payables.manualPay.unmatched.push(e); review.push({ tsId: null, placementId: null, company: e.client || "(payables)", candidate: e.name, flags: ["manual_unmatched"], credits: ["Manual pay " + (e.reg + e.ot + e.dt) + "h — no timesheet match"] }); return; }
+                const r = rows[i];
+                r.regHrs = r2(r.regHrs + e.reg); r.otHrs = r2(r.otHrs + e.ot); r.dtHrs = r2(r.dtHrs + e.dt);
+                r.totalHrs = r2(r.totalHrs + e.reg + e.ot + e.dt);
+                r.manualReg = r2((r.manualReg || 0) + e.reg); r.manualOt = r2((r.manualOt || 0) + e.ot); r.manualDt = r2((r.manualDt || 0) + e.dt);
+                if (r.flags.indexOf("manual_pay") === -1) r.flags.push("manual_pay");
+                payables.manualPay.matched++;
+              });
+              // Recompute charges with merged hours
+              rows.forEach((r) => { r.charge = r2(r.regHrs * r.regMargin + r.otHrs * r.otMargin + r.dtHrs * r.dtMargin + (r.vacHrs || 0) * r.vacMargin); });
+            }
+          } catch (e) { payables.error = String(e.message || e); }
+        }
+
         // ── 5) Rollups ───────────────────────────────────────────────────────
         const roll = (keyFn) => {
           const m = {};
@@ -5743,7 +6581,8 @@ var worker_default = {
         const hours = r2(rows.reduce((s, r) => s + r.totalHrs, 0));
         const out = {
           ok: true,
-          summary: { weekEnding, placements: rows.length, totalCharge: total, totalHours: hours, reviewCount: review.length, loneHouse: review.filter((x) => x.flags.indexOf("lone_house") !== -1).length },
+          summary: { weekEnding, placements: rows.length, totalCharge: total, totalHours: hours, vacationHours: r2(rows.reduce((s, r) => s + (r.vacHrs || 0), 0)), manualHours: r2(rows.reduce((s, r) => s + (r.manualReg || 0) + (r.manualOt || 0) + (r.manualDt || 0), 0)), reviewCount: review.length, loneHouse: review.filter((x) => x.flags.indexOf("lone_house") !== -1).length },
+          payables,
           rollups: { byCompany: roll((r) => r.company), byEntity: roll((r) => r.entity), byBU: roll((r) => r.bu), byRecipient },
           review,
           rows
