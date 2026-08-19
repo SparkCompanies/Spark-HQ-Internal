@@ -999,7 +999,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-6';
+  var BUILD = 'b0819-10';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1030,7 +1030,7 @@ window.SPARK_LIVE = (function () {
       '<select id="lvWk" class="fb" style="appearance:none;-webkit-appearance:none;padding:8px 12px;cursor:pointer">' + opts + '</select>' +
       '<button class="fb" id="lvRefresh" title="Refresh week">&#8635;</button>' +
       '<button class="fb" id="lvTheme" title="Light / dark">&#9788;</button>' +
-      '<button class="fb" id="lvFreeze" style="display:none" title="Freeze this week into the official books (admins)">&#10515; Freeze</button>' +
+      '<button class="fb" id="lvFreeze" style="display:none">&#128274; Lock</button>' +
       '<div style="width:1px;height:30px;background:var(--bd)"></div>';
     search.parentNode.insertBefore(wrap, search);
     document.getElementById('lvWk').addEventListener('change', function () { selectWeek(this.value); });
@@ -1119,10 +1119,11 @@ window.SPARK_LIVE = (function () {
     (H.people || []).forEach(function (p) { master[p.person] = p; });
   }
   function unitVal(we, unit) {
+    // Locked/stored week wins: a finalized week must never drift with live sources.
     var u = histUnit[we] && histUnit[we][unit];
     if (u) { if (u.total != null) return u.total; return (u.contract || 0) + (u.direct || 0); }
     var b = batches[we];
-    if (b) {
+    if (b && b.rollups) {
       var f = (b.rollups.byEntity || []).concat(b.rollups.byBU || []).find(function (x) { return x.key === unit; });
       if (f) return f.charge;
     }
@@ -1159,6 +1160,7 @@ window.SPARK_LIVE = (function () {
   function entCh(we, unit) {
     var v = unitVal(we, unit);
     var d = dhb[we];
+    // stored weeks already contain their DH rows — only add live DH for unfinalized weeks
     if (d && !histPerson[we]) { if (d.byEntity && d.byEntity[unit]) v += d.byEntity[unit]; if (d.byBU && d.byBU[unit]) v += d.byBU[unit]; }
     return v;
   }
@@ -1210,6 +1212,37 @@ window.SPARK_LIVE = (function () {
         var fr = firstRow[r.key] || {};
         return { en: fr.entity || 'Spark Talent', bu: fr.bu || '—', cl: r.key, ch: Math.round(r.charge), dh: 0, ud: Math.round(r.charge - lw), lw: Math.round(lw), ath: Math.max(Math.round(r.charge), 1) };
       }).sort(function (a, b) { return b.ch - a.ch; });
+      // ── merge direct hires into the client list (per client, incl. DH-only clients) ──
+      (function () {
+        var dhBy = {}, dhMeta = {}, dhPrev = {};
+        var norm = function (x) { return String(x || '').trim(); };
+        var dcl = dhb[curIso];
+        ((dcl && dcl.drops) || []).forEach(function (d) {
+          var k = norm(d.company); if (!k) return;
+          dhBy[k] = (dhBy[k] || 0) + (Number(d.amount) || 0);
+          if (!dhMeta[k]) dhMeta[k] = { en: d.entity || 'Spark Talent', bu: d.bu || '\u2014' };
+        });
+        var dpv = dhb[prev];
+        ((dpv && dpv.drops) || []).forEach(function (d) {
+          var k = norm(d.company); if (!k) return;
+          dhPrev[k] = (dhPrev[k] || 0) + (Number(d.amount) || 0);
+        });
+        var idx = {};
+        D.cST.forEach(function (c) { idx[norm(c.cl)] = c; });
+        Object.keys(dhBy).forEach(function (k) {
+          var v = Math.round(dhBy[k]), pvv = Math.round(dhPrev[k] || 0);
+          if (idx[k]) {
+            idx[k].dh = v;
+            idx[k].ch = Math.round(idx[k].ch + v);
+            idx[k].ud = Math.round(idx[k].ud + (v - pvv));
+            idx[k].ath = Math.max(idx[k].ath, Math.abs(idx[k].ch), 1);
+          } else {
+            var m = dhMeta[k] || {};
+            D.cST.push({ en: m.en || 'Spark Talent', bu: m.bu || '\u2014', cl: k, ch: v, dh: v, ud: Math.round(v - pvv), lw: pvv, ath: Math.max(Math.abs(v), 1) });
+          }
+        });
+        D.cST.sort(function (a, b) { return b.ch - a.ch; });
+      })();
       D.cEnt = {}; ENT_KEYS.forEach(function (e) { D.cEnt[e] = []; });
       D.cST.forEach(function (c) { (D.cEnt[c.en] = D.cEnt[c.en] || []).push({ cl: c.cl, bu: 'Assignment', ch: c.ch, ud: c.ud, ath: c.ath }); });
     }
@@ -1279,12 +1312,19 @@ window.SPARK_LIVE = (function () {
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
     try { document.querySelectorAll('.cd').forEach(function (c) { if (c.querySelector('canvas')) c.classList.add('dk'); }); } catch (e) {}
-    try { if (IS_ADMIN && !official && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
+    try { if (IS_ADMIN && dhb[curIso]) dhEd(); else { var _e = document.getElementById('lvDhEd'); if (_e) _e.remove(); } } catch (e) {}
     try { if (IS_ADMIN) teamEd(); else { var _t = document.getElementById('lvTeamEd'); if (_t) _t.remove(); } } catch (e) {}
     window.__weLabel = labelWe(curIso);
     try { var _sl = document.querySelector('.sb-lb'); if (_sl) _sl.textContent = 'Portfolio Raw \u00b7 ' + labelWe(curIso); } catch (e) {}
-    var tag = official ? 'FINALIZED' : 'LIVE';
-    setStatus(tag + ' \u00b7 ' + labelWe(curIso) + ' \u00b7 ' + BUILD, official ? '#FFC800' : '#00FF88');
+    var locked = !!histPerson[curIso];
+    setStatus((locked ? 'FINALIZED' : 'LIVE') + ' \u00b7 ' + labelWe(curIso) + ' \u00b7 ' + BUILD, locked ? '#FFC800' : '#00FF88');
+    try {
+      var _lb = document.getElementById('lvFreeze');
+      if (_lb) {
+        _lb.innerHTML = locked ? '\uD83D\uDD12 Locked' : '\uD83D\uDD12 Lock';
+        _lb.title = locked ? 'Locked \u2014 the view stays live; admin edits apply and re-save automatically. Click to force a re-save.' : 'Lock this week \u2014 the view stays live and admins can still edit afterwards.';
+      }
+    } catch (e) {}
   }
 
   function selectWeek(iso) {
@@ -1352,11 +1392,13 @@ window.SPARK_LIVE = (function () {
     body.week_ending = curIso;
     return api('/dh-override', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function () { delete dhb[curIso]; return api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
+      .then(function () { return autoResave(); })
       .catch(function (e) { alert('DH editor: ' + e.message); });
   }
   function dhSched(body) {
     return api('/dh-schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function () { delete dhb[curIso]; return api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; applyAll(); }); })
+      .then(function () { return autoResave(); })
       .catch(function (e) { alert('DH editor: ' + e.message); });
   }
   function dhEdit(i) {
@@ -1476,6 +1518,7 @@ window.SPARK_LIVE = (function () {
     return api('/charge-people', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then(function () { return api('/charge-history'); })
       .then(function (h) { H = h; indexHistory(); applyAll(); })
+      .then(function () { return autoResave(); })
       .catch(function (e) { alert('Team editor: ' + e.message); });
   }
   function tmEdit(name) {
@@ -1526,22 +1569,22 @@ window.SPARK_LIVE = (function () {
     function freezeWeek() {
     if (!curIso) return;
     if (!ensurePin()) return;
-    if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books?')) return;
-    setStatus('FREEZING ' + labelWe(curIso) + ' \u2014 loading data...', '#FFC800');
+    if (!confirm((histPerson[curIso] ? ('Re-save ' + labelWe(curIso) + ' to stored history?') : ('Lock ' + labelWe(curIso) + '?\n\nThe view stays live. Admins can still edit afterwards and edits re-save automatically.')))) return;
+    setStatus('LOCKING ' + labelWe(curIso) + ' \u2014 loading data...', '#FFC800');
     var _ensure = [];
     if (!batches[curIso]) _ensure.push(api('/charge-batch?weekEnding=' + curIso).then(function (b) { batches[curIso] = b; }));
     if (!dhb[curIso]) _ensure.push(api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; }));
     Promise.all(_ensure).then(function () {
-    if (!dhb[curIso] || !dhb[curIso].ok) { setStatus('FREEZE aborted: DH data did not load \u2014 open Direct Hires tab, then retry', '#FF4466'); return; }
-    setStatus('FREEZING ' + labelWe(curIso), '#FFC800');
+    if (!dhb[curIso] || !dhb[curIso].ok) { setStatus('LOCK aborted: DH data did not load \u2014 open Direct Hires tab, then retry', '#FF4466'); return; }
+    setStatus('LOCKING ' + labelWe(curIso), '#FFC800');
     return api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[curIso] || null, dh: dhb[curIso] || null }) })
       .then(function (d) {
-        setStatus('FROZEN · ' + d.personRows + ' people, ' + d.unitRows + ' units', '#00FF88');
+        setStatus('FINALIZED · ' + d.personRows + ' people, ' + d.unitRows + ' units saved', '#FFC800');
         return api('/charge-history');
       })
       .then(function (h) { H = h; indexHistory(); applyAll(); })
-      .catch(function (e) { setStatus('FREEZE: ' + String(e.message).slice(0, 44), '#FF4466'); });
-    }).catch(function (e) { setStatus('FREEZE prep failed: ' + String(e.message).slice(0, 40), '#FF4466'); });
+      .catch(function (e) { setStatus('LOCK: ' + String(e.message).slice(0, 44), '#FF4466'); });
+    }).catch(function (e) { setStatus('LOCK prep failed: ' + String(e.message).slice(0, 40), '#FF4466'); });
   }
 
 
@@ -1872,10 +1915,25 @@ window.SPARK_LIVE = (function () {
   function ctFind() { if (!ctKey) return null; var b = batches[curIso]; var rr = (b && b.rows) || []; if (ctKey.id) return rr.find(function (r) { return r.ovId === ctKey.id; }) || null; if (ctKey.bi != null) return rr[ctKey.bi] || null; return rr.find(function (r) { return (r.m_candidate || r.candidate || '') === ctKey.c && (r.m_company || r.company || '') === ctKey.o && r.source !== 'manual_add'; }) || null; }
   function ctEdit(cand, co, id, bi) { if (!ensurePin()) return; ctKey = id ? { id: id } : (bi >= 0 ? { bi: bi } : { c: cand, o: co }); rRaw(); }
   function ctCancel() { ctKey = null; rRaw(); }
+  // Locked week + admin edit -> silently re-save stored history so cumulatives/WoW
+  // stay in step with the live view. No user action required.
+  function autoResave() {
+    if (!IS_ADMIN || !histPerson[curIso]) return Promise.resolve();
+    var wk = curIso, need = [];
+    if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
+    if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
+    return Promise.all(need).then(function () {
+      if (!batches[wk] || !dhb[wk] || !dhb[wk].ok) return;
+      return api('/charge-snapshot?weekEnding=' + wk, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[wk], dh: dhb[wk] }) })
+        .then(function () { return api('/charge-history'); })
+        .then(function (h) { H = h; indexHistory(); applyAll(); });
+    }).catch(function () {});
+  }
   function ctPost(body) {
     body.week_ending = curIso;
     return api('/contract-override', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function () { delete batches[curIso]; selectWeek(curIso); })
+      .then(function () { delete batches[curIso]; return selectWeek(curIso); })
+      .then(function () { return autoResave(); })
       .catch(function (e) { alert('Contract editor: ' + e.message); });
   }
   function ctSave() {
@@ -2002,7 +2060,7 @@ window.SPARK_LIVE = (function () {
       var back = document.getElementById('lvCredBack'); if (back) back.remove();
       delete batches[curIso];
       setStatus('Credits updated' + sfNote, r.sf && r.sf.attempted && !r.sf.ok ? '#FFC800' : '#00FF88');
-      selectWeek(curIso);
+      Promise.resolve(selectWeek(curIso)).then(function () { return autoResave(); });
     }).catch(function (e) {
       msg.style.color = '#FF4466'; msg.textContent = 'Failed: ' + e.message;
       btn.disabled = false; btn.textContent = 'Save credits';
