@@ -999,7 +999,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-11';
+  var BUILD = 'b0819-12';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1636,7 +1636,7 @@ window.SPARK_LIVE = (function () {
     if (!H) { el.innerHTML = '<div class="st">Business Units</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
     if (typeof window.buS === 'undefined' || !window.buS) window.buS = { f: 'wk', d: 'desc' };
     var bs = window.buS;
-    var CANON = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners' };
+    var CANON = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners', 'flex workforce solutions': 'Flex Workforce', 'flex workforce': 'Flex Workforce' };
     var canonU = function (u) { var k = String(u || '').trim(); return CANON[k.toLowerCase()] || k; };
     var ALLOW = { 'Ignite Search': 1, 'Bolt Creative Strategies': 1, 'John Joseph Partners': 1 };
     var entSet = {}; (H.units || []).forEach(function (u) { if (u.is_entity) entSet[u.unit] = 1; });
@@ -1656,15 +1656,16 @@ window.SPARK_LIVE = (function () {
     if (dc && dc.byBU) Object.keys(dc.byBU).forEach(function (u) { addName(u); });
     ['Ignite Search', 'Bolt Creative', 'John Joseph Partners'].forEach(function (e) { var c = canonU(e); (GROUPS[c] = GROUPS[c] || {})[e] = 1; });
     var one = function (we, raw) {
-      if (histPerson[we]) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
-      var v = 0, b = batches[we];
+      // One rule everywhere: if the week has live engine data, use live contract + live DH.
+      // Otherwise use the stored contract row plus its stored \u00b7 DH row.
+      var v = 0, b = batches[we], d = dhb[we];
       if (b && b.rollups) {
         var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
         var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge;
+        if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
+        return v;
       }
-      var d = dhb[we];
-      if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
-      return v;
+      return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
     };
     var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
     var tg = {}; (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') tg[canonU(t.unit)] = (tg[canonU(t.unit)] || 0) + (Number(t.amount) || 0); });
@@ -1777,15 +1778,16 @@ window.SPARK_LIVE = (function () {
     if (b0 && b0.rollups) { (b0.rollups.byBU || []).forEach(function (x) { addName(x.key); }); (b0.rollups.byEntity || []).forEach(function (x) { addName(x.key); }); }
     if (dc && dc.byBU) Object.keys(dc.byBU).forEach(function (u) { addName(u); });
     var one = function (we, raw) {
-      if (histPerson[we]) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
-      var v = 0, b = batches[we];
+      // One rule everywhere: if the week has live engine data, use live contract + live DH.
+      // Otherwise use the stored contract row plus its stored \u00b7 DH row.
+      var v = 0, b = batches[we], d = dhb[we];
       if (b && b.rollups) {
         var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
         var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge;
+        if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
+        return v;
       }
-      var d = dhb[we];
-      if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
-      return v;
+      return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
     };
     var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
     var isoList = weeksThrough(curIso);
