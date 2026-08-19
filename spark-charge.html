@@ -180,6 +180,9 @@ body.light .dr{background:#ffffff!important;border-color:#e6e3da!important;box-s
 body.light .drb{background:rgba(20,20,26,.38)!important}
 body.light .drx{background:#f0eee7!important;border:1px solid #dcd9d0!important;color:#5b584f!important}
 body.light .drx:hover{color:#17171b!important;border-color:#c9c5b8!important}
+body.light .lvCredCard{background:#ffffff!important;color:#17171b!important;border-color:#e6e3da!important;box-shadow:0 20px 60px rgba(20,20,26,.22)!important}
+body.light .lvCredCard select,body.light .lvCredCard input[type=text]{background:#faf9f5!important;color:#17171b!important}
+body.light .lvCredCard option{background:#ffffff;color:#17171b}
 body.light .cd.dk .st{color:#e8e8ea!important}
 body.light .dr{background:#ffffff!important;color:#17171b!important;border-color:#e6e3da!important}
 body.light .dr *{color:inherit}
@@ -996,7 +999,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-2';
+  var BUILD = 'b0819-3';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1952,9 +1955,9 @@ window.SPARK_LIVE = (function () {
   function credModal() {
     var back = document.getElementById('lvCredBack');
     if (!back) { back = document.createElement('div'); back.id = 'lvCredBack'; back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100001;display:flex;align-items:center;justify-content:center'; document.body.appendChild(back); }
-    var card = 'background:#0e131c;border:1px solid var(--bd);border-radius:14px;padding:20px 22px;width:460px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.5)';
-    var inp = 'width:100%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:8px;padding:7px 9px;font:inherit;font-size:12px;margin-top:4px';
-    var h = '<div style="' + card + '" onclick="event.stopPropagation()">';
+    var card = 'background:var(--cardBg,#0e131c);color:var(--tx);border:1px solid var(--bd);border-radius:14px;padding:20px 22px;width:460px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.5)';
+    var inp = 'width:100%;box-sizing:border-box;background:var(--inpBg,rgba(255,255,255,.04));color:var(--tx);border:1px solid var(--gold);border-radius:8px;padding:7px 9px;font:inherit;font-size:12px;margin-top:4px';
+    var h = '<div class="lvCredCard" style="' + card + '" onclick="event.stopPropagation()">';
     h += '<div style="font-weight:800;font-size:14px;margin-bottom:2px">Fix Placement Credits</div>';
     h += '<div style="font-size:11px;color:var(--dm);margin-bottom:14px">' + esc(credCtx.cand) + ' \u00b7 ' + esc(credCtx.co) + '</div>';
     h += '<label style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:1px">AM / Sales (Sales Credit \u00b7 100%)</label>';
