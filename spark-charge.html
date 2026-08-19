@@ -999,7 +999,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-4';
+  var BUILD = 'b0819-5';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1528,14 +1528,21 @@ window.SPARK_LIVE = (function () {
     if (!curIso) return;
     if (!ensurePin()) return;
     if (!confirm('Freeze ' + labelWe(curIso) + ' into the official books?')) return;
+    setStatus('FREEZING ' + labelWe(curIso) + ' \u2014 loading data...', '#FFC800');
+    var _ensure = [];
+    if (!batches[curIso]) _ensure.push(api('/charge-batch?weekEnding=' + curIso).then(function (b) { batches[curIso] = b; }));
+    if (!dhb[curIso]) _ensure.push(api('/charge-dh?weekEnding=' + curIso).then(function (d) { dhb[curIso] = d; }));
+    Promise.all(_ensure).then(function () {
+    if (!dhb[curIso] || !dhb[curIso].ok) { setStatus('FREEZE aborted: DH data did not load \u2014 open Direct Hires tab, then retry', '#FF4466'); return; }
     setStatus('FREEZING ' + labelWe(curIso), '#FFC800');
-    api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[curIso] || null, dh: dhb[curIso] || null }) })
+    return api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[curIso] || null, dh: dhb[curIso] || null }) })
       .then(function (d) {
         setStatus('FROZEN · ' + d.personRows + ' people, ' + d.unitRows + ' units', '#00FF88');
         return api('/charge-history');
       })
       .then(function (h) { H = h; indexHistory(); applyAll(); })
       .catch(function (e) { setStatus('FREEZE: ' + String(e.message).slice(0, 44), '#FF4466'); });
+    }).catch(function (e) { setStatus('FREEZE prep failed: ' + String(e.message).slice(0, 40), '#FF4466'); });
   }
 
 
