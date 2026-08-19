@@ -713,8 +713,8 @@ function heroHover(){
 }
 
 // ═══ RANKINGS ARENA ═══
-var arM='mo', arScope='people';
-var AR_METRICS=[['mo','Monthly Raw'],['q','Quarterly Raw'],['cum','Cumulative Raw'],['wkRaw','Raw (Wk)'],['wow','WoW'],['pace','Q3 Pace']];
+var arM='wkRaw', arScope='people';
+var AR_METRICS=[['wkRaw','Raw (Wk)'],['moRaw','Monthly Raw'],['qRaw','Quarterly Raw'],['cumRaw','Cumulative Raw'],['wow','WoW'],['pace','Q3 Pace']];
 function initials(n){var p=n.split(' ');return (p[0][0]+(p[p.length-1][0]||'')).toUpperCase()}
 function rankMove(name){
   // rank by last week vs prior week from iw
@@ -750,17 +750,18 @@ function rArena(){
       rows.push({n:p.n,sub:p.rl,en:p.en,v:v,c:ecol(p.en),sp:D.iw[p.n]?D.iw[p.n].map(function(w){return w.t}):null,mv:rankMove(p.n),obj:p});
     });
   } else if(arScope==='units'){
-    var STBUS2=['MI Metro','Automation','Light Industrial','Central','Southeast','Fulfillment','Southwest','Northeast','Spark Sales','Enterprise'];
+    var STBUS2=(window.BU_ORDER||['MI Metro','Automation','Light Industrial','Central','Southeast','Southwest','Northwest','Northeast','Spark Talent','Ignite Search','Spark Companies','BPO','Spark Companies - Other','Spark Packaging','Flex Workforce']);
     STBUS2.forEach(function(b){
       var wd=D.weeks.map(function(w){return w[b]||0});
+      if(!wd.some(function(x){return x})) return;
       var cnt=D.people.filter(function(p){return buForPerson(p)===b}).length;
-      var v=arM==='mo'?wd.slice(-5).reduce(function(s,x){return s+x},0):arM==='wow'?wd[wd.length-1]-wd[wd.length-2]:wd[wd.length-1];
+      var v=arM==='moRaw'?wd.slice(-5).reduce(function(s,x){return s+x},0):arM==='wow'?wd[wd.length-1]-wd[wd.length-2]:wd[wd.length-1];
       rows.push({n:b,sub:cnt+' people',en:'Spark Talent',v:v,c:'#FFC800',sp:wd,mv:null});
     });
   } else {
     D.ent.forEach(function(e){
       var wd=D.weeks.map(function(w){return w[e.n]||0});
-      var v=arM==='mo'?wd.slice(-5).reduce(function(s,x){return s+x},0):arM==='wow'?e.ud:e.ch;
+      var v=arM==='moRaw'?wd.slice(-5).reduce(function(s,x){return s+x},0):arM==='wow'?e.ud:e.ch;
       rows.push({n:e.n,sub:'ATH '+fK(e.ath),en:e.n,v:v,c:ecol(e.n),sp:wd,mv:null});
     });
   }
@@ -999,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-12';
+  var BUILD = 'b0819-15';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1106,6 +1107,8 @@ window.SPARK_LIVE = (function () {
   }
 
   function indexHistory() {
+    LOCKS = {};
+    ((H && H.locks) || []).forEach(function (l) { if (l && l.week_ending && l.locked !== false) LOCKS[String(l.week_ending).slice(0, 10)] = 1; });
     histUnit = {}; histPerson = {}; master = {};
     (H.unitWeeks || []).forEach(function (r) {
       var w = histUnit[r.week_ending] || (histUnit[r.week_ending] = {});
@@ -1119,6 +1122,11 @@ window.SPARK_LIVE = (function () {
     (H.people || []).forEach(function (p) { master[p.person] = p; });
   }
   function unitVal(we, unit) {
+    if (isLocked(we)) {
+      var lu = histUnit[we] && histUnit[we][unit];
+      if (lu) { if (lu.total != null) return lu.total; return (lu.contract || 0) + (lu.direct || 0); }
+      return 0;
+    }
     // Live engine wins wherever we have it; stored history covers weeks with no live source.
     var b = batches[we];
     if (b && b.rollups) {
@@ -1146,7 +1154,11 @@ window.SPARK_LIVE = (function () {
     });
     return out;
   }
+  var LOCKS = {};
+  function isLocked(we) { return !!LOCKS[we]; }
   function pweek(we) {
+    // Locked weeks serve their saved numbers so they never drift; unlocked weeks run live.
+    if (isLocked(we) && histPerson[we]) return histPerson[we];
     if (!batches[we] && histPerson[we]) return histPerson[we];
     var base = batches[we] ? engineWeek(batches[we]) : {};
     var d = dhb[we];
@@ -1161,8 +1173,8 @@ window.SPARK_LIVE = (function () {
   function entCh(we, unit) {
     var v = unitVal(we, unit);
     var d = dhb[we];
-    // add live DH whenever we have it (stored rows are only used when there is no live batch)
-    if (d && !(histPerson[we] && !batches[we])) { if (d.byEntity && d.byEntity[unit]) v += d.byEntity[unit]; if (d.byBU && d.byBU[unit]) v += d.byBU[unit]; }
+    // locked weeks already include their DH in the saved rows
+    if (d && !isLocked(we) && !(histPerson[we] && !batches[we])) { if (d.byEntity && d.byEntity[unit]) v += d.byEntity[unit]; if (d.byBU && d.byBU[unit]) v += d.byBU[unit]; }
     return v;
   }
   function weeksThrough(cur) {
@@ -1317,10 +1329,14 @@ window.SPARK_LIVE = (function () {
     try { if (IS_ADMIN) teamEd(); else { var _t = document.getElementById('lvTeamEd'); if (_t) _t.remove(); } } catch (e) {}
     window.__weLabel = labelWe(curIso);
     try { var _sl = document.querySelector('.sb-lb'); if (_sl) _sl.textContent = 'Portfolio Raw \u00b7 ' + labelWe(curIso); } catch (e) {}
-    setStatus('LIVE \u00b7 ' + labelWe(curIso) + ' \u00b7 ' + BUILD, '#00FF88');
+    var lk = isLocked(curIso);
+    setStatus((lk ? 'FINALIZED' : 'LIVE') + ' \u00b7 ' + labelWe(curIso) + ' \u00b7 ' + BUILD, lk ? '#FFC800' : '#00FF88');
     try {
       var _lb = document.getElementById('lvFreeze');
-      if (_lb) { _lb.innerHTML = '\u2913 Save week'; _lb.title = 'Save this week into stored history (keeps cumulative + WoW correct for past weeks). Does not change what you see \u2014 the report always renders live.'; }
+      if (_lb) {
+        _lb.innerHTML = lk ? '\uD83D\uDD13 Unlock' : '\uD83D\uDD12 Lock week';
+        _lb.title = lk ? 'This week is locked. Admin edits still apply and update everywhere automatically. Click to unlock and return it to live.' : 'Lock this week: saves it and holds these numbers. Admin edits still flow through everywhere.';
+      }
     } catch (e) {}
   }
 
@@ -1566,7 +1582,18 @@ window.SPARK_LIVE = (function () {
     function freezeWeek() {
     if (!curIso) return;
     if (!ensurePin()) return;
-    if (!confirm('Save ' + labelWe(curIso) + ' into stored history?\n\nThe report keeps rendering live \u2014 this only stores the week so cumulative and WoW stay correct later.')) return;
+    var wasLocked = isLocked(curIso);
+    if (wasLocked) {
+      if (!confirm('Unlock ' + labelWe(curIso) + '?\n\nYou do NOT need to unlock in order to edit \u2014 admin edits already work on a locked week and update everywhere.\n\nUnlocking rebuilds this week from whatever Salesforce and the trackers hold RIGHT NOW, so the numbers can change if any source has been edited since. Only do this if you deliberately want to rebuild the week from source.')) return;
+      var _uc = prompt('Unlock code for ' + labelWe(curIso) + ':');
+      if (!_uc) return;
+      api('/charge-week-lock', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Unlock-Pin': String(_uc).trim() }, body: JSON.stringify({ week_ending: curIso, locked: false }) })
+        .then(function () { return api('/charge-history'); })
+        .then(function (h) { H = h; indexHistory(); applyAll(); setStatus('UNLOCKED \u00b7 ' + labelWe(curIso), '#00FF88'); })
+        .catch(function (e) { setStatus('UNLOCK: ' + (String(e.message).indexOf('unlock code') !== -1 ? 'wrong unlock code' : String(e.message).slice(0, 40)), '#FF4466'); });
+      return;
+    }
+    if (!confirm('Lock ' + labelWe(curIso) + '?\n\nThese numbers are saved and held. Admin edits still apply and update everywhere automatically.')) return;
     setStatus('LOCKING ' + labelWe(curIso) + ' \u2014 loading data...', '#FFC800');
     var _ensure = [];
     if (!batches[curIso]) _ensure.push(api('/charge-batch?weekEnding=' + curIso).then(function (b) { batches[curIso] = b; }));
@@ -1576,8 +1603,10 @@ window.SPARK_LIVE = (function () {
     setStatus('LOCKING ' + labelWe(curIso), '#FFC800');
     return api('/charge-snapshot?weekEnding=' + curIso, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[curIso] || null, dh: dhb[curIso] || null }) })
       .then(function (d) {
-        setStatus('SAVED · ' + d.personRows + ' people, ' + d.unitRows + ' units', '#00FF88');
-        return api('/charge-history');
+        setStatus('LOCKED · ' + d.personRows + ' people, ' + d.unitRows + ' units', '#FFC800');
+        return api('/charge-week-lock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ week_ending: curIso, locked: true }) })
+          .catch(function () {})
+          .then(function () { return api('/charge-history'); });
       })
       .then(function (h) { H = h; indexHistory(); applyAll(); })
       .catch(function (e) { setStatus('LOCK: ' + String(e.message).slice(0, 44), '#FF4466'); });
@@ -1658,6 +1687,7 @@ window.SPARK_LIVE = (function () {
     var one = function (we, raw) {
       // One rule everywhere: if the week has live engine data, use live contract + live DH.
       // Otherwise use the stored contract row plus its stored \u00b7 DH row.
+      if (isLocked(we)) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
       var v = 0, b = batches[we], d = dhb[we];
       if (b && b.rollups) {
         var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
@@ -1780,6 +1810,7 @@ window.SPARK_LIVE = (function () {
     var one = function (we, raw) {
       // One rule everywhere: if the week has live engine data, use live contract + live DH.
       // Otherwise use the stored contract row plus its stored \u00b7 DH row.
+      if (isLocked(we)) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
       var v = 0, b = batches[we], d = dhb[we];
       if (b && b.rollups) {
         var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
@@ -1917,7 +1948,7 @@ window.SPARK_LIVE = (function () {
   // Admin edit on an already-saved week -> silently refresh stored history so cumulatives/WoW
   // stay in step with the live view. No user action required.
   function autoResave() {
-    if (!IS_ADMIN || !histPerson[curIso]) return Promise.resolve();
+    if (!IS_ADMIN || !(isLocked(curIso) || histPerson[curIso])) return Promise.resolve();
     var wk = curIso, need = [];
     if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
     if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
