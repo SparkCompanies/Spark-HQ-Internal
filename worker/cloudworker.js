@@ -1065,11 +1065,12 @@ var worker_default = {
       }
     }
     if (url.pathname === "/sandbox-jobmeta") {
-      /* SBX_JOBMETA_v1 — live Job metadata for the ATS training sandbox */
+      /* SBX_JOBMETA_v2 — live object metadata + page layout for the ATS training sandbox */
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: sbxCors() });
       const t = url.searchParams.get("token") || "";
       if (!env.SANDBOX_TOKEN || t !== env.SANDBOX_TOKEN) return sbxJson({ error: "Unauthorized" }, 401);
-      const OBJ = "bpats__Job__c";
+      const SBX_OBJECTS = ["bpats__Job__c", "bpats__Candidate__c", "bpats__Job_Applicant__c", "bpats__Placement__c", "Account", "Contact"];
+      const OBJ = (function(){ const o = url.searchParams.get("obj") || "bpats__Job__c"; return SBX_OBJECTS.indexOf(o) > -1 ? o : "bpats__Job__c"; })();
       try {
         const tok = await getSalesforceToken(env);
         const H = { "Authorization": "Bearer " + tok.access_token };
@@ -1121,6 +1122,37 @@ var worker_default = {
           dependencies[f.name] = { controller: f.controllerName, controllerLabel: ctl.label, map };
         });
 
+        /* 2.5) SBX_JOBMETA_v2 — edit page layout: sections, rows, field order, layout-required flags */
+        let layout = null;
+        try {
+          const lr = await fetch(tok.instance_url + "/services/data/v60.0/sobjects/" + OBJ + "/describe/layouts/", { headers: H });
+          if (lr.ok) {
+            const ld = await lr.json();
+            const lay = (ld.layouts || [])[0];
+            if (lay) {
+              layout = (lay.editLayoutSections || []).map((s) => ({
+                heading: s.useHeading ? s.heading : null,
+                columns: s.columns || 1,
+                rows: (s.layoutRows || []).map((row) =>
+                  (row.layoutItems || []).map((it) => {
+                    const comp = (it.layoutComponents || []).find((c) => c.type === "Field");
+                    if (!comp) return null;
+                    const fname = comp.value;
+                    return {
+                      field: fname,
+                      label: it.label || (fields[fname] ? fields[fname].label : fname),
+                      required: !!it.required,
+                      editableForNew: !!it.editableForNew,
+                      editableForUpdate: !!it.editableForUpdate,
+                      type: fields[fname] ? fields[fname].type : "string"
+                    };
+                  })
+                )
+              }));
+            }
+          }
+        } catch (e) {}
+
         /* 3) validation rules: Tooling query, then per-Id fetch for formulas */
         const rules = [];
         try {
@@ -1153,7 +1185,7 @@ var worker_default = {
           ok: true,
           object: OBJ,
           generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-          fields, picklists, dependencies, rules
+          fields, picklists, dependencies, rules, layout
         });
       } catch (e) {
         return sbxJson({ error: String(e.message || e).slice(0, 300) }, 502);
