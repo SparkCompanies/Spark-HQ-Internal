@@ -5849,10 +5849,21 @@ var worker_default = {
           });
           if (rule) { d.split = true; ruled.push(d); }
         }
+        const sibCanon = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
         drops = drops.filter((d) => {
           if (!d.internal || d.split || d.pairSplit) return true;
-          const twin = ruled.find((x) => x.entity !== d.entity && Math.abs(Math.abs(d.amount) - Math.abs(x.amount) * 0.9) <= Math.abs(x.amount) * 0.02);
-          if (twin) { review.push({ company: d.company, candidate: d.employee, flags: ["dh_split_suppressed"], credits: ["Sibling invoice of " + twin.company + " — counted once via split rule"] }); return false; }
+          const dtxt = sibCanon(String(d.employee || "") + " " + String(d.title || ""));
+          const twin = ruled.find((x) => {
+            if (x.entity === d.entity && sibCanon(x.company) === sibCanon(d.company)) return false;
+            // (a) the internal row names the parent client in its text
+            const xc = sibCanon(x.company);
+            if (xc.length >= 6 && dtxt.indexOf(xc.slice(0, 8)) !== -1) return true;
+            // (b) the internal amount equals any allocation slice of the parent deal
+            const r0 = ruleFor(x);
+            const pcts = ((r0 && r0.allocations) || []).map((a) => Number(a.pct) || 0).concat([90, 10]);
+            return pcts.some((p) => p > 0 && Math.abs(Math.abs(d.amount) - Math.abs(x.amount) * (p / 100)) <= Math.max(Math.abs(x.amount) * 0.02, 1));
+          });
+          if (twin) { review.push({ company: d.company, candidate: d.employee, flags: ["dh_split_suppressed"], credits: ["Slice of " + twin.company + " — the split rule already allocates 100% of that deal"] }); return false; }
           review.push({ company: d.company, candidate: d.employee, flags: ["dh_internal"], credits: ["Inter-entity: counted for " + d.entity] });
           return true;
         });
@@ -5902,8 +5913,33 @@ var worker_default = {
             }
           }
         } catch (e) {}
-        const total = r2s(drops.reduce((s, d) => s + (d.split ? d.amount : d.amount), 0));
-        return json({ ok: true, weekEnding, weekCol: labelCandidates[0], total, drops, byEntity, byBU, byPerson, review, intake }, 200, origin);
+        const total = r2s(drops.reduce((s, d) => s + d.amount, 0));
+        // ── display expansion: show each split allocation as its own line ──
+        const shown = [];
+        for (const d of drops) {
+          const r0 = d.split ? ruleFor(d) : null;
+          const allocs = (r0 && r0.allocations) || [];
+          if (!allocs.length) { shown.push(d); continue; }
+          allocs.forEach((a) => {
+            const pct = Number(a.pct) || 0;
+            if (!pct) return;
+            const who = a.person || "House";
+            const bucket = a.bucket === "sales" || a.bucket === "rec" ? a.bucket : "fd";
+            shown.push(Object.assign({}, d, {
+              entity: a.entity || d.entity,
+              bu: a.bu || d.bu,
+              company: d.company,
+              employee: d.employee + " · " + pct + "%",
+              sales_rep: bucket === "rec" ? "House" : who,
+              recruiter: bucket === "sales" ? "House" : who,
+              amount: r2s(d.amount * pct / 100),
+              invoiced: null,
+              sliceOf: d.company,
+              splitSlice: true
+            }));
+          });
+        }
+        return json({ ok: true, weekEnding, weekCol: labelCandidates[0], total, drops: shown, byEntity, byBU, byPerson, review, intake }, 200, origin);
       } catch (e) { return json({ error: "dh-batch failed: " + String(e.message || e) }, 502, origin); }
     }
 
