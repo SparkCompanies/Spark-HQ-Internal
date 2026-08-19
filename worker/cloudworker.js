@@ -245,6 +245,14 @@ async function runSalesforceQueryAll(env, soql) {
   }
 }
 __name(runSalesforceQueryAll, "runSalesforceQueryAll");
+async function sfWrite(env, method, path, body) {
+  const tok = await getSalesforceToken(env);
+  const url = tok.instance_url + "/services/data/v60.0" + path;
+  const r = await fetch(url, { method, headers: { "Authorization": "Bearer " + tok.access_token, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : void 0 });
+  let data = null; try { data = await r.json(); } catch (e) { data = null; }
+  return { ok: r.ok, status: r.status, data };
+}
+
 async function runSalesforceQuery(env, soql) {
   const q = String(soql || "").trim();
   if (!/^select\s/i.test(q)) {
@@ -5975,6 +5983,68 @@ var worker_default = {
       return json({ ok: r.ok, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
     }
 
+    if (url.pathname === "/charge-sf-users") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const r = await runSalesforceQueryAll(env, "SELECT Id, Name FROM User WHERE IsActive = true ORDER BY Name");
+        if (!r.ok) return json({ error: r.error }, 502, origin);
+        return json({ ok: true, users: (r.records || []).map((u) => ({ id: u.Id, name: u.Name })) }, 200, origin);
+      } catch (e) { return json({ error: String(e.message || e) }, 502, origin); }
+    }
+
+    if (url.pathname === "/charge-credit-fix") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "POST only" }, 405, origin);
+      const body = await request.json().catch(() => ({}));
+      const wk = String(body.week_ending || "");
+      const placementId = String(body.placement_id || "");
+      const amName = String(body.am || "").trim();
+      const amUserId = String(body.am_user_id || "").trim();
+      const secName = String(body.rec || "").trim();
+      const secUserId = String(body.rec_user_id || "").trim();
+      const secType = body.second_type === "Full Desk Credit" ? "Full Desk Credit" : "Recruiter Credit";
+      const fullDesk = !!(amName && secName && amName === secName);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "week_ending required" }, 400, origin);
+      if (!amName) return json({ error: "AM/Sales recipient required" }, 400, origin);
+      // Reverse alias: the editor sends our display names; Salesforce stores its own. Translate back.
+      const revAlias = { "House Account": "House", "Nick Greenfelder": "Nicholas Greenfelder", "CJ Olaniyan": "Kazeem Olaniyan" };
+      try { const ra = await sbService(env, "GET", "charge_name_aliases?select=sf_name,display_name"); if (ra && ra.ok && Array.isArray(ra.data)) ra.data.forEach((m) => { if (m.display_name && m.sf_name) revAlias[m.display_name] = m.sf_name; }); } catch (e) {}
+      const toSF = (nm) => revAlias[nm] || nm;
+      let localOk = false;
+      try {
+        const rec = { week_ending: wk, match_candidate: String(body.match_candidate || ""), match_company: String(body.match_company || ""), action: "patch", fields: fullDesk ? { am: amName, rec: amName } : { am: amName, rec: secName || amName }, created_by: email };
+        const rr = await sbService(env, "POST", "charge_contract_overrides", rec);
+        localOk = rr.ok;
+      } catch (e) {}
+      let sf = { attempted: false };
+      if (placementId && body.write_sf !== false) {
+        sf = { attempted: true };
+        try {
+          const tok = await getSalesforceToken(env);
+          const q = "SELECT Id FROM bpats__Placement_Credit__c WHERE bpats__Placement__c = '" + placementId.replace(/[^a-zA-Z0-9]/g, "") + "' AND bpats__Is_Void__c = false";
+          const qr = await fetch(tok.instance_url + "/services/data/v60.0/query?q=" + encodeURIComponent(q), { headers: { "Authorization": "Bearer " + tok.access_token } });
+          const qd = await qr.json();
+          const existing = (qd && qd.records) || [];
+          let deleted = 0;
+          for (const c of existing) { const dr = await sfWrite(env, "DELETE", "/sobjects/bpats__Placement_Credit__c/" + c.Id); if (dr.ok) deleted++; }
+          const mkRec = (name, type, userId) => { const o = { Name: type, bpats__Placement__c: placementId, bpats__ATS_Role_Type__c: "User Lookup", bpats__Credit_Recipient__c: toSF(name), bpats__Credit_Percentage__c: 100 }; if (userId) o.bpats__User__c = userId; return o; };
+          const records = fullDesk ? [mkRec(amName, "Full Desk Credit", amUserId)] : [mkRec(amName, "Sales Credit", amUserId)].concat(secName ? [mkRec(secName, secType, secUserId)] : []);
+          let created = 0, errs = [];
+          for (const rec of records) { const cr = await sfWrite(env, "POST", "/sobjects/bpats__Placement_Credit__c", rec); if (cr.ok) created++; else errs.push(JSON.stringify(cr.data).slice(0, 140)); }
+          sf.deleted = deleted; sf.created = created; sf.ok = errs.length === 0 && created === records.length;
+          if (errs.length) sf.errors = errs;
+        } catch (e) { sf.ok = false; sf.error = String(e.message || e); }
+      }
+      return json({ ok: localOk || (sf.ok === true), local: localOk, sf }, 200, origin);
+    }
+
     if (url.pathname === "/dh-schedule") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -6330,6 +6400,7 @@ var worker_default = {
           else if (credits.length === 1 && house.length === 1) { kept = credits; flags.push("lone_house"); }
           else if (credits.length === 0) { kept = []; flags.push("no_credits"); }
           else { kept = credits; if (credits.length > 2) flags.push("extra_credits"); }
+          if (sales.length && !recr.length && !full.length && !flags.includes("no_credits") && !flags.includes("lone_house")) flags.push("no_recruiter");
           if (!map) flags.push("unmapped_account");
           if (!bu) flags.push("no_bu");
           if ((otH > 0 && !(wr && Number(wr.ot_bill)) && otMult == null && !otBillSF) || (dtH > 0 && !(wr && Number(wr.dt_bill)) && dtMult == null && !dtBillSF)) flags.push("ot_rate_assumed");
