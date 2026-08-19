@@ -5661,14 +5661,22 @@ var worker_default = {
               const emp = cNm >= 0 ? String(row[cNm] || "").trim() : "";
               const ttl = cTi >= 0 ? String(row[cTi] || "").trim() : "";
               const burden = burdenFor(T.entity, co, emp, ttl);
-              let paidSoFar = 0, totalDrops = 0;
-              for (let c = wc; c < row.length; c++) { if (typeof row[c] === "number" && row[c] !== 0) totalDrops++; }
+              let paidSoFar = 0, aheadDrops = 0, allDrops = 0;
+              // cells strictly AFTER the current week (future installments)
+              for (let c = wc + 1; c < row.length; c++) { if (typeof row[c] === "number" && row[c] !== 0) aheadDrops++; }
+              // cells up to and including the current week (already paid, incl. this drop)
               for (let c = 0; c <= wc; c++) { if (c >= 13 && typeof row[c] === "number" && row[c] !== 0 && String(grid[hr][c]).length <= 9) paidSoFar++; }
+              // the honest total number of installments actually entered on the row
+              allDrops = paidSoFar + aheadDrops;
               const cd = String(row[H2.findIndex((h) => /^Charge Details$/i.test(h))] || "");
               const m = cd.match(/\/\s*(\d+)\s*(Week|Month|Install)/i);
               const invType = cInv >= 0 ? String(row[cInv] || "").trim() : "";
-              let ofN = m ? Number(m[1]) : (/^3 install/i.test(invType) ? 3 : (/^lump/i.test(invType) || !invType ? 1 : paidSoFar + totalDrops - 1));
-              if (!ofN || ofN < paidSoFar) ofN = paidSoFar + Math.max(totalDrops - 1, 0);
+              const mInv = invType.match(/(\d+)\s*(install|month|week)/i);
+              let ofN = m ? Number(m[1])
+                : (mInv ? Number(mInv[1])
+                : ((/^lump/i.test(invType) || !invType) ? 1 : allDrops));
+              // never fewer than what's already paid; default to the real cell count
+              if (!ofN || ofN < paidSoFar) ofN = Math.max(allDrops, paidSoFar);
               drops.push({
                 source: "tracker", entity: T.entity, company: co, employee: emp, title: ttl,
                 sales_rep: cSr >= 0 ? String(row[cSr] || "").trim() : "", recruiter: cRc >= 0 ? String(row[cRc] || "").trim() : "",
@@ -5819,6 +5827,10 @@ var worker_default = {
           review.push({ company: own.company, candidate: own.employee, flags: ["dh_entity_split"], credits: [own.entity + " retains $" + retained + " as House FD; " + pd.entity + " keeps $" + pd.amount + " \u2192 " + (pd.sales_rep || "?") + " / " + (pd.recruiter || "?") + "; both coded to " + (hireBU || "no BU")] });
           own.amount = retained;
           if (!own.credEdited) { own.sales_rep = "House"; own.recruiter = "House"; }
+          // The client is always the client: the placer's internal invoice adopts the
+          // hire's actual client name; the entity it billed is retained for reference.
+          pd.internal_billed_to = pd.company;
+          pd.company = own.company;
           own.pairSplit = true; pd.pairSplit = true;
         }
         // ── splits: allocate the deal exactly once, suppress sibling counterparts ──
@@ -5842,9 +5854,19 @@ var worker_default = {
           review.push({ company: d.company, candidate: d.employee, flags: ["dh_internal"], credits: ["Inter-entity: counted for " + d.entity] });
           return true;
         });
+        // Rule-split rows: never display the internal entity as the client.
+        drops.forEach((d) => {
+          if (!d.split) return;
+          const r0 = ruleFor(d);
+          const client = r0 && String(r0.client_name || r0.match_company || "").replace(/%/g, "").trim();
+          if (client && /spark|ignite|bolt|john joseph|flex/i.test(String(d.company || ""))) {
+            d.internal_billed_to = d.company;
+            d.company = client;
+          }
+        });
         for (const d of drops) {
           if (d.split) {
-            const rule = splits.find((sp) => String(d.company || "").toLowerCase().indexOf(String(sp.match_company || "").replace(/%/g, "").toLowerCase()) !== -1);
+            const rule = splits.find((sp) => String(d.company || "").toLowerCase().indexOf(String(sp.match_company || "").replace(/%/g, "").toLowerCase()) !== -1) || ruleFor(d);
             (rule.allocations || []).forEach((a) => {
               const amt = r2s(d.amount * (Number(a.pct) || 0) / 100);
               addU(byEntity, a.entity || d.entity, amt);
