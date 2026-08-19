@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-16';
+  var BUILD = 'b0819-17';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1226,8 +1226,9 @@ window.SPARK_LIVE = (function () {
         return { en: fr.entity || 'Spark Talent', bu: fr.bu || '—', cl: r.key, ch: Math.round(r.charge), dh: 0, ud: Math.round(r.charge - lw), lw: Math.round(lw), ath: Math.max(Math.round(r.charge), 1) };
       }).sort(function (a, b) { return b.ch - a.ch; });
       // ── merge direct hires into the client list (per client, incl. DH-only clients) ──
+      var dhEnt = {};
       (function () {
-        var dhBy = {}, dhMeta = {}, dhPrev = {}, dhEnt = {};
+        var dhBy = {}, dhMeta = {}, dhPrev = {};
         var norm = function (x) { return String(x || '').trim(); };
         var dcl = dhb[curIso];
         ((dcl && dcl.drops) || []).forEach(function (d) {
@@ -1269,7 +1270,7 @@ window.SPARK_LIVE = (function () {
         };
         D.cST.forEach(function (c) {
           var dhTot = Number(c.dh) || 0;
-          var slices = (typeof dhEnt !== 'undefined' && dhEnt[c.cl]) || null;
+          var slices = dhEnt[c.cl] || null;
           // contract portion stays with the client's own entity
           add(c.en, c.cl, Math.round(c.ch - dhTot), c.ud);
           // DH portion is split across the entities that actually earned it
