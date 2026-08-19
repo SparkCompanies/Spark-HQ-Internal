@@ -999,7 +999,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-3';
+  var BUILD = 'b0819-4';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -2148,6 +2148,7 @@ window.SPARK_LIVE = (function () {
   // ── Targets & Pacing: raw-anchored pacing + run-rate projections ──
   window.rTG = function () {
     var el = document.getElementById('p-tg'); if (!el) return;
+    if (!curIso) { el.innerHTML = ''; return; }
     var d1 = new Date(curIso + 'T12:00:00Z');
     var wkN = Math.round((d1 - new Date('2026-01-04T12:00:00Z')) / (7 * 864e5)) + 1;
     var q3wk = (+curIso.split('-')[1] >= 7) ? Math.round((d1 - new Date('2026-07-05T12:00:00Z')) / (7 * 864e5)) + 1 : 0;
