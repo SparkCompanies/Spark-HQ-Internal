@@ -5672,11 +5672,13 @@ var worker_default = {
               const m = cd.match(/\/\s*(\d+)\s*(Week|Month|Install)/i);
               const invType = cInv >= 0 ? String(row[cInv] || "").trim() : "";
               const mInv = invType.match(/(\d+)\s*(install|month|week)/i);
-              let ofN = m ? Number(m[1])
+              // CELLS WIN: the installment cells actually entered on the row are the truth.
+              // Charge Details / Invoicing text is only a fallback when there is nothing to count.
+              let ofN = allDrops > 0 ? allDrops
+                : (m ? Number(m[1])
                 : (mInv ? Number(mInv[1])
-                : ((/^lump/i.test(invType) || !invType) ? 1 : allDrops));
-              // never fewer than what's already paid; default to the real cell count
-              if (!ofN || ofN < paidSoFar) ofN = Math.max(allDrops, paidSoFar);
+                : 1));
+              if (!ofN || ofN < paidSoFar) ofN = Math.max(paidSoFar, 1);
               drops.push({
                 source: "tracker", entity: T.entity, company: co, employee: emp, title: ttl,
                 sales_rep: cSr >= 0 ? String(row[cSr] || "").trim() : "", recruiter: cRc >= 0 ? String(row[cRc] || "").trim() : "",
