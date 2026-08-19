@@ -6234,13 +6234,20 @@ var worker_default = {
         const personRows = Object.keys(ppl).map((n) => ({ week_ending: weekEnding, person: n, sales: r2s(ppl[n].sales), fd: r2s(ppl[n].fd), rec: r2s(ppl[n].rec), tt: r2s(ppl[n].tt), raw: null }));
         // merge DH drops into the freeze (self-fetch dh-batch)
         let dhInfo = null;
+        let dhOK = false;
         try {
           let dj = posted && posted.dh && posted.dh.ok ? posted.dh : null;
           if (!dj) {
-            const dR = await fetch(url.origin + "/charge-dh?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
-            dj = await dR.json();
+            for (let attempt = 0; attempt < 2 && !dj; attempt++) {
+              try {
+                const dR = await fetch(url.origin + "/charge-dh?weekEnding=" + weekEnding, { headers: { "Authorization": request.headers.get("Authorization") || "" } });
+                const tmp = await dR.json();
+                if (tmp && tmp.ok) dj = tmp;
+              } catch (eF) {}
+            }
           }
           if (dj && dj.ok) {
+            dhOK = true;
             dhInfo = { total: dj.total, drops: (dj.drops || []).length };
             Object.keys(dj.byEntity || {}).forEach((u) => unitRows.push({ week_ending: weekEnding, unit: u, kind: "direct", charge: dj.byEntity[u] }));
             Object.keys(dj.byBU || {}).forEach((u) => unitRows.push({ week_ending: weekEnding, unit: u + " \u00b7 DH", kind: "direct", charge: dj.byBU[u] }));
@@ -6258,6 +6265,12 @@ var worker_default = {
           }
         } catch (e) {}
         personRows.forEach((row) => { row.raw = r2s((Number(row.fd) || 0) + ((Number(row.sales) || 0) + (Number(row.rec) || 0)) / 2); });
+        // Safety: never freeze a DH-less snapshot unless the caller explicitly allows it
+        // (a week with no direct hires). This prevents wiping good DH unit rows when the
+        // DH engine was momentarily unavailable.
+        if (!dhOK && posted && posted.allow_no_dh !== true) {
+          return json({ error: "DH data unavailable \u2014 freeze aborted to protect the books. Open the Direct Hires tab (so DH loads), then freeze again. If this week genuinely has no direct hires, re-run with allow_no_dh.", dhOK: false }, 503, origin);
+        }
         // wipe the week first so re-freezes fully reconcile (BU moves, removed rows, stale \u00b7 DH lines)
         await sbService(env, "DELETE", "charge_unit_weeks?week_ending=eq." + weekEnding);
         await sbService(env, "DELETE", "charge_person_weeks?week_ending=eq." + weekEnding);
