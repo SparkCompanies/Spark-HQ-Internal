@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-15';
+  var BUILD = 'b0819-16';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1227,13 +1227,15 @@ window.SPARK_LIVE = (function () {
       }).sort(function (a, b) { return b.ch - a.ch; });
       // ── merge direct hires into the client list (per client, incl. DH-only clients) ──
       (function () {
-        var dhBy = {}, dhMeta = {}, dhPrev = {};
+        var dhBy = {}, dhMeta = {}, dhPrev = {}, dhEnt = {};
         var norm = function (x) { return String(x || '').trim(); };
         var dcl = dhb[curIso];
         ((dcl && dcl.drops) || []).forEach(function (d) {
           var k = norm(d.company); if (!k) return;
           dhBy[k] = (dhBy[k] || 0) + (Number(d.amount) || 0);
-          if (!dhMeta[k]) dhMeta[k] = { en: d.entity || 'Spark Talent', bu: d.bu || '\u2014' };
+          var _en = d.entity || 'Spark Talent';
+          (dhEnt[k] = dhEnt[k] || {})[_en] = (dhEnt[k][_en] || 0) + (Number(d.amount) || 0);
+          if (!dhMeta[k]) dhMeta[k] = { en: _en, bu: d.bu || '\u2014' };
         });
         var dpv = dhb[prev];
         ((dpv && dpv.drops) || []).forEach(function (d) {
@@ -1257,7 +1259,29 @@ window.SPARK_LIVE = (function () {
         D.cST.sort(function (a, b) { return b.ch - a.ch; });
       })();
       D.cEnt = {}; ENT_KEYS.forEach(function (e) { D.cEnt[e] = []; });
-      D.cST.forEach(function (c) { (D.cEnt[c.en] = D.cEnt[c.en] || []).push({ cl: c.cl, bu: 'Assignment', ch: c.ch, ud: c.ud, ath: c.ath }); });
+      (function () {
+        var map = {};
+        var add = function (en, cl, v, ud) {
+          if (!en || !cl || !v) return;
+          var m = (map[en] = map[en] || {});
+          if (!m[cl]) m[cl] = { cl: cl, bu: 'Assignment', ch: 0, ud: 0, ath: 1 };
+          m[cl].ch += v; m[cl].ud += (ud || 0); m[cl].ath = Math.max(m[cl].ath, Math.abs(m[cl].ch), 1);
+        };
+        D.cST.forEach(function (c) {
+          var dhTot = Number(c.dh) || 0;
+          var slices = (typeof dhEnt !== 'undefined' && dhEnt[c.cl]) || null;
+          // contract portion stays with the client's own entity
+          add(c.en, c.cl, Math.round(c.ch - dhTot), c.ud);
+          // DH portion is split across the entities that actually earned it
+          if (slices) Object.keys(slices).forEach(function (en) { add(en, c.cl, Math.round(slices[en]), 0); });
+          else if (dhTot) add(c.en, c.cl, Math.round(dhTot), 0);
+        });
+        Object.keys(map).forEach(function (en) {
+          D.cEnt[en] = Object.keys(map[en]).map(function (cl) { return map[en][cl]; })
+            .filter(function (x) { return Math.round(x.ch) !== 0; })
+            .sort(function (a, b) { return b.ch - a.ch; });
+        });
+      })();
     }
 
     var rawOf = function (p) { if (!p) return 0; if (p.raw != null) return p.raw; var s = p.sales || 0, f = p.fd || 0, r = p.rec || 0; return p.live ? f + (s + r) / 2 : (s + f + r) / 2; };
