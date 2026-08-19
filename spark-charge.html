@@ -996,7 +996,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0818-13';
+  var BUILD = 'b0819-1';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1931,6 +1931,76 @@ window.SPARK_LIVE = (function () {
     if (!confirm('Remove all edits on ' + cand + ' @ ' + co + ' for ' + labelWe(curIso) + ' and restore Salesforce values?')) return;
     ctPost({ op: 'revert', match_candidate: cand, match_company: co });
   }
+  var SF_USERS = null, credCtx = null;
+  function credLoadUsers() {
+    if (SF_USERS) return Promise.resolve(SF_USERS);
+    return api('/charge-sf-users').then(function (j) { SF_USERS = (j && j.users) || []; return SF_USERS; }).catch(function () { SF_USERS = []; return SF_USERS; });
+  }
+  function credFix(cand, co, plid) {
+    if (!ensurePin()) return;
+    credCtx = { cand: cand, co: co, plid: plid };
+    credLoadUsers().then(function () { credModal(); });
+  }
+  function credUserOpts(sel) {
+    var names = (H && H.people || []).map(function (p) { return p.person; });
+    var src = (SF_USERS && SF_USERS.length) ? SF_USERS.map(function (u) { return u.name; }) : names;
+    src = src.filter(function (v, i) { return src.indexOf(v) === i; }).sort(function (a, b) { return a.localeCompare(b); });
+    var o = '<option value="">\u2014 select \u2014</option>' + '<option value="House Account"' + (sel === 'House Account' ? ' selected' : '') + '>House Account</option>';
+    src.forEach(function (nm) { o += '<option value="' + dhAtt(nm) + '"' + (nm === sel ? ' selected' : '') + '>' + dhAtt(nm) + '</option>'; });
+    return o;
+  }
+  function credModal() {
+    var back = document.getElementById('lvCredBack');
+    if (!back) { back = document.createElement('div'); back.id = 'lvCredBack'; back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100001;display:flex;align-items:center;justify-content:center'; document.body.appendChild(back); }
+    var card = 'background:#0e131c;border:1px solid var(--bd);border-radius:14px;padding:20px 22px;width:460px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.5)';
+    var inp = 'width:100%;box-sizing:border-box;background:transparent;color:inherit;border:1px solid var(--gold);border-radius:8px;padding:7px 9px;font:inherit;font-size:12px;margin-top:4px';
+    var h = '<div style="' + card + '" onclick="event.stopPropagation()">';
+    h += '<div style="font-weight:800;font-size:14px;margin-bottom:2px">Fix Placement Credits</div>';
+    h += '<div style="font-size:11px;color:var(--dm);margin-bottom:14px">' + esc(credCtx.cand) + ' \u00b7 ' + esc(credCtx.co) + '</div>';
+    h += '<label style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:1px">AM / Sales (Sales Credit \u00b7 100%)</label>';
+    h += '<select id="lvCredAm" style="' + inp + '">' + credUserOpts('') + '</select>';
+    h += '<div style="margin-top:14px"><label style="font-size:10px;color:var(--dm);text-transform:uppercase;letter-spacing:1px">Second line</label>';
+    h += '<div style="display:flex;gap:8px;margin-top:4px"><select id="lvCredType" style="' + inp + ';margin-top:0;flex:0 0 130px"><option value="Recruiter Credit">Recruiter</option><option value="Full Desk Credit">Full Desk</option></select>';
+    h += '<select id="lvCredRec" style="' + inp + ';margin-top:0;flex:1">' + credUserOpts('') + '</select></div>';
+    h += '<div style="font-size:10px;color:var(--dm);margin-top:6px">Full Desk \u2192 same person as AM. Recruiter \u2192 the recruiter. Both write to Salesforce as User Lookup / 100%.</div></div>';
+    h += '<label style="display:flex;align-items:center;gap:7px;margin-top:14px;font-size:11px;cursor:pointer"><input type="checkbox" id="lvCredSF" checked/> Also update Salesforce (so next week pulls through automatically)</label>';
+    h += '<div id="lvCredMsg" style="font-size:11px;color:#FF6B2B;margin-top:10px;min-height:14px"></div>';
+    h += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="fb" onclick="document.getElementById(\'lvCredBack\').remove()">Cancel</button><button class="fb" id="lvCredSave" style="background:var(--gold);color:#1a1a2e;font-weight:800" onclick="SPARK_LIVE.credSave()">Save credits</button></div>';
+    h += '</div>';
+    back.innerHTML = h;
+    back.onclick = function () { back.remove(); };
+    var typeEl = document.getElementById('lvCredType');
+    typeEl.onchange = function () { if (this.value === 'Full Desk Credit') { document.getElementById('lvCredRec').value = document.getElementById('lvCredAm').value; } };
+  }
+  function credSave() {
+    var am = document.getElementById('lvCredAm').value;
+    var rc = document.getElementById('lvCredRec').value;
+    var ty = document.getElementById('lvCredType').value;
+    var writeSF = document.getElementById('lvCredSF').checked;
+    var msg = document.getElementById('lvCredMsg');
+    if (!am) { msg.textContent = 'Select an AM / Sales recipient.'; return; }
+    if (ty === 'Full Desk Credit') rc = am;
+    if (ty === 'Recruiter Credit' && !rc) { msg.textContent = 'Select a recruiter (or switch to Full Desk).'; return; }
+    var uid = function (nm) { if (!SF_USERS) return ''; var f = SF_USERS.find(function (u) { return u.name === nm; }); return f ? f.id : ''; };
+    var btn = document.getElementById('lvCredSave'); btn.disabled = true; btn.textContent = 'Saving...';
+    msg.style.color = 'var(--dm)'; msg.textContent = writeSF ? 'Updating report and Salesforce...' : 'Updating report...';
+    api('/charge-credit-fix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      week_ending: curIso, placement_id: credCtx.plid, match_candidate: credCtx.cand, match_company: credCtx.co,
+      am: am, am_user_id: uid(am), rec: rc, rec_user_id: uid(rc), second_type: ty, write_sf: writeSF
+    }) }).then(function (r) {
+      var sfNote = '';
+      if (r.sf && r.sf.attempted) sfNote = r.sf.ok ? ' Salesforce updated.' : ' (SF write had an issue \u2014 report still fixed; check SF manually)';
+      var back = document.getElementById('lvCredBack'); if (back) back.remove();
+      delete batches[curIso];
+      setStatus('Credits updated' + sfNote, r.sf && r.sf.attempted && !r.sf.ok ? '#FFC800' : '#00FF88');
+      selectWeek(curIso);
+    }).catch(function (e) {
+      msg.style.color = '#FF4466'; msg.textContent = 'Failed: ' + e.message;
+      btn.disabled = false; btn.textContent = 'Save credits';
+    });
+  }
+  function ctRevToggle() { window.ctRevOnly = !window.ctRevOnly; rRaw(); }
+
   window.rRaw = function () {
     var el = document.getElementById('p-raw'); if (!el) return;
     var all = rawRows(), list = all.slice();
@@ -2007,7 +2077,7 @@ window.SPARK_LIVE = (function () {
       h += '<td class="r m" style="font-size:10px;color:' + (r.dt ? 'var(--red)' : 'var(--mt)') + '">' + (r.dt || '--') + '</td>';
       h += '<td class="r m" style="font-size:10px;color:' + (r.vac ? 'var(--blu)' : 'var(--mt)') + '">' + (r.vac || '--') + '</td><td class="r m" style="font-size:10px">' + r.tot + '</td>';
       h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (r.charge >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(r.charge) + '</td>';
-      if (IS_ADMIN) h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctEdit(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\',' + (r.ovId || 0) + ',' + (typeof r.bi === 'number' ? r.bi : -1) + ')">edit</button>' + (r.manual ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctDel(' + r.ovId + ')">delete</button>' : (r.edited ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctRevert(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">revert</button>' : '')) + '</td>';
+      if (IS_ADMIN) h += '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctEdit(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\',' + (r.ovId || 0) + ',' + (typeof r.bi === 'number' ? r.bi : -1) + ')">edit</button>' + (r.needsRev && r.plid ? ' <button class="fb" style="padding:3px 8px;background:rgba(255,107,43,.14);color:#FF6B2B" onclick="event.stopPropagation();SPARK_LIVE.credFix(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\',\'' + esc(r.plid) + '\')">credits</button>' : '') + (r.manual ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctDel(' + r.ovId + ')">delete</button>' : (r.edited ? ' <button class="fb" style="padding:3px 8px" onclick="event.stopPropagation();SPARK_LIVE.ctRevert(\'' + esc(r.mcand) + '\',\'' + esc(r.mco) + '\')">revert</button>' : '')) + '</td>';
       h += '</tr>';
     });
     var sRT = 0, sOT = 0, sDT = 0, sV = 0, sH = 0;
@@ -2150,7 +2220,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
