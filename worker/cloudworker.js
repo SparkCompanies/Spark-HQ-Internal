@@ -6073,6 +6073,29 @@ var worker_default = {
       return json({ ok: r.ok, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
     }
 
+    if (url.pathname === "/charge-week-lock") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "POST only" }, 405, origin);
+      const body = await request.json().catch(() => ({}));
+      const wk = String(body.week_ending || "");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "week_ending required" }, 400, origin);
+      // Unlocking is destructive (the week goes back to rebuilding from live sources),
+      // so it needs its own code rather than the shared admin PIN.
+      if (body.locked === false) {
+        const UNLOCK_PIN = String((env && env.CHARGE_UNLOCK_PIN) || "3132");
+        if (String(request.headers.get("X-Unlock-Pin") || "") !== UNLOCK_PIN) return json({ error: "unlock code required" }, 403, origin);
+      }
+      const rec = { week_ending: wk, locked: body.locked !== false, locked_by: email, locked_at: new Date().toISOString() };
+      const r = await sbService(env, "POST", "charge_week_locks?on_conflict=week_ending", rec);
+      return json({ ok: r.ok, locked: rec.locked, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
+    }
+
     if (url.pathname === "/charge-sf-users") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -6276,7 +6299,9 @@ var worker_default = {
         }
         let lastImported = null;
         unitWeeks.forEach((r) => { if (!lastImported || r.week_ending > lastImported) lastImported = r.week_ending; });
-        return json({ ok: true, lastImported, unitWeeks, units, unitTargets, people, personWeeks, personTargets, dh }, 200, origin);
+        let locks = [];
+        try { const lr = await sbService(env, "GET", "charge_week_locks?select=week_ending,locked,locked_by,locked_at"); if (lr.ok && Array.isArray(lr.data)) locks = lr.data; } catch (e) {}
+        return json({ ok: true, lastImported, unitWeeks, units, unitTargets, people, personWeeks, personTargets, dh, locks }, 200, origin);
       } catch (e) {
         return json({ error: "history failed: " + String(e.message || e) }, 502, origin);
       }
