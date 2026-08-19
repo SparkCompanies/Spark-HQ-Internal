@@ -6632,6 +6632,8 @@ var worker_default = {
                     const am = f.am !== void 0 ? f.am : exA(r.credits);
                     const rc = f.rec !== void 0 ? f.rec : exR(r.credits);
                     r.credits = mkCred(am, rc);
+                    // credits were just corrected — clear the review flags they triggered
+                    r.flags = (r.flags || []).filter((fl) => fl !== "lone_house" && fl !== "no_credits" && fl !== "no_recruiter");
                   }
                   ["bu", "entity", "title", "company", "candidate"].forEach((k) => { if (f[k] !== void 0) r[k] = f[k]; });
                   if (f.charge !== void 0) r.charge = r2(Number(f.charge) || 0);
