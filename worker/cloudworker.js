@@ -5790,15 +5790,25 @@ var worker_default = {
         //    the placing entity's inter-company invoice. Owner keeps only the spread (its
         //    retained %) as House Full Desk in the hire's unit; placer keeps its invoice
         //    with its own AM/recruiter credits. The deal counts exactly once. ──
+        // Configured split rules are authoritative: load them first and mark the rows they
+        // own so the inferred inter-entity pairing below can never claim them.
+        const spR0 = await sbService(env, "GET", "charge_splits?select=*&active=eq.true");
+        const splitRules0 = (spR0.ok && spR0.data) || [];
+        const ruleFor = (d) => splitRules0.find((sp) => {
+          const c = String(sp.match_company || "").replace(/%/g, "").toLowerCase();
+          const e = String(sp.match_employee || "").replace(/%/g, "").toLowerCase();
+          return c && String(d.company || "").toLowerCase().indexOf(c) !== -1 && (!e || String(d.employee || "").toLowerCase().indexOf(e) !== -1);
+        });
+        drops.forEach((d) => { if (ruleFor(d)) d.ruleOwned = true; });
         const entCanon = (s) => String(s || "").toLowerCase().replace(/[.,]/g, "").replace(/\s+(llc|inc|co)$/i, "").trim();
         const txtCanon = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
         for (const pd of drops) {
           if (pd.edited === true && pd.amtEdited) continue;
-          if (pd.pairSplit || pd.split || !(pd.amount > 0)) continue;
+          if (pd.pairSplit || pd.split || pd.ruleOwned || !(pd.amount > 0)) continue;
           const ownerEnt = entCanon(pd.company);
           if (!ownerEnt) continue;
           const ptxt = txtCanon(pd.employee);
-          const own = drops.find((x) => x !== pd && !x.pairSplit && !x.split && !x.amtEdited &&
+          const own = drops.find((x) => x !== pd && !x.pairSplit && !x.split && !x.ruleOwned && !x.amtEdited &&
             entCanon(x.entity) === ownerEnt && entCanon(pd.entity) !== ownerEnt && x.amount > pd.amount &&
             ((txtCanon(x.company).length >= 6 && ptxt.indexOf(txtCanon(x.company).slice(0, 10)) !== -1) ||
              (txtCanon(x.employee).length >= 6 && ptxt.indexOf(txtCanon(x.employee).slice(0, 8)) !== -1)));
@@ -5812,8 +5822,7 @@ var worker_default = {
           own.pairSplit = true; pd.pairSplit = true;
         }
         // ── splits: allocate the deal exactly once, suppress sibling counterparts ──
-        const spR = await sbService(env, "GET", "charge_splits?select=*&active=eq.true");
-        const splits = (spR.ok && spR.data) || [];
+        const splits = splitRules0;
         const byEntity = {}, byBU = {}, byPerson = {};
         const addU = (m, k, v) => { if (k) m[k] = r2s((m[k] || 0) + v); };
         const addP = (name, bucket, v) => { if (!name || /^house$/i.test(name)) return; const p = byPerson[name] || (byPerson[name] = { sales: 0, fd: 0, rec: 0, tt: 0 }); p[bucket] = r2s(p[bucket] + v); p.tt = r2s(p.tt + v); };
@@ -6274,6 +6283,16 @@ var worker_default = {
               if (!d || d.id == null) continue;
               try { await sbService(env, "PATCH", "charge_dh_schedule?id=eq." + d.id, { weeks_paid: (Number(String(d.drop || "").split(" ")[0]) || 0), status: (Number(d.remaining) || 0) <= 0 ? "done" : "active" }); } catch (e2) {}
             }
+            // refresh the DH snapshot so the frozen Direct Hires tab matches this freeze
+            try {
+              await sbService(env, "DELETE", "charge_dh_snap?week_ending=eq." + weekEnding);
+              const snapRows = (dj.drops || []).map((d) => {
+                const wkN = parseInt(String(d.drop || "").split(" ")[0], 10) || 1;
+                const ofN = parseInt(String(d.drop || "").split("of")[1], 10) || wkN;
+                return { week_ending: weekEnding, entity: d.entity || "", bu: d.bu || "", company: d.company || "", employee: d.employee || "", sales_rep: d.sales_rep || "", recruiter: d.recruiter || "", charge: d.amount, week_num: wkN, of_weeks: ofN, weeks_remaining: Number(d.remaining) || 0 };
+              });
+              if (snapRows.length) await sbService(env, "POST", "charge_dh_snap", snapRows);
+            } catch (eS) {}
           }
         } catch (e) {}
         personRows.forEach((row) => { row.raw = r2s((Number(row.fd) || 0) + ((Number(row.sales) || 0) + (Number(row.rec) || 0)) / 2); });
