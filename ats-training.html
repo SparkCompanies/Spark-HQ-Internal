@@ -201,6 +201,24 @@
   .ff .errmsg{grid-column:2;color:var(--sf-req);font-size:12px;margin-top:2px}
   .ff input[type=checkbox]{justify-self:start;width:15px;height:15px;accent-color:var(--sf-brand)}
   .ff .calcnote{font-size:12px;color:var(--sf-muted);font-style:italic}
+  /* ============ SBX_JOBEDIT_v1 — Job edit mode ============ */
+  .ff select.err{border-color:var(--sf-req);background:#FDF3F4}
+  .ff select:disabled{background:#ECEBEA;color:#706E6B;cursor:not-allowed}
+  .dep-link{grid-column:2;font-size:11px;margin-top:1px;line-height:1.2}
+  .dep-link a{cursor:pointer}
+  .lkpill{display:flex;align-items:center;gap:8px;border:1px solid var(--sf-line2);border-radius:5px;padding:4px 8px;font-size:13px;background:#fff;min-height:31px}
+  .lkpill .lkico{width:18px;height:18px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .lkpill .lkico svg{width:11px;height:11px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .lkpill b{font-weight:400;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lkpill .lkx{width:14px;height:14px;stroke:#706E6B;fill:none;stroke-width:2;stroke-linecap:round;cursor:pointer;flex:none}
+  .lkpill.err{border-color:var(--sf-req);background:#FDF3F4}
+  .lkpill input{border:none!important;outline:none!important;flex:1;font-size:13px;background:transparent;padding:0!important}
+  .snag{border:1px solid var(--sf-req);background:#FDF3F4;border-radius:6px;padding:12px 16px;margin:0 26px 12px;font-size:12.5px}
+  .snag b{color:var(--sf-red);display:block;margin-bottom:4px;font-size:13px}
+  .snag a{color:var(--sf-red);text-decoration:underline;cursor:pointer;display:block;margin-top:3px}
+  .jedit-foot{position:sticky;bottom:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(255,255,255,.97);border-top:1px solid var(--sf-line);box-shadow:0 -2px 8px rgba(0,0,0,.10);z-index:5;border-radius:0 0 8px 8px}
+  .jedit-foot .rn{position:absolute;right:16px;font-size:11.5px;color:#444}
+  .jedit-foot .rn i{color:var(--sf-req);font-style:normal}
   .warnbox{
     margin:10px 0 2px;border:1px solid #E8C36A;background:#FDF6E3;border-radius:6px;padding:10px 12px;
     font-size:12.5px;color:#6E5A12;line-height:1.5;display:flex;gap:9px;align-items:flex-start;
@@ -1010,7 +1028,7 @@
           <div class="l1">Jobs</div>
           <div class="lv-title">Recently Viewed <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></div>
         </div>
-        <div class="lv-actions"><div class="btngrp"><button class="sfbtn">New</button><button class="sfbtn">Import</button></div></div>
+        <div class="lv-actions"><div class="btngrp"><button class="sfbtn" id="btnNewJob">New</button><button class="sfbtn">Import</button></div></div>
       </div>
       <div class="lv-meta" id="jvMeta">items &bull; Updated a few seconds ago</div>
     </div>
@@ -1485,6 +1503,134 @@ var ATS_STAGES = ['Source','Submit','Interview','Pending Feedback','Offer','Onbo
 var STAGE_COLORS = {'Source':'#1B96FF','Submit':'#16325C','Interview':'#A8D5E8','Pending Feedback':'#06A59A','Offer':'#939393','Onboarding':'#747474','Placement':'#E4C441'};
 function pipe(seed){ var p={}; ATS_STAGES.forEach(function(st){ p[st] = (seed && seed[st]) ? seed[st] : []; }); return p; }
 function app(n,ph,em,ci,d,r){ return {name:n, phone:ph, email:em, city:ci, days:d, res:r}; }
+
+/* =====================================================================
+   SBX_JOBEDIT_v1 — Job object metadata (picklists, dependencies, rules)
+   NOTE: picklist values and the rules[] below are PLACEHOLDERS seeded
+   from screenshots. Replace with the org export (ValidationRule Tooling
+   API query + Object Manager picklists) to make errors match live 1:1.
+===================================================================== */
+var NEXT_JOB = 1200;
+var JOB_META = {
+  /* SBX_ORGRULES_v1 — baked from live org export 2026-08-17T23:06:18.013Z (object bpats__Job__c).
+     The boot loader still refreshes these from /sandbox-jobmeta; these
+     are the offline fallbacks and now match production exactly. */
+  statuses: ['Open','Closed'],
+  closedStatuses: ['Closed'],
+  closeReasons: ['--None--','Wash','Loss','Fully Placed'],
+  types: ['Temp','Temp to Hire','Consulting','Permanent','Retained'],
+  visibilities: ['Public','Internal','Confidential'],
+  shifts: ['--None--','1st Shift','2nd Shift','3rd Shift','Swing Shift'],
+  classMap: {
+    'Clerical/Admin/Professional': ['Customer Service Representative (CSR)','Administrative Assistant / Office Manager','HR Coordinator / Payroll Clerk','AP/AR Clerk / Accounting Assistant','Purchasing Coordinator / Buyer Assistant','Sales Support Specialist / Inside Sales Coordinator','Scheduler / Dispatcher','Marketing Coordinator / Social Media Assistant','Network & Systems Engineering','Cybersecurity / Information Security','Cloud & DevOps Engineering','Data & Business Intelligence.','Software Development / Application Engineering'],
+    'Engineering': ['Mechanical Design Engineer','Electrical Controls Engineer','Manufacturing Engineer','Maintenance Engineer / Reliability Engineer','Process Engineer / Chemical Engineer','Project Engineer / Project Manager','Quality Engineer / Continuous Improvement Engineer.','Industrial Engineer','Automation Engineer / Robotics Specialist','Applications Engineer / Field Service Engineer'],
+    'Light Industrial': ['Assembler / Production Worker','Material Handler / Loader / Unloader','Machine Operator (Non-CNC)','Packager / Packer / Labeler','Warehouse Associate / General Laborer','Forklift Operator / Reach Truck / Cherry Picker','Shipping & Receiving Clerk','Quality Inspector','Order Picker / Scanner Operator','Sanitation / Janitorial Support'],
+    'Light Industrial- DFM MARSHALL': ['Assembler / Production Worker','Material Handler / Loader / Unloader','Machine Operator (Non-CNC)','Packager / Packer / Labeler','Warehouse Associate / General Laborer','Forklift Operator / Reach Truck / Cherry Picker','Shipping & Receiving Clerk','Quality Inspector','Order Picker / Scanner Operator','Sanitation / Janitorial Support'],
+    'Skilled Trades': ['Maintenance Technician (Electrical/Mechanical)','Electrician / Journeyman','Millwright / Machine Builder / Installer','Tool & Die Maker / Mold Maker','CNC Machinist / Programmer','HVAC / Refrigeration Tech','Welders / Fabricators','Field Service Technician','Automation Technician / Controls Tech','Maintenance Supervisor / Reliability Lead'],
+    'High Volume/Risk/Other': ['Field Service Technician','Automation Technician / Controls Tech','Maintenance Supervisor / Reliability Lead','Other']
+  },
+  companyMap: {
+    'Spark Talent': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales'],
+    'Spark Packaging': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales'],
+    'JJP': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales'],
+    'Ignite Search': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales'],
+    'Flex Workforce Solutions': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales'],
+    'Spark Companies': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales'],
+    'House': ['MI Metro','Central','Enterprise','Automation','Light Industrial','BPO','Southeast','Northeast','Northwest','Southwest','John Joseph Partners','Ignite Search','Spark Sales']
+  },
+  /* Active org validation rules, hand-ported. ids equal the org
+     ValidationName so the loader keeps messages synced automatically.
+     test(f, prev) returns TRUE when violated; prev = pre-save record.
+     Not portable in the sandbox (no matching form fields / cross-object
+     data): Prevent_Changing_Number_of_Openings, WorkSite_Location_Validation. */
+  rules: [
+    { id:'Required_on_Job',
+      test:function(f, prev){ return !f.name || !f.account || !f.am || !f.start || !f.status || !f.type || !f.visibility || !f.company || !f.bu || !f.classification || !f.subclass; },
+      field:null,
+      msg:'Please complete all required fields: Account, Manager, Business Unit, Division, Job Description, Classification, Name, Location, Openings, Pay Range, Start Date, Status, Type, and Visibility.' },
+    { id:'VMS_Deal_Requires_a_Percentage',
+      test:function(f, prev){ return !!f.vms && !String(f.vmsPct||'').trim(); },
+      field:'jeVmsPct',
+      msg:'As this is a VMS deal, you must have a VMS % listed. Please update.' },
+    { id:'Require_Close_Reason_For_status_Closed',
+      test:function(f, prev){ return JOB_META.closedStatuses.indexOf(f.status) > -1 && (!f.closeReason || f.closeReason === '--None--'); },
+      field:'jeCloseReason',
+      msg:'Close reason is required when status is Closed' },
+    { id:'Only_admins_can_reopen_jobs',
+      test:function(f, prev){ return !!prev && !prev._isNew && prev.status === 'Closed' && f.status !== 'Closed'; },
+      field:'jeStatus',
+      msg:'Only Administrators may reopen a closed job.' }
+  ]
+};
+
+/* =====================================================================
+   SBX_METALOADER_v1 — pull live Job metadata from the worker at boot.
+   Uses SBX_LIVE (worker + SANDBOX_TOKEN, set near EOF). If live mode is
+   sandbox runs on baked-in JOB_META (standalone mode).
+===================================================================== */
+/* Uses SBX_LIVE (worker URL + SANDBOX_TOKEN) declared later in this file. */
+
+function sbxFieldByLabel(meta, label){
+  for (var api in meta.fields){ if (meta.fields[api].label === label) return api; }
+  return null;
+}
+function sbxPick(meta, label){
+  var api = sbxFieldByLabel(meta, label);
+  return api && meta.picklists[api] ? meta.picklists[api].slice() : null;
+}
+function sbxDepMap(meta, depLabel){
+  var api = sbxFieldByLabel(meta, depLabel);
+  return api && meta.dependencies[api] ? meta.dependencies[api].map : null;
+}
+function applyServerMeta(meta){
+  try{
+    var v;
+    if ((v = sbxPick(meta, 'Status')))              JOB_META.statuses = v;
+    if ((v = sbxPick(meta, 'Type')))                JOB_META.types = v;
+    if ((v = sbxPick(meta, 'Visibility')))          JOB_META.visibilities = v;
+    if ((v = sbxPick(meta, 'Shift Info')))          JOB_META.shifts = ['--None--'].concat(v);
+    if ((v = sbxPick(meta, 'Close Reason')))        JOB_META.closeReasons = ['--None--'].concat(v);
+    var cm = sbxDepMap(meta, 'Job Subclassification');
+    if (cm) JOB_META.classMap = cm;
+    var bm = sbxDepMap(meta, 'Business Unit');
+    if (bm) JOB_META.companyMap = bm;
+    /* closed statuses = Status values that permit a Close Reason */
+    var crm = sbxDepMap(meta, 'Close Reason');
+    if (crm){
+      JOB_META.closedStatuses = Object.keys(crm).filter(function(k){ return crm[k].length; });
+    }
+    /* validation rules: update local messages where names align;
+       surface untranslated org rules in the console for hand-porting */
+    var untranslated = [];
+    (meta.rules || []).forEach(function(r){
+      if (!r.active) return;
+      var local = JOB_META.rules.find(function(x){
+        return x.id === r.name || x.id.replace(/^VR_/,'').toLowerCase() === r.name.toLowerCase();
+      });
+      if (local){ local.msg = r.message; }
+      else { untranslated.push(r); }
+    });
+    if (untranslated.length){
+      console.info('[SBX] ' + untranslated.length + ' org validation rule(s) need a JS test() hand-written in JOB_META.rules:');
+      untranslated.forEach(function(r){
+        console.info('  [' + r.name + '] field=' + (r.field||'(banner)') + ' msg="' + r.message + '"\n  formula: ' + (r.formula||'(unavailable)'));
+      });
+    }
+    console.info('[SBX] Live metadata applied from ' + meta.object + ' (generated ' + meta.generatedAt + ')');
+  } catch(e){
+    console.warn('[SBX] applyServerMeta failed, using baked-in JOB_META:', e);
+  }
+}
+setTimeout(function loadServerMeta(){
+  /* deferred so SBX_LIVE + sbxLiveOn (declared near EOF) exist */
+  if (typeof sbxLiveOn !== 'function' || !sbxLiveOn()) return;   /* standalone mode */
+  fetch(SBX_LIVE.worker + '/sandbox-jobmeta?token=' + encodeURIComponent(SBX_LIVE.token)).then(function(r){
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(applyServerMeta).catch(function(e){
+    console.warn('[SBX] metadata fetch failed, using baked-in JOB_META:', e.message);
+  });
+}, 0);
 
 var JOBS = [
   {id:'J-1041', title:'CNC Machinist', client:'3 Dimensional Services Group', pay:'$22.00\u2013$26.00/hr', type:'Contract', status:'Open', owner:'Dana Verrett', hm:'Chris Darnell', hmEmail:'c.darnell@example.com', bu:'MI Metro', loc:'Rochester Hills, MI', worksite:'Plant 2 \u2013 Machining', start:'7/20/2026', end:'', openings:4, filled:1, burden:'5.00%', classification:'Skilled Trades', subclass:'CNC / Machining', company:'Spark Talent',
@@ -2098,6 +2244,7 @@ function renderJobs(){
 var currentJobTab = 'kanban';
 function openJob(jid, tab){
   var j = JOBS.find(function(x){ return x.id === jid; }); if(!j) return;
+  seedJobDefaults(j);
   currentJobTab = tab || currentJobTab || 'kanban';
   var scr = document.getElementById('scr-job');
 
@@ -2134,16 +2281,28 @@ function openJob(jid, tab){
     body = '<div class="rp-body">'
       + '<div class="sec"><div class="sec-h"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>Information</div><div class="sec-b">'
       +   '<div>'
-      +     fldRow('Job Name', j.title) + fldRow('Job Title', j.title)
-      +     fldRow('Account', '<a>'+j.client+'</a>', {noedit:true})
+      +     fldRow('Job Name', j.title) + fldRow('Job Title', j.jobTitle || j.title)
+      +     fldRow('Account', '<a>'+j.client+'</a>')
+      +     fldRow('Opportunity', j.opp || '')
       +     fldRow('Start Date', j.start) + fldRow('End Date', j.end||'')
-      +     fldRow('Visibility', 'Public') + fldRow('Fulfillment Support', '<a>Jake Patton</a>', {noedit:true})
+      +     fldRow('Visibility', j.visibility)
+      +     fldRow('VMS', !!j.vms, {check:true}) + fldRow('VMS %', j.vms ? (j.vmsPct||'') : '')
+      +     fldRow('Primary Staffing Services', j.primarySvc || '')
+      +     fldRow('Secondary Staffing Services', j.secondarySvc || '')
+      +     fldRow('Fulfillment Support', j.fulfill ? ('<a>'+j.fulfill+'</a>') : '')
+      +     fldRow('Shift Info', j.shift === '--None--' ? '' : (j.shift||''))
+      +     fldRow('WorkSite Location', j.worksite) + fldRow('Location', j.loc)
       +   '</div><div>'
-      +     fldRow('Status', j.status) + fldRow('Type', j.type)
-      +     fldRow('Hiring Manager', '<a>'+j.hm+'</a>', {noedit:true}) + fldRow('Hiring Manager\u2019s Email', j.hmEmail)
+      +     fldRow('Status', j.status)
+      +     fldRow('Close Reason', (!j.closeReason || j.closeReason === '--None--') ? '' : j.closeReason)
+      +     fldRow('Type', j.type)
+      +     fldRow('Hiring Manager', '<a>'+j.hm+'</a>') + fldRow('Hiring Manager\u2019s Email', j.hmEmail)
+      +     fldRow('Account Manager', j.am ? ('<a>'+j.am+'</a>') : '')
+      +     fldRow('Sales Lead', j.salesLead ? ('<a>'+j.salesLead+'</a>') : '')
+      +     fldRow('Recruiter', j.recruiter ? ('<a>'+j.recruiter+'</a>') : '')
+      +     fldRow('Post Externally', !!j.postExt, {check:true})
       +     fldRow('Job Classification', j.classification) + fldRow('Job Subclassification', j.subclass)
       +     fldRow('Company', j.company) + fldRow('Business Unit', j.bu)
-      +     fldRow('WorkSite Location', j.worksite) + fldRow('Location', j.loc)
       +   '</div>'
       + '</div></div>'
       + '<div class="sec"><div class="sec-h"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>Compensation</div><div class="sec-b">'
@@ -2280,6 +2439,7 @@ function openJob(jid, tab){
 
   /* wiring */
   scr.querySelectorAll('.sec-h').forEach(function(h){ h.addEventListener('click', function(){ h.parentElement.classList.toggle('closed'); }); });
+  scr.querySelectorAll('.pen').forEach(function(p){ p.addEventListener('click', function(){ openJobEdit(jid); }); });
   scr.querySelectorAll('[data-jtab]').forEach(function(t){
     t.addEventListener('click', function(){
       var k = t.dataset.jtab;
@@ -2319,6 +2479,293 @@ function openJob(jid, tab){
     });
   });
 }
+
+/* =====================================================================
+   SBX_JOBEDIT_v1 — Job edit mode (mirrors the live Asymbl Job page)
+===================================================================== */
+function seedJobDefaults(j){
+  if(j.visibility === undefined) j.visibility = 'Public';
+  if(j.jobTitle === undefined)   j.jobTitle = j.title;
+  if(j.am === undefined)         j.am = 'Jamie Platt';
+  if(j.salesLead === undefined)  j.salesLead = 'Jamie Platt';
+  if(j.recruiter === undefined)  j.recruiter = 'Michaela Soria';
+  if(j.shift === undefined)      j.shift = '1st Shift';
+  if(j.closeReason === undefined)j.closeReason = '--None--';
+  if(j.vms === undefined)        j.vms = false;
+  if(j.vmsPct === undefined)     j.vmsPct = '';
+  if(j.postExt === undefined)    j.postExt = false;
+  if(j.opp === undefined)        j.opp = '';
+  if(j.fulfill === undefined)    j.fulfill = '';
+  if(j.primarySvc === undefined) j.primarySvc = j.classification || '';
+  if(j.secondarySvc === undefined) j.secondarySvc = j.subclass || '';
+  /* SBX_ORGRULES_v1 — coerce any legacy seed values into valid org picklist values */
+  if(JOB_META.statuses.indexOf(j.status) < 0) j.status = 'Open';
+  if(JOB_META.types.indexOf(j.type) < 0) j.type = JOB_META.types.indexOf('Temp to Hire') > -1 ? 'Temp to Hire' : JOB_META.types[0];
+  if(JOB_META.visibilities.indexOf(j.visibility) < 0) j.visibility = JOB_META.visibilities[0];
+  if(JOB_META.shifts.indexOf(j.shift) < 0) j.shift = JOB_META.shifts[1] || '--None--';
+  if(!JOB_META.classMap[j.classification]) j.classification = Object.keys(JOB_META.classMap)[0];
+  if((JOB_META.classMap[j.classification]||[]).indexOf(j.subclass) < 0) j.subclass = (JOB_META.classMap[j.classification]||[''])[0];
+  if(!JOB_META.companyMap[j.company]) j.company = Object.keys(JOB_META.companyMap)[0];
+  if((JOB_META.companyMap[j.company]||[]).indexOf(j.bu) < 0) j.bu = (JOB_META.companyMap[j.company]||[''])[0];
+}
+
+function jeOpts(list, sel){
+  return list.map(function(o){ return '<option'+(o===sel?' selected':'')+'>'+o+'</option>'; }).join('');
+}
+function jeLk(id, val, color, placeholder, req){
+  var ico = '<span class="lkico" style="background:'+color+'"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/></svg></span>';
+  if(color === '#0176D3' && id === 'jeAccount'){
+    ico = '<span class="lkico" style="background:#7F8DE1"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M9 14h.01M15 10h.01M15 14h.01"/></svg></span>';
+  }
+  var inner = val
+    ? ico+'<b>'+val+'</b><svg class="lkx" data-lk="'+id+'" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+    : '<input type="text" placeholder="'+placeholder+'">';
+  return '<div class="lkpill" id="'+id+'" data-ph="'+placeholder+'">'+inner+'</div>'
+    + '<div class="errmsg hide" id="'+id+'Err">Complete this field.</div>';
+}
+function jeLkVal(id){
+  var el = document.getElementById(id); if(!el) return '';
+  var inp = el.querySelector('input');
+  if(inp) return inp.value.trim();
+  var b = el.querySelector('b');
+  return b ? b.textContent.trim() : '';
+}
+function jeDep(){ return '<div class="dep-link"><a class="je-dep">View all dependencies</a></div>'; }
+
+function openJobEdit(jid){
+  var isNew = !jid;
+  var j;
+  if(isNew){
+    j = { id:'J-'+(NEXT_JOB++), title:'', jobTitle:'', client:'', status:'Open', type:'Temp to Hire',
+          owner:USER.full, hm:'', hmEmail:'', classification:'Light Industrial',
+          subclass:JOB_META.classMap['Light Industrial'][0], company:'Spark Talent',
+          bu:JOB_META.companyMap['Spark Talent'][0], loc:'', worksite:'', start:'', end:'',
+          openings:1, filled:0, burden:'5.00%', pay:'', shortDesc:'', rateCards:['Default Rate Card'],
+          pipeline: pipe(), _isNew:true };
+    seedJobDefaults(j);
+    j.shift = '--None--';   /* new records start unset, same as live */
+    j.am = ''; j.salesLead = ''; j.recruiter = '';
+  } else {
+    j = JOBS.find(function(x){ return x.id === jid; }); if(!j) return;
+    seedJobDefaults(j);
+  }
+
+  var scr = document.getElementById('scr-job');
+  var subs = JOB_META.classMap[j.classification] || [];
+  var bus  = JOB_META.companyMap[j.company] || [];
+  var crDisabled = JOB_META.closedStatuses.indexOf(j.status) < 0;
+
+  scr.innerHTML =
+    '<div class="rp-head">'
+    + '<div class="rp-top">'
+    +   '<div class="obj-ico" style="background:#2E844A"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"/><path d="M3 12h18"/></svg></div>'
+    +   '<div><div class="l1">Job</div><div class="rp-name">'+(isNew ? 'New Job' : j.title)+'</div></div>'
+    + '</div>'
+    + '</div>'
+    + '<div class="rp-main" style="margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto;position:relative">'
+    +   '<div id="jeSnagBox"></div>'
+    +   '<div class="req-note"><i>*</i> = Required Information</div>'
+    +   '<div class="rp-body" style="padding-top:6px">'
+    +   '<div class="sec"><div class="sec-h"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>Information</div><div class="sec-b" style="align-items:start">'
+    +   '<div>'
+    +     '<div class="ff"><label><i>*</i>Job Name</label><input type="text" id="jeName" value="'+(j.title||'')+'"><div class="errmsg hide" id="jeNameErr">Complete this field.</div></div>'
+    +     '<div class="ff"><label><i>*</i>Job Title</label><input type="text" id="jeTitle" value="'+(j.jobTitle||'')+'"><div class="errmsg hide" id="jeTitleErr">Complete this field.</div></div>'
+    +     '<div class="ff"><label><i>*</i>Account</label>'+jeLk('jeAccount', j.client, '#0176D3', 'Search Accounts...')+'</div>'
+    +     '<div class="ff"><label>Opportunity</label><input type="text" id="jeOpp" value="'+(j.opp||'')+'" placeholder="Search Opportunities..."></div>'
+    +     '<div class="ff"><label><i>*</i>Start Date</label><input type="text" id="jeStart" value="'+(j.start||'')+'" placeholder="m/d/yyyy"><div class="errmsg hide" id="jeStartErr">Complete this field.</div></div>'
+    +     '<div class="ff"><label>End Date</label><input type="text" id="jeEnd" value="'+(j.end||'')+'" placeholder="m/d/yyyy"><div class="errmsg hide" id="jeEndErr"></div></div>'
+    +     '<div class="ff"><label><i>*</i>Visibility</label><select id="jeVis">'+jeOpts(JOB_META.visibilities, j.visibility)+'</select><div class="errmsg hide" id="jeVisErr">Complete this field.</div></div>'
+    +     '<div class="ff"><label>VMS</label><input type="checkbox" id="jeVms"'+(j.vms?' checked':'')+'></div>'
+    +     '<div class="ff"><label>VMS %</label><input type="text" id="jeVmsPct" value="'+(j.vmsPct||'')+'"><div class="errmsg hide" id="jeVmsPctErr"></div></div>'
+    +     '<div class="ff"><label>Primary Staffing Services</label><span class="calcnote">This field is calculated upon save</span></div>'
+    +     '<div class="ff"><label>Secondary Staffing Services</label><span class="calcnote">This field is calculated upon save</span></div>'
+    +     '<div class="ff"><label>Fulfillment Support</label><input type="text" id="jeFulfill" value="'+(j.fulfill||'')+'" placeholder="Search People..."></div>'
+    +     '<div class="ff"><label><i>*</i>Shift Info</label><select id="jeShift">'+jeOpts(JOB_META.shifts, j.shift)+'</select><div class="errmsg hide" id="jeShiftErr">Complete this field.</div></div>'
+    +   '</div>'
+    +   '<div>'
+    +     '<div class="ff"><label><i>*</i>Status</label><select id="jeStatus">'+jeOpts(JOB_META.statuses, j.status)+'</select>'+jeDep()+'<div class="errmsg hide" id="jeStatusErr">Complete this field.</div></div>'
+    +     '<div class="ff"><label>Close Reason</label><select id="jeCloseReason"'+(crDisabled?' disabled':'')+'>'+jeOpts(JOB_META.closeReasons, j.closeReason)+'</select>'+jeDep()+'<div class="errmsg hide" id="jeCloseReasonErr"></div></div>'
+    +     '<div class="ff"><label><i>*</i>Type</label><select id="jeType">'+jeOpts(JOB_META.types, j.type)+'</select><div class="errmsg hide" id="jeTypeErr">Complete this field.</div></div>'
+    +     '<div class="ff"><label>Hiring Manager</label>'+jeLk('jeHM', j.hm, '#0176D3', 'Search Contacts...')+'</div>'
+    +     '<div class="ff"><label>Hiring Manager\u2019s Email</label><span style="font-size:13px">'+(j.hmEmail ? '<a>'+j.hmEmail+'</a><br>' : '')+'<span class="calcnote">This field is calculated upon save</span></span></div>'
+    +     '<div class="ff"><label><i>*</i>Account Manager</label>'+jeLk('jeAM', j.am, '#0176D3', 'Search People...')+'</div>'
+    +     '<div class="ff"><label>Sales Lead</label>'+jeLk('jeSL', j.salesLead, '#0176D3', 'Search People...')+'</div>'
+    +     '<div class="ff"><label>Recruiter</label>'+jeLk('jeRec', j.recruiter, '#0176D3', 'Search People...')+'</div>'
+    +     '<div class="ff"><label>Post Externally</label><input type="checkbox" id="jePostExt"'+(j.postExt?' checked':'')+'></div>'
+    +     '<div class="ff"><label>Job Classification</label><select id="jeClass">'+jeOpts(Object.keys(JOB_META.classMap), j.classification)+'</select>'+jeDep()+'</div>'
+    +     '<div class="ff"><label>Job Subclassification</label><select id="jeSubclass">'+jeOpts(subs, j.subclass)+'</select>'+jeDep()+'</div>'
+    +     '<div class="ff"><label>Company</label><select id="jeCompany">'+jeOpts(Object.keys(JOB_META.companyMap), j.company)+'</select>'+jeDep()+'</div>'
+    +     '<div class="ff"><label>Business Unit</label><select id="jeBU">'+jeOpts(bus, j.bu)+'</select>'+jeDep()+'</div>'
+    +   '</div>'
+    +   '</div></div>'
+    +   '</div>'
+    +   '<div class="jedit-foot">'
+    +     '<button class="sfbtn" style="border-radius:16px" id="jeCancel">Cancel</button>'
+    +     '<button class="sfbtn brand" style="border-radius:16px" id="jeSave">Save</button>'
+    +     '<span class="rn"><i>*</i> = Required Information</span>'
+    +   '</div>'
+    + '</div>';
+
+  ['home','contacts','accounts','account','jobs','leads','lead','opps','search','parser','dash','dashlist','import','placements','record','reports','timesheets','stub'].forEach(function(sc2){ var el=document.getElementById('scr-'+sc2); if(el) el.classList.add('hide'); });
+  scr.classList.remove('hide');
+  document.querySelectorAll('.an-tab').forEach(function(t){ t.classList.toggle('active', t.dataset.nav==='jobs'); });
+
+  /* ---- wiring ---- */
+  scr.querySelectorAll('.je-dep').forEach(function(a){
+    a.addEventListener('click', function(){ toast('Field dependencies are wired live in this sandbox \u2014 change the controlling field and watch this one update.'); });
+  });
+  /* lookup pill X -> becomes a search input */
+  function wireLkx(){
+    scr.querySelectorAll('.lkx').forEach(function(x){
+      x.addEventListener('click', function(){
+        var pill = document.getElementById(x.dataset.lk);
+        pill.innerHTML = '<input type="text" placeholder="'+pill.dataset.ph+'">';
+        pill.querySelector('input').focus();
+      });
+    });
+  }
+  wireLkx();
+  /* dependent picklists */
+  var selClass = document.getElementById('jeClass'), selSub = document.getElementById('jeSubclass');
+  selClass.addEventListener('change', function(){
+    var list = JOB_META.classMap[selClass.value] || [];
+    selSub.innerHTML = jeOpts(list, list[0]);
+  });
+  var selCo = document.getElementById('jeCompany'), selBU = document.getElementById('jeBU');
+  selCo.addEventListener('change', function(){
+    var list = JOB_META.companyMap[selCo.value] || [];
+    selBU.innerHTML = jeOpts(list, list[0]);
+  });
+  var selStatus = document.getElementById('jeStatus'), selCR = document.getElementById('jeCloseReason');
+  selStatus.addEventListener('change', function(){
+    var closed = JOB_META.closedStatuses.indexOf(selStatus.value) > -1;
+    selCR.disabled = !closed;
+    if(!closed) selCR.value = '--None--';
+  });
+
+  document.getElementById('jeCancel').addEventListener('click', function(){
+    if(isNew){ renderJobs(); document.getElementById('scr-job').classList.add('hide'); document.getElementById('scr-jobs').classList.remove('hide'); }
+    else { openJob(j.id, 'details'); }
+  });
+  document.getElementById('jeSave').addEventListener('click', function(){ tryJobSave(j, isNew); });
+}
+
+function tryJobSave(j, isNew){
+  function clearErr(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.classList.remove('err');
+    var em = document.getElementById(id+'Err'); if(em){ em.classList.add('hide'); }
+  }
+  ['jeName','jeTitle','jeAccount','jeStart','jeEnd','jeVis','jeShift','jeStatus','jeCloseReason','jeType','jeAM','jeVmsPct'].forEach(clearErr);
+
+  /* gather */
+  var f = {
+    name:  document.getElementById('jeName').value.trim(),
+    title: document.getElementById('jeTitle').value.trim(),
+    account: jeLkVal('jeAccount'),
+    opp:   document.getElementById('jeOpp').value.trim(),
+    start: document.getElementById('jeStart').value.trim(),
+    end:   document.getElementById('jeEnd').value.trim(),
+    visibility: document.getElementById('jeVis').value,
+    vms:   document.getElementById('jeVms').checked,
+    vmsPct: document.getElementById('jeVmsPct').value.trim(),
+    fulfill: document.getElementById('jeFulfill').value.trim(),
+    shift: document.getElementById('jeShift').value,
+    status: document.getElementById('jeStatus').value,
+    closeReason: document.getElementById('jeCloseReason').value,
+    type:  document.getElementById('jeType').value,
+    hm:    jeLkVal('jeHM'),
+    am:    jeLkVal('jeAM'),
+    salesLead: jeLkVal('jeSL'),
+    recruiter: jeLkVal('jeRec'),
+    postExt: document.getElementById('jePostExt').checked,
+    classification: document.getElementById('jeClass').value,
+    subclass: document.getElementById('jeSubclass').value,
+    company: document.getElementById('jeCompany').value,
+    bu: document.getElementById('jeBU').value
+  };
+
+  var fails = [];   /* {id,label,msg} */
+  function fieldErr(id, label, msg){
+    var el = document.getElementById(id);
+    if(el){
+      el.classList.add('err');
+      var em = document.getElementById(id+'Err');
+      if(em){ em.textContent = msg; em.classList.remove('hide'); }
+    }
+    fails.push({ id:id, label:label, msg:msg });
+  }
+
+  /* 1) required fields — standard Lightning "Complete this field." */
+  var REQ = [
+    ['jeName','Job Name', f.name],
+    ['jeTitle','Job Title', f.title],
+    ['jeAccount','Account', f.account],
+    ['jeStart','Start Date', f.start],
+    ['jeVis','Visibility', f.visibility && f.visibility !== '--None--' ? 'ok' : ''],
+    ['jeShift','Shift Info', f.shift && f.shift !== '--None--' ? 'ok' : ''],
+    ['jeStatus','Status', f.status && f.status !== '--None--' ? 'ok' : ''],
+    ['jeType','Type', f.type && f.type !== '--None--' ? 'ok' : ''],
+    ['jeAM','Account Manager', f.am]
+  ];
+  REQ.forEach(function(r){ if(!r[2]) fieldErr(r[0], r[1], 'Complete this field.'); });
+
+  /* 2) validation rules — SBX_JOBVALID_v1 (fires only when required checks pass, same as live) */
+  if(!fails.length){
+    JOB_META.rules.forEach(function(rule){
+      if(rule.test(f, j)){
+        if(rule.field){
+          var lbl = { jeEnd:'End Date', jeCloseReason:'Close Reason', jeVmsPct:'VMS %', jeStatus:'Status' }[rule.field] || rule.field;
+          fieldErr(rule.field, lbl, rule.msg);
+        } else {
+          fails.push({ id:null, label:null, msg:rule.msg });
+        }
+      }
+    });
+  }
+
+  var box = document.getElementById('jeSnagBox');
+  if(fails.length){
+    box.innerHTML = '<div class="snag"><b>We hit a snag.</b>Review the following fields'
+      + fails.map(function(x){
+          return x.id ? '<a data-snag="'+x.id+'">'+x.label+'</a>' : '<a>'+x.msg+'</a>';
+        }).join('')
+      + '</div>';
+    box.querySelectorAll('[data-snag]').forEach(function(a){
+      a.addEventListener('click', function(){
+        var el = document.getElementById(a.dataset.snag);
+        if(el){ el.scrollIntoView({ block:'center' }); var inp = el.tagName==='DIV' ? el.querySelector('input') : el; if(inp && inp.focus) inp.focus(); }
+      });
+    });
+    box.scrollIntoView({ block:'nearest' });
+    emit('job:validated');
+    return;
+  }
+  box.innerHTML = '';
+
+  /* 3) write back — formula fields recalc "upon save" like live */
+  var hmChanged = f.hm !== j.hm;
+  j.title = f.name; j.jobTitle = f.title; j.client = f.account; j.opp = f.opp;
+  j.start = f.start; j.end = f.end; j.visibility = f.visibility;
+  j.vms = f.vms; j.vmsPct = f.vms ? f.vmsPct : '';
+  j.fulfill = f.fulfill; j.shift = f.shift;
+  j.status = f.status; j.closeReason = f.closeReason; j.type = f.type;
+  j.hm = f.hm; j.am = f.am; j.salesLead = f.salesLead; j.recruiter = f.recruiter;
+  j.postExt = f.postExt;
+  j.classification = f.classification; j.subclass = f.subclass;
+  j.company = f.company; j.bu = f.bu;
+  j.primarySvc = j.classification; j.secondarySvc = j.subclass;
+  if(hmChanged){ j.hmEmail = f.hm ? f.hm.toLowerCase().split(' ').join('.') + '@example.com' : ''; }
+
+  if(isNew){ delete j._isNew; JOBS.unshift(j); }
+  renderJobs();
+  toast('Job "' + j.title + '" was saved.');
+  emit('job:saved');
+  openJob(j.id, 'details');
+}
+
+var _btnNewJob = document.getElementById('btnNewJob');
+if(_btnNewJob){ _btnNewJob.addEventListener('click', function(){ openJobEdit(null); }); }
 
 function moveApplicant(jid, fromStage, idx, toStage){
   /* SBX_SUBMITMAIL_v1: moving into Submit fires the Asymbl stage-change email */
