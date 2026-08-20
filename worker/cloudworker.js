@@ -6132,7 +6132,11 @@ var worker_default = {
       const toSF = (nm) => revAlias[nm] || nm;
       let localOk = false;
       try {
-        const rec = { week_ending: wk, match_candidate: String(body.match_candidate || ""), match_company: String(body.match_company || ""), action: "patch", fields: fullDesk ? { am: amName, rec: amName } : { am: amName, rec: secName || amName }, created_by: email };
+        // A credit fix corrects a structural error, so by default it applies to every week
+        // (week_ending NULL) rather than just the one being viewed.
+        const rec = { week_ending: body.this_week_only === true ? wk : null, match_candidate: String(body.match_candidate || ""), match_company: String(body.match_company || ""), action: "patch", fields: fullDesk ? { am: amName, rec: amName } : { am: amName, rec: secName || amName }, created_by: email };
+        // replace any earlier standing fix for the same person+client so they cannot stack
+        try { await sbService(env, "DELETE", "charge_contract_overrides?week_ending=is.null&action=eq.patch&match_candidate=eq." + encodeURIComponent(rec.match_candidate) + "&match_company=eq." + encodeURIComponent(rec.match_company)); } catch (e) {}
         const rr = await sbService(env, "POST", "charge_contract_overrides", rec);
         localOk = rr.ok;
       } catch (e) {}
@@ -6141,17 +6145,31 @@ var worker_default = {
         sf = { attempted: true };
         try {
           const tok = await getSalesforceToken(env);
-          const q = "SELECT Id FROM bpats__Placement_Credit__c WHERE bpats__Placement__c = '" + placementId.replace(/[^a-zA-Z0-9]/g, "") + "' AND bpats__Is_Void__c = false";
+          const pid = placementId.replace(/[^a-zA-Z0-9]/g, "");
+          // find the timesheet for this placement + week so the new credits attach to it
+          let tsId = String(body.timesheet_id || "").replace(/[^a-zA-Z0-9]/g, "");
+          if (!tsId) {
+            try {
+              const tq = "SELECT Id FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Placement__c = '" + pid + "' AND ASYMBL_Time__Pay_Period_End_Date__c = " + wk + " LIMIT 1";
+              const tr = await fetch(tok.instance_url + "/services/data/v60.0/query?q=" + encodeURIComponent(tq), { headers: { "Authorization": "Bearer " + tok.access_token } });
+              const td = await tr.json();
+              if (td && td.records && td.records[0]) tsId = td.records[0].Id;
+            } catch (e) {}
+          }
+          const q = tsId
+            ? "SELECT Id FROM bpats__Placement_Credit__c WHERE Timesheet_Timesheet__c = '" + tsId + "' AND bpats__Is_Void__c = false"
+            : "SELECT Id FROM bpats__Placement_Credit__c WHERE bpats__Placement__c = '" + pid + "' AND bpats__Is_Void__c = false";
           const qr = await fetch(tok.instance_url + "/services/data/v60.0/query?q=" + encodeURIComponent(q), { headers: { "Authorization": "Bearer " + tok.access_token } });
           const qd = await qr.json();
           const existing = (qd && qd.records) || [];
           let deleted = 0;
           for (const c of existing) { const dr = await sfWrite(env, "DELETE", "/sobjects/bpats__Placement_Credit__c/" + c.Id); if (dr.ok) deleted++; }
-          const mkRec = (name, type, userId) => { const o = { Name: type, bpats__Placement__c: placementId, bpats__ATS_Role_Type__c: "User Lookup", bpats__Credit_Recipient__c: toSF(name), bpats__Credit_Percentage__c: 100 }; if (userId) o.bpats__User__c = userId; return o; };
+          const mkRec = (name, type, userId) => { const o = { Name: type, bpats__Placement__c: placementId, bpats__ATS_Role_Type__c: "User Lookup", bpats__Credit_Recipient__c: toSF(name), bpats__Credit_Percentage__c: 100 }; if (userId) o.bpats__User__c = userId; if (tsId) o.Timesheet_Timesheet__c = tsId; return o; };
           const records = fullDesk ? [mkRec(amName, "Full Desk Credit", amUserId)] : [mkRec(amName, "Sales Credit", amUserId)].concat(secName ? [mkRec(secName, secType, secUserId)] : []);
           let created = 0, errs = [];
           for (const rec of records) { const cr = await sfWrite(env, "POST", "/sobjects/bpats__Placement_Credit__c", rec); if (cr.ok) created++; else errs.push(JSON.stringify(cr.data).slice(0, 140)); }
-          sf.deleted = deleted; sf.created = created; sf.ok = errs.length === 0 && created === records.length;
+          sf.deleted = deleted; sf.created = created; sf.timesheet = tsId || null; sf.ok = errs.length === 0 && created === records.length;
+          if (!tsId) sf.note = "no timesheet found for this week \u2014 credits were attached to the placement only; the standing fix in the report still applies";
           if (errs.length) sf.errors = errs;
         } catch (e) { sf.ok = false; sf.error = String(e.message || e); }
       }
