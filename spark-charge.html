@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-5';
+  var BUILD = 'b0820-6';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1822,10 +1822,12 @@ window.SPARK_LIVE = (function () {
     Object.keys(names).forEach(function (n) {
       var p = wk[n] || { sales: 0, fd: 0, rec: 0 };
       var d = dhP[n] || { sales: 0, fd: 0, rec: 0 };
-      var live = !!p.live;
-      var rawOfBuckets = function (s2, f2, r2v) { return live ? f2 + (s2 + r2v) / 2 : (s2 + f2 + r2v) / 2; };
+      // DH buckets always come from the live DH engine, whose convention is
+      // raw = FD + (Sales + Rec) / 2 — regardless of whether the week is locked.
+      // (Using the books formula here halved DH on locked weeks and the missing
+      // half surfaced as phantom contract.)
       var totRaw = commRaw(p);
-      var dhRaw = rawOfBuckets(d.sales || 0, d.fd || 0, d.rec || 0);
+      var dhRaw = (d.fd || 0) + ((d.sales || 0) + (d.rec || 0)) / 2;
       // contract = everything the person has this week minus the DH portion, so the two
       // columns always add back to the raw charge shown in Rankings.
       var cSales = (p.sales || 0) - (d.sales || 0);
