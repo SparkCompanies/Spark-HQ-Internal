@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-2';
+  var BUILD = 'b0820-4';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1345,7 +1345,7 @@ window.SPARK_LIVE = (function () {
     Q3WKS = D.weeks.filter(function (w) { var p = w.we.split('/'); return +p[0] >= 7; });
     Q3 = Q3WKS.reduce(function (s, w) { return s + wkTotal(w); }, 0);
     var we = document.getElementById('lvWe'); if (we) we.textContent = labelWe(curIso);
-    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
+    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rComm(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
     try { heroHover(); } catch (e) {}
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
@@ -1793,6 +1793,117 @@ window.SPARK_LIVE = (function () {
     h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; Spark Portfolio Total stays pinned at the bottom</div>';
     el.innerHTML = h;
   };
+
+  // ── COMMISSIONS: per-person contract vs direct-hire split for the selected week ──
+  var commQ = '';
+  window.rComm = function () {
+    var el = document.getElementById('p-comm'); if (!el) return;
+    if (!IS_ADMIN) { el.innerHTML = '<div class="st">Commissions</div><div style="font-size:11px;color:var(--dm)">Admin access required.</div>'; return; }
+    var _pin = null; try { _pin = sessionStorage.getItem(PIN_KEY); } catch (e) {}
+    if (!_pin) {
+      el.innerHTML = '<div class="st">Commissions</div><div class="cd" style="max-width:420px"><div style="font-size:12px;margin-bottom:10px">This tab contains pay-affecting figures and is PIN protected.</div>' +
+        '<button class="fb" style="background:var(--gold);color:#1a1a2e;font-weight:800" onclick="SPARK_LIVE.commUnlock()">Enter admin PIN</button></div>';
+      return;
+    }
+    if (!H) { el.innerHTML = '<div class="st">Commissions</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
+    var wk = pweek(curIso) || {};
+    var dj = dhb[curIso];
+    var dhP = (dj && dj.byPerson) || {};
+    var rows = [];
+    var names = {};
+    Object.keys(wk).forEach(function (n) { names[n] = 1; });
+    Object.keys(dhP).forEach(function (n) { names[n] = 1; });
+    Object.keys(names).forEach(function (n) {
+      var p = wk[n] || { sales: 0, fd: 0, rec: 0 };
+      var d = dhP[n] || { sales: 0, fd: 0, rec: 0 };
+      var live = !!p.live;
+      var rawOfBuckets = function (s2, f2, r2v) { return live ? f2 + (s2 + r2v) / 2 : (s2 + f2 + r2v) / 2; };
+      var totRaw = rawOf(p);
+      var dhRaw = rawOfBuckets(d.sales || 0, d.fd || 0, d.rec || 0);
+      // contract = everything the person has this week minus the DH portion, so the two
+      // columns always add back to the raw charge shown in Rankings.
+      var cSales = (p.sales || 0) - (d.sales || 0);
+      var cFd = (p.fd || 0) - (d.fd || 0);
+      var cRec = (p.rec || 0) - (d.rec || 0);
+      var cRaw = totRaw - dhRaw;
+      var meta = (H.people || []).find(function (x) { return x.person === n; }) || {};
+      if (Math.abs(totRaw) < 0.5 && Math.abs(dhRaw) < 0.5) return;
+      rows.push({ n: n, bu: meta.bu || '\u2014', en: meta.entity || '', cRaw: cRaw, dhRaw: dhRaw, tot: totRaw,
+                  cS: cSales, cF: cFd, cR: cRec, dS: d.sales || 0, dF: d.fd || 0, dR: d.rec || 0 });
+    });
+    if (commQ) { var q = commQ.toLowerCase(); rows = rows.filter(function (r) { return (r.n + ' ' + r.bu + ' ' + r.en).toLowerCase().indexOf(q) !== -1; }); }
+    rows.sort(function (a, b) { return b.tot - a.tot; });
+    var money = function (v, strong, dim) {
+      var x = Math.round(v || 0);
+      if (!x) return '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>';
+      return '<td class="r m" style="padding:4px 9px;' + (strong ? 'font-weight:800;' : '') + 'color:' + (x < 0 ? 'var(--red)' : dim ? 'var(--dm)' : 'var(--tx)') + '!important">' + fmt(x) + '</td>';
+    };
+    var tot = rows.reduce(function (a, r) { return { cRaw: a.cRaw + r.cRaw, dhRaw: a.dhRaw + r.dhRaw, tot: a.tot + r.tot, cS: a.cS + r.cS, cF: a.cF + r.cF, cR: a.cR + r.cR, dS: a.dS + r.dS, dF: a.dF + r.dF, dR: a.dR + r.dR }; },
+      { cRaw: 0, dhRaw: 0, tot: 0, cS: 0, cF: 0, cR: 0, dS: 0, dF: 0, dR: 0 });
+    var h = '<div class="st">Commissions &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' people</span>' +
+      '<span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">' + fmt(Math.round(tot.tot)) + ' total raw</span></div>';
+    h += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
+      '<input class="srch" id="lvCommS" placeholder="Filter people..." style="max-width:240px"/>' +
+      '<button class="fb" onclick="SPARK_LIVE.commExport()">Export</button>' +
+      '<span style="font-size:10px;color:var(--dm)">Same figures as Rankings for this week &middot; contract + direct hire always add to total raw</span></div>';
+    h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap">' +
+      '<thead><tr><th style="width:34px">#</th><th>Name</th><th>Business Unit</th>' +
+      '<th class="r" style="color:var(--gold)">Contract Raw</th><th class="r" style="color:var(--gold)">DH Raw</th><th class="r">Total Raw</th>' +
+      '<th class="r">Contract Sales</th><th class="r">Contract Full Desk</th><th class="r">Contract Recruiter</th>' +
+      '<th class="r">DH Sales</th><th class="r">DH Full Desk</th><th class="r">DH Recruiter</th></tr></thead><tbody>';
+    rows.forEach(function (r, i) {
+      h += '<tr><td class="m" style="padding:4px 9px;color:var(--dm)">' + (i + 1) + '</td>';
+      h += '<td style="font-weight:700;font-size:12px">' + r.n + '</td>';
+      h += '<td style="font-size:10px;color:var(--dm)">' + r.bu + '</td>';
+      h += money(r.cRaw, true) + money(r.dhRaw, true) + money(r.tot, true);
+      h += money(r.cS, false, true) + money(r.cF, false, true) + money(r.cR, false, true);
+      h += money(r.dS, false, true) + money(r.dF, false, true) + money(r.dR, false, true);
+      h += '</tr>';
+    });
+    h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td class="m" style="padding:5px 9px;color:var(--gold);font-weight:900">\u03a3</td>' +
+      '<td style="font-weight:800;color:var(--gold)">TOTAL</td><td></td>' +
+      money(tot.cRaw, true) + money(tot.dhRaw, true) + money(tot.tot, true) +
+      money(tot.cS, true) + money(tot.cF, true) + money(tot.cR, true) +
+      money(tot.dS, true) + money(tot.dF, true) + money(tot.dR, true) + '</tr>';
+    // House credits are real on DH rows but are never paid out — show them so the
+    // commissionable total reconciles against the week's DH charge.
+    var hs = { sales: 0, fd: 0, rec: 0 };
+    ((dj && dj.drops) || []).forEach(function (d) {
+      var isH = function (x) { return !x || /^house/i.test(String(x)); };
+      var a = Number(d.amount) || 0; if (!a) return;
+      var sH = isH(d.sales_rep), rH = isH(d.recruiter);
+      if (sH && rH) hs.fd += a; else if (sH) hs.sales += a; else if (rH) hs.rec += a;
+    });
+    var houseRaw = hs.fd + (hs.sales + hs.rec) / 2;
+    if (Math.abs(houseRaw) >= 0.5) {
+      h += '<tr style="border-top:1px solid var(--bd);opacity:.75"><td class="m" style="padding:4px 9px;color:var(--dm)">—</td>' +
+        '<td style="font-weight:600;font-size:11px;color:var(--dm)">House Account <span class="pl" style="background:rgba(128,128,128,.15);color:var(--dm)">not commissionable</span></td><td></td>' +
+        '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>' + money(houseRaw, false, true) + money(houseRaw, false, true) +
+        '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td><td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td><td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>' +
+        money(hs.sales, false, true) + money(hs.fd, false, true) + money(hs.rec, false, true) + '</tr>';
+    }
+    h += '</tbody></table></div></div>';
+    if (Math.abs(houseRaw) >= 0.5) h += '<div style="margin-top:8px;font-size:10px;color:var(--dm)">House Account holds ' + fmt(Math.round(houseRaw)) + ' of direct-hire raw charge this week. It counts toward entity and business-unit totals but is never paid out, so it sits outside the commissionable Σ above.</div>';
+    el.innerHTML = h;
+    var si = document.getElementById('lvCommS');
+    if (si) { si.value = commQ; si.oninput = function () { var pos = this.selectionStart; commQ = this.value; rComm(); var s2 = document.getElementById('lvCommS'); if (s2) { s2.focus(); try { s2.setSelectionRange(pos, pos); } catch (e) {} } }; }
+    window.__commRows = rows;
+  };
+  function commUnlock() { if (ensurePin()) rComm(); }
+  function commExport() {
+    var rows = window.__commRows || [];
+    var cols = [['n', 'Name'], ['bu', 'Business Unit'], ['cRaw', 'Contract Raw'], ['dhRaw', 'DH Raw'], ['tot', 'Total Raw'],
+                ['cS', 'Contract Sales'], ['cF', 'Contract Full Desk'], ['cR', 'Contract Recruiter'],
+                ['dS', 'DH Sales'], ['dF', 'DH Full Desk'], ['dR', 'DH Recruiter']];
+    var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var lines = [cols.map(function (c) { return e2(c[1]); }).join(',')];
+    rows.forEach(function (r) { lines.push(cols.map(function (c) { var v = r[c[0]]; return e2(typeof v === 'number' ? Math.round(v * 100) / 100 : v); }).join(',')); });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Spark_Commissions_' + labelWe(curIso).replace(/[^0-9A-Za-z.]+/g, '_') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
 
   // ── WoW shared: alternating quarter bands + direction-colored cells ──
   var WOWQ = ['var(--gold)', '#9aa0a6', 'var(--gold)', '#9aa0a6'];
@@ -2308,12 +2419,15 @@ window.SPARK_LIVE = (function () {
           TABS.length = 0;
           _nv.forEach(function (x) { TABS.push(x); if (x.id === 'lb') { TABS.push({ id: 'bu', l: 'Business Units', ic: 'M3 21h18M7 21V9M12 21V3M17 21v-6' }); TABS.push({ id: 'buw', l: 'Business Units \u00b7 WoW', ic: 'M3 17l5-5 4 4 8-9M3 21h18' }); } });
         }
+        window.__commTab = { id: 'comm', l: 'Commissions', ic: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' };
         var _r = TABS.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
-        if (typeof TT !== 'undefined') { TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.buw = 'Business Units \u00b7 WoW'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
+        if (typeof TT !== 'undefined') { TT.comm = 'Commissions'; TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.buw = 'Business Units \u00b7 WoW'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
         var _plb = document.getElementById('p-lb');
         if (_plb && !document.getElementById('p-bu')) _plb.insertAdjacentHTML('afterend', '<div class="pnl" id="p-bu"></div>');
         var _pbu = document.getElementById('p-bu');
         if (_pbu && !document.getElementById('p-buw')) _pbu.insertAdjacentHTML('afterend', '<div class="pnl" id="p-buw"></div>');
+        var _ptg = document.getElementById('p-tg');
+        if (_ptg && !document.getElementById('p-comm')) _ptg.insertAdjacentHTML('afterend', '<div class="pnl" id="p-comm"></div>');
         try { if (window.rBU) rBU(); } catch (e3) {}
         try { nav(); } catch (e2) {}
       }
@@ -2325,6 +2439,10 @@ window.SPARK_LIVE = (function () {
       if (!tok) { setStatus('SIGN IN VIA SPARK HQ, THEN CLICK HERE', '#FF4466'); return; }
       api('/charge-admin-check').then(function (j) {
         IS_ADMIN = !!(j && j.admin);
+        if (IS_ADMIN && window.__commTab && typeof TABS !== 'undefined' && !TABS.some(function (x) { return x.id === 'comm'; })) {
+          TABS.push(window.__commTab);
+          try { nav(); } catch (e) {}
+        }
         if (IS_ADMIN && window.__settingsTab && typeof TABS !== 'undefined' && !TABS.some(function (x) { return x.id === 'hier'; })) {
           window.__settingsTab.l = 'Settings';
           TABS.push(window.__settingsTab);
@@ -2351,7 +2469,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
