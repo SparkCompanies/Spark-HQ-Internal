@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0819-17';
+  var BUILD = 'b0820-2';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -2335,7 +2335,12 @@ window.SPARK_LIVE = (function () {
       return api('/charge-history').then(function (h) {
         H = h; indexHistory();
         var s2 = sundays(2);
-        var def = histPerson[s2[0]] ? s2[0] : (s2[1] || s2[0]);
+        // Roll to the newly completed week on Thursday at 7am local. Before that the
+        // week's timesheets are still landing, so we keep showing the prior week.
+        var _now = new Date();
+        var _dow = _now.getDay();            // 0 Sun .. 4 Thu
+        var _rolled = (_dow > 4) || (_dow === 4 && _now.getHours() >= 7);
+        var def = _rolled ? s2[0] : (s2[1] || s2[0]);
         selectWeek(curIso && force ? curIso : def);
       });
     }).catch(function (e) {
