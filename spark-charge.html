@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-4';
+  var BUILD = 'b0820-5';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1796,6 +1796,12 @@ window.SPARK_LIVE = (function () {
 
   // ── COMMISSIONS: per-person contract vs direct-hire split for the selected week ──
   var commQ = '';
+  function commRaw(p) {
+    if (!p) return 0;
+    if (p.raw != null) return p.raw;
+    var s2 = p.sales || 0, f2 = p.fd || 0, r2v = p.rec || 0;
+    return p.live ? f2 + (s2 + r2v) / 2 : (s2 + f2 + r2v) / 2;
+  }
   window.rComm = function () {
     var el = document.getElementById('p-comm'); if (!el) return;
     if (!IS_ADMIN) { el.innerHTML = '<div class="st">Commissions</div><div style="font-size:11px;color:var(--dm)">Admin access required.</div>'; return; }
@@ -1818,7 +1824,7 @@ window.SPARK_LIVE = (function () {
       var d = dhP[n] || { sales: 0, fd: 0, rec: 0 };
       var live = !!p.live;
       var rawOfBuckets = function (s2, f2, r2v) { return live ? f2 + (s2 + r2v) / 2 : (s2 + f2 + r2v) / 2; };
-      var totRaw = rawOf(p);
+      var totRaw = commRaw(p);
       var dhRaw = rawOfBuckets(d.sales || 0, d.fd || 0, d.rec || 0);
       // contract = everything the person has this week minus the DH portion, so the two
       // columns always add back to the raw charge shown in Rankings.
