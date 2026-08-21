@@ -104,10 +104,10 @@ __name(pulseXero, "pulseXero");
 // worker.js
 var ALLOWED_ORIGINS = [
   "https://red-dune-014d74810.7.azurestaticapps.net",
-  "https://nice-beach-07b54f71e4.azurestaticapps.net",
-  "https://nice-beach-07b54f71e4.azurestaticapps.net",
-  "https://nice-beach-07b54f71e4.azurestaticapps.net",
-  "https://nice-beach-07b54f71e4.azurestaticapps.net",
+  "https://nice-beach-07b54f71e.4.azurestaticapps.net",
+  "https://nice-beach-07b54f71e.4.azurestaticapps.net",
+  "https://nice-beach-07b54f71e.4.azurestaticapps.net",
+  "https://nice-beach-07b54f71e.4.azurestaticapps.net",
   "https://sparkcompanies.github.io",
   "http://localhost:5173"
 ];
