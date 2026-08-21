@@ -37,9 +37,9 @@ if (!h.includes(MERGE_MARK)) fail('LMS_MERGE_v1 marker not found — run the ear
 ok('prerequisites present');
 
 /* ---------- discover the topic-editor opener function name ---------- */
-const OPEN_CALL = "topicEditorModal').classList.add('open')";
+const OPEN_CALL = "const modal = document.getElementById('topicEditorModal');";
+if (h.split(OPEN_CALL).length - 1 !== 1) fail('modal lookup line not found exactly once: ' + OPEN_CALL);
 const openIdx = h.indexOf(OPEN_CALL);
-if (openIdx < 0) fail('modal-open call not found: ' + OPEN_CALL);
 const beforeOpen = h.slice(0, openIdx);
 const assigns = [...beforeOpen.matchAll(/window\.([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?function/g)];
 if (!assigns.length) fail('no window.X = function assignment found before the modal-open call.');
