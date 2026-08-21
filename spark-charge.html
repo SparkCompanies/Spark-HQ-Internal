@@ -1000,7 +1000,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-6';
+  var BUILD = 'b0820-7';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1345,7 +1345,7 @@ window.SPARK_LIVE = (function () {
     Q3WKS = D.weeks.filter(function (w) { var p = w.we.split('/'); return +p[0] >= 7; });
     Q3 = Q3WKS.reduce(function (s, w) { return s + wkTotal(w); }, 0);
     var we = document.getElementById('lvWe'); if (we) we.textContent = labelWe(curIso);
-    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rComm(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
+    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rComm(); rHC(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
     try { heroHover(); } catch (e) {}
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
@@ -1793,6 +1793,132 @@ window.SPARK_LIVE = (function () {
     h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; Spark Portfolio Total stays pinned at the bottom</div>';
     el.innerHTML = h;
   };
+
+  // ── HEAD COUNT BY AM: live contractor counts per person for the selected week ──
+  window.__hcRows = null;
+  window.rHC = function () {
+    var el = document.getElementById('p-hc'); if (!el) return;
+    var b = batches[curIso];
+    if (!b || !b.rows) { el.innerHTML = '<div class="st">Head Count &mdash; ' + labelWe(curIso) + '</div><div style="font-size:11px;color:var(--dm)">No live contract data for this week (pre-import weeks have totals only).</div>'; return; }
+    var isH = function (x) { return !x || /^house/i.test(String(x)); };
+    var amOf = function (cr) { var c = (cr || []).find(function (x) { return /sales|full/i.test(x.type || ''); }); return c ? c.recipient : ''; };
+    var rcOf = function (cr) { var c = (cr || []).find(function (x) { return /recruit|full/i.test(x.type || ''); }); return c ? c.recipient : ''; };
+    var P = {};
+    var get = function (n) { return P[n] || (P[n] = { am: 0, fd: 0, rc: 0 }); };
+    var house = { am: 0, fd: 0, rc: 0 };
+    (b.rows || []).forEach(function (r) {
+      var a = amOf(r.credits), c = rcOf(r.credits);
+      var aH = isH(a), cH = isH(c);
+      if (aH && cH) { house.fd++; house.am++; house.rc++; return; }
+      if (aH) house.am++; else get(a).am++;
+      if (cH) house.rc++; else get(c).rc++;
+      if (!aH && a === c) get(a).fd++;
+    });
+    var tmap = {};
+    ((H && H.hcTargets) || []).forEach(function (t) { tmap[t.person] = t; });
+    Object.keys(tmap).forEach(function (n) { get(n); });
+    var rows = Object.keys(P).map(function (n) {
+      var p = P[n], t = tmap[n] || {};
+      var meta = ((H && H.people) || []).find(function (x) { return x.person === n; }) || {};
+      var total = p.am + p.rc;
+      var exp = Number(t.expectation) || 0;
+      return { n: n, bu: meta.bu || '\u2014', focus: t.focus || meta.title || '', ar: Number(t.account_rep) || 0,
+               exp: exp, am: p.am, fd: p.fd, rc: p.rc, tot: total,
+               pct: exp > 0 ? total / exp : null, dht: Number(t.dh_monthly_target) || 0 };
+    }).sort(function (a, b2) { return b2.tot - a.tot || a.n.localeCompare(b2.n); });
+    var gt = rows.reduce(function (a, r) { return { ar: a.ar + r.ar, exp: a.exp + r.exp, am: a.am + r.am, fd: a.fd + r.fd, rc: a.rc + r.rc, tot: a.tot + r.tot, dht: a.dht + r.dht }; }, { ar: 0, exp: 0, am: 0, fd: 0, rc: 0, tot: 0, dht: 0 });
+    var cell = function (v, opts) {
+      opts = opts || {};
+      if (v == null || (v === 0 && !opts.zero)) return '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>';
+      return '<td class="r m" style="padding:4px 9px;' + (opts.strong ? 'font-weight:800;' : '') + 'color:' + (opts.color || 'var(--tx)') + '!important">' + v + '</td>';
+    };
+    var pctCell = function (p) {
+      if (p == null) return '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>';
+      var v = Math.round(p * 100);
+      var col = p >= 1 ? '#00C853' : p >= 0.6 ? 'var(--gold)' : 'var(--red)';
+      return '<td class="r m" style="padding:4px 9px;font-weight:800;color:' + col + '!important">' + v + '%</td>';
+    };
+    var h = '<div class="st">Head Count by AM &mdash; ' + labelWe(curIso) +
+      '<span class="pl" style="margin-left:10px">' + rows.filter(function (r) { return r.tot > 0; }).length + ' producing</span>' +
+      '<span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">' + gt.tot + ' total HC</span></div>';
+    h += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
+      '<button class="fb" onclick="SPARK_LIVE.hcEmail()">\u2709 Push to Email</button>' +
+      '<button class="fb" onclick="SPARK_LIVE.hcCopy()">Copy for Outlook</button>' +
+      '<button class="fb" onclick="SPARK_LIVE.hcExport()">Export CSV</button>' +
+      '<span style="font-size:10px;color:var(--dm)">Counts come straight from this week\u2019s contract engine rows \u00b7 Total = AM + Recruiter (full desk counts once in each) \u00b7 targets from Settings</span></div>';
+    h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap">' +
+      '<thead><tr><th>Name</th><th>Business Unit</th><th>Focus</th><th class="r">Acct Rep</th><th class="r">HC Expectation</th>' +
+      '<th class="r" style="color:var(--gold)">AM</th><th class="r">% To Target</th><th class="r">Full Desk</th><th class="r">Recruiter</th>' +
+      '<th class="r" style="color:var(--gold)">Total HC</th><th class="r">DH Monthly Target</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      h += '<tr><td style="font-weight:700;font-size:12px">' + r.n + '</td>' +
+        '<td style="font-size:10px;color:var(--dm)">' + r.bu + '</td>' +
+        '<td style="font-size:10px;color:var(--dm)">' + (r.focus || '\u2014') + '</td>' +
+        cell(r.ar || null) + cell(r.exp || null) +
+        cell(r.am, { strong: true, zero: true }) + pctCell(r.pct) +
+        cell(r.fd, { zero: true }) + cell(r.rc, { zero: true }) +
+        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)' }) +
+        cell(r.dht ? fmt(r.dht) : null) + '</tr>';
+    });
+    h += '<tr style="border-top:1px solid var(--bd);opacity:.8"><td style="font-weight:600;font-size:11px;color:var(--dm)">House Account</td><td></td><td></td>' +
+      cell(null) + cell(null) + cell(house.am, { zero: true }) + cell(null) + cell(house.fd, { zero: true }) + cell(house.rc, { zero: true }) + cell(house.am + house.rc, { zero: true }) + cell(null) + '</tr>';
+    h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">GRAND TOTAL</td><td></td><td></td>' +
+      cell(gt.ar, { strong: true, zero: true }) + cell(gt.exp, { strong: true, zero: true }) +
+      cell(gt.am + house.am, { strong: true, zero: true }) + pctCell(gt.exp > 0 ? gt.tot / gt.exp : null) +
+      cell(gt.fd + house.fd, { strong: true, zero: true }) + cell(gt.rc + house.rc, { strong: true, zero: true }) +
+      cell(gt.tot + house.am + house.rc, { strong: true, zero: true, color: 'var(--gold)' }) + cell(fmt(gt.dht), { strong: true }) + '</tr>';
+    h += '</tbody></table></div></div>';
+    el.innerHTML = h;
+    window.__hcRows = { rows: rows, house: house, gt: gt };
+  };
+  function hcTable(kind) {
+    var d = window.__hcRows; if (!d) return '';
+    var cols = ['Name', 'Business Unit', 'Focus', 'Acct Rep', 'HC Expectation', 'AM', '% To Target', 'Full Desk', 'Recruiter', 'Total HC', 'DH Monthly Target'];
+    var line = function (r) { return [r.n, r.bu, r.focus, r.ar || '', r.exp || '', r.am, r.pct != null ? Math.round(r.pct * 100) + '%' : '', r.fd, r.rc, r.tot, r.dht || '']; };
+    var all = d.rows.map(line);
+    all.push(['House Account', '', '', '', '', d.house.am, '', d.house.fd, d.house.rc, d.house.am + d.house.rc, '']);
+    all.push(['GRAND TOTAL', '', '', d.gt.ar, d.gt.exp, d.gt.am + d.house.am, d.gt.exp > 0 ? Math.round(d.gt.tot / d.gt.exp * 100) + '%' : '', d.gt.fd + d.house.fd, d.gt.rc + d.house.rc, d.gt.tot + d.house.am + d.house.rc, Math.round(d.gt.dht)]);
+    if (kind === 'csv') {
+      var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+      return [cols.map(e2).join(',')].concat(all.map(function (r) { return r.map(e2).join(','); })).join('\r\n');
+    }
+    if (kind === 'html') {
+      var td = 'border:1px solid #ddd;padding:5px 9px;font-family:Arial,sans-serif;font-size:12px';
+      var out = '<table style="border-collapse:collapse"><tr>' + cols.map(function (c) { return '<th style="' + td + ';background:#f3f1ea;text-align:left">' + c + '</th>'; }).join('') + '</tr>';
+      all.forEach(function (r, i) {
+        var last = i === all.length - 1;
+        out += '<tr>' + r.map(function (v, j) { return '<td style="' + td + (j >= 3 ? ';text-align:right' : '') + (last ? ';font-weight:bold;background:#fff8e1' : '') + '">' + (v === '' ? '&ndash;' : v) + '</td>'; }).join('') + '</tr>';
+      });
+      return out + '</table>';
+    }
+    var w2 = [22, 16, 26, 8, 8, 4, 6, 5, 5, 6, 10];
+    var pad = function (v, n2) { v = String(v == null ? '' : v); return (v.length > n2 ? v.slice(0, n2 - 1) + '\u2026' : v) + Array(Math.max(0, n2 - v.length + 1)).join(' '); };
+    return [cols.map(function (c, i) { return pad(c, w2[i]); }).join(' ')].concat(all.map(function (r) { return r.map(function (v, i) { return pad(v, w2[i]); }).join(' '); })).join('\n');
+  }
+  function hcExport() {
+    var csv = hcTable('csv'); if (!csv) return;
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'Head_Count_by_AM_' + labelWe(curIso).replace(/[^0-9A-Za-z.]+/g, '_') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function hcCopy() {
+    var html = hcTable('html'), txt = hcTable('txt'); if (!html) return;
+    var done = function () { setStatus('Head count table copied \u2014 paste straight into your email', '#00FF88'); };
+    try {
+      navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([txt], { type: 'text/plain' }) })]).then(done, function () { navigator.clipboard.writeText(txt).then(done); });
+    } catch (e) { try { navigator.clipboard.writeText(txt).then(done); } catch (e2) { alert('Copy failed \u2014 use Export CSV instead.'); } }
+  }
+  function hcEmail() {
+    var d = window.__hcRows; if (!d) return;
+    hcCopy();
+    var top = d.rows.filter(function (r) { return r.tot > 0; }).slice(0, 12);
+    var body = 'Head Count by AM \u2014 ' + labelWe(curIso) + '\n' +
+      'Total HC: ' + (d.gt.tot + d.house.am + d.house.rc) + '  \u00b7  Full Desk: ' + (d.gt.fd + d.house.fd) + '\n\n' +
+      top.map(function (r) { return r.n + ' \u2014 ' + r.tot + ' (AM ' + r.am + ' / FD ' + r.fd + ' / Rec ' + r.rc + ')'; }).join('\n') +
+      '\n\n(Full table copied to your clipboard \u2014 paste it below this line.)\n';
+    location.href = 'mailto:?subject=' + encodeURIComponent('Head Count by AM \u2014 ' + labelWe(curIso)) + '&body=' + encodeURIComponent(body);
+  }
 
   // ── COMMISSIONS: per-person contract vs direct-hire split for the selected week ──
   var commQ = '';
@@ -2428,14 +2554,20 @@ window.SPARK_LIVE = (function () {
           _nv.forEach(function (x) { TABS.push(x); if (x.id === 'lb') { TABS.push({ id: 'bu', l: 'Business Units', ic: 'M3 21h18M7 21V9M12 21V3M17 21v-6' }); TABS.push({ id: 'buw', l: 'Business Units \u00b7 WoW', ic: 'M3 17l5-5 4 4 8-9M3 21h18' }); } });
         }
         window.__commTab = { id: 'comm', l: 'Commissions', ic: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' };
+        if (!TABS.some(function (x) { return x.id === 'hc'; })) {
+          var _ri = TABS.findIndex(function (x) { return x.id === 'raw'; });
+          TABS.splice(_ri >= 0 ? _ri + 1 : TABS.length, 0, { id: 'hc', l: 'Head Count', ic: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' });
+        }
         var _r = TABS.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
-        if (typeof TT !== 'undefined') { TT.comm = 'Commissions'; TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.buw = 'Business Units \u00b7 WoW'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
+        if (typeof TT !== 'undefined') { TT.hc = 'Head Count'; TT.comm = 'Commissions'; TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.buw = 'Business Units \u00b7 WoW'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
         var _plb = document.getElementById('p-lb');
         if (_plb && !document.getElementById('p-bu')) _plb.insertAdjacentHTML('afterend', '<div class="pnl" id="p-bu"></div>');
         var _pbu = document.getElementById('p-bu');
         if (_pbu && !document.getElementById('p-buw')) _pbu.insertAdjacentHTML('afterend', '<div class="pnl" id="p-buw"></div>');
         var _ptg = document.getElementById('p-tg');
         if (_ptg && !document.getElementById('p-comm')) _ptg.insertAdjacentHTML('afterend', '<div class="pnl" id="p-comm"></div>');
+        var _praw = document.getElementById('p-raw');
+        if (_praw && !document.getElementById('p-hc')) _praw.insertAdjacentHTML('afterend', '<div class="pnl" id="p-hc"></div>');
         try { if (window.rBU) rBU(); } catch (e3) {}
         try { nav(); } catch (e2) {}
       }
@@ -2477,7 +2609,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
