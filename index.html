@@ -16564,6 +16564,37 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "title": "Recruiter compliance refresher",
           "estimatedMinutes": 8,
           "content": "<p class=\"lead\">What you can and cannot ask a candidate. As a recruiter you are the front line of our hiring practices, which makes you the first point of legal exposure.</p><h3>Core training</h3><ul><li>Federally protected categories and why they matter</li><li>Compliant versus non-compliant questions for every common topic</li><li>Casual “red flag” phrases that create real legal risk</li></ul><h3>Deep dives</h3><ul><li>Drug screening compliance and state marijuana laws</li><li>Background check compliance — FCRA, Ban the Box, adverse action</li><li>Social media screening, the highest-risk area in modern recruiting</li><li>AI and technology in hiring, and the regulations forming around it</li></ul><h3>Tools you get</h3><ul><li>State-by-state compliance alerts (CA, NY, IL, MA, TX, CO, WA, FL)</li><li>A timeline showing when in the process you can ask what</li><li>An escalation flowchart for when you are not sure</li><li>Interview note-taking guide — what to document and what never to write down</li><li>Accommodation request handling and ready-to-use templates</li></ul><h3>Assessment</h3><p>Practice scenarios plus a 12-question quiz. <strong>You need 10 of 12 to pass.</strong></p><p><a href=\"https://sparktalent.sharepoint.com/sites/ComplianceTraining/SitePages/Recruitment-Compliance-Training.aspx\" target=\"_blank\" rel=\"noopener\"><strong>Open the full Recruitment Compliance Training →</strong></a></p><p><em>This training covers general U.S. employment law principles. Laws vary by state, county, and city — check with legal before changing any hiring practice.</em></p>"
+        },
+        {
+          "id": "rec-language",
+          "title": "Recruiting Process Language",
+          "estimatedMinutes": 5,
+          "content": "<p class=\"lead\">The shared language of the Spark recruiting pipeline — one definition per stage, so a submittal in Troy means the same thing as a submittal in Marshall.</p><h3>The Pipeline — In Order</h3><ul><li><strong style=\"color:#F5C518;\">Pre Screen</strong> — Our initial screen/interview and build of a candidate profile with the candidate.</li><li><strong style=\"color:#F5C518;\">Face to Face</strong> — We meet with the candidate face to face to do our own evaluation and interview.</li><li><strong style=\"color:#F5C518;\">Submittal</strong> — When we send a candidate to a client for review, to be hired for a role we are working on.</li><li><strong style=\"color:#F5C518;\">Interview Request</strong> — The client has been asked (or has asked) to interview the candidate — not yet on the calendar.</li><li><strong style=\"color:#F5C518;\">Interview</strong> — The interview has been confirmed at a set time.</li><li><strong style=\"color:#F5C518;\">Pending</strong> — We are awaiting feedback on a candidate’s interview.</li><li><strong style=\"color:#F5C518;\">Offer</strong> — The candidate has been offered a position.</li><li><strong style=\"color:#F5C518;\">Onboarding</strong> — The candidate has accepted the position and is in the onboarding process.</li><li><strong style=\"color:#F5C518;\">Future Start</strong> — The candidate is confirmed and onboarding is completed.</li><li><strong style=\"color:#F5C518;\">Start</strong> — The candidate has started that day or week.</li></ul><div class=\"std-callout\"><span class=\"lbl\">How we count</span><strong>In Process</strong> is not a pipeline stage — it’s your rollup number: the total candidates you have in Submittal, Interview, Pending, Offer, or Onboarding.</div>",
+          "miniQuiz": {
+            "id": "rec-language-mini",
+            "passThreshold": 80,
+            "gated": false,
+            "questions": [
+              {
+                "id": "rlq1",
+                "type": "true-false",
+                "prompt": "In Process is a pipeline stage that comes between Submittal and Interview Request.",
+                "trueIsCorrect": false
+              },
+              {
+                "id": "rlq2",
+                "type": "true-false",
+                "prompt": "Pending means we are waiting on feedback after a candidate’s interview.",
+                "trueIsCorrect": true
+              },
+              {
+                "id": "rlq3",
+                "type": "true-false",
+                "prompt": "A candidate at Future Start still has onboarding steps to complete.",
+                "trueIsCorrect": false
+              }
+            ]
+          }
         }
       ]
     },
@@ -16707,6 +16738,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     }
   ]
 };
+  const LMS_BUILTIN = JSON.parse(JSON.stringify(LMS_DATA)); /* LMS_MERGE_v1 snapshot */
 ;
 
   // Persistence: progress tracked per-topic
@@ -18091,6 +18123,68 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       alert('Publish failed: ' + (e && e.message ? e.message : e));
     });
   };
+
+  /* ==================== LMS_MERGE_v1 ==================== */
+  /* Publish unions the current shared version into local first, so one admin
+     can never wipe another's published work. Load unions any built-in content
+     missing from the winning version, so baked-in updates always surface.
+     Publisher wins on true conflicts (same topic id edited by both) — logged. */
+  (function(){
+    function lmsUnion(base, extra, label){
+      var added = [];
+      if (!Array.isArray(base) || !Array.isArray(extra)) return added;
+      var byId = {}; base.forEach(function(s){ if (s && s.id) byId[s.id] = s; });
+      extra.forEach(function(s){
+        if (!s || !s.id) return;
+        if (!byId[s.id]) {
+          base.push(JSON.parse(JSON.stringify(s)));
+          added.push(label + ' subject: ' + (s.name || s.id));
+          return;
+        }
+        var mine = byId[s.id]; mine.topics = mine.topics || [];
+        var tIds = {}; mine.topics.forEach(function(t){ if (t && t.id) tIds[t.id] = 1; });
+        (s.topics || []).forEach(function(t){
+          if (t && t.id && !tIds[t.id]) {
+            mine.topics.push(JSON.parse(JSON.stringify(t)));
+            added.push(label + ' topic: ' + (s.name || s.id) + ' \u2192 ' + (t.title || t.id));
+          }
+        });
+      });
+      return added;
+    }
+    function persistAndRender(added, note){
+      if (!added.length) return;
+      try { localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); } catch(e) {}
+      try { renderLmsRail(); } catch(e) {}
+      try { renderLmsContent(); } catch(e) {}
+      try { renderTrainingAdmin(); } catch(e) {}
+      try { console.info('[LMS] ' + note + '\n' + added.join('\n')); } catch(e) {}
+    }
+    /* publish guard */
+    var origPublish = window.publishLmsToTeam;
+    window.publishLmsToTeam = function(){
+      if (!window.SPARK_SB || !window.SPARK_SB.getContent) { return origPublish(); }
+      window.SPARK_SB.getContent('lms_content').then(function(shared){
+        if (shared && shared.subjects && shared.subjects.length) {
+          persistAndRender(lmsUnion(LMS_DATA.subjects, shared.subjects, 'kept published'), 'merged before publish \u2014 nothing published by others was dropped:');
+        }
+        origPublish();
+      }).catch(function(){ origPublish(); });
+    };
+    /* take-team-version guard */
+    var origTake = window.takeSharedLms;
+    window.takeSharedLms = function(){
+      origTake();
+      try { persistAndRender(lmsUnion(LMS_DATA.subjects, LMS_BUILTIN.subjects, 'built-in'), 'restored built-in content:'); } catch(e) {}
+    };
+    /* load-time union: idempotent, re-runs while pullSharedLms may still be retrying */
+    var runs = 0;
+    var iv = setInterval(function(){
+      runs++;
+      try { persistAndRender(lmsUnion(LMS_DATA.subjects, LMS_BUILTIN.subjects, 'built-in'), 'restored built-in content:'); } catch(e) {}
+      if (runs >= 8) clearInterval(iv);
+    }, 5000);
+  })();
 
   window.takeSharedLms = function(){ /* LMS_SYNC_v1 */
       var s = window.__LMS_SHARED_PENDING;
