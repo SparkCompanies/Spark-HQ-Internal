@@ -18042,7 +18042,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     /* LMS_PUBLISH_v1 */
     try {
       localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA));
-      localStorage.setItem('spark_hq_lms_dirty', '1');
+      localStorage.setItem('spark_hq_lms_dirty', '1'); localStorage.setItem('spark_hq_lms_touched', String(Date.now())); /* LMS_SYNC_v1 */
       var chip = document.getElementById('lmsPubState');
       if (chip) { chip.textContent = 'Unpublished edits'; chip.style.color = '#B8912E'; }
     } catch(e) {}
@@ -18084,29 +18084,60 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       try { localStorage.removeItem('spark_hq_lms_dirty'); } catch(e) {}
       var chip = document.getElementById('lmsPubState');
       if (chip) { chip.textContent = 'Published ' + new Date().toLocaleTimeString() + ' by ' + who.email; chip.style.color = '#3E9E7E'; }
-      alert('Published. The team sees this version on their next page load.');
+      try { localStorage.setItem('spark_hq_lms_touched', '0'); } catch(e) {}
+        alert('Published. The team sees this version on their next page load.');
     }).catch(function(e) {
       if (btn) { btn.disabled = false; btn.textContent = 'Publish to team'; }
       alert('Publish failed: ' + (e && e.message ? e.message : e));
     });
   };
 
-  (function pullSharedLms(tries) {
+  window.takeSharedLms = function(){ /* LMS_SYNC_v1 */
+      var s = window.__LMS_SHARED_PENDING;
+      if (!s || !s.subjects) { alert('No shared version loaded yet.'); return; }
+      if (!confirm('Discard your unpublished edits and load the team version (' + s.subjects.length + ' subjects)?')) return;
+      LMS_DATA.subjects = s.subjects;
+      try { localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); localStorage.removeItem('spark_hq_lms_dirty'); localStorage.setItem('spark_hq_lms_touched','0'); } catch(e) {}
+      try { renderLmsRail(); } catch(e) {}
+      try { renderLmsContent(); } catch(e) {}
+      try { renderTrainingAdmin(); } catch(e) {}
+      var b = document.getElementById('lmsTakeShared'); if (b) b.remove();
+      var chip = document.getElementById('lmsPubState');
+      if (chip) { chip.textContent = 'Published ' + (s.publishedAt ? new Date(s.publishedAt).toLocaleString() : '') + (s.publishedBy ? ' by ' + s.publishedBy : ''); chip.style.color = '#3E9E7E'; }
+      alert('Loaded the team version.');
+    };
+    (function pullSharedLms(tries) {
     tries = tries || 0;
     if (!window.SPARK_SB || !window.SPARK_SB.getContent) {
       if (tries < 20) setTimeout(function(){ pullSharedLms(tries + 1); }, 700);
       return;
     }
+    /* LMS_SYNC_v1 — the dirty flag used to make a browser skip published content
+       FOREVER. Anyone who had ever opened the editor was frozen on their own copy and
+       never saw another publish. Now we always FETCH the shared version and only hold
+       it back when this person's unpublished work is genuinely newer. */
     var dirty = false;
     try { dirty = localStorage.getItem('spark_hq_lms_dirty') === '1'; } catch(e) {}
-    if (dirty) {
-      try { console.info('[LMS] Local unpublished edits present — shared version not applied. Publish or Reset to sync.'); } catch(e) {}
-      var chip0 = document.getElementById('lmsPubState');
-      if (chip0) { chip0.textContent = 'Unpublished edits'; chip0.style.color = '#B8912E'; }
-      return;
-    }
     window.SPARK_SB.getContent('lms_content').then(function(shared) {
       if (!shared || !shared.subjects || !shared.subjects.length) return;
+      var localStamp = 0, sharedStamp = shared.publishedAt ? new Date(shared.publishedAt).getTime() : 0;
+      try { localStamp = parseInt(localStorage.getItem('spark_hq_lms_touched') || '0', 10) || 0; } catch(e) {}
+      if (dirty && localStamp > sharedStamp) {
+        var chipD = document.getElementById('lmsPubState');
+        if (chipD) { chipD.textContent = 'Unpublished edits — publish to share'; chipD.style.color = '#B8912E'; }
+        window.__LMS_SHARED_PENDING = shared;
+        try { console.info('[LMS] Your unpublished edits are newer than the published version (' + shared.subjects.length + ' subjects). Publish yours, or run takeSharedLms() to load the team version.'); } catch(e) {}
+        if (chipD && chipD.parentNode && !document.getElementById('lmsTakeShared')) {
+          var b = document.createElement('button');
+          b.id = 'lmsTakeShared'; b.className = 'btn-secondary';
+          b.style.cssText = 'margin-left:8px;font-size:11px;padding:4px 9px;';
+          b.textContent = 'Load team version';
+          b.onclick = function(){ window.takeSharedLms(); };
+          chipD.parentNode.insertBefore(b, chipD.nextSibling);
+        }
+        return;
+      }
+      if (dirty) { try { localStorage.removeItem('spark_hq_lms_dirty'); } catch(e) {} }
       LMS_DATA.subjects = shared.subjects;
       try { localStorage.setItem('spark_hq_lms_data', JSON.stringify(LMS_DATA)); } catch(e) {}
       try { renderLmsRail(); } catch(e) {}
