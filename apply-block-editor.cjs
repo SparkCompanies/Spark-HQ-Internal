@@ -36,17 +36,10 @@ if (!h.includes(MERGE_MARK)) fail('LMS_MERGE_v1 marker not found — run the ear
 });
 ok('prerequisites present');
 
-/* ---------- discover the topic-editor opener function name ---------- */
-const OPEN_CALL = "const modal = document.getElementById('topicEditorModal');";
-if (h.split(OPEN_CALL).length - 1 !== 1) fail('modal lookup line not found exactly once: ' + OPEN_CALL);
-const openIdx = h.indexOf(OPEN_CALL);
-const beforeOpen = h.slice(0, openIdx);
-const assigns = [...beforeOpen.matchAll(/window\.([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?function/g)];
-if (!assigns.length) fail('no window.X = function assignment found before the modal-open call.');
-const OPENER = assigns[assigns.length - 1][1];
-if (!/topic|edit/i.test(OPENER)) fail('discovered opener "' + OPENER + '" does not look like a topic editor function — stopping. Paste this name back to Claude.');
-if (OPENER === 'saveTopic' || OPENER === 'closeTopicEditor') fail('discovery landed on "' + OPENER + '" — ambiguous, stopping.');
-ok('topic editor opener discovered: window.' + OPENER);
+/* ---------- verify the topic-editor opener declaration ---------- */
+const OPENER_DECL = 'function openTopicEditor(';
+if (h.split(OPENER_DECL).length - 1 !== 1) fail('expected exactly one "function openTopicEditor(" declaration, found ' + (h.split(OPENER_DECL).length - 1) + '.');
+ok('topic editor opener located: function openTopicEditor (plain declaration)');
 
 /* ---------- the module (same script scope; no backticks, no ${ inside) ---------- */
 const MODULE = `  /* ==================== LMS_BLOCKS_v1 ==================== */
@@ -341,12 +334,13 @@ const MODULE = `  /* ==================== LMS_BLOCKS_v1 ==================== */
     }
 
     /* ---- override the opener: legacy runs, then we repaint the body ---- */
-    var __blkOrigOpen = window.__OPENER__;
-    window.__OPENER__ = function(){
+    var __blkOrigOpen = openTopicEditor;
+    openTopicEditor = function(){
       __blkOrigOpen.apply(this, arguments);
       try { window.lmsRenderBlockEditor(); }
       catch(e) { try { console.error('[LMS blocks] editor upgrade failed — legacy editor left in place', e); } catch(_) {} }
     };
+    try { window.openTopicEditor = openTopicEditor; } catch(e) {}
 
     /* ---- override save: compile blocks; fall through to legacy if block UI absent ---- */
     var __blkOrigSave = window.saveTopic;
@@ -382,17 +376,17 @@ const MODULE = `  /* ==================== LMS_BLOCKS_v1 ==================== */
 `;
 
 /* ---------- assemble ---------- */
-const moduleFinal = MODULE.split('__OPENER__').join(OPENER);
 const markIdx = h.indexOf(MERGE_MARK);
-const out = h.slice(0, markIdx) + moduleFinal + h.slice(markIdx);
+const openerDeclIdx = h.indexOf(OPENER_DECL);
+if (openerDeclIdx > markIdx) fail('openTopicEditor is declared AFTER the merge marker — wrap would run before the declaration hoists its final form; stopping.');
+const out = h.slice(0, markIdx) + MODULE + h.slice(markIdx);
 
 /* ---------- verify ---------- */
 if (out.split('LMS_BLOCKS_v1').length - 1 < 1) fail('module marker missing after splice.');
 if ((out.match(/window\.saveTopic\s*=\s*function/g) || []).length !== 2) fail('expected exactly 2 saveTopic assignments after patch (legacy + override).');
-const openerAssignments = (out.match(new RegExp('window\\.' + OPENER + '\\s*=\\s*function', 'g')) || []).length;
-if (openerAssignments !== 2) fail('expected exactly 2 assignments of window.' + OPENER + ' after patch, found ' + openerAssignments + '.');
-if (out.includes('__OPENER__')) fail('opener placeholder not fully substituted.');
-ok('output verified: override layer in place for window.' + OPENER + ' and window.saveTopic');
+if ((out.match(/var __blkOrigOpen = openTopicEditor;/g) || []).length !== 1) fail('opener wrap missing after splice.');
+if (out.split(OPENER_DECL).length - 1 !== 1) fail('opener declaration count changed after splice.');
+ok('output verified: override layer wraps openTopicEditor and window.saveTopic');
 
 /* ---------- backup, write ---------- */
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
