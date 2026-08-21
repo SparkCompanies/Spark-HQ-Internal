@@ -104,7 +104,6 @@ __name(pulseXero, "pulseXero");
 // worker.js
 var ALLOWED_ORIGINS = [
   "https://red-dune-014d74810.7.azurestaticapps.net",
-  "https://nice-beach-07b54f71e4.azurestaticapps.net",
   "https://sparkcompanies.github.io",
   "http://localhost:5173"
 ];
@@ -6074,6 +6073,23 @@ var worker_default = {
       return json({ ok: r.ok, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
     }
 
+    if (url.pathname === "/charge-hc-target") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "POST only" }, 405, origin);
+      const body = await request.json().catch(() => ({}));
+      const person = String(body.person || "").trim();
+      const expectation = Number(body.expectation);
+      if (!person || !isFinite(expectation) || expectation < 0) return json({ error: "person + non-negative expectation required" }, 400, origin);
+      const r = await sbService(env, "POST", "charge_headcount_targets?on_conflict=person", { person, expectation });
+      return json({ ok: r.ok, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
+    }
+
     if (url.pathname === "/charge-week-lock") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -6177,43 +6193,6 @@ var worker_default = {
       return json({ ok: localOk || (sf.ok === true), local: localOk, sf }, 200, origin);
     }
 
-    if (url.pathname === "/sv7-sync") {
-      // SPARKV7 SYNC (read-only): SparkV7 signs in with Azure AD (MSAL), not
-      // Supabase, so validate by delegating to Microsoft Graph /me, then
-      // require a Spark domain. Returns person-week charge lines + roster +
-      // DH schedule in one call for the commission tracker to import.
-      const authH = request.headers.get("Authorization") || "";
-      const gtok = authH.replace(/^Bearer\s+/i, "").trim();
-      if (!gtok) return json({ error: "No token" }, 401, origin);
-      let me = null;
-      try {
-        const mR = await fetch("https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName", { headers: { "Authorization": "Bearer " + gtok } });
-        if (!mR.ok) return json({ error: "Invalid Microsoft session" }, 401, origin);
-        me = await mR.json();
-      } catch (e) { return json({ error: "Auth check failed" }, 401, origin); }
-      const em = String((me && (me.mail || me.userPrincipalName)) || "").toLowerCase();
-      if (!/@(sparkcompanies|sparktalentinc)\.com$/.test(em)) return json({ error: "Not a Spark account" }, 403, origin);
-      try {
-        const sbAll = async (path) => {
-          let out = [], off = 0;
-          for (;;) {
-            const sep = path.indexOf("?") === -1 ? "?" : "&";
-            const r = await sbService(env, "GET", path + sep + "limit=1000&offset=" + off);
-            if (!r.ok) throw new Error(path.split("?")[0] + ": " + JSON.stringify(r.data).slice(0, 160));
-            const rows = Array.isArray(r.data) ? r.data : [];
-            out = out.concat(rows);
-            if (rows.length < 1000) return out;
-            off += 1000;
-          }
-        };
-        const personWeeks = await sbAll("charge_person_weeks?select=week_ending,person,sales,fd,rec,tt,raw&order=week_ending.asc");
-        const people = await sbAll("charge_people?select=person,role,entity,bu,active");
-        const dh = await sbAll("charge_dh_schedule?select=*&order=created_at.desc");
-        return json({ ok: true, syncedBy: em, at: new Date().toISOString(), personWeeks: personWeeks, people: people, dh: dh }, 200, origin);
-      } catch (e) {
-        return json({ error: "sv7 sync failed: " + String(e.message || e) }, 502, origin);
-      }
-    }
     if (url.pathname === "/dh-schedule") {
       const who = await verifyUser(request, env);
       if (who.ok !== true) return json({ error: who.reason || "Unauthorized" }, 401, origin);
