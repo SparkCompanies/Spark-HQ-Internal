@@ -6319,7 +6319,9 @@ var worker_default = {
         unitWeeks.forEach((r) => { if (!lastImported || r.week_ending > lastImported) lastImported = r.week_ending; });
         let locks = [];
         try { const lr = await sbService(env, "GET", "charge_week_locks?select=week_ending,locked,locked_by,locked_at"); if (lr.ok && Array.isArray(lr.data)) locks = lr.data; } catch (e) {}
-        return json({ ok: true, lastImported, unitWeeks, units, unitTargets, people, personWeeks, personTargets, dh, locks }, 200, origin);
+        let hcTargets = [];
+        try { const hr = await sbService(env, "GET", "charge_headcount_targets?select=*"); if (hr.ok && Array.isArray(hr.data)) hcTargets = hr.data; } catch (e) {}
+        return json({ ok: true, lastImported, unitWeeks, units, unitTargets, people, personWeeks, personTargets, dh, locks, hcTargets }, 200, origin);
       } catch (e) {
         return json({ error: "history failed: " + String(e.message || e) }, 502, origin);
       }
