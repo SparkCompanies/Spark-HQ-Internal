@@ -5706,6 +5706,147 @@ function renderDashList(){
 /* ===== end SBX_REPORTS_DASH_v1 ===== */
 
 /* =====================================================================
+   SBX_STAGE_POPUPS_v1 — stage-change popups on every kanban transition
+   - Every drag / advance routes through one gate: omStageGate
+   - Into Submit  -> existing Send Email flow (unchanged)
+   - Into Placement -> Create Placement modal; creates a real PLACEMENTS
+     record (shows in the Placements list and in reports)
+   - Every other transition -> Change Stage confirmation with note
+   Redefines moveApplicant + advanceApplicant (later declaration wins).
+===================================================================== */
+
+function omStageCSS(){
+  if(document.getElementById('omStageCSS')) return;
+  var s = document.createElement('style'); s.id = 'omStageCSS';
+  s.textContent =
+    '.om-st-flow{display:flex;align-items:center;gap:10px;margin:6px 0 14px;}' +
+    '.om-st-pill{padding:4px 14px;border-radius:14px;color:#fff;font-size:12px;font-weight:700;}' +
+    '.om-st-arrow{font-size:18px;color:#888;}' +
+    '.om-fld{margin-bottom:12px;}' +
+    '.om-fld label{display:block;font-size:11.5px;color:#444;font-weight:600;margin-bottom:4px;}' +
+    '.om-fld input,.om-fld textarea{width:100%;box-sizing:border-box;border:1px solid #c9c9c9;border-radius:4px;padding:7px 9px;font:inherit;font-size:13px;}' +
+    '.om-fld input:focus,.om-fld textarea:focus{outline:none;border-color:#0176D3;box-shadow:0 0 0 1px #0176D3;}' +
+    '.om-st-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #e5e5e5;}' +
+    '.om-st-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}';
+  document.head.appendChild(s);
+}
+function omStagePill(st){
+  var c = (typeof STAGE_COLORS !== 'undefined' && STAGE_COLORS[st]) || '#0176D3';
+  return '<span class="om-st-pill" style="background:' + c + '">' + st + '</span>';
+}
+
+/* generic Change Stage confirmation */
+function omStageConfirm(jid, fromStage, idx, toStage){
+  var j = JOBS.find(function(x){ return x.id === jid; }); if(!j) return;
+  var a = j.pipeline[fromStage] && j.pipeline[fromStage][idx]; if(!a) return;
+  if(document.getElementById('omStOvl')) return;
+  omStageCSS();
+  var ovl = document.createElement('div'); ovl.className = 'ovl'; ovl.id = 'omStOvl';
+  ovl.innerHTML =
+    '<div class="modal" style="width:480px;margin-top:14vh">'
+    + '<button class="modal-x" id="omStX"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+    + '<div class="modal-h">Change Stage</div>'
+    + '<div class="modal-b">'
+    +   '<div style="font-size:14.5px;font-weight:700;margin-bottom:4px">' + a.name + '</div>'
+    +   '<div style="font-size:12px;color:var(--sf-muted);margin-bottom:10px">' + j.title + '</div>'
+    +   '<div class="om-st-flow">' + omStagePill(fromStage) + '<span class="om-st-arrow">\u2192</span>' + omStagePill(toStage) + '</div>'
+    +   '<div class="om-fld"><label>Note (optional)</label><textarea id="omStNote" rows="2" placeholder="Add a note about this stage change\u2026"></textarea></div>'
+    +   '<div class="om-st-foot">'
+    +     '<button class="sfbtn" id="omStCancel">Cancel</button>'
+    +     '<button class="sfbtn" id="omStGo" style="background:#0176D3;color:#fff;border-color:#0176D3">Change Stage</button>'
+    +   '</div>'
+    + '</div></div>';
+  document.body.appendChild(ovl);
+  function shut(){ var o = document.getElementById('omStOvl'); if(o) o.remove(); }
+  document.getElementById('omStX').addEventListener('click', shut);
+  document.getElementById('omStCancel').addEventListener('click', shut);
+  document.getElementById('omStGo').addEventListener('click', function(){
+    var note = (document.getElementById('omStNote').value || '').trim();
+    shut();
+    commitApplicantMove(jid, fromStage, idx, toStage);
+    if(note) toast('Note saved on stage change.');
+    emit('stagechange:confirmed', {to:toStage});
+  });
+  emit('stagechange:open', {to:toStage});
+}
+
+/* Create Placement modal */
+function omCreatePlacement(jid, fromStage, idx){
+  var j = JOBS.find(function(x){ return x.id === jid; }); if(!j) return;
+  var a = j.pipeline[fromStage] && j.pipeline[fromStage][idx]; if(!a) return;
+  if(document.getElementById('omPlOvl')) return;
+  omStageCSS();
+  var today = new Date();
+  var iso = today.toISOString().slice(0,10);
+  var ovl = document.createElement('div'); ovl.className = 'ovl'; ovl.id = 'omPlOvl';
+  ovl.innerHTML =
+    '<div class="modal" style="width:560px;margin-top:10vh">'
+    + '<button class="modal-x" id="omPlX"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+    + '<div class="modal-h">Create Placement</div>'
+    + '<div class="modal-b">'
+    +   '<div class="om-st-flow">' + omStagePill(fromStage) + '<span class="om-st-arrow">\u2192</span>' + omStagePill('Placement') + '</div>'
+    +   '<div class="om-st-2col">'
+    +     '<div class="om-fld"><label>Candidate</label><input value="' + titleName(a.name) + '" disabled></div>'
+    +     '<div class="om-fld"><label>Job</label><input value="' + j.title + '" disabled></div>'
+    +     '<div class="om-fld"><label>Start Date</label><input type="date" id="omPlStart" value="' + iso + '"></div>'
+    +     '<div class="om-fld"><label>End Date (optional)</label><input type="date" id="omPlEnd"></div>'
+    +     '<div class="om-fld"><label>Pay Rate</label><input id="omPlPay" placeholder="$0.00 / hr"></div>'
+    +     '<div class="om-fld"><label>Bill Rate</label><input id="omPlBill" placeholder="$0.00 / hr"></div>'
+    +   '</div>'
+    +   '<div class="om-st-foot">'
+    +     '<button class="sfbtn" id="omPlCancel">Cancel</button>'
+    +     '<button class="sfbtn" id="omPlGo" style="background:#2E844A;color:#fff;border-color:#2E844A">Create Placement</button>'
+    +   '</div>'
+    + '</div></div>';
+  document.body.appendChild(ovl);
+  function shut(){ var o = document.getElementById('omPlOvl'); if(o) o.remove(); }
+  document.getElementById('omPlX').addEventListener('click', shut);
+  document.getElementById('omPlCancel').addEventListener('click', shut);
+  document.getElementById('omPlGo').addEventListener('click', function(){
+    var sEl = document.getElementById('omPlStart');
+    if(!sEl.value){ sEl.style.borderColor = '#BA0517'; return; }
+    function us(v){ if(!v) return ''; var p = v.split('-'); return (+p[1]) + '/' + (+p[2]) + '/' + p[0]; }
+    var endV = document.getElementById('omPlEnd').value;
+    var now = new Date();
+    var cr = (now.getMonth()+1) + '/' + now.getDate() + '/' + now.getFullYear() + ', '
+           + (now.getHours()%12||12) + ':' + String(now.getMinutes()).padStart(2,'0') + ' ' + (now.getHours()<12?'AM':'PM');
+    PLACEMENTS.unshift({
+      n: j.client + ' - ' + j.title + ' - ' + titleName(a.name),
+      j: j.title, c: titleName(a.name),
+      s: us(sEl.value), e: us(endV), cr: cr,
+      pay: document.getElementById('omPlPay').value || '',
+      bill: document.getElementById('omPlBill').value || ''
+    });
+    shut();
+    commitApplicantMove(jid, fromStage, idx, 'Placement');
+    toast('Placement created for ' + titleName(a.name) + '.');
+    emit('placement:created');
+  });
+  emit('placement:open');
+}
+
+/* the gate: every stage transition routes through here */
+function omStageGate(jid, fromStage, idx, toStage){
+  if(toStage === fromStage) return;
+  if(toStage === 'Submit'){ openSendEmail(jid, fromStage, idx); return; }
+  if(toStage === 'Placement'){ omCreatePlacement(jid, fromStage, idx); return; }
+  omStageConfirm(jid, fromStage, idx, toStage);
+}
+
+/* REDEFINE: drag path */
+function moveApplicant(jid, fromStage, idx, toStage){
+  omStageGate(jid, fromStage, idx, toStage);
+}
+/* REDEFINE: advance path (chevron + applicant quick-view) */
+function advanceApplicant(jid, stage, idx){
+  var j = JOBS.find(function(x){ return x.id === jid; }); if(!j) return;
+  var pos = ATS_STAGES.indexOf(stage);
+  if(pos < 0 || pos >= ATS_STAGES.length - 1){ toast('Already at Placement \u2014 end of the pipeline.'); return; }
+  omStageGate(jid, stage, idx, ATS_STAGES[pos+1]);
+}
+/* ===== end SBX_STAGE_POPUPS_v1 ===== */
+
+/* =====================================================================
    Boot
 ===================================================================== */
 nav('home');
