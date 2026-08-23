@@ -4724,6 +4724,448 @@ function sbxReport(m){
 }
 sbxSeed();
 
+
+/* =====================================================================
+   SBX_ORGMIRROR_v1 — Account / Contact / Placement pages & editors
+   driven by live org metadata (pulled 2026-08-23 via /sandbox-jobmeta)
+   Real layouts, real picklists, real dependencies, real validation
+   rules with production wording. Values are demo data only.
+===================================================================== */
+var ORG_META = {"Account": {"layout": [{"heading": "Account Information", "columns": 2, "rows": [[{"field": "Name", "label": "Account Name", "required": true, "editableForNew": true, "editableForUpdate": true, "type": "string"}, {"field": "Work_Site_Location__c", "label": "Work Site Location", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}], [{"field": "Status__c", "label": "Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "OwnerId", "label": "Account Owner", "required": false, "editableForNew": false, "editableForUpdate": false, "type": "reference"}], [{"field": "Website", "label": "Website", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "url"}, {"field": "ParentId", "label": "Parent Account", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}], [{"field": "Description", "label": "Description", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "textarea"}, {"field": "Phone", "label": "Phone", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "phone"}], [{"field": "Division__c", "label": "Company", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "Industry", "label": "Industry", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Subdivision__c", "label": "Business Unit", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "NumberOfEmployees", "label": "Employees", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "int"}], [{"field": "Branch_Status__c", "label": "Branch Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "AccountSource", "label": "Account Source", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Job_Count__c", "label": "Job Count", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}, null]]}, {"heading": "Finance", "columns": 2, "rows": [[{"field": "Invoice_Delivery_Method__c", "label": "Invoice Delivery Method", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "TickerSymbol", "label": "Ticker Symbol", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "Billing_Status__c", "label": "Billing Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "ASYMBL_Time__Pay_Period_Type__c", "label": "Pay Period Type", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Tax_Treatment__c", "label": "Tax Treatment", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "ASYMBL_Time__Pay_Period_Start_Day__c", "label": "Pay Period Start Day", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "PO_Required__c", "label": "PO Required", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "boolean"}, {"field": "Sic", "label": "SIC Code", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "AnnualRevenue", "label": "Annual Revenue", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "currency"}, {"field": "SicDesc", "label": "SIC Description", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "Xero_Account_Chart__c", "label": "Xero Account Chart", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}, {"field": "Invoice_Individually__c", "label": "Invoice Individually", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "boolean"}]]}, {"heading": "Breadwinner", "columns": 2, "rows": [[{"field": "Bread_Winner__Total_Amount_Overdue__c", "label": "Total Amount Overdue", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}, {"field": "Bread_Winner__Total_Amount_Paid__c", "label": "Total Amount Paid", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}], [{"field": "Bread_Winner__Total_Amount_Due__c", "label": "Total Amount Due", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}, {"field": "Bread_Winner__Total_Amount_Credit__c", "label": "Total Amount Credited", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}], [{"field": "Bread_Winner__Total_Amount_Invoiced__c", "label": "Total Amount Invoiced", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}, {"field": "Bread_Winner__Total_Unallocated_Credit__c", "label": "Total Unallocated Credit", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}], [null, {"field": "Bread_Winner__Total_Draft_Amount__c", "label": "Total Draft Amount", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "double"}]]}, {"heading": "Address Information", "columns": 2, "rows": [[{"field": "BillingAddress", "label": "Billing Address", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "address"}, {"field": "ShippingAddress", "label": "Shipping Address", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "address"}]]}], "picklists": {"Industry": ["AEC", "Aerospace & Defense", "Agriculture", "Architecture, Engineering, & Design", "Automation", "Automotive", "Construction & Energy", "Consumer & Industrial Products", "Education", "Electronics", "Facilities Maintenance/Janitorial/Cleaning", "Finance and Accounting", "Food & Beverage", "Healthcare", "Hospitality", "Industrial Machinery & Equipment", "IT Services", "Legal Services", "Life Sciences", "Media, Entertainment & Gaming", "Medical Device", "Packaging, Printing, Labeling", "Telecommunications", "Transportation - Non Auto"], "AccountSource": ["Advertisement", "Customer Event", "Employee Referral", "External Referral", "Google AdWords", "Other", "Partner", "Purchased List", "Trade Show", "Webinar", "Website", "Spark Sales Process", "ZoomInfo", "Personal Network/Referral", "LinkedIn", "LinkedIn (Sourced)", "Client Referral", "Internal Referral", "Career Website", "Handshake", "Job Fair", "Walk In", "Vendor", "Indeed", "Instagram", "Staffing Referrals", "Facebook", "Glassdoor", "Dice", "Indeed (Sourced)", "Michigan Talent Bank", "Lensa"], "ASYMBL_Time__Pay_Period_Type__c": ["Weekly", "Bi-Weekly", "Bi-Monthly"], "ASYMBL_Time__Pay_Period_Start_Day__c": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "Billing_Status__c": ["Active", "Hold", "Collections"], "Branch_Status__c": ["Active", "Inactive"], "Division__c": ["Spark Talent", "Spark Packaging", "JJP", "Ignite Search", "Flex Workforce Solutions", "Spark Companies", "House"], "Invoice_Delivery_Method__c": ["Email", "Snail Mail"], "Status__c": ["Prospect", "Target", "Target - Fmr/Sgn", "Active", "Former", "Signed", "Flagged", "Vendor", "Disqualified"], "Tax_Treatment__c": ["Tax Exempt (0%)"], "Subdivision__c": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"]}, "deps": {"ASYMBL_Time__Pay_Period_Start_Day__c": {"controller": "ASYMBL_Time__Pay_Period_Type__c", "map": {"Weekly": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "Bi-Weekly": [], "Bi-Monthly": []}}, "Subdivision__c": {"controller": "Division__c", "map": {"Spark Talent": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Spark Packaging": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "JJP": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Ignite Search": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Flex Workforce Solutions": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Spark Companies": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "House": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"]}}}, "rules": [{"name": "Require_Key_Fields_On_Edit", "message": "Before saving, please complete all required fields: Website, Description, Phone, Shipping Address, Company, Business Unit, and Status."}]}, "Contact": {"layout": [{"heading": "Contact Information", "columns": 2, "rows": [[{"field": "Salutation", "label": "Salutation", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "FirstName", "label": "First Name", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "LastName", "label": "Last Name", "required": true, "editableForNew": true, "editableForUpdate": true, "type": "string"}, {"field": "Title", "label": "Title", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "Email", "label": "Email", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "email"}, {"field": "Phone", "label": "Business Phone", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "phone"}], [{"field": "MobilePhone", "label": "Mobile Phone", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "phone"}, {"field": "bpats__Contact_Relationship__c", "label": "Contact Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Contact_Role__c", "label": "Contact Role", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "LeadSource", "label": "Lead Source", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}]]}, {"heading": "Candidate Details", "columns": 2, "rows": [[{"field": "Primary_Skill_Set__c", "label": "Primary Skill Set", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "Employment_Status__c", "label": "Employment Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Authorized_to_Work_in_US__c", "label": "Authorized to Work in US", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "Primary_Shift_Preference__c", "label": "Primary Shift Preference", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Other_Shift_Preferences__c", "label": "Other Shift Preferences", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "multipicklist"}, {"field": "Overtime_Willingness__c", "label": "Overtime Willingness", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Candidate_Source__c", "label": "Candidate Source", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "Willingness_to_Submit_Drug_Test__c", "label": "Willingness to Submit Drug Test", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Willingness_to_Submit_Background_Check__c", "label": "Willingness to Submit Background Check", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, {"field": "ASYMBL_Time__Employment_Classification__c", "label": "Employment Classification", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}]]}, {"heading": "Address Information", "columns": 2, "rows": [[{"field": "MailingStreet", "label": "Mailing Street", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "textarea"}, {"field": "MailingCity", "label": "Mailing City", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "MailingState", "label": "Mailing State/Province", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}, {"field": "MailingPostalCode", "label": "Mailing Zip/Postal Code", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}]]}], "picklists": {"Salutation": ["Mr.", "Ms.", "Mrs.", "Dr.", "Prof.", "Mx."], "LeadSource": ["Advertisement", "Customer Event", "Employee Referral", "External Referral", "Google AdWords", "Other", "Partner", "Purchased List", "Trade Show", "Webinar", "Website", "Spark Sales Process", "ZoomInfo", "Personal Network/Referral", "LinkedIn", "LinkedIn (Sourced)", "Client Referral", "Internal Referral", "Career Website", "Handshake", "Job Fair", "Walk In", "Vendor", "Indeed", "Instagram", "Staffing Referrals", "Facebook", "Glassdoor", "Dice", "Indeed (Sourced)", "Michigan Talent Bank", "Lensa"], "bpats__Contact_Relationship__c": ["Prospect", "Active", "Former", "Do Not Use", "Deceased", "Moved Locations", "No Longer Works Here", "Retired", "DNU", "Staffing Referrals Applicant", "# DISCO"], "ASYMBL_Time__Employment_Classification__c": ["Exempt", "Non-Exempt"], "Contact_Role__c": ["Decision Maker Owner", "Decision Maker CFO", "Decision Maker Operations", "Decision Maker HR", "Decision Maker Other", "Billing", "Site Contact", "Recruiting", "Hiring Manager", "Accounts Payable", "Accounts Receivable", "Engineer", "Other"], "Authorized_to_Work_in_US__c": ["Yes", "No", "Needs Sponsorship"], "Employment_Status__c": ["Employed", "Unemployed", "Contract Ending Soon", "Student", "Other"], "Other_Shift_Preferences__c": ["1st", "2nd", "3rd", "Weekend", "Any"], "Overtime_Willingness__c": ["Yes", "Limited", "None"], "Primary_Shift_Preference__c": ["1st", "2nd", "3rd", "Weekend", "Any"], "Primary_Skill_Set__c": ["Industrial", "Skilled Trade", "Office", "IT", "Engineering", "Other"], "Willingness_to_Submit_Background_Check__c": ["Yes", "No"], "Willingness_to_Submit_Drug_Test__c": ["Yes", "No"], "Candidate_Source__c": ["Indeed-Applied", "Indeed-Sourced", "LinkedIn-Applied", "LinkedIn-Sourced", "Referral", "SF Talent Pool", "Social Media - Facebook", "Social Media - Instagram", "Social Media - Tik Tok", "Spark Website", "State Sponsored Talent Bank", "ZipRecruiter-Applied", "ZipRecruiter-Sourced", "ZoomInfo"]}, "deps": {}, "rules": []}, "Placement": {"layout": [{"heading": "Information", "columns": 2, "rows": [[{"field": "Name", "label": "Placement Name", "required": true, "editableForNew": true, "editableForUpdate": true, "type": "string"}, {"field": "bpats__ATS_Job__c", "label": "Job", "required": true, "editableForNew": true, "editableForUpdate": true, "type": "reference"}], [{"field": "bpats__ATS_Candidate__c", "label": "Candidate", "required": true, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, {"field": "bpats__Account__c", "label": "Account", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}], [{"field": "bpats__Assignment_Extended__c", "label": "Assignment Extended", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "boolean"}, {"field": "bpats__Placement_Complete__c", "label": "Placement Complete?", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "boolean"}], [{"field": "bpats__Branch__c", "label": "Branch", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, {"field": "Onboarding_Status__c", "label": "Onboarding Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "Servicing_Branch__c", "label": "Servicing Branch", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, {"field": "Onboarding_Details__c", "label": "Onboarding Details", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "string"}], [{"field": "Status__c", "label": "Status", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, null], [{"field": "Billing_Account__c", "label": "Billing Account", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, null], [{"field": "Finance_Approval_Owner__c", "label": "Finance Approval Owner", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, null], [{"field": "Prev_Billing_Account__c", "label": "Prev Billing Account", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, null], [{"field": "Back_Office_Approval_Required_By_FncUser__c", "label": "Back Office Approval Required By FncUser", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "boolean"}, null], [{"field": "Division__c", "label": "Division", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, null], [{"field": "Subdivision__c", "label": "Subdivision", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, null], [{"field": "Termination_Reason__c", "label": "Termination Reason", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}, null], [{"field": "Terminated_Date__c", "label": "Terminated Date", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "date"}, null], [{"field": "Termination_Description__c", "label": "Termination Description", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "textarea"}, null], [{"field": "Split_Recruiter__c", "label": "Split Recruiter", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, null], [{"field": "Split_Account_Manager__c", "label": "Split Account Manager", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}, null]]}, {"heading": "Placement Details", "columns": 2, "rows": [[{"field": "bpats__Start_Date__c", "label": "Start Date", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "date"}, {"field": "bpats__Bill_Rate__c", "label": "Bill Rate", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "currency"}], [{"field": "bpats__Estimated_End_Date__c", "label": "Estimated End Date", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "date"}, null], [{"field": "bpats__Pay_Rate__c", "label": "Pay Rate", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "currency"}, {"field": "bpats__Burden_Percentage__c", "label": "Burden %", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "percent"}], [{"field": "bpats__Salary__c", "label": "Salary", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "currency"}, {"field": "AST_Employment_Classification__c", "label": "Employment Classification", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "picklist"}], [{"field": "bpats__Placement_Percentage__c", "label": "Placement %", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "percent"}, {"field": "bpats__Timesheet_Approver__c", "label": "Timesheet Approver", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "reference"}], [{"field": "bpats__Is_Both_Profit_Populated__c", "label": "Is Both Profit Populated", "required": false, "editableForNew": true, "editableForUpdate": true, "type": "boolean"}, null]]}], "picklists": {"AST_Employment_Classification__c": ["Exempt", "Non-Exempt"], "Division__c": ["Spark Talent", "Spark Packaging", "JJP", "Ignite Search", "Flex Workforce Solutions", "Spark Companies", "House"], "Onboarding_Status__c": ["New", "Done"], "Status__c": ["Active", "Completed", "Pending Start"], "Termination_Reason__c": ["Resignation", "Resignation - Accepted Another Offer", "Job Abandonment / No Call No Show", "Retirement", "Client Hired Direct", "Layoff - Lack of Work", "Layoff - Position Eliminated", "Layoff - Seasonal Employment Ended", "Termination - Performance Issues", "Termination - Attendance Issues", "Termination - Violation of Company Policy", "Termination - Insubordination", "Termination - Safety Violatin", "Termination - Breach of Contact", "Termination - Workplace Violence", "Termination - Drug or Alcohol Violation", "Assignment Completed", "Never Started", "Other"], "Subdivision__c": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"]}, "deps": {"Subdivision__c": {"controller": "Division__c", "map": {"Spark Talent": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Spark Packaging": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "JJP": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Ignite Search": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Flex Workforce Solutions": ["MI Metro", "Central", "Enterprise", "Automation", "Light Industrial", "BPO", "Southeast", "Northeast", "Northwest", "Southwest", "John Joseph Partners", "Ignite Search", "Spark Sales"], "Spark Companies": [], "House": []}}}, "rules": [{"name": "Termination_Description_Required", "message": "Termination Description is required. Please leave a note in that field."}, {"name": "Termination_Fields_Required", "message": "If you enter a value in any of these fields (Terminated Date, Termination Reason, Termination Description), all three fields are required."}]}};
+
+function omEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function omBag(rec){ if(!rec._om) rec._om = {}; return rec._om; }
+function omGet(bag,f){ return bag[f]==null ? '' : bag[f]; }
+
+/* ---------- demo-value seeding (values invented; structure real) ---------- */
+function omSeedAccount(a){
+  var jobs = JOBS.filter(function(j){ return j.client === a.name; });
+  accountSeed(a, jobs);
+  var d = a.details, b = omBag(a);
+  function def(f,v){ if(b[f]==null) b[f]=v; }
+  def('Name', a.name); def('Phone', a.phone||''); def('OwnerId', a.owner||'');
+  def('Status__c', d.status||''); def('Website', d.website||''); def('Description', d.description||'');
+  def('Division__c', d.company||''); def('Subdivision__c', d.bu||''); def('Industry', d.industry||'');
+  def('ShippingAddress', (d.addr||'').replace(/<br\s*\/?>/g,'\n')); def('BillingAddress','');
+  def('ASYMBL_Time__Pay_Period_Type__c', d.payType||''); def('ASYMBL_Time__Pay_Period_Start_Day__c', d.payDay||'');
+  def('Xero_Account_Chart__c', d.xero||''); def('Job_Count__c', String(jobs.length));
+  def('Branch_Status__c','Active'); def('AccountSource',''); def('NumberOfEmployees','');
+  def('Billing_Status__c', a.type==='Client'?'Approved':''); def('Tax_Treatment__c','');
+  def('Invoice_Delivery_Method__c',''); def('PO_Required__c',false); def('Invoice_Individually__c',false);
+  def('TickerSymbol',''); def('Sic',''); def('SicDesc',''); def('AnnualRevenue','');
+  def('Work_Site_Location__c',''); def('ParentId','');
+  def('Bread_Winner__Total_Amount_Overdue__c','$0.00'); def('Bread_Winner__Total_Amount_Paid__c','$0.00');
+  def('Bread_Winner__Total_Amount_Due__c','$0.00'); def('Bread_Winner__Total_Amount_Credit__c','$0.00');
+  def('Bread_Winner__Total_Amount_Invoiced__c','$0.00'); def('Bread_Winner__Total_Unallocated_Credit__c','$0.00');
+  def('Bread_Winner__Total_Draft_Amount__c','$0.00');
+  return b;
+}
+function omSyncAccount(a){
+  var b = omBag(a), d = a.details || (a.details={});
+  a.name = b.Name || a.name; a.phone = b.Phone || '';
+  d.status = b.Status__c||''; d.website = b.Website||''; d.description = b.Description||'';
+  d.company = b.Division__c||''; d.bu = b.Subdivision__c||''; d.industry = b.Industry||'';
+  d.addr = omEsc(b.ShippingAddress||'').replace(/\n/g,'<br>');
+  d.payType = b.ASYMBL_Time__Pay_Period_Type__c||''; d.payDay = b.ASYMBL_Time__Pay_Period_Start_Day__c||'';
+  d.xero = b.Xero_Account_Chart__c||'';
+}
+function omSeedContact(c){
+  var b = omBag(c);
+  function def(f,v){ if(b[f]==null) b[f]=v; }
+  def('Salutation',''); def('FirstName', c.first||''); def('LastName', c.last||'');
+  def('Title', c.title||''); def('Email', c.email||''); def('Phone', c.phone||''); def('MobilePhone','');
+  def('bpats__Contact_Relationship__c', c.account && c.account.indexOf('Candidate')===0 ? 'Prospect' : 'Active');
+  def('Contact_Role__c',''); def('LeadSource','');
+  def('Primary_Skill_Set__c', c.skill||''); def('Employment_Status__c','');
+  def('Authorized_to_Work_in_US__c', c.auth||''); def('Primary_Shift_Preference__c', c.shiftPref||'');
+  def('Other_Shift_Preferences__c',''); def('Overtime_Willingness__c','');
+  def('Candidate_Source__c',''); def('Willingness_to_Submit_Drug_Test__c','');
+  def('Willingness_to_Submit_Background_Check__c',''); def('ASYMBL_Time__Employment_Classification__c','');
+  def('MailingStreet',''); def('MailingCity',''); def('MailingState',''); def('MailingPostalCode','');
+  return b;
+}
+function omSyncContact(c){
+  var b = omBag(c);
+  c.first = b.FirstName||''; c.last = b.LastName||c.last;
+  c.email = b.Email||''; c.phone = b.Phone||''; c.title = b.Title||'';
+}
+function omSeedPlacement(p){
+  var b = omBag(p);
+  function def(f,v){ if(b[f]==null) b[f]=v; }
+  var acctGuess = (p.n.indexOf(' - ')>0 && p.n.indexOf('a0T')!==0) ? p.n.split(' - ')[0].replace(/-\s*$/,'').trim() : '';
+  def('Name', p.n); def('bpats__ATS_Job__c', p.j); def('bpats__ATS_Candidate__c', p.c);
+  def('bpats__Account__c', acctGuess); def('Status__c','Active');
+  def('Division__c','Spark Talent'); def('Subdivision__c', (ORG_META.Placement.deps.Subdivision__c.map['Spark Talent']||[''])[0]);
+  def('Onboarding_Status__c','Completed'); def('Onboarding_Details__c','');
+  def('bpats__Start_Date__c', p.s); def('bpats__Estimated_End_Date__c', p.e);
+  def('bpats__Pay_Rate__c','$22.00'); def('bpats__Bill_Rate__c','$31.90'); def('bpats__Burden_Percentage__c','28.00%');
+  def('bpats__Salary__c',''); def('AST_Employment_Classification__c','Non-Exempt');
+  def('bpats__Placement_Percentage__c',''); def('bpats__Timesheet_Approver__c','');
+  def('bpats__Assignment_Extended__c',false); def('bpats__Placement_Complete__c',false);
+  def('bpats__Is_Both_Profit_Populated__c',true);
+  def('bpats__Branch__c','Troy, MI'); def('Servicing_Branch__c','Troy, MI');
+  def('Billing_Account__c', acctGuess); def('Prev_Billing_Account__c','');
+  def('Finance_Approval_Owner__c',''); def('Back_Office_Approval_Required_By_FncUser__c',false);
+  def('Termination_Reason__c',''); def('Termination_Description__c',''); def('Terminated_Date__c','');
+  def('Split_Recruiter__c',''); def('Split_Account_Manager__c','');
+  return b;
+}
+function omSyncPlacement(p){
+  var b = omBag(p);
+  p.s = b.bpats__Start_Date__c||p.s; p.e = b.bpats__Estimated_End_Date__c||p.e;
+}
+
+/* ---------- read-only detail sections from org layout ---------- */
+function omDetailSections(objKey, bag){
+  var m = ORG_META[objKey], html = '';
+  m.layout.forEach(function(sec){
+    var left = '', right = '', n = 0;
+    sec.rows.forEach(function(row){
+      row.forEach(function(cell, ci){
+        if(!cell) return;
+        var v = omGet(bag, cell.field);
+        var opts = { noedit:true };
+        if(cell.type === 'boolean'){ opts.check = true; }
+        var rendered = fldRow(cell.label, cell.type==='boolean' ? !!v : omEsc(v).replace(/\n/g,'<br>'), opts);
+        if(ci === 0) left += rendered; else right += rendered;
+        n++;
+      });
+    });
+    if(!n) return;
+    html += '<div class="sec"><div class="sec-h"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>'+omEsc(sec.heading)+'</div>'
+          + '<div class="sec-b"><div>'+left+'</div><div>'+right+'</div></div></div>';
+  });
+  return html;
+}
+
+/* ---------- editor form generation ---------- */
+function omInputHTML(objKey, cell, bag){
+  var m = ORG_META[objKey];
+  var f = cell.field, v = omGet(bag, f), id = 'om_'+f;
+  var req = cell.required ? '<i>*</i>' : '';
+  var ro = cell.editableForUpdate === false;
+  var inner;
+  if(m.picklists[f]){
+    var opts = m.picklists[f];
+    if(m.deps[f]){
+      var ctrl = m.deps[f].controller;
+      opts = m.deps[f].map[omGet(bag, ctrl)] || [];
+    }
+    var oHtml = '<option'+(v===''||v==='--None--'?' selected':'')+'>--None--</option>';
+    opts.forEach(function(o){ oHtml += '<option'+(o===v?' selected':'')+'>'+omEsc(o)+'</option>'; });
+    inner = '<select id="'+id+'"'+(ro?' disabled':'')+'>'+oHtml+'</select>';
+  } else if(cell.type === 'boolean'){
+    inner = '<label class="omchk" style="display:flex;gap:8px;align-items:center;font-weight:400"><input type="checkbox" id="'+id+'"'+(v?' checked':'')+(ro?' disabled':'')+'></label>';
+  } else if(cell.type === 'textarea' || f === 'Description' || f === 'Onboarding_Details__c' || f === 'Termination_Description__c' || f.indexOf('Address') > -1 || f === 'MailingStreet'){
+    inner = '<textarea id="'+id+'" rows="3"'+(ro?' disabled':'')+'>'+omEsc(v)+'</textarea>';
+  } else if(cell.type === 'date'){
+    inner = '<input type="text" id="'+id+'" placeholder="M/D/YYYY" value="'+omEsc(v)+'"'+(ro?' disabled':'')+'>';
+  } else {
+    inner = '<input type="text" id="'+id+'" value="'+omEsc(v)+'"'+(ro?' disabled':'')+'>';
+  }
+  return '<div class="ff"><label>'+req+omEsc(cell.label)+(ro?' <span style="opacity:.55;font-weight:400">(read only)</span>':'')+'</label>'+inner
+       + '<div class="errmsg hide" id="'+id+'Err">Complete this field.</div></div>';
+}
+function omFormHTML(objKey, bag){
+  var m = ORG_META[objKey], html = '';
+  m.layout.forEach(function(sec){
+    var left = '', right = '';
+    sec.rows.forEach(function(row){
+      row.forEach(function(cell, ci){
+        if(!cell) return;
+        var h = omInputHTML(objKey, cell, bag);
+        if(ci === 0) left += h; else right += h;
+      });
+    });
+    html += '<div class="sec"><div class="sec-h"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>'+omEsc(sec.heading)+'</div>'
+          + '<div class="sec-b" style="align-items:start"><div>'+left+'</div><div>'+right+'</div></div></div>';
+  });
+  return html;
+}
+function omCollect(objKey, bag){
+  ORG_META[objKey].layout.forEach(function(sec){
+    sec.rows.forEach(function(row){
+      row.forEach(function(cell){
+        if(!cell) return;
+        var el = document.getElementById('om_'+cell.field);
+        if(!el || el.disabled) return;
+        if(el.type === 'checkbox') bag[cell.field] = el.checked;
+        else { var v = el.value; if(v === '--None--') v = ''; bag[cell.field] = (typeof v === 'string') ? v.trim() : v; }
+      });
+    });
+  });
+}
+function omWireDeps(objKey, bag){
+  var m = ORG_META[objKey];
+  Object.keys(m.deps).forEach(function(depF){
+    var ctrl = m.deps[depF].controller;
+    var cEl = document.getElementById('om_'+ctrl), dEl = document.getElementById('om_'+depF);
+    if(!cEl || !dEl) return;
+    cEl.addEventListener('change', function(){
+      var opts = m.deps[depF].map[cEl.value] || [];
+      var oHtml = '<option selected>--None--</option>';
+      opts.forEach(function(o){ oHtml += '<option>'+omEsc(o)+'</option>'; });
+      dEl.innerHTML = oHtml;
+    });
+  });
+}
+function omClearErrs(objKey){
+  ORG_META[objKey].layout.forEach(function(sec){
+    sec.rows.forEach(function(row){ row.forEach(function(cell){
+      if(!cell) return;
+      var el = document.getElementById('om_'+cell.field);
+      var em = document.getElementById('om_'+cell.field+'Err');
+      if(el) el.classList.remove('err');
+      if(em){ em.classList.add('hide'); em.textContent = 'Complete this field.'; }
+    }); });
+  });
+  var sb = document.getElementById('omSnag'); if(sb) sb.innerHTML = '';
+}
+function omErr(f, msg){
+  var el = document.getElementById('om_'+f), em = document.getElementById('om_'+f+'Err');
+  if(el) el.classList.add('err');
+  if(em){ if(msg) em.textContent = msg; em.classList.remove('hide'); }
+}
+function omSnag(fails){
+  var sb = document.getElementById('omSnag'); if(!sb || !fails.length) return;
+  sb.innerHTML = '<div class="snag"><b>We hit a snag.</b>Review the following fields'
+    + fails.map(function(x){
+        return x.id ? '<a data-snag="om_'+x.id+'">'+omEsc(x.label)+'</a>' : '<a>'+omEsc(x.msg)+'</a>';
+      }).join('')
+    + '</div>';
+  sb.querySelectorAll('[data-snag]').forEach(function(a){
+    a.addEventListener('click', function(){
+      var el = document.getElementById(a.dataset.snag);
+      if(el){ el.scrollIntoView({ block:'center' }); if(el.focus) el.focus(); }
+    });
+  });
+  sb.scrollIntoView({ block:'nearest' });
+}
+function omRequiredCheck(objKey, bag){
+  var missing = [];
+  ORG_META[objKey].layout.forEach(function(sec){
+    sec.rows.forEach(function(row){ row.forEach(function(cell){
+      if(!cell || !cell.required) return;
+      var el = document.getElementById('om_'+cell.field);
+      if(el && el.disabled) return;
+      var v = bag[cell.field];
+      if(v === '' || v == null){ omErr(cell.field); missing.push({ field: cell.field, label: cell.label }); }
+    }); });
+  });
+  return missing;
+}
+function omScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.add('hide'); });
+  var el = document.getElementById(id); if(el) el.classList.remove('hide');
+}
+function omHead(objLabel, name, color, svg){
+  return '<div class="rp-head"><div class="rp-top">'
+    + '<div class="obj-ico" style="background:'+color+'">'+svg+'</div>'
+    + '<div><div class="l1">'+omEsc(objLabel)+'</div><div class="rp-name">'+omEsc(name)+'</div></div>'
+    + '</div></div>';
+}
+var OM_SVG = {
+  account: '<svg viewBox="0 0 24 24"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h7A1.5 1.5 0 0 1 14 5.5V21"/><path d="M14 9h4.5A1.5 1.5 0 0 1 20 10.5V21"/><path d="M2 21h20"/></svg>',
+  contact: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
+  placement: '<svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>'
+};
+
+/* ---------- Account: layout-driven details + editor ---------- */
+function omAcctInject(aid){
+  var a = ACCOUNTS.find(function(x){ return x.id === aid; }); if(!a) return;
+  omSeedAccount(a);
+  var scr = document.getElementById('scr-account');
+  var grp = scr.querySelector('.rp-actions .btngrp');
+  if(grp && !grp.querySelector('.om-acct-edit')){
+    var btn = document.createElement('button');
+    btn.className = 'sfbtn om-acct-edit'; btn.textContent = 'Edit';
+    btn.addEventListener('click', function(){ openAccountEdit(aid); });
+    grp.insertBefore(btn, grp.firstChild);
+  }
+  if(currentAcctTab !== 'related'){
+    var body = scr.querySelector('.rp-body');
+    if(body) body.innerHTML = omDetailSections('Account', omBag(a));
+  }
+}
+function openAccountEdit(aid){
+  var a = ACCOUNTS.find(function(x){ return x.id === aid; }); if(!a) return;
+  var b = omSeedAccount(a);
+  var scr = document.getElementById('scr-account');
+  scr.innerHTML = omHead('Account', 'Edit ' + a.name, '#5867E8', OM_SVG.account)
+    + '<div class="rp-main" style="margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto;position:relative">'
+    +   '<div id="omSnag"></div>'
+    +   '<div class="req-note"><i>*</i> = Required Information</div>'
+    +   '<div class="rp-body" style="padding-top:6px">' + omFormHTML('Account', b) + '</div>'
+    + '</div>'
+    + '<div class="jedit-foot">'
+    +   '<button class="sfbtn" style="border-radius:16px" id="omCancel">Cancel</button>'
+    +   '<button class="sfbtn brand" style="border-radius:16px" id="omSave">Save</button>'
+    +   '<span class="rn"><i>*</i> = Required Information</span>'
+    + '</div>';
+  omWireDeps('Account', b);
+  document.getElementById('omCancel').addEventListener('click', function(){ openAccount(aid, currentAcctTab); });
+  document.getElementById('omSave').addEventListener('click', function(){ tryAccountSave(a); });
+}
+function tryAccountSave(a){
+  omClearErrs('Account');
+  var b = omBag(a);
+  omCollect('Account', b);
+  var fails = [];
+  omRequiredCheck('Account', b).forEach(function(m){ fails.push({ id:m.field, label:m.label }); });
+  /* Org rule: Require_Key_Fields_On_Edit (active, exact production message) */
+  var keyMap = { 'Website':'Website', 'Description':'Description', 'Phone':'Phone',
+                 'ShippingAddress':'Shipping Address', 'Division__c':'Company',
+                 'Subdivision__c':'Business Unit', 'Status__c':'Status' };
+  var keyMissing = Object.keys(keyMap).filter(function(f){ return !b[f]; });
+  if(keyMissing.length){
+    keyMissing.forEach(function(f){ omErr(f, 'Complete this field.'); });
+    fails.push({ msg: ORG_META.Account.rules[0].message });
+  }
+  if(fails.length){ omSnag(fails); return; }
+  omSyncAccount(a);
+  openAccount(a.id, 'details');
+  toast('Account "' + a.name + '" was saved.');
+  emit('account:saved');
+}
+
+/* ---------- Contact: metadata-driven editor off the record page ---------- */
+function omRecordInject(cid){
+  var c = CONTACTS.find(function(x){ return x.id === cid; }); if(!c) return;
+  omSeedContact(c);
+  var scr = document.getElementById('scr-record');
+  var grp = scr.querySelector('.rp-actions .btngrp');
+  if(grp && !grp.querySelector('.om-con-edit')){
+    var btn = document.createElement('button');
+    btn.className = 'sfbtn om-con-edit'; btn.textContent = 'Edit';
+    btn.addEventListener('click', function(){ openContactEdit(cid); });
+    grp.insertBefore(btn, grp.firstChild);
+  }
+}
+function openContactEdit(cid){
+  var c = CONTACTS.find(function(x){ return x.id === cid; }); if(!c) return;
+  var b = omSeedContact(c);
+  var scr = document.getElementById('scr-record');
+  scr.innerHTML = omHead('Contact', 'Edit ' + (c.first + ' ' + c.last), '#7B5FE7', OM_SVG.contact)
+    + '<div class="rp-main" style="margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto;position:relative">'
+    +   '<div id="omSnag"></div>'
+    +   '<div class="req-note"><i>*</i> = Required Information</div>'
+    +   '<div class="rp-body" style="padding-top:6px">' + omFormHTML('Contact', b) + '</div>'
+    + '</div>'
+    + '<div class="jedit-foot">'
+    +   '<button class="sfbtn" style="border-radius:16px" id="omCancel">Cancel</button>'
+    +   '<button class="sfbtn brand" style="border-radius:16px" id="omSave">Save</button>'
+    +   '<span class="rn"><i>*</i> = Required Information</span>'
+    + '</div>';
+  omWireDeps('Contact', b);
+  document.getElementById('omCancel').addEventListener('click', function(){ openRecord(cid); });
+  document.getElementById('omSave').addEventListener('click', function(){ tryContactSave(c); });
+}
+function tryContactSave(c){
+  omClearErrs('Contact');
+  var b = omBag(c);
+  omCollect('Contact', b);
+  var fails = [];
+  omRequiredCheck('Contact', b).forEach(function(m){ fails.push({ id:m.field, label:m.label }); });
+  if(fails.length){ omSnag(fails); return; }
+  omSyncContact(c);
+  openRecord(c.id);
+  toast('Contact "' + c.first + ' ' + c.last + '" was saved.');
+  emit('contact:saved');
+}
+
+/* ---------- Placement: record page + editor with org termination rules ---------- */
+function openPlacementDetail(pn){
+  var p = PLACEMENTS.find(function(x){ return x.n === pn; }); if(!p) return;
+  var b = omSeedPlacement(p);
+  var scr = document.getElementById('scr-record');
+  scr.innerHTML = omHead('Placement', p.n, '#06A59A', OM_SVG.placement)
+    + '<div class="rp-main" style="margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto;position:relative">'
+    +   '<div style="text-align:right;padding:4px 0"><button class="sfbtn" id="omPlEdit">Edit</button><button class="sfbtn" id="omPlBack">Back to Placements</button></div>'
+    +   '<div class="rp-body" style="padding-top:6px">' + omDetailSections('Placement', b) + '</div>'
+    + '</div>';
+  omScreen('scr-record');
+  document.getElementById('omPlEdit').addEventListener('click', function(){ openPlacementEdit(pn); });
+  document.getElementById('omPlBack').addEventListener('click', function(){ nav('placements'); });
+  emit('placement:open');
+}
+function openPlacementEdit(pn){
+  var p = PLACEMENTS.find(function(x){ return x.n === pn; }); if(!p) return;
+  var b = omSeedPlacement(p);
+  var scr = document.getElementById('scr-record');
+  scr.innerHTML = omHead('Placement', 'Edit ' + p.n, '#06A59A', OM_SVG.placement)
+    + '<div class="rp-main" style="margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto;position:relative">'
+    +   '<div id="omSnag"></div>'
+    +   '<div class="req-note"><i>*</i> = Required Information</div>'
+    +   '<div class="rp-body" style="padding-top:6px">' + omFormHTML('Placement', b) + '</div>'
+    + '</div>'
+    + '<div class="jedit-foot">'
+    +   '<button class="sfbtn" style="border-radius:16px" id="omCancel">Cancel</button>'
+    +   '<button class="sfbtn brand" style="border-radius:16px" id="omSave">Save</button>'
+    +   '<span class="rn"><i>*</i> = Required Information</span>'
+    + '</div>';
+  omScreen('scr-record');
+  omWireDeps('Placement', b);
+  document.getElementById('omCancel').addEventListener('click', function(){ openPlacementDetail(pn); });
+  document.getElementById('omSave').addEventListener('click', function(){ tryPlacementSave(p); });
+}
+function tryPlacementSave(p){
+  omClearErrs('Placement');
+  var b = omBag(p);
+  omCollect('Placement', b);
+  var fails = [];
+  omRequiredCheck('Placement', b).forEach(function(m){ fails.push({ id:m.field, label:m.label }); });
+  var R = {};
+  ORG_META.Placement.rules.forEach(function(r){ R[r.name] = r.message; });
+  /* Org rule: Termination_Description_Required */
+  if(b.Termination_Reason__c === 'Other' && !b.Termination_Description__c){
+    omErr('Termination_Description__c', R.Termination_Description_Required);
+    fails.push({ msg: R.Termination_Description_Required });
+  }
+  /* Org rule: Termination_Fields_Required — all three or none */
+  var trio = ['Terminated_Date__c','Termination_Reason__c','Termination_Description__c'];
+  var filled = trio.filter(function(f){ return !!b[f]; });
+  if(filled.length > 0 && filled.length < 3){
+    trio.forEach(function(f){ if(!b[f]) omErr(f, 'Complete this field.'); });
+    fails.push({ msg: R.Termination_Fields_Required });
+  }
+  if(fails.length){ omSnag(fails); return; }
+  omSyncPlacement(p);
+  openPlacementDetail(p.n);
+  toast('Placement "' + p.n + '" was saved.');
+  emit('placement:saved');
+}
+
+/* ---------- redefine renderPlacements: open real record pages ---------- */
+function renderPlacements(){
+  var q = (document.getElementById('plQ').value||'').toLowerCase();
+  var rows = PLACEMENTS.filter(function(p){ return !q || (p.n+' '+p.j+' '+p.c).toLowerCase().indexOf(q)>=0; });
+  var tb = document.getElementById('placementRows'); tb.innerHTML='';
+  rows.forEach(function(p,i){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="rownum">'+(i+1)+'</td><td><input type="checkbox"></td>'
+      + '<td><span class="namelink pl-open" data-pn="'+omEsc(p.n)+'">'+omEsc(p.n)+'</span></td>'
+      + '<td>'+omEsc(p.j)+'</td><td>'+omEsc(p.c)+'</td><td>'+omEsc(p.s)+'</td><td>'+omEsc(p.e)+'</td><td>'+omEsc(p.cr)+'</td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('.pl-open').forEach(function(n){
+    n.addEventListener('click', function(){ openPlacementDetail(n.dataset.pn); });
+  });
+  emit('nav:placements');
+}
+
+/* ---------- wrappers: extend existing pages without touching them ---------- */
+var _omOpenAccount = openAccount;
+openAccount = function(aid, tab){
+  _omOpenAccount(aid, tab);
+  try { omAcctInject(aid); } catch(e) {}
+};
+var _omOpenRecord = openRecord;
+openRecord = function(cid){
+  _omOpenRecord(cid);
+  try { omRecordInject(cid); } catch(e) {}
+};
+/* ===================== end SBX_ORGMIRROR_v1 ===================== */
+
 /* =====================================================================
    Boot
 ===================================================================== */
