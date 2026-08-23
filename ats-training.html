@@ -5167,6 +5167,125 @@ openRecord = function(cid){
 /* ===================== end SBX_ORGMIRROR_v1 ===================== */
 
 /* =====================================================================
+   SBX_ORGMIRROR_v1_1 — activity parity
+   - Account: wire the native header Edit button (removes dead duplicate)
+   - Placement: full activity rail + Log a Call composer
+   Redefines omAcctInject and openPlacementDetail from v1 (later declaration wins).
+===================================================================== */
+
+function omTlHTML(acts){
+  var tl = '', lastMo = '';
+  (acts || []).forEach(function(x){
+    if(x.mo !== lastMo){
+      lastMo = x.mo;
+      tl += '<div class="tl-mo"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>' + x.mo
+          + '<span class="r">' + (x.mo.indexOf('July') === 0 ? 'This Month' : '') + '</span></div>';
+    }
+    var ic = x.t === 'Call'
+      ? '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>'
+      : '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>';
+    tl += '<div class="tl-it"><span class="ic" style="background:' + (x.t === 'Call' ? '#06A59A' : '#B57DE3') + '">' + ic + '</span>'
+        + '<div><b>' + x.t + (x.subject ? ': ' + x.subject : '') + '</b><span>' + x.who + ' ' + x.d + '</span></div></div>';
+  });
+  if(!tl){
+    tl = '<div style="text-align:center;color:var(--sf-muted);font-size:12px;padding:14px 0">No activities to show.<br>Get started by logging a call.</div>';
+  }
+  return tl;
+}
+
+function omActRailHTML(callBtnId, acts){
+  return '<div class="rp-rail">'
+    + '<div class="card">'
+    +   '<div class="act-tabs"><span class="active">Activity</span><span>Chatter</span></div>'
+    +   '<div class="aq">'
+    +     '<span class="aq-c" style="background:#939393"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 8 9 6 9-6"/></svg></span>'
+    +     '<span class="aq-c" id="' + callBtnId + '" style="background:#06A59A"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>'
+    +     '<span class="aq-c" style="background:#3BA755"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>'
+    +     '<span class="aq-c" style="background:#B57DE3"><svg viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><path d="m3 6 1.5 1.5L7 5"/></svg></span>'
+    +   '</div>'
+    +   '<div class="aq-tog"><span class="tgl"><i></i></span> Only show activities with insights</div>'
+    +   '<div class="tl-filters">Filters: All time \u2022 All activities \u2022 Logged calls, Email, Events, List email, Tasks and Web</div>'
+    +   '<div class="tl-bar"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>Upcoming &amp; Overdue</div>'
+    +   omTlHTML(acts)
+    +   '<div style="padding:10px 13px 12px"></div>'
+    + '</div>'
+    + '</div>';
+}
+
+/* Log a Call composer for placements — mirrors the account composer exactly */
+function omPlaceComposer(p){
+  if(document.getElementById('cmp')) return;
+  var el = document.createElement('div'); el.className = 'composer'; el.id = 'cmp';
+  el.innerHTML =
+    '<div class="cmp-h"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>Call'
+    + '<button class="cmp-x" id="cmpX"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
+    + '<div class="cmp-b">'
+    +   '<label class="cmp-l"><i>*</i>Subject</label><input type="text" id="cmpSubj" value="Call">'
+    +   '<label class="cmp-l"><i>*</i>Comments</label><div style="font-size:11px;color:var(--sf-muted);margin-bottom:4px">Tip: Type Control + period to insert quick text.</div><textarea id="cmpNotes" rows="4"></textarea>'
+    +   '<div class="cmp-cols" style="margin-top:10px">'
+    +     '<div><label class="cmp-l">Name</label><input type="text" placeholder="Search Contacts..."></div>'
+    +     '<div><label class="cmp-l">Related To</label><div class="cmp-chip"><span class="sq"><svg viewBox="0 0 24 24"><path d="M20 7h-5V5a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg></span>' + omEsc(p.n) + '<span class="x" id="cmpChipX">&#10005;</span></div></div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="cmp-f"><button class="cmp-save" id="cmpSave">Save</button></div>';
+  document.body.appendChild(el);
+  document.getElementById('cmpX').addEventListener('click', function(){ el.remove(); });
+  document.getElementById('cmpChipX').addEventListener('click', function(){ toast('Related To is required for placement calls in this sandbox.'); });
+  document.getElementById('cmpSave').addEventListener('click', function(){
+    var subj = document.getElementById('cmpSubj');
+    if(!subj.value.trim()){ subj.classList.add('err'); return; }
+    p._acts.unshift({ mo: 'July \u2022 2026', t: 'Call', who: USER.name, d: 'logged a call', subject: subj.value.trim() });
+    el.remove();
+    toast('Call was logged.');
+    openPlacementDetail(p.n);
+  });
+}
+
+/* REDEFINE: account inject — wire the native Edit button, add nothing */
+function omAcctInject(aid){
+  var a = ACCOUNTS.find(function(x){ return x.id === aid; }); if(!a) return;
+  omSeedAccount(a);
+  var scr = document.getElementById('scr-account');
+  scr.querySelectorAll('.rp-actions .btngrp .sfbtn').forEach(function(btn){
+    if(btn.textContent.replace(/\s+/g, ' ').trim() === 'Edit' && !btn.dataset.omWired){
+      btn.dataset.omWired = '1';
+      btn.addEventListener('click', function(){ openAccountEdit(aid); });
+    }
+  });
+  if(currentAcctTab !== 'related'){
+    var body = scr.querySelector('.rp-body');
+    if(body) body.innerHTML = omDetailSections('Account', omBag(a));
+  }
+}
+
+/* REDEFINE: placement detail — two-column with activity rail */
+function openPlacementDetail(pn){
+  var p = PLACEMENTS.find(function(x){ return x.n === pn; }); if(!p) return;
+  if(!p._acts){
+    p._acts = [
+      { mo: 'June \u2022 2026', t: 'Call', who: 'Theresa Ferro', d: 'logged a call', subject: 'Confirmed start date' },
+      { mo: 'June \u2022 2026', t: 'New Meeting', who: 'Kevin Wheeler', d: 'scheduled a meeting', subject: '' }
+    ];
+  }
+  var b = omSeedPlacement(p);
+  var scr = document.getElementById('scr-record');
+  scr.innerHTML = omHead('Placement', p.n, '#06A59A', OM_SVG.placement)
+    + '<div class="rp-cols" style="grid-template-columns:1fr 400px;margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto">'
+    +   '<div class="rp-main">'
+    +     '<div style="text-align:right;padding:4px 0"><button class="sfbtn" id="omPlEdit">Edit</button><button class="sfbtn" id="omPlBack">Back to Placements</button></div>'
+    +     '<div class="rp-body" style="padding-top:6px">' + omDetailSections('Placement', b) + '</div>'
+    +   '</div>'
+    +   omActRailHTML('omPlCall', p._acts)
+    + '</div>';
+  omScreen('scr-record');
+  document.getElementById('omPlEdit').addEventListener('click', function(){ openPlacementEdit(pn); });
+  document.getElementById('omPlBack').addEventListener('click', function(){ nav('placements'); });
+  document.getElementById('omPlCall').addEventListener('click', function(){ omPlaceComposer(p); });
+  emit('placement:open');
+}
+/* ===== end SBX_ORGMIRROR_v1_1 ===== */
+
+/* =====================================================================
    Boot
 ===================================================================== */
 nav('home');
