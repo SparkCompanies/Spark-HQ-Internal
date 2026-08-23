@@ -5286,6 +5286,154 @@ function openPlacementDetail(pn){
 /* ===== end SBX_ORGMIRROR_v1_1 ===== */
 
 /* =====================================================================
+   SBX_KANBAN_POPUPS_v1 — restore kanban interactivity
+   - Applicant quick-view popup on card click
+   - Advance-stage control on every card (reconnects the Submit email modal)
+   - Feedback on unlinked View Contact + all silent toolbar/rail buttons
+   Wraps openJob; enhance runs after every render.
+===================================================================== */
+
+function omKanbanCSS(){
+  if(document.getElementById('omKanbanCSS')) return;
+  var s = document.createElement('style'); s.id = 'omKanbanCSS';
+  s.textContent =
+    '.jk-card{position:relative;cursor:pointer;}' +
+    '.jk-card .om-adv{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;' +
+      'background:#fff;border:1px solid #c9c9c9;display:flex;align-items:center;justify-content:center;' +
+      'cursor:pointer;transition:all .12s;z-index:2;}' +
+    '.jk-card .om-adv:hover{background:#0176D3;border-color:#0176D3;}' +
+    '.jk-card .om-adv svg{width:12px;height:12px;stroke:#555;stroke-width:2.5;fill:none;}' +
+    '.jk-card .om-adv:hover svg{stroke:#fff;}' +
+    '.om-app-stage{display:inline-block;padding:3px 12px;border-radius:14px;color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.3px;}' +
+    '.om-app-grid{display:grid;grid-template-columns:150px 1fr;gap:7px 14px;font-size:13px;margin-top:14px;}' +
+    '.om-app-grid .k{color:var(--sf-muted);}' +
+    '.om-app-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #e5e5e5;}';
+  document.head.appendChild(s);
+}
+
+
+/* Applicant -> Contact: create + link on demand (mirrors Asymbl applicant/contact relationship) */
+function omEnsureContact(a){
+  if(a.cid) return a.cid;
+  var full = titleName(a.name || 'Unknown Applicant');
+  var sp = full.lastIndexOf(' ');
+  var first = sp > 0 ? full.slice(0, sp) : full;
+  var last  = sp > 0 ? full.slice(sp + 1) : '\u2014';
+  var maxId = CONTACTS.reduce(function(m, c){ return Math.max(m, +c.id || 0); }, 0);
+  var c = { id: maxId + 1, first: first, last: last, account: 'Candidate Pool 25',
+            phone: a.phone || '', email: a.email || '', owner: 'aspeg' };
+  CONTACTS.push(c);
+  a.cid = c.id;
+  return c.id;
+}
+
+function omApplicantModal(jid, st, idx){
+  var j = JOBS.find(function(x){ return x.id === jid; }); if(!j) return;
+  var a = j.pipeline[st] && j.pipeline[st][idx]; if(!a) return;
+  if(document.getElementById('omAppOvl')) return;
+  var stColor = (typeof STAGE_COLORS !== 'undefined' && STAGE_COLORS[st]) || '#0176D3';
+  var ovl = document.createElement('div'); ovl.className = 'ovl'; ovl.id = 'omAppOvl';
+  ovl.innerHTML =
+    '<div class="modal" style="width:520px;margin-top:12vh">'
+    + '<button class="modal-x" id="omAppX"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+    + '<div class="modal-h">Applicant</div>'
+    + '<div class="modal-b">'
+    +   '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
+    +     '<div style="font-size:17px;font-weight:700">' + a.name + '</div>'
+    +     '<span class="om-app-stage" style="background:' + stColor + '">' + st + '</span>'
+    +   '</div>'
+    +   '<div class="om-app-grid">'
+    +     '<span class="k">Job</span><span>' + j.title + '</span>'
+    +     '<span class="k">Mobile Phone</span><span>' + (a.phone || '\u2014') + '</span>'
+    +     '<span class="k">Email</span><span>' + (a.email || '\u2014') + '</span>'
+    +     '<span class="k">Mailing City</span><span>' + (a.city || '\u2014') + '</span>'
+    +     '<span class="k">Days in Current Stage</span><span>' + (a.days != null ? a.days : '\u2014') + '</span>'
+    +     '<span class="k">Resume</span><span>' + (a.res || '\u2014') + '</span>'
+    +   '</div>'
+    +   '<div class="om-app-foot">'
+    +     '<button class="sfbtn" id="omAppVC">View Contact</button>'
+    +     '<button class="sfbtn" id="omAppAdv" style="background:#0176D3;color:#fff;border-color:#0176D3">Advance Stage</button>'
+    +     '<button class="sfbtn" id="omAppClose">Close</button>'
+    +   '</div>'
+    + '</div></div>';
+  document.body.appendChild(ovl);
+  function shut(){ var o = document.getElementById('omAppOvl'); if(o) o.remove(); }
+  document.getElementById('omAppX').addEventListener('click', shut);
+  document.getElementById('omAppClose').addEventListener('click', shut);
+  document.getElementById('omAppVC').addEventListener('click', function(){
+    var cid = omEnsureContact(a);
+    shut(); openRecord(+cid);
+  });
+  document.getElementById('omAppAdv').addEventListener('click', function(){
+    shut();
+    advanceApplicant(jid, st, idx);
+  });
+}
+
+var omKanbanJid = null;
+function omKanbanEnhance(jid){
+  omKanbanJid = jid;
+  omKanbanCSS();
+  var scr = document.getElementById('scr-job'); if(!scr) return;
+
+  scr.querySelectorAll('.jk-card').forEach(function(card){
+    if(card.dataset.omWired) return;
+    card.dataset.omWired = '1';
+    var st = card.dataset.st, idx = +card.dataset.idx;
+
+    var adv = document.createElement('span');
+    adv.className = 'om-adv'; adv.title = 'Advance to next stage';
+    adv.innerHTML = '<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>';
+    adv.addEventListener('click', function(e){ e.stopPropagation(); advanceApplicant(jid, st, idx); });
+    card.appendChild(adv);
+
+    card.addEventListener('click', function(e){
+      var t = e.target;
+      if(t.closest && (t.closest('.om-adv') || t.closest('.vc') || t.tagName === 'INPUT')) return;
+      omApplicantModal(jid, st, idx);
+    });
+  });
+
+  scr.querySelectorAll('.jk-card .vc:not([data-cid])').forEach(function(n){
+    if(n.dataset.omWired) return; n.dataset.omWired = '1';
+    n.addEventListener('click', function(e){
+      e.stopPropagation();
+      var card = n.closest('.jk-card'); if(!card) return;
+      var j = JOBS.find(function(x){ return x.id === omKanbanJid; }); if(!j) return;
+      var a = j.pipeline[card.dataset.st] && j.pipeline[card.dataset.st][+card.dataset.idx]; if(!a) return;
+      openRecord(+omEnsureContact(a));
+    });
+  });
+
+  var SILENT = {
+    'Email Applicants': 'Bulk applicant email is not part of this training sandbox.',
+    'Manage Applicants': 'Use the kanban board to manage applicants in this sandbox.',
+    'Sync Template': 'Template sync is not part of this training sandbox.',
+    '+ Follow': 'Following records is not part of this training sandbox.',
+    'Add to a Job': 'In this sandbox, submit from the candidate: open a Contact and use Add Candidate to Job.',
+    'Add to Contact List': 'Contact lists are not part of this training sandbox.',
+    'View All Candidates': 'The full candidate match list is not part of this training sandbox.',
+    'View Report': 'Open Reports from the left navigation to explore report views.'
+  };
+  scr.querySelectorAll('button, a').forEach(function(el){
+    if(el.dataset.omWired) return;
+    var label = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if(SILENT[label]){
+      el.dataset.omWired = '1';
+      el.addEventListener('click', function(){ toast(SILENT[label]); });
+    }
+  });
+}
+
+/* wrap openJob so enhancement follows every render */
+var __omOpenJobBase = openJob;
+openJob = function(jid, tab){
+  __omOpenJobBase(jid, tab);
+  try { omKanbanEnhance(jid); } catch(e) {}
+};
+/* ===== end SBX_KANBAN_POPUPS_v1 ===== */
+
+/* =====================================================================
    Boot
 ===================================================================== */
 nav('home');
