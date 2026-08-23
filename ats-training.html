@@ -5434,6 +5434,278 @@ openJob = function(jid, tab){
 /* ===== end SBX_KANBAN_POPUPS_v1 ===== */
 
 /* =====================================================================
+   SBX_REPORTS_DASH_v1 — working report viewer + live dashboards
+   - Every report row opens a real grouped report view (computed from
+     the same demo data the rest of the sandbox runs on)
+   - Every dashboard row opens a dashboard; non-Spark-Capital boards get
+     widgets computed live from JOBS / PLACEMENTS / OPPS / LEADS / etc.
+   Redefines renderReports + renderDashList (later declaration wins).
+===================================================================== */
+
+/* ---------- dataset builders (live demo data) ---------- */
+function omDsApplicants(){
+  var rows = [];
+  JOBS.forEach(function(j){
+    ATS_STAGES.forEach(function(st){
+      (j.pipeline && j.pipeline[st] || []).forEach(function(a){
+        rows.push({ g: st, c: [titleName(a.name), j.title, st, (a.days!=null?a.days:''), a.email||''] });
+      });
+    });
+  });
+  return { cols:['Applicant','Job','Stage','Days in Stage','Email'], rows:rows,
+           order:ATS_STAGES.slice(), colors:STAGE_COLORS, legend:'Stage' };
+}
+function omDsPlacements(){
+  return { cols:['Placement','Job','Candidate','Start Date','End Date','Created'], legend:'Job',
+    rows: PLACEMENTS.map(function(p){ return { g:p.j, c:[p.n, p.j, p.c, p.s, p.e||'', p.cr] }; }) };
+}
+function omDsJobs(){
+  return { cols:['Job','Account','Status','Type','Owner','Start Date','Applicants'], legend:'Status',
+    rows: JOBS.map(function(j){ return { g:j.status, c:[j.title, j.client, j.status, j.type, j.owner, j.start, jobTotal(j)] }; }) };
+}
+function omDsContacts(){
+  return { cols:['Name','Account','Phone','Email','Owner'], legend:'Account',
+    rows: CONTACTS.map(function(c){ return { g:c.account, c:[c.first+' '+c.last, c.account, c.phone||'', c.email||'', c.owner] }; }) };
+}
+function omDsAccounts(){
+  return { cols:['Account','Type','Phone','Owner'], legend:'Type',
+    rows: ACCOUNTS.map(function(a){ return { g:a.type, c:[a.name, a.type, a.phone||'', a.owner] }; }) };
+}
+function omDsLeads(){
+  return { cols:['Name','Company','Title','Status','Owner'], legend:'Status',
+    rows: LEADS.map(function(l){ return { g:l.status, c:[l.first+' '+l.last, l.co, l.title||'', l.status, l.owner] }; }) };
+}
+function omDsOpps(){
+  return { cols:['Opportunity','Account','Stage','Amount','Close Date'], legend:'Stage', money:3,
+    rows: OPPS.map(function(o){ return { g:o.stage, amt:o.amt, c:[o.name, o.acct, o.stage, fmtUsd(o.amt), o.close] }; }) };
+}
+function omDsTimesheets(){
+  return { cols:['Timesheet','Contact','Pay Period','Pay','Bill','Hours','Status'], legend:'Status',
+    rows: TIMESHEETS.map(function(t){ return { g:t.st, c:[t.id, t.c, t.pp, t.pay, t.bill, t.hrs, t.st] }; }) };
+}
+function omReportDataset(name){
+  var n = (name||'').toLowerCase();
+  if(/placement|credit|gross profit|starts|redeploy/.test(n)) return omDsPlacements();
+  if(/timesheet|hours|charge/.test(n)) return omDsTimesheets();
+  if(/opportunit|forecast|revenue|sales pipeline|conversion|closed won|kpi/.test(n)) return omDsOpps();
+  if(/applicant|stage|duration|submittal|interview|source/.test(n)) return omDsApplicants();
+  if(/lead/.test(n)) return omDsLeads();
+  if(/account|client|unit/.test(n)) return omDsAccounts();
+  if(/contact|candidate|talent/.test(n)) return omDsContacts();
+  if(/job|req|aging|fill|open/.test(n)) return omDsJobs();
+  return omDsApplicants();
+}
+
+/* ---------- report viewer ---------- */
+function openReportView(r){
+  var ds = omReportDataset(r.n);
+  var groups = {};
+  var order = [];
+  ds.rows.forEach(function(row){
+    if(!groups[row.g]){ groups[row.g] = []; order.push(row.g); }
+    groups[row.g].push(row);
+  });
+  if(ds.order){ order = ds.order.filter(function(g){ return groups[g]; }); }
+  var palette = BU_PALETTE;
+  function gColor(g, i){ return (ds.colors && ds.colors[g]) || palette[i % palette.length]; }
+
+  var thead = '<tr>' + ds.cols.map(function(c){ return '<th>'+c+'</th>'; }).join('') + '</tr>';
+  var tbody = '';
+  var grand = 0, grandAmt = 0;
+  order.forEach(function(g, gi){
+    var rows = groups[g];
+    grand += rows.length;
+    tbody += '<tr class="om-rg"><td colspan="'+ds.cols.length+'"><i style="background:'+gColor(g,gi)+'"></i>'
+           + ds.legend + ': ' + g + ' <span>(' + rows.length + ')</span></td></tr>';
+    rows.forEach(function(row){
+      tbody += '<tr>' + row.c.map(function(v){ return '<td>'+v+'</td>'; }).join('') + '</tr>';
+    });
+    var sub = 'Subtotal \u2014 ' + rows.length + (rows.length===1?' record':' records');
+    if(ds.money != null){
+      var amt = rows.reduce(function(s,row){ return s + (row.amt||0); }, 0);
+      grandAmt += amt;
+      sub += ' \u00b7 ' + fmtUsd(amt);
+    }
+    tbody += '<tr class="om-rsub"><td colspan="'+ds.cols.length+'">'+sub+'</td></tr>';
+  });
+  var grandTxt = 'Grand Total \u2014 ' + grand + ' records';
+  if(ds.money != null) grandTxt += ' \u00b7 ' + fmtUsd(grandAmt);
+
+  var scr = document.getElementById('scr-record');
+  scr.innerHTML =
+    '<div class="rp-head"><div class="rp-top">'
+    + '<div class="obj-ico" style="background:#7F8DE1"><svg viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 16V9M12 16V5M17 16v-6"/></svg></div>'
+    + '<div><div class="l1">Report: ' + r.f + '</div><div class="rp-name">' + r.n + '</div>'
+    +   (r.d ? '<div style="font-size:12px;color:var(--sf-muted);margin-top:2px">'+r.d+'</div>' : '')
+    + '</div>'
+    + '<div class="rp-actions"><div class="btngrp">'
+    +   '<button class="sfbtn" id="omRptBack">Back to Reports</button>'
+    +   '<button class="sfbtn" id="omRptRefresh">Refresh</button>'
+    +   '<button class="sfbtn" id="omRptEdit">Edit</button>'
+    +   '<button class="sfbtn" id="omRptExport">Export</button>'
+    + '</div></div></div>'
+    + '<div class="rp-hl">'
+    +   '<div class="f"><div class="k">Total Records</div><div class="v" style="font-size:18px;font-weight:700">'+grand+'</div></div>'
+    +   '<div class="f"><div class="k">Grouped By</div><div class="v">'+ds.legend+'</div></div>'
+    +   '<div class="f"><div class="k">Show Me</div><div class="v">All ' + ds.legend.toLowerCase() + 's</div></div>'
+    +   '<div class="f"><div class="k">Range</div><div class="v">All Time</div></div>'
+    + '</div></div>'
+    + '<div class="rp-main" style="margin:10px 12px 0;max-height:calc(100% - 90px);overflow:auto">'
+    +   '<table class="om-rpt"><thead>'+thead+'</thead><tbody>'+tbody
+    +   '<tr class="om-rgt"><td colspan="'+ds.cols.length+'">'+grandTxt+'</td></tr>'
+    +   '</tbody></table>'
+    + '</div>';
+
+  if(!document.getElementById('omRptCSS')){
+    var s = document.createElement('style'); s.id = 'omRptCSS';
+    s.textContent =
+      '.om-rpt{width:100%;border-collapse:collapse;background:#fff;font-size:12.5px;}' +
+      '.om-rpt th{position:sticky;top:0;background:#FAFAF9;text-align:left;padding:9px 12px;border-bottom:2px solid #d8d8d8;font-size:11px;color:#444;font-weight:700;z-index:1;}' +
+      '.om-rpt td{padding:8px 12px;border-bottom:1px solid #eee;}' +
+      '.om-rpt .om-rg td{background:#F3F3F2;font-weight:700;color:#181818;border-top:1px solid #ddd;}' +
+      '.om-rpt .om-rg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px;}' +
+      '.om-rpt .om-rg span{color:#666;font-weight:500;}' +
+      '.om-rpt .om-rsub td{background:#FBFBFA;color:#555;font-size:11.5px;font-style:italic;}' +
+      '.om-rpt .om-rgt td{background:#181818;color:#fff;font-weight:700;}';
+    document.head.appendChild(s);
+  }
+
+  ['home','contacts','accounts','account','jobs','job','leads','lead','opps','search','parser','dash','dashlist','import','placements','record','reports','timesheets','stub'].forEach(function(k){ document.getElementById('scr-'+k).classList.add('hide'); });
+  scr.classList.remove('hide');
+  document.querySelector('.ws').scrollTop = 0;
+
+  document.getElementById('omRptBack').addEventListener('click', function(){ nav('reports'); });
+  document.getElementById('omRptRefresh').addEventListener('click', function(){ openReportView(r); toast('Report refreshed.'); });
+  document.getElementById('omRptEdit').addEventListener('click', function(){ toast('The report builder is not part of this training sandbox.'); });
+  document.getElementById('omRptExport').addEventListener('click', function(){ toast('Export is not part of this training sandbox.'); });
+  emit('report:open');
+}
+
+/* REDEFINE: report rows open the viewer */
+function renderReports(){
+  var q = (document.getElementById('rptQ').value||'').toLowerCase();
+  var rows = rptView==='mine' ? [] : REPORTS_DATA.filter(function(r){ return !q || (r.n+' '+r.d+' '+r.f).toLowerCase().indexOf(q)>=0; });
+  var tb = document.getElementById('reportRows'); tb.innerHTML='';
+  rows.forEach(function(r){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><span class="namelink rpt-open">'+r.n+'</span></td><td style="max-width:280px">'+r.d+'</td><td>'+r.f+'</td><td>'+r.by+'</td><td>'+r.on+'</td><td></td>';
+    tr.querySelector('.rpt-open').addEventListener('click', function(){ openReportView(r); });
+    tb.appendChild(tr);
+  });
+  if(rptView==='mine'){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:#444">Nothing created by you yet. Reports you build will show up here.</td></tr>'; }
+  document.getElementById('rptCnt').textContent = rptView==='mine' ? '0 items' : '68 items';
+  emit('nav:reports');
+}
+
+/* ---------- dashboards ---------- */
+function omWCount(rows, key){
+  var m = {}, order = [];
+  rows.forEach(function(r){ var k = key(r); if(m[k]==null){ m[k]=0; order.push(k); } m[k]++; });
+  return order.map(function(k){ return [m[k], k]; }).sort(function(a,b){ return b[0]-a[0]; });
+}
+function omWidgets(){
+  var apps = [];
+  JOBS.forEach(function(j){ ATS_STAGES.forEach(function(st){ (j.pipeline&&j.pipeline[st]||[]).forEach(function(){ apps.push(st); }); }); });
+  var appSegs = ATS_STAGES.map(function(st){ return [apps.filter(function(s){return s===st;}).length, st]; }).filter(function(x){ return x[0]>0; });
+  return {
+    appsFunnel:  { t:'Applicants by Stage', rpt:'Applicants by Stage', legend:'Stage', funnel:appSegs, note:'All open jobs' },
+    jobsDonut:   { t:'Jobs by Status', rpt:'Open Jobs Report', legend:'Status', total:String(JOBS.length), segs:omWCount(JOBS, function(j){return j.status;}) },
+    placeDonut:  { t:'Placements by Job', rpt:'Placement Starts', legend:'Job', total:String(PLACEMENTS.length), segs:omWCount(PLACEMENTS, function(p){return p.j;}) },
+    oppsFunnel:  { t:'Open Pipeline by Stage', rpt:'Opportunity Pipeline', legend:'Stage', funnel:omWCount(OPPS, function(o){return o.stage;}), note:'Record count by stage' },
+    leadsDonut:  { t:'Leads by Status', rpt:'Lead Status', legend:'Status', total:String(LEADS.length), segs:omWCount(LEADS, function(l){return l.status;}) },
+    acctDonut:   { t:'Accounts by Type', rpt:'Accounts by Unit', legend:'Type', total:String(ACCOUNTS.length), segs:omWCount(ACCOUNTS, function(a){return a.type;}) },
+    tsDonut:     { t:'Timesheets by Status', rpt:'Timesheets This Week', legend:'Status', total:String(TIMESHEETS.length), segs:omWCount(TIMESHEETS, function(t){return t.st;}) },
+    contactDonut:{ t:'Contacts by Account', rpt:'Contacts by Account', legend:'Account', total:String(CONTACTS.length), segs:omWCount(CONTACTS, function(c){return c.account;}) }
+  };
+}
+function omDashConfig(name){
+  var n = (name||'').toLowerCase(), w = omWidgets();
+  if(/light industrial|sean casey/.test(n)) return [w.jobsDonut, w.appsFunnel, w.placeDonut, w.tsDonut];
+  if(/mi metro/.test(n))                    return [w.acctDonut, w.jobsDonut, w.appsFunnel, w.oppsFunnel];
+  if(/score card/.test(n))                  return [w.placeDonut, w.appsFunnel, w.jobsDonut, w.leadsDonut];
+  if(/plug-in/.test(n))                     return [w.appsFunnel, w.jobsDonut, w.contactDonut, w.placeDonut];
+  return [w.appsFunnel, w.jobsDonut, w.placeDonut, w.acctDonut];
+}
+function omRenderWidgets(list){
+  var grid = document.getElementById('dashGrid');
+  grid.dataset.done = '1';
+  grid.innerHTML = '';
+  var stamp = 'As of Today';
+  list.forEach(function(w){
+    var leg = '<div class="dw-leg"><div class="lt">'+(w.legend||'Business Unit')+'</div>'
+      + (w.segs||w.funnel).map(function(x,i){ return '<div class="r"><span style="flex:1;text-align:right">'+x[1]+'</span><i style="background:'+BU_PALETTE[i%BU_PALETTE.length]+'"></i></div>'; }).join('')
+      + '</div>';
+    var vis;
+    if(w.funnel){
+      var maxV = Math.max.apply(null, w.funnel.map(function(x){return x[0];}));
+      vis = '<div class="dw-funnel">'
+        + '<div style="font-size:9.5px;color:#555;font-weight:600">'+(w.note||'')+'</div>'
+        + w.funnel.map(function(x,i){
+            var wd = Math.max(30, Math.round(x[0]/maxV*100));
+            return '<div class="fseg" style="width:'+wd+'%;background:'+BU_PALETTE[i%BU_PALETTE.length]+'">'+x[0]+'</div>';
+          }).join('')
+        + '</div>';
+    } else {
+      vis = '<div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:9.5px;color:#555;font-weight:600;margin-bottom:2px">Record Count</div>'+donutSvg(w.segs, w.total)+'</div>';
+    }
+    var el = document.createElement('div');
+    el.className = 'dw';
+    el.innerHTML = '<div class="dw-h">'+w.t
+      + '<span class="ics"><svg viewBox="0 0 24 24"><path d="M20 11A8 8 0 1 0 20 13"/><path d="M20 4v7h-7"/></svg><svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></span></div>'
+      + '<div class="dw-b">'+vis+leg+'</div>'
+      + '<div class="dw-f"><a class="om-dwrpt" style="cursor:pointer">View Report ('+w.rpt+')</a><span>'+stamp+'</span></div>';
+    el.querySelector('.om-dwrpt').addEventListener('click', function(){
+      openReportView({ n: w.rpt, d: '', f: 'Dashboards' });
+    });
+    grid.appendChild(el);
+  });
+}
+var omCurDash = null;
+function openDashboard(r){
+  omCurDash = r;
+  var scr = document.getElementById('scr-dash');
+  var h1 = scr.querySelector('.dash-head h1');
+  var meta = scr.querySelector('.dash-head .meta');
+  if(h1) h1.textContent = r.n;
+  if(meta) meta.textContent = 'As of Today \u2022 Viewing as ' + r.by;
+  if(r.open && typeof DASHW !== 'undefined'){
+    omRenderWidgets(DASHW.map(function(w){
+      return { t:w.t, rpt:w.rpt, segs:w.segs, funnel:w.funnel, total:w.total, note:w.note, legend:'Business Unit' };
+    }));
+  } else {
+    omRenderWidgets(omDashConfig(r.n));
+  }
+  ['home','contacts','accounts','account','jobs','job','leads','lead','opps','search','parser','dash','dashlist','import','placements','record','reports','timesheets','stub'].forEach(function(k){ document.getElementById('scr-'+k).classList.add('hide'); });
+  scr.classList.remove('hide');
+  document.querySelector('.ws').scrollTop = 0;
+  emit('dash:opened');
+}
+(function omWireDashRefresh(){
+  var b = document.getElementById('dashRefresh');
+  if(b && !b.dataset.omWired){
+    b.dataset.omWired = '1';
+    b.addEventListener('click', function(){ if(omCurDash){ openDashboard(omCurDash); toast('Dashboard refreshed.'); } });
+  }
+})();
+
+/* REDEFINE: every dashboard row opens a dashboard */
+function renderDashList(){
+  var q = (document.getElementById('dlQ').value || '').toLowerCase();
+  var rows = DASHLIST.filter(function(r){ return !q || (r.n+' '+r.d+' '+r.f+' '+r.by).toLowerCase().indexOf(q) >= 0; });
+  var tb = document.getElementById('dashListRows'); tb.innerHTML = '';
+  rows.forEach(function(r){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><span class="namelink dl-name">'+r.n+'</span></td>'
+      + '<td style="color:#444">'+r.d+'</td><td>'+r.f+'</td><td>'+r.by+'</td><td>'+r.on+'</td><td></td>'
+      + '<td><span class="rowact"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></span></td>';
+    tr.querySelector('.dl-name').addEventListener('click', function(){ openDashboard(r); });
+    tb.appendChild(tr);
+  });
+  document.getElementById('dlMeta').textContent = rows.length + ' items';
+}
+/* ===== end SBX_REPORTS_DASH_v1 ===== */
+
+/* =====================================================================
    Boot
 ===================================================================== */
 nav('home');
