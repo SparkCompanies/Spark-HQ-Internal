@@ -53,6 +53,8 @@ body::after{content:'';position:fixed;inset:0;opacity:.022;background:url("data:
 .tb{width:100%;border-collapse:collapse}
 .tb th{text-align:left;padding:10px 14px;font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.4px;font-weight:700;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--sf);z-index:2;cursor:pointer}
 .tb th:hover{color:var(--y)}
+.tb th.r{text-align:right}
+.tb th.r,.tb td.r{padding-left:6px}
 .tb td{padding:9px 14px;font-size:12px;border-bottom:1px solid rgba(24,30,44,.45)}
 .tb tbody tr:nth-child(even) td{background:rgba(255,255,255,.008)}
 .tb tbody tr:hover td{background:var(--ybg)}
@@ -927,7 +929,7 @@ function rDH(){
   function dhTable(rows,title,color){
     if(!rows.length)return '';
     var sk='dh'+title.charAt(0);
-    var t='<div class="cd" style="margin-bottom:14px"><div class="cdh" style="color:'+color+'">'+title+' ('+rows.length+')</div><div class="scr" style="max-height:300px"><table class="tb"><thead><tr>'+sTh(sk,'en','Entity',false,'rDH')+sTh(sk,'bu','BU',false,'rDH')+sTh(sk,'cl','Client',false,'rDH')+sTh(sk,'emp','Employee',false,'rDH')+sTh(sk,'ch','Raw Charge',true,'rDH')+sTh(sk,'wk','Week',false,'rDH')+sTh(sk,'rem','Left',false,'rDH')+sTh(sk,'sr','Sales',false,'rDH')+sTh(sk,'rc','Rec',false,'rDH')+'</tr></thead><tbody>';
+    var t='<div class="cd" style="margin-bottom:14px"><div class="cdh" style="color:'+color+'">'+title+' ('+rows.length+')</div><div class="scr" style="max-height:300px"><table class="tb"><thead><tr>'+sTh(sk,'en','Entity',false,'rDH')+sTh(sk,'bu','BU',false,'rDH')+sTh(sk,'cl','Client',false,'rDH')+sTh(sk,'emp','Employee',false,'rDH')+sTh(sk,'ch','Raw Charge',true,'rDH')+sTh(sk,'wk','Week',true,'rDH')+sTh(sk,'rem','Left',true,'rDH')+sTh(sk,'sr','Sales',false,'rDH')+sTh(sk,'rc','Rec',false,'rDH')+'</tr></thead><tbody>';
     sApply(rows.slice(),sk,'ch').forEach(function(d){
       var rc=d.rem>6?'var(--red)':d.rem>3?'var(--org)':'var(--grn)';
       t+='<tr style="cursor:default"><td>'+pill(d.en.split(' ')[0],ecol(d.en))+'</td><td style="font-size:10px;color:var(--dm)">'+d.bu+'</td>';
@@ -1006,7 +1008,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-9';
+  var BUILD = 'b0820-10';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
