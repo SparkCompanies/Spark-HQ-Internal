@@ -21989,5 +21989,219 @@ window.addEventListener("message",function(e){
 </script>
 <!-- /LMS_POLISH_v1 -->
 
+<script>
+/* =====================================================================
+   LMS_LANDING_v1 — Training Home landing for the LMS
+   - Replaces the "Pick a topic to start" empty state with a real landing:
+     progress ring, up-next card, subject grid with per-subject progress
+   - Adds a "Training Home" button to the rail to get back to the landing
+   - Reads progress straight from localStorage; navigates via openLmsTopic
+   - Never touches topic rendering
+===================================================================== */
+(function(){
+  var css = document.createElement('style');
+  css.id = 'omLmsLandCSS';
+  css.textContent = [
+    '.om-land{max-width:960px;}',
+    '.om-land-kicker{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--gold-deep,#D4A017);margin-bottom:6px;}',
+    '.om-land-hl{font-size:30px;font-weight:800;color:var(--ink,#1a1a2e);letter-spacing:-0.01em;margin:0 0 4px;}',
+    '.om-land-dek{font-size:14px;color:var(--muted,#6b6a66);margin:0 0 22px;}',
+    '.om-land-hero{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-bottom:26px;}',
+    '@media (max-width:860px){.om-land-hero{grid-template-columns:1fr;}}',
+    '.om-land-card{background:#fff;border:1px solid var(--line,#ECE9E0);border-radius:14px;padding:20px 22px;}',
+    '.om-ring-wrap{display:flex;align-items:center;gap:18px;}',
+    '.om-ring-nums .big{font-size:26px;font-weight:800;color:var(--ink,#1a1a2e);line-height:1.1;}',
+    '.om-ring-nums .sub{font-size:12.5px;color:var(--muted,#6b6a66);margin-top:3px;}',
+    '.om-next-label{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--muted,#6b6a66);margin-bottom:10px;}',
+    '.om-next-topic{font-size:17px;font-weight:700;color:var(--ink,#1a1a2e);margin-bottom:6px;}',
+    '.om-next-meta{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted,#6b6a66);margin-bottom:16px;}',
+    '.om-next-meta .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}',
+    '.om-go{display:inline-flex;align-items:center;gap:8px;background:var(--gold,#F5C518);color:#171614;border:none;font-weight:800;font-size:13px;letter-spacing:.06em;padding:11px 22px;border-radius:10px;cursor:pointer;transition:transform .12s, box-shadow .12s;}',
+    '.om-go:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(245,197,24,.35);}',
+    '.om-go svg{width:14px;height:14px;stroke:#171614;stroke-width:2.5;fill:none;}',
+    '.om-subj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}',
+    '.om-subj-card{background:#fff;border:1px solid var(--line,#ECE9E0);border-radius:14px;padding:0 0 16px;cursor:pointer;overflow:hidden;transition:transform .12s, box-shadow .12s, border-color .12s;}',
+    '.om-subj-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(26,26,46,.08);border-color:var(--gold,#F5C518);}',
+    '.om-subj-top{height:5px;width:100%;}',
+    '.om-subj-body{padding:15px 17px 0;}',
+    '.om-subj-name{font-size:14.5px;font-weight:700;color:var(--ink,#1a1a2e);margin-bottom:6px;line-height:1.3;}',
+    '.om-subj-meta{font-size:12px;color:var(--muted,#6b6a66);margin-bottom:11px;}',
+    '.om-subj-bar{height:6px;background:var(--line-light,#f5f3ec);border-radius:3px;overflow:hidden;}',
+    '.om-subj-bar > div{height:100%;background:linear-gradient(90deg,var(--gold,#F5C518),var(--gold-deep,#D4A017));border-radius:3px;}',
+    '.om-subj-done{font-size:11px;font-weight:700;color:var(--green,#15803d);margin-top:9px;display:flex;align-items:center;gap:5px;}',
+    '.om-subj-done svg{width:12px;height:12px;stroke:var(--green,#15803d);stroke-width:2.6;fill:none;}',
+    '.om-home-btn{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;background:var(--ink,#1a1a2e);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;font-size:12.5px;letter-spacing:.04em;cursor:pointer;margin-bottom:12px;transition:background .12s;}',
+    '.om-home-btn:hover{background:#000;}',
+    '.om-home-btn svg{width:14px;height:14px;stroke:var(--gold,#F5C518);stroke-width:2.2;fill:none;}',
+    '.om-land-sec{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--muted,#6b6a66);margin:0 0 12px;}'
+  ].join('\n');
+  document.head.appendChild(css);
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  /* Model harvested from the rendered rail — always in sync with the app */
+  function harvest(){
+    var subs = [];
+    document.querySelectorAll('#lmsRailContent .lms-subj').forEach(function(se){
+      var colorM = (se.getAttribute('style') || '').match(/--subj-color:\s*([^;]+)/);
+      var topics = [];
+      se.querySelectorAll('.lms-topic').forEach(function(te){
+        var idM = (te.getAttribute('onclick') || '').match(/openLmsTopic\('([^']+)'\)/);
+        var tt = te.querySelector('.topic-title');
+        var tm = te.querySelector('.topic-time');
+        topics.push({
+          id: idM ? idM[1] : null,
+          title: tt ? tt.textContent : '',
+          mins: tm ? (parseInt(tm.textContent, 10) || 0) : 0,
+          done: te.classList.contains('completed')
+        });
+      });
+      var nm = se.querySelector('.subj-name');
+      subs.push({ id: se.dataset.subj, name: nm ? nm.textContent : '', color: colorM ? colorM[1].trim() : '#F5C518', topics: topics });
+    });
+    return subs;
+  }
+  function firstIncomplete(subj){
+    for(var i=0;i<subj.topics.length;i++){ if(!subj.topics[i].done) return subj.topics[i]; }
+    return subj.topics[0] || null;
+  }
+  function nextUp(subs){
+    for(var i=0;i<subs.length;i++){
+      for(var k=0;k<subs[i].topics.length;k++){ if(!subs[i].topics[k].done) return { subject: subs[i], topic: subs[i].topics[k] }; }
+    }
+    return null;
+  }
+  function ringSvg(pct){
+    var r = 50, C = 2*Math.PI*r, off = C - (pct/100)*C;
+    return '<svg viewBox="0 0 120 120" style="width:112px;height:112px;flex:none">'
+      + '<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="var(--line-light,#f5f3ec)" stroke-width="11"/>'
+      + '<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="var(--gold,#F5C518)" stroke-width="11" stroke-linecap="round"'
+      + ' stroke-dasharray="'+C+'" stroke-dashoffset="'+off+'" transform="rotate(-90 60 60)"/>'
+      + '<text x="60" y="67" text-anchor="middle" font-size="24" font-weight="800" fill="var(--ink,#1a1a2e)">'+pct+'%</text>'
+      + '</svg>';
+  }
+
+  function renderLanding(){
+    var content = document.getElementById('lmsContent');
+    if(!content) return;
+    var subs = harvest();
+    if(!subs.length) return;
+    var total = 0, done = 0;
+    subs.forEach(function(s){ s.topics.forEach(function(t){ total++; if(t.done) done++; }); });
+    var pct = total ? Math.round(done/total*100) : 0;
+    var nxt = nextUp(subs);
+
+    var hl, dek;
+    if(done === 0){ hl = 'Start here.'; dek = 'Pick anything below \u2014 your progress saves on its own.'; }
+    else if(!nxt || done === total){ hl = 'That\u2019s all ' + total + '.'; dek = 'Every topic is done. Come back anytime for a refresher.'; }
+    else { hl = 'Keep going.'; dek = 'You\u2019re ' + pct + '% of the way through. Pick up where you left off.'; }
+
+    var heroRight;
+    if(nxt && done < total){
+      var mins = nxt.topic.mins ? nxt.topic.mins + ' min' : '';
+      heroRight = '<div class="om-land-card">'
+        + '<div class="om-next-label">UP NEXT</div>'
+        + '<div class="om-next-topic">' + esc(nxt.topic.title) + '</div>'
+        + '<div class="om-next-meta"><span class="dot" style="background:' + esc(nxt.subject.color||'#F5C518') + '"></span>'
+        + esc(nxt.subject.name) + (mins ? ' \u00b7 ' + mins : '') + '</div>'
+        + '<button class="om-go" data-topic="' + esc(nxt.topic.id) + '">' + (done===0?'Start':'Continue')
+        + '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>'
+        + '</div>';
+    } else {
+      heroRight = '<div class="om-land-card">'
+        + '<div class="om-next-label">ALL DONE</div>'
+        + '<div class="om-next-topic">Nothing left in the queue.</div>'
+        + '<div class="om-next-meta">Revisit any subject below whenever you need it.</div>'
+        + '</div>';
+    }
+
+    var cards = subs.map(function(s){
+      var ts = s.topics;
+      var dn = ts.filter(function(t){ return t.done; }).length;
+      var spct = ts.length ? Math.round(dn/ts.length*100) : 0;
+      var left = 0;
+      ts.forEach(function(t){ if(!t.done) left += t.mins; });
+      var meta = dn + ' of ' + ts.length + ' done' + (left && dn<ts.length ? ' \u00b7 ~' + left + ' min left' : '');
+      var foot = (ts.length && dn===ts.length)
+        ? '<div class="om-subj-done"><svg viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg>Complete</div>' : '';
+      return '<div class="om-subj-card" data-subj="' + esc(s.id) + '">'
+        + '<div class="om-subj-top" style="background:' + esc(s.color||'#F5C518') + '"></div>'
+        + '<div class="om-subj-body">'
+        + '<div class="om-subj-name">' + esc(s.name) + '</div>'
+        + '<div class="om-subj-meta">' + meta + '</div>'
+        + '<div class="om-subj-bar"><div style="width:' + spct + '%"></div></div>'
+        + foot + '</div></div>';
+    }).join('');
+
+    content.innerHTML = '<div class="om-land">'
+      + '<div class="om-land-kicker">TRAINING HOME</div>'
+      + '<h1 class="om-land-hl">' + hl + '</h1>'
+      + '<p class="om-land-dek">' + dek + '</p>'
+      + '<div class="om-land-hero">'
+      +   '<div class="om-land-card"><div class="om-ring-wrap">' + ringSvg(pct)
+      +     '<div class="om-ring-nums"><div class="big">' + done + ' of ' + total + '</div><div class="sub">topics complete</div></div>'
+      +   '</div></div>'
+      +   heroRight
+      + '</div>'
+      + '<div class="om-land-sec">SUBJECTS</div>'
+      + '<div class="om-subj-grid">' + cards + '</div>'
+      + '</div>';
+
+    content.querySelectorAll('.om-go').forEach(function(b){
+      b.addEventListener('click', function(){ if(window.openLmsTopic) openLmsTopic(b.dataset.topic); });
+    });
+    content.querySelectorAll('.om-subj-card').forEach(function(c){
+      c.addEventListener('click', function(){
+        var s = harvest().find(function(x){ return x.id === c.dataset.subj; });
+        if(!s) return;
+        var t = firstIncomplete(s);
+        if(t && t.id && window.openLmsTopic) openLmsTopic(t.id);
+      });
+    });
+  }
+
+  function addHomeButton(){
+    var rail = document.querySelector('.lms-rail');
+    if(!rail || document.getElementById('omLmsHome')) return;
+    var b = document.createElement('button');
+    b.id = 'omLmsHome'; b.className = 'om-home-btn';
+    b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Training Home';
+    b.addEventListener('click', function(){
+      try { localStorage.removeItem('spark_hq_lms_active_topic'); } catch(e){}
+      document.querySelectorAll('#lmsRailContent .lms-topic.active').forEach(function(n){ n.classList.remove('active'); });
+      renderLanding();
+      var ws = document.querySelector('.lms-shell'); if(ws && ws.scrollIntoView) ws.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    rail.insertBefore(b, rail.firstChild);
+  }
+
+  function isEmptyState(el){
+    var e = el.querySelector('.lms-empty');
+    return e && /Pick a topic to start/.test(e.textContent || '');
+  }
+
+  var omBootTries = 0;
+  function boot(){
+    var rail = document.getElementById('lmsRailContent');
+    if(!rail || !rail.querySelector('.lms-subj')){
+      if(omBootTries++ < 40) setTimeout(boot, 300);
+      return;
+    }
+    addHomeButton();
+    var content = document.getElementById('lmsContent');
+    if(content && isEmptyState(content)) renderLanding();
+    var mo = new MutationObserver(function(){
+      addHomeButton();
+      var c = document.getElementById('lmsContent');
+      if(c && isEmptyState(c)) renderLanding();
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 300); });
+  else setTimeout(boot, 300);
+})();
+/* ===== end LMS_LANDING_v1 ===== */
+</script>
+
 </body>
 </html>
