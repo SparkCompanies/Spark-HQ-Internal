@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spark Indeed Sandbox — Employer Training</title>
+<style>
+  /* ============ INDEED EMPLOYER THEME (v1 from memory; fidelity pass pending screenshots) ============ */
+  :root{
+    --in-blue:#2557A7;
+    --in-blue-dk:#1F4B91;
+    --in-blue-dkr:#163E7E;
+    --in-navy:#2D2D2D;
+    --in-txt:#2D2D2D;
+    --in-muted:#595959;
+    --in-faint:#767676;
+    --in-bg:#FAF9F8;
+    --in-card:#FFFFFF;
+    --in-line:#D4D2D0;
+    --in-line-lt:#E4E2E0;
+    --in-green:#1F662C;
+    --in-green-bg:#E4F7E5;
+    --in-red:#A9252B;
+    --in-red-bg:#FBEAEA;
+    --in-amber:#8A5B00;
+    --in-amber-bg:#FFF3D9;
+    --in-pill:#EEF1FE;
+    --gold:#FFC800;
+    --ink:#191300;
+    --font:"Indeed Sans","Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --spark-font:'Century Gothic','Jost',Futura,'Trebuchet MS',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--font);background:var(--in-bg);color:var(--in-txt);font-size:14px;overflow:hidden}
+  button{font-family:var(--font);cursor:pointer}
+  .hide{display:none!important}
+  a{color:var(--in-blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  svg.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* ============ GLOBAL HEADER ============ */
+  .gh{height:64px;background:#fff;border-bottom:1px solid var(--in-line-lt);display:flex;align-items:center;padding:0 24px;gap:28px;position:relative;z-index:40}
+  .gh-logo{display:flex;align-items:baseline;gap:8px;user-select:none;flex:none}
+  .gh-logo .word{font-weight:800;font-size:26px;letter-spacing:-1.2px;color:var(--in-blue);font-family:var(--font)}
+  .gh-logo .emp{font-size:12px;color:var(--in-muted);font-weight:600;letter-spacing:.2px}
+  .gh-tabs{display:flex;align-items:stretch;gap:4px;height:100%}
+  .gh-tab{display:flex;align-items:center;padding:0 14px;font-size:14.5px;font-weight:600;color:var(--in-muted);border-bottom:3px solid transparent;border-top:3px solid transparent;background:none;border-left:0;border-right:0}
+  .gh-tab:hover{color:var(--in-navy)}
+  .gh-tab.on{color:var(--in-navy);border-bottom-color:var(--in-blue)}
+  .gh-right{margin-left:auto;display:flex;align-items:center;gap:18px;color:#444}
+  .gh-ico{position:relative;background:none;border:0;color:#444;padding:6px;border-radius:8px}
+  .gh-ico:hover{background:#f1efec}
+  .gh-ico .dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--in-red)}
+  .gh-acct{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--in-muted)}
+  .gh-avatar{width:30px;height:30px;border-radius:50%;background:var(--in-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+
+  .stage{height:calc(100% - 64px);overflow:auto}
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 24px 80px}
+
+  /* ============ SHARED UI ============ */
+  .btn{border-radius:8px;font-weight:700;font-size:14px;padding:10px 18px;border:1px solid transparent}
+  .btn-pri{background:var(--in-blue);color:#fff}
+  .btn-pri:hover{background:var(--in-blue-dk)}
+  .btn-sec{background:#fff;color:var(--in-navy);border-color:var(--in-line)}
+  .btn-sec:hover{background:#f7f6f4}
+  .btn-ghost{background:none;color:var(--in-blue);border:0;font-weight:700;padding:8px 6px}
+  .btn-sm{padding:7px 12px;font-size:13px}
+  .card{background:var(--in-card);border:1px solid var(--in-line-lt);border-radius:10px}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:100px}
+  .pill-new{background:var(--in-pill);color:var(--in-blue)}
+  .pill-open{background:var(--in-green-bg);color:var(--in-green)}
+  .pill-paused{background:var(--in-amber-bg);color:var(--in-amber)}
+  .pill-closed{background:#EEECEA;color:var(--in-muted)}
+  .pill-spons{background:#FFF3D9;color:var(--in-amber)}
+  .pill-free{background:#EEECEA;color:var(--in-muted)}
+  .pill-great{background:var(--in-green-bg);color:var(--in-green)}
+  .pill-good{background:var(--in-pill);color:var(--in-blue)}
+  input[type=text],input[type=number],input[type=email],select,textarea{
+    font-family:var(--font);font-size:14px;color:var(--in-navy);
+    border:1px solid var(--in-line);border-radius:8px;padding:10px 12px;background:#fff;width:100%
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--in-blue);outline-offset:0;border-color:var(--in-blue)}
+  label.f{display:block;font-size:13px;font-weight:700;margin:14px 0 6px}
+  label.f .req{color:var(--in-red)}
+  .chkrow{display:flex;align-items:center;gap:9px;font-size:14px;padding:6px 0}
+  .chkrow input{width:auto}
+
+  h1.pg{font-size:24px;font-weight:800;letter-spacing:-.3px}
+  .pg-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .pg-head .sp{flex:1}
+
+  /* ============ JOBS DASHBOARD ============ */
+  .jb-filters{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+  .chip{border:1px solid var(--in-line);background:#fff;border-radius:100px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--in-muted)}
+  .chip.on{background:var(--in-navy);color:#fff;border-color:var(--in-navy)}
+  .jb-search{margin-left:auto;max-width:260px}
+  table.jt{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--in-line-lt);border-radius:10px;overflow:hidden}
+  table.jt th{font-size:12px;text-transform:none;color:var(--in-muted);font-weight:700;text-align:left;padding:12px 14px;border-bottom:1px solid var(--in-line-lt);background:#FCFBFA}
+  table.jt td{padding:14px;border-bottom:1px solid var(--in-line-lt);vertical-align:top;font-size:13.5px}
+  table.jt tr:last-child td{border-bottom:0}
+  .jt-title{font-weight:700;color:var(--in-blue);font-size:14.5px}
+  .jt-loc{color:var(--in-muted);font-size:12.5px;margin-top:3px}
+  .jt-await{color:var(--in-blue);font-weight:800}
+  .jt-num{color:var(--in-muted)}
+
+  /* ============ POST A JOB WIZARD ============ */
+  .wiz{max-width:760px;margin:0 auto}
+  .wiz-prog{display:flex;gap:6px;margin:6px 0 22px}
+  .wiz-prog span{flex:1;height:5px;border-radius:6px;background:var(--in-line-lt)}
+  .wiz-prog span.done{background:var(--in-blue)}
+  .wiz-card{background:#fff;border:1px solid var(--in-line-lt);border-radius:12px;padding:26px 28px}
+  .wiz-card h2{font-size:19px;font-weight:800;margin-bottom:4px}
+  .wiz-sub{color:var(--in-muted);font-size:13.5px}
+  .wiz-foot{display:flex;justify-content:space-between;margin-top:22px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+  .payrow{display:grid;grid-template-columns:1fr 40px 1fr 140px;gap:10px;align-items:center}
+  .payrow .to{text-align:center;color:var(--in-muted)}
+  .scr-lib{border:1px solid var(--in-line-lt);border-radius:10px;overflow:hidden;margin-top:10px}
+  .scr-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--in-line-lt);background:#fff}
+  .scr-item:last-child{border-bottom:0}
+  .scr-item .q{flex:1;font-size:13.5px}
+  .scr-add{white-space:nowrap}
+  .scr-added{background:#F4F8FF}
+  .db-tog{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--in-muted);white-space:nowrap}
+  .spon-opt{border:2px solid var(--in-line);border-radius:12px;padding:16px 18px;margin-top:12px;cursor:pointer;background:#fff}
+  .spon-opt.on{border-color:var(--in-blue);background:#F4F8FF}
+  .spon-opt b{display:block;font-size:15px;margin-bottom:3px}
+  .spon-opt .d{font-size:13px;color:var(--in-muted)}
+  .rev-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--in-line-lt);font-size:13.5px}
+  .rev-line b{color:var(--in-muted);font-weight:600}
+
+  /* ============ CANDIDATES ============ */
+  .cd-jobsel{max-width:340px;margin-bottom:14px}
+  .cd-tabs{display:flex;gap:2px;border-bottom:1px solid var(--in-line);margin-bottom:16px}
+  .cd-tab{background:none;border:0;padding:11px 14px;font-size:13.5px;font-weight:700;color:var(--in-muted);border-bottom:3px solid transparent}
+  .cd-tab.on{color:var(--in-navy);border-bottom-color:var(--in-blue)}
+  .cd-tab .n{color:var(--in-faint);font-weight:600;margin-left:4px}
+  .cd-split{display:grid;grid-template-columns:330px 1fr;gap:16px;align-items:start}
+  .cd-card{background:#fff;border:1px solid var(--in-line-lt);border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer}
+  .cd-card:hover{border-color:var(--in-line)}
+  .cd-card.on{border-color:var(--in-blue);box-shadow:0 0 0 1px var(--in-blue)}
+  .cd-name{font-weight:800;font-size:15px;color:var(--in-navy)}
+  .cd-head{display:flex;align-items:center;gap:8px}
+  .cd-hl{font-size:13px;color:var(--in-muted);margin-top:3px}
+  .cd-meta{font-size:12px;color:var(--in-faint);margin-top:6px}
+  .cd-detail{background:#fff;border:1px solid var(--in-line-lt);border-radius:12px;padding:24px 26px;min-height:420px}
+  .cd-actions{display:flex;gap:10px;align-items:center;margin:16px 0 6px;flex-wrap:wrap}
+  .thumb{display:flex;align-items:center;gap:7px;border:1px solid var(--in-line);background:#fff;border-radius:8px;padding:9px 14px;font-weight:700;font-size:13px}
+  .thumb:hover{background:#f7f6f4}
+  .thumb.on-yes{background:var(--in-green-bg);border-color:var(--in-green);color:var(--in-green)}
+  .thumb.on-maybe{background:var(--in-amber-bg);border-color:var(--in-amber);color:var(--in-amber)}
+  .thumb.on-no{background:var(--in-red-bg);border-color:var(--in-red);color:var(--in-red)}
+  .cd-sec{margin-top:20px}
+  .cd-sec h3{font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--in-faint);margin-bottom:8px;font-weight:800}
+  .scrans{border:1px solid var(--in-line-lt);border-radius:10px;overflow:hidden}
+  .scrans .r{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--in-line-lt);font-size:13.5px}
+  .scrans .r:last-child{border-bottom:0}
+  .scrans .ok{color:var(--in-green);font-weight:800}
+  .scrans .bad{color:var(--in-red);font-weight:800}
+  .wx{padding:10px 0;border-bottom:1px solid var(--in-line-lt);font-size:13.5px}
+  .wx:last-child{border-bottom:0}
+  .wx b{display:block}
+  .wx .co{color:var(--in-muted)}
+  .wx .dt{color:var(--in-faint);font-size:12px}
+  .tagrow{display:flex;flex-wrap:wrap;gap:7px}
+  .tag{background:#F1EFEC;border-radius:100px;font-size:12px;padding:4px 11px;color:var(--in-navy);font-weight:600}
+
+  /* ============ SMART SOURCING ============ */
+  .ss-bar{display:grid;grid-template-columns:1fr 240px 120px auto;gap:10px;margin-bottom:16px}
+  .ss-split{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start}
+  .ss-filters{background:#fff;border:1px solid var(--in-line-lt);border-radius:10px;padding:16px}
+  .ss-filters h4{font-size:12.5px;font-weight:800;margin:12px 0 6px;color:var(--in-navy)}
+  .ss-filters h4:first-child{margin-top:0}
+  .ss-card{background:#fff;border:1px solid var(--in-line-lt);border-radius:12px;padding:18px 20px;margin-bottom:12px;display:flex;gap:16px}
+  .ss-av{width:46px;height:46px;border-radius:50%;background:var(--in-pill);color:var(--in-blue);font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px}
+  .ss-main{flex:1}
+  .ss-name{font-weight:800;font-size:15.5px;color:var(--in-blue);cursor:pointer}
+  .ss-name:hover{text-decoration:underline}
+  .ss-hl{font-size:13.5px;margin-top:2px}
+  .ss-meta{font-size:12.5px;color:var(--in-faint);margin:5px 0 8px}
+  .ss-cta{display:flex;flex-direction:column;gap:8px;align-items:flex-end;justify-content:center}
+  .ss-count{color:var(--in-muted);font-size:13px;margin-bottom:12px}
+
+  /* profile drawer */
+  .drawer-mask{position:fixed;inset:0;background:rgba(20,20,20,.35);z-index:60;display:flex;justify-content:flex-end}
+  .drawer{width:520px;max-width:92vw;background:#fff;height:100%;overflow:auto;padding:26px 28px;box-shadow:-8px 0 30px rgba(0,0,0,.15)}
+  .dr-close{float:right;background:none;border:0;font-size:22px;color:var(--in-muted);line-height:1}
+  .lockbox{border:1px dashed var(--in-line);border-radius:10px;padding:14px;background:#FCFBFA;display:flex;align-items:center;gap:12px;margin:14px 0}
+  .lockbox .t{flex:1;font-size:13px;color:var(--in-muted)}
+
+  /* ============ MESSAGES ============ */
+  .ms-split{display:grid;grid-template-columns:300px 1fr;gap:0;background:#fff;border:1px solid var(--in-line-lt);border-radius:12px;overflow:hidden;height:calc(100vh - 210px);min-height:440px}
+  .ms-list{border-right:1px solid var(--in-line-lt);overflow:auto}
+  .ms-item{padding:14px 16px;border-bottom:1px solid var(--in-line-lt);cursor:pointer}
+  .ms-item:hover{background:#FCFBFA}
+  .ms-item.on{background:#F4F8FF}
+  .ms-item .nm{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px}
+  .ms-item .un{width:8px;height:8px;border-radius:50%;background:var(--in-blue)}
+  .ms-item .sn{color:var(--in-muted);font-size:12.5px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ms-item .tm{color:var(--in-faint);font-size:11px;margin-top:4px}
+  .ms-conv{display:flex;flex-direction:column;height:100%}
+  .ms-head{padding:14px 20px;border-bottom:1px solid var(--in-line-lt);font-weight:800}
+  .ms-head .re{font-weight:600;color:var(--in-muted);font-size:12.5px;display:block}
+  .ms-body{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:#FCFBFA}
+  .bub{max-width:70%;padding:11px 14px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap}
+  .bub.them{background:#fff;border:1px solid var(--in-line-lt);align-self:flex-start;border-bottom-left-radius:4px}
+  .bub.me{background:var(--in-blue);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .bub .tm{display:block;font-size:10.5px;opacity:.65;margin-top:5px}
+  .ms-compose{border-top:1px solid var(--in-line-lt);padding:12px 16px;background:#fff}
+  .ms-tools{display:flex;gap:10px;margin-bottom:8px;align-items:center}
+  .ms-tools select{max-width:260px;padding:7px 10px;font-size:13px}
+  .ms-row{display:flex;gap:10px;align-items:flex-end}
+  .ms-row textarea{resize:none;height:66px}
+
+  /* ============ MODALS / TOAST ============ */
+  .modal-mask{position:fixed;inset:0;background:rgba(20,20,20,.4);z-index:80;display:flex;align-items:center;justify-content:center}
+  .modal{background:#fff;border-radius:14px;padding:26px 28px;width:440px;max-width:92vw;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+  .modal h3{font-size:17px;font-weight:800;margin-bottom:6px}
+  .modal .sub{color:var(--in-muted);font-size:13.5px;margin-bottom:12px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+  .rej-reasons label{display:flex;gap:9px;align-items:center;padding:7px 0;font-size:13.5px}
+  .rej-reasons input{width:auto}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--in-navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:all .25s;z-index:120;max-width:80vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ============ SPARK COACH (drawer) ============ */
+  #coachTab{position:fixed;right:0;top:44%;z-index:90;background:var(--gold);color:var(--ink);border:0;border-radius:10px 0 0 10px;padding:14px 10px;font-family:var(--spark-font);font-weight:700;font-size:13px;letter-spacing:1.5px;writing-mode:vertical-rl;text-orientation:mixed;box-shadow:-3px 3px 12px rgba(0,0,0,.18)}
+  #coach{position:fixed;top:0;right:0;height:100%;width:390px;max-width:94vw;background:#111013;color:#f4f1e8;z-index:100;box-shadow:-10px 0 34px rgba(0,0,0,.4);display:flex;flex-direction:column;font-family:var(--spark-font);transform:translateX(102%);transition:transform .28s ease}
+  #coach.open{transform:translateX(0)}
+  .co-head{padding:18px 20px 14px;border-bottom:1px solid #2a2830;display:flex;align-items:center;gap:12px}
+  .co-badge{width:36px;height:36px;border-radius:10px;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;flex:none}
+  .co-head b{font-size:15px;letter-spacing:.4px}
+  .co-head .tn{display:block;font-size:11.5px;color:#b8b2a3;font-weight:400;margin-top:2px}
+  .co-x{margin-left:auto;background:none;border:0;color:#b8b2a3;font-size:20px}
+  .co-prog{padding:14px 20px 6px}
+  .co-progbar{height:7px;background:#26242c;border-radius:8px;overflow:hidden}
+  .co-progbar i{display:block;height:100%;background:var(--gold);border-radius:8px;transition:width .4s}
+  .co-progtxt{font-size:11.5px;color:#b8b2a3;margin-top:6px;letter-spacing:.5px}
+  .co-body{flex:1;overflow:auto;padding:8px 20px 20px}
+  .co-mis{border:1px solid #2a2830;border-radius:12px;margin-top:12px;overflow:hidden}
+  .co-mis-h{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#17161b;font-size:13.5px;font-weight:700}
+  .co-mis-h .no{width:22px;height:22px;border-radius:50%;border:1.5px solid #4d4a55;display:flex;align-items:center;justify-content:center;font-size:11px;color:#b8b2a3;flex:none}
+  .co-mis.done .no{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+  .co-mis.locked{opacity:.42}
+  .co-mis.active{border-color:var(--gold)}
+  .co-mis-b{padding:12px 14px;font-size:12.5px;color:#d9d4c6;line-height:1.5}
+  .co-steps{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+  .co-step{display:flex;gap:9px;font-size:12.5px;align-items:flex-start}
+  .co-step .bx{width:15px;height:15px;border:1.5px solid #57545e;border-radius:4px;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center}
+  .co-step.done{color:#8f8a7c;text-decoration:line-through}
+  .co-step.done .bx{background:var(--gold);border-color:var(--gold)}
+  .co-step.done .bx::after{content:"";width:8px;height:5px;border-left:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(-45deg);margin-top:-2px}
+  .co-hint{margin-top:12px;display:flex;gap:8px}
+  .co-hint button{background:none;border:1px solid #4d4a55;color:#d9d4c6;border-radius:8px;padding:7px 12px;font-size:12px;font-family:var(--spark-font)}
+  .co-hint button:hover{border-color:var(--gold);color:var(--gold)}
+  .co-say{margin-top:10px;background:#1d1b22;border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12.5px;color:#efe9d8;line-height:1.5}
+  .co-debrief{background:#141d14;border-left-color:#68c26e}
+  .co-foot{padding:12px 20px;border-top:1px solid #2a2830;font-size:11px;color:#77737f;letter-spacing:.4px}
+  #nameModal .modal{font-family:var(--spark-font)}
+</style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<header class="gh">
+  <div class="gh-logo"><span class="word">indeed</span><span class="emp">Employers</span></div>
+  <nav class="gh-tabs">
+    <button class="gh-tab on" data-view="jobs"      onclick="showView('jobs',this)">Jobs</button>
+    <button class="gh-tab"    data-view="cands"     onclick="showView('cands',this)">Candidates</button>
+    <button class="gh-tab"    data-view="sourcing"  onclick="showView('sourcing',this)">Smart Sourcing</button>
+    <button class="gh-tab"    data-view="interviews"onclick="toast('Interviews is stubbed in the sandbox — not part of training.')">Interviews</button>
+    <button class="gh-tab"    data-view="analytics" onclick="toast('Analytics is stubbed in the sandbox — not part of training.')">Analytics</button>
+  </nav>
+  <div class="gh-right">
+    <button class="gh-ico" title="Messages" onclick="showView('msgs')">
+      <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      <span class="dot" id="msgDot"></span>
+    </button>
+    <button class="gh-ico" title="Notifications"><svg class="ic" viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></button>
+    <div class="gh-acct"><span>Spark Talent Acquisition</span><div class="gh-avatar">ST</div></div>
+  </div>
+</header>
+
+<div class="stage" id="stage">
+
+<!-- ==================== JOBS ==================== -->
+<section id="view-jobs" class="wrap">
+  <div class="pg-head">
+    <h1 class="pg">Jobs</h1>
+    <div class="sp"></div>
+    <button class="btn btn-pri" onclick="openWizard()">Post a job</button>
+  </div>
+  <div class="jb-filters">
+    <button class="chip on" data-f="all"    onclick="jobFilter('all',this)">All</button>
+    <button class="chip"    data-f="Open"   onclick="jobFilter('Open',this)">Open</button>
+    <button class="chip"    data-f="Paused" onclick="jobFilter('Paused',this)">Paused</button>
+    <button class="chip"    data-f="Closed" onclick="jobFilter('Closed',this)">Closed</button>
+    <div class="jb-search"><input type="text" id="jobSearch" placeholder="Search job titles" oninput="renderJobs()"></div>
+  </div>
+  <table class="jt">
+    <thead><tr>
+      <th style="width:32%">Job</th><th>Candidates</th><th>Awaiting review</th><th>Status</th><th>Budget</th><th>Views</th><th>Posted</th>
+    </tr></thead>
+    <tbody id="jobRows"></tbody>
+  </table>
+</section>
+
+<!-- ==================== POST A JOB WIZARD ==================== -->
+<section id="view-post" class="wrap hide">
+  <div class="wiz">
+    <div class="pg-head"><h1 class="pg">Post a job</h1><div class="sp"></div><button class="btn-ghost" onclick="exitWizard()">Exit</button></div>
+    <div class="wiz-prog" id="wizProg"></div>
+
+    <!-- step 1 basics -->
+    <div class="wiz-card" data-step="1">
+      <h2>Job basics</h2><div class="wiz-sub">This appears in search results — get the title exactly right.</div>
+      <label class="f">Job title <span class="req">*</span></label>
+      <input type="text" id="wzTitle" placeholder="e.g. CNC Machinist">
+      <div class="two">
+        <div><label class="f">City <span class="req">*</span></label><input type="text" id="wzCity" placeholder="Troy"></div>
+        <div><label class="f">State <span class="req">*</span></label><input type="text" id="wzState" placeholder="MI"></div>
+      </div>
+      <label class="f">Job type</label>
+      <div class="chkrow"><input type="checkbox" id="wzFT" checked> <span>Full-time</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzPT"> <span>Part-time</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzTemp"> <span>Temporary</span></div>
+      <label class="f">Schedule</label>
+      <div class="chkrow"><input type="checkbox" id="wzSh1"> <span>Day shift</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzSh2"> <span>Evening shift</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzSh3"> <span>Night shift</span></div>
+    </div>
+
+    <!-- step 2 pay -->
+    <div class="wiz-card hide" data-step="2">
+      <h2>Pay</h2><div class="wiz-sub">Jobs with pay information get significantly more quality applies — and several states now require it.</div>
+      <label class="f">Show pay by</label>
+      <select id="wzPayType"><option value="range">Range</option><option value="starting">Starting amount</option><option value="exact">Exact amount</option></select>
+      <label class="f">Amount</label>
+      <div class="payrow">
+        <input type="number" id="wzPayMin" placeholder="Minimum" step="0.25" min="0">
+        <div class="to" id="wzPayTo">to</div>
+        <input type="number" id="wzPayMax" placeholder="Maximum" step="0.25" min="0">
+        <select id="wzPayPer"><option>per hour</option><option>per year</option></select>
+      </div>
+      <label class="f">Benefits</label>
+      <div class="chkrow"><input type="checkbox" id="wzB1"> <span>Health insurance</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzB2"> <span>Dental insurance</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzB3"> <span>401(k)</span></div>
+      <div class="chkrow"><input type="checkbox" id="wzB4"> <span>Paid time off</span></div>
+    </div>
+
+    <!-- step 3 description -->
+    <div class="wiz-card hide" data-step="3">
+      <h2>Job description</h2><div class="wiz-sub">Candidates skim. Duties, requirements, pay, shift — in that order.</div>
+      <label class="f">Description <span class="req">*</span></label>
+      <textarea id="wzDesc" rows="9">Spark Talent Acquisition is hiring on behalf of a client manufacturer.
+
+Responsibilities:
+- 
+Requirements:
+- 
+Shift and pay:
+- </textarea>
+    </div>
+
+    <!-- step 4 application preferences -->
+    <div class="wiz-card hide" data-step="4">
+      <h2>Application preferences</h2><div class="wiz-sub">Screener questions filter before you spend a phone call.</div>
+      <label class="f">Send application updates to</label>
+      <input type="email" id="wzEmail" value="recruiting@sparkcompanies.com">
+      <label class="f">Resume</label>
+      <select id="wzResume"><option>Required</option><option>Optional</option><option>Don't ask</option></select>
+      <label class="f">Screener questions</label>
+      <div class="scr-lib" id="scrLib"></div>
+    </div>
+
+    <!-- step 5 sponsor -->
+    <div class="wiz-card hide" data-step="5">
+      <h2>Set a budget</h2><div class="wiz-sub">Sponsored jobs stay visible in search. Free listings fall in ranking within days.</div>
+      <div class="spon-opt" id="sponFree" onclick="pickSpon('free')">
+        <b>Post without a budget — Free</b>
+        <div class="d">Appears in general search results. Visibility declines over time.</div>
+      </div>
+      <div class="spon-opt" id="sponPaid" onclick="pickSpon('paid')">
+        <b>Sponsor this job</b>
+        <div class="d">Set a daily budget to keep the job visible. Recommended for hard-to-fill roles.</div>
+        <div id="sponBudget" class="hide" style="margin-top:10px;max-width:220px"><input type="number" id="wzBudget" placeholder="Daily budget ($)" min="5"></div>
+      </div>
+    </div>
+
+    <!-- step 6 review -->
+    <div class="wiz-card hide" data-step="6">
+      <h2>Review and post</h2><div class="wiz-sub">Last look before it goes live.</div>
+      <div id="wzReview" style="margin-top:12px"></div>
+    </div>
+
+    <div class="wiz-foot">
+      <button class="btn btn-sec" id="wizBack" onclick="wizNav(-1)">Back</button>
+      <button class="btn btn-pri" id="wizNext" onclick="wizNav(1)">Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CANDIDATES ==================== -->
+<section id="view-cands" class="wrap hide">
+  <div class="pg-head"><h1 class="pg">Candidates</h1></div>
+  <div class="cd-jobsel"><select id="cdJob" onchange="cdState.sel=null;renderCands()"></select></div>
+  <div class="cd-tabs" id="cdTabs"></div>
+  <div class="cd-split">
+    <div id="cdList"></div>
+    <div class="cd-detail" id="cdDetail"><div style="color:var(--in-faint);padding:40px 0;text-align:center">Select a candidate to review their application.</div></div>
+  </div>
+</section>
+
+<!-- ==================== SMART SOURCING ==================== -->
+<section id="view-sourcing" class="wrap hide">
+  <div class="pg-head"><h1 class="pg">Smart Sourcing</h1></div>
+  <div class="ss-bar">
+    <input type="text" id="ssQ" placeholder='Job title, skills, or boolean — e.g. CNC AND (Haas OR Mazak)'>
+    <input type="text" id="ssLoc" value="Troy, MI">
+    <select id="ssRad"><option>10 mi</option><option selected>25 mi</option><option>50 mi</option></select>
+    <button class="btn btn-pri" onclick="ssSearch()">Search</button>
+  </div>
+  <div class="ss-split">
+    <div class="ss-filters">
+      <h4>Last active</h4>
+      <div class="chkrow"><input type="checkbox" id="ssF7" onchange="ssSearch(true)"> <span>Past 7 days</span></div>
+      <div class="chkrow"><input type="checkbox" id="ssF30" checked onchange="ssSearch(true)"> <span>Past 30 days</span></div>
+      <h4>Preferences</h4>
+      <div class="chkrow"><input type="checkbox" id="ssFAuth" onchange="ssSearch(true)"> <span>Authorized to work</span></div>
+      <div class="chkrow"><input type="checkbox" id="ssFReloc" onchange="ssSearch(true)"> <span>Open to relocation</span></div>
+      <h4>Experience</h4>
+      <div class="chkrow"><input type="checkbox" id="ssFExp3" onchange="ssSearch(true)"> <span>3+ years</span></div>
+    </div>
+    <div>
+      <div class="ss-count" id="ssCount">Run a search to see matched candidates in the talent pool.</div>
+      <div id="ssResults"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== MESSAGES ==================== -->
+<section id="view-msgs" class="wrap hide">
+  <div class="pg-head"><h1 class="pg">Messages</h1></div>
+  <div class="ms-split">
+    <div class="ms-list" id="msList"></div>
+    <div class="ms-conv" id="msConv">
+      <div class="ms-head" style="color:var(--in-faint);font-weight:600">Select a conversation.</div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /stage -->
+
+<!-- ==================== REJECT MODAL ==================== -->
+<div class="modal-mask hide" id="rejModal">
+  <div class="modal">
+    <h3>Reject candidate</h3>
+    <div class="sub" id="rejWho"></div>
+    <div class="rej-reasons">
+      <label><input type="radio" name="rejR" value="Doesn't meet qualifications"> Doesn't meet qualifications</label>
+      <label><input type="radio" name="rejR" value="Not authorized to work in the US"> Not authorized to work in the US</label>
+      <label><input type="radio" name="rejR" value="Location"> Location</label>
+      <label><input type="radio" name="rejR" value="Better fit for another role"> Better fit for another role</label>
+      <label><input type="radio" name="rejR" value="Other"> Other</label>
+    </div>
+    <div class="chkrow" style="margin-top:10px"><input type="checkbox" id="rejEmail" checked> <span>Send candidate a rejection email from Indeed</span></div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="closeReject()">Cancel</button>
+      <button class="btn btn-pri" onclick="confirmReject()">Reject</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TRAINEE NAME MODAL ==================== -->
+<div class="modal-mask hide" id="nameModal">
+  <div class="modal">
+    <h3>Spark Indeed Sandbox</h3>
+    <div class="sub">Enter your name so your certification progress lands on the team scoreboard.</div>
+    <input type="text" id="tnInput" placeholder="First Last">
+    <div class="modal-foot"><button class="btn btn-pri" onclick="saveTrainee()">Start training</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ==================== COACH ==================== -->
+<button id="coachTab" onclick="coachToggle(true)">COACH</button>
+<aside id="coach">
+  <div class="co-head">
+    <div class="co-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#191300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L9 22l8.5-11.5H12L13 2z"/></svg></div>
+    <b>Spark Coach<span class="tn" id="coTrainee"></span></b>
+    <button class="co-x" onclick="coachToggle(false)">&times;</button>
+  </div>
+  <div class="co-prog">
+    <div class="co-progbar"><i id="coBar" style="width:0%"></i></div>
+    <div class="co-progtxt" id="coProgTxt"></div>
+  </div>
+  <div class="co-body" id="coBody"></div>
+  <div class="co-foot">INDEED EMPLOYER TRACK &middot; RESULTS POST TO THE TEAM CERTIFICATION SCOREBOARD</div>
+</aside>
+
+<script>
+/* =====================================================================
+   SPARK INDEED SANDBOX — v1 (SBX_IND_v1)
+   Single-file Indeed employer simulation for new-hire training.
+   Mirrors the ATS sandbox conventions: mission coach, trainee identity,
+   localStorage persistence, and result reporting to the shared
+   spark-hq-worker /sandbox-result route (same Supabase scoreboard).
+   UI is a v1 approximation of the Indeed employer dashboard; a
+   pixel-fidelity pass follows from live account screenshots.
+===================================================================== */
+'use strict';
+
+/* ---------------- demo data (all invented; structure realistic) ---------------- */
+var JOBS = [
+  {id:'j1', title:'CNC Machinist', city:'Troy', state:'MI', status:'Open', budget:'Sponsored', views:412, applies:9, posted:'Aug 18', pay:'$22 – $26 an hour', shift:'Evening shift', screeners:['Do you have reliable transportation to Troy, MI?','Are you authorized to work in the United States?']},
+  {id:'j2', title:'Press Operator — DFM Marshall', city:'Marshall', state:'MI', status:'Open', budget:'Free', views:188, applies:4, posted:'Aug 20', pay:'From $17.50 an hour', shift:'Day shift', screeners:['Are you authorized to work in the United States?']},
+  {id:'j3', title:'Warehouse Associate — 2nd Shift', city:'Livonia', state:'MI', status:'Paused', budget:'Free', views:96, applies:6, posted:'Aug 11', pay:'$16 – $18 an hour', shift:'Evening shift', screeners:[]},
+  {id:'j4', title:'Staff Accountant', city:'Troy', state:'MI', status:'Closed', budget:'Sponsored', views:733, applies:31, posted:'Jul 29', pay:'$62,000 – $70,000 a year', shift:'', screeners:[]}
+];
+
+var APPLICANTS = [
+  {id:'a1', job:'j1', name:'Dana Whitfield', hl:'CNC Machinist · 6 years · Haas & Mazak', loc:'Warren, MI', applied:'2 hours ago', status:'Awaiting review', isNew:true,
+    scr:[['Reliable transportation to Troy, MI?','Yes',true],['Authorized to work in the US?','Yes',true]],
+    summary:'Setup and operation of 3- and 4-axis Haas VMCs. Reads GD&T prints, edits programs at the control, holds ±0.0005 tolerances. Looking for 2nd shift.',
+    work:[['CNC Machinist','Precision Gear & Spline — Warren, MI','2021 – Present'],['Machine Operator','Delta Stamping — Sterling Heights, MI','2018 – 2021']],
+    skills:['Haas','Mazak','GD&T','Micrometers','Fanuc controls','Setup']},
+  {id:'a2', job:'j1', name:'Rob Tasker', hl:'General Labor · Forklift certified', loc:'Toledo, OH', applied:'5 hours ago', status:'Awaiting review', isNew:true,
+    scr:[['Reliable transportation to Troy, MI?','No',false],['Authorized to work in the US?','Yes',true]],
+    summary:'Warehouse and general labor background. No machining experience listed. 60+ miles from the work site.',
+    work:[['Warehouse Associate','Riverline Logistics — Toledo, OH','2022 – Present']],
+    skills:['Forklift','Picking','Shipping']},
+  {id:'a3', job:'j1', name:'Priya Nair', hl:'CNC Operator · 3 years · Okuma', loc:'Madison Heights, MI', applied:'Yesterday', status:'Reviewed', isNew:false,
+    scr:[['Reliable transportation to Troy, MI?','Yes',true],['Authorized to work in the US?','Yes',true]],
+    summary:'Production CNC operation on Okuma lathes. Some setup exposure. Open to cross-training on mills.',
+    work:[['CNC Operator','Apex Turned Products — Madison Heights, MI','2023 – Present']],
+    skills:['Okuma','Lathes','Calipers','5S']},
+  {id:'a4', job:'j1', name:'Terrence Cole', hl:'Machinist Apprentice', loc:'Detroit, MI', applied:'2 days ago', status:'Contacting', isNew:false,
+    scr:[['Reliable transportation to Troy, MI?','Yes',true],['Authorized to work in the US?','Yes',true]],
+    summary:'Completing a machining apprenticeship at Focus: HOPE. Strong fundamentals, limited solo setup experience.',
+    work:[['Apprentice','Focus: HOPE MTI — Detroit, MI','2024 – Present']],
+    skills:['Manual mills','Blueprints','Shop math']},
+  {id:'a5', job:'j2', name:'Gloria Sandoval', hl:'Press Operator · 4 years', loc:'Battle Creek, MI', applied:'1 hour ago', status:'Awaiting review', isNew:true,
+    scr:[['Authorized to work in the US?','Yes',true]],
+    summary:'Mechanical power press operation, die changes with supervision, quality checks with go/no-go gauges. Days preferred.',
+    work:[['Press Operator','Calhoun Metal Forming — Battle Creek, MI','2021 – Present']],
+    skills:['Power press','Die change','Go/no-go gauges']},
+  {id:'a6', job:'j2', name:'Kevin Marsh', hl:'Production Associate', loc:'Marshall, MI', applied:'Yesterday', status:'Awaiting review', isNew:false,
+    scr:[['Authorized to work in the US?','Yes',true]],
+    summary:'Two years in food production. Reliable attendance record noted by references. No press experience.',
+    work:[['Production Associate','Marshall Foods — Marshall, MI','2023 – Present']],
+    skills:['Line work','Sanitation','Pallet jack']}
+];
+
+var POOL = [
+  {id:'p1', name:'Marcus Delgado', hl:'CNC Machinist — Haas VF-2, Mazak Quick Turn', loc:'Royal Oak, MI', active:'Active 3 days ago', exp:8, auth:true, reloc:false,
+    blob:'cnc machinist haas vf-2 mazak quick turn setup gd&t fanuc 2nd shift', match:'Great match',
+    skills:['Haas','Mazak','Setup','GD&T','Fanuc'], phone:'(248) 555-0117', email:'marcus.delgado.demo@example.com',
+    resume:'8 years CNC machining. Setup and first-article on Haas VF-2 mills and Mazak Quick Turn lathes. Trains junior operators. Prefers afternoons.'},
+  {id:'p2', name:'Alyssa Trent', hl:'CNC Operator — Haas mills', loc:'Ferndale, MI', active:'Active 1 week ago', exp:4, auth:true, reloc:false,
+    blob:'cnc operator haas mills production calipers micrometers', match:'Good match',
+    skills:['Haas','Production','Micrometers'], phone:'(313) 555-0192', email:'alyssa.trent.demo@example.com',
+    resume:'4 years production CNC on Haas mills. Consistent quality record, limited setup experience.'},
+  {id:'p3', name:'Sam Okafor', hl:'Machinist — Mazak Integrex', loc:'Auburn Hills, MI', active:'Active 2 weeks ago', exp:11, auth:true, reloc:true,
+    blob:'machinist mazak integrex multi-axis programming mastercam', match:'Great match',
+    skills:['Mazak','Mastercam','Multi-axis'], phone:'(947) 555-0138', email:'sam.okafor.demo@example.com',
+    resume:'11 years, multi-axis Mazak Integrex, light Mastercam programming. Open to relocation for the right role.'},
+  {id:'p4', name:'Jenny Kowalski', hl:'Press Brake Operator', loc:'Warren, MI', active:'Active 5 days ago', exp:6, auth:true, reloc:false,
+    blob:'press brake operator amada sheet metal forming', match:'Good match',
+    skills:['Press brake','Amada','Sheet metal'], phone:'(586) 555-0164', email:'jenny.kowalski.demo@example.com',
+    resume:'6 years press brake on Amada equipment. Sheet metal forming and finishing.'},
+  {id:'p5', name:'Derrick Shaw', hl:'General Labor — open to training', loc:'Pontiac, MI', active:'Active today', exp:1, auth:true, reloc:false,
+    blob:'general labor warehouse entry level forklift', match:'Good match',
+    skills:['Forklift','Warehouse'], phone:'(248) 555-0171', email:'derrick.shaw.demo@example.com',
+    resume:'1 year warehouse work, forklift certified, looking to move into manufacturing.'}
+];
+
+var THREADS = [
+  {id:'t1', who:'Dana Whitfield', re:'CNC Machinist — Troy, MI', unread:true,
+   msgs:[{from:'them', txt:'Hi — I just applied for the CNC Machinist role. I have 6 years on Haas and Mazak and I\'m specifically looking for 2nd shift. Is that shift still open?', tm:'10:14 AM'}]},
+  {id:'t2', who:'Terrence Cole', re:'CNC Machinist — Troy, MI', unread:false,
+   msgs:[{from:'them', txt:'Thanks for reaching out! Yes, I\'d be interested in learning more.', tm:'Yesterday'},
+         {from:'me', txt:'Great — I\'ll send over some times for a quick call.', tm:'Yesterday'}]},
+  {id:'t3', who:'Gloria Sandoval', re:'Press Operator — DFM Marshall', unread:false,
+   msgs:[{from:'them', txt:'Good morning, is the press operator position day shift? That\'s what I\'m looking for.', tm:'Mon'}]}
+];
+
+var TEMPLATES = {
+  '': '',
+  'Phone screen invite': 'Hi {name} — thanks for applying to the {job} role. Your background looks like a strong fit and I\'d like to set up a quick 10-minute phone screen. What times work for you today or tomorrow?\n\n— {me}, Spark Talent Acquisition',
+  'Interview scheduling': 'Hi {name} — following up to get your interview on the calendar for the {job} role. Could you share two or three windows that work this week?\n\n— {me}, Spark Talent Acquisition',
+  'Request more info': 'Hi {name} — quick question on your application for the {job} role: can you tell me a bit more about your most recent hands-on experience?\n\n— {me}, Spark Talent Acquisition'
+};
+
+var SCREENER_LIBRARY = [
+  'Do you have reliable transportation to the work site?',
+  'Are you authorized to work in the United States?',
+  'Are you able to work the posted shift?',
+  'Do you have at least 1 year of relevant experience?'
+];
+
+/* ---------------- tiny utils ---------------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(function(){el.classList.remove('show');},3400); }
+function initials(n){ return n.split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase(); }
+
+/* ---------------- router ---------------- */
+function showView(v, tabEl){
+  ['jobs','post','cands','sourcing','msgs'].forEach(function(x){ $('view-'+x).classList.toggle('hide', x!==v); });
+  var tabs=document.querySelectorAll('.gh-tab');
+  tabs.forEach(function(t){ t.classList.toggle('on', t.dataset.view===v); });
+  if(v==='jobs') mark('nav:jobs');
+  if(v==='cands'){ mark('nav:cands'); renderCands(); }
+  if(v==='sourcing') mark('nav:src');
+  if(v==='msgs'){ mark('nav:msgs'); renderThreads(); }
+  $('stage').scrollTop=0;
+}
+
+/* ---------------- jobs ---------------- */
+var jobF='all';
+function jobFilter(f, el){ jobF=f; document.querySelectorAll('.jb-filters .chip').forEach(function(c){c.classList.toggle('on',c===el);}); renderJobs(); }
+function renderJobs(){
+  var q=($('jobSearch').value||'').toLowerCase();
+  var rows=JOBS.filter(function(j){ return (jobF==='all'||j.status===jobF) && j.title.toLowerCase().indexOf(q)>-1; })
+    .map(function(j){
+      var await_ = APPLICANTS.filter(function(a){return a.job===j.id && a.status==='Awaiting review';}).length;
+      var tot = APPLICANTS.filter(function(a){return a.job===j.id;}).length;
+      return '<tr>'+
+        '<td><a class="jt-title" href="javascript:void(0)" onclick="jumpToCands(\''+j.id+'\')">'+esc(j.title)+'</a><div class="jt-loc">'+esc(j.city)+', '+esc(j.state)+' &middot; '+esc(j.pay)+'</div></td>'+
+        '<td class="jt-num">'+tot+'</td>'+
+        '<td>'+(await_? '<span class="jt-await">'+await_+'</span>' : '<span class="jt-num">0</span>')+'</td>'+
+        '<td><span class="pill pill-'+j.status.toLowerCase()+'">'+j.status+'</span></td>'+
+        '<td><span class="pill '+(j.budget==='Sponsored'?'pill-spons':'pill-free')+'">'+j.budget+'</span></td>'+
+        '<td class="jt-num">'+j.views+'</td>'+
+        '<td class="jt-num">'+j.posted+'</td>'+
+      '</tr>';
+    }).join('');
+  $('jobRows').innerHTML = rows || '<tr><td colspan="7" style="text-align:center;color:var(--in-faint);padding:30px">No jobs match.</td></tr>';
+}
+function jumpToCands(jobId){ showView('cands'); $('cdJob').value=jobId; cdState.sel=null; renderCands(); }
+
+/* ---------------- post-a-job wizard ---------------- */
+var wiz={step:1, screeners:{}, db:{}, spon:null, active:false};
+function openWizard(){
+  wiz={step:1, screeners:{}, db:{}, spon:null, active:true};
+  ['wzTitle','wzCity','wzState','wzPayMin','wzPayMax'].forEach(function(id){$(id).value='';});
+  $('wzDesc').value='Spark Talent Acquisition is hiring on behalf of a client manufacturer.\n\nResponsibilities:\n- \nRequirements:\n- \nShift and pay:\n- ';
+  $('sponFree').classList.remove('on'); $('sponPaid').classList.remove('on'); $('sponBudget').classList.add('hide');
+  renderScrLib(); wizPaint(); showView('post'); mark('post:open');
+}
+function exitWizard(){ wiz.active=false; showView('jobs', null); }
+function renderScrLib(){
+  $('scrLib').innerHTML = SCREENER_LIBRARY.map(function(q,i){
+    var on = !!wiz.screeners[i];
+    return '<div class="scr-item'+(on?' scr-added':'')+'">'+
+      '<div class="q">'+esc(q)+'</div>'+
+      (on ? '<label class="db-tog"><input type="checkbox" '+(wiz.db[i]?'checked':'')+' onchange="toggleDB('+i+',this.checked)"> Deal breaker</label>'+
+            '<button class="btn btn-sec btn-sm scr-add" onclick="toggleScr('+i+')">Remove</button>'
+          : '<button class="btn btn-sec btn-sm scr-add" onclick="toggleScr('+i+')">Add</button>')+
+    '</div>';
+  }).join('');
+}
+function toggleScr(i){ if(wiz.screeners[i]){ delete wiz.screeners[i]; delete wiz.db[i]; } else { wiz.screeners[i]=true; } renderScrLib(); checkScrMission(); }
+function toggleDB(i,v){ wiz.db[i]=v; checkScrMission(); }
+function checkScrMission(){
+  /* mission 1 wants: transportation (idx 0) AND authorization (idx 1) with authorization as a deal breaker */
+  if(wiz.screeners[0] && wiz.screeners[1] && wiz.db[1]) mark('post:screener');
+}
+function pickSpon(k){
+  wiz.spon=k;
+  $('sponFree').classList.toggle('on',k==='free');
+  $('sponPaid').classList.toggle('on',k==='paid');
+  $('sponBudget').classList.toggle('hide',k!=='paid');
+}
+function wizPaint(){
+  document.querySelectorAll('.wiz-card').forEach(function(c){ c.classList.toggle('hide', +c.dataset.step!==wiz.step); });
+  $('wizProg').innerHTML=[1,2,3,4,5,6].map(function(i){return '<span class="'+(i<=wiz.step?'done':'')+'"></span>';}).join('');
+  $('wizBack').style.visibility = wiz.step===1?'hidden':'visible';
+  $('wizNext').textContent = wiz.step===6 ? 'Post job' : 'Continue';
+}
+function payFilled(){
+  var t=$('wzPayType').value, mn=parseFloat($('wzPayMin').value);
+  if(t==='range'){ var mx=parseFloat($('wzPayMax').value); return mn>0 && mx>0 && mx>=mn; }
+  return mn>0;
+}
+function wizNav(dir){
+  if(dir>0){
+    if(wiz.step===1 && !($('wzTitle').value.trim() && $('wzCity').value.trim() && $('wzState').value.trim())){ toast('Job title, city, and state are required.'); return; }
+    if(wiz.step===2){ if(payFilled()) mark('post:pay'); else { toast('Heads up: no pay information entered. Indeed buries pay-blind listings.'); coachSay('You skipped pay. On the real board that costs you half your applies and can violate pay-transparency law in several states. Go back and enter the range.'); } }
+    if(wiz.step===5 && !wiz.spon){ toast('Choose free or sponsored to continue.'); return; }
+    if(wiz.step===6){ publishJob(); return; }
+  }
+  wiz.step=Math.min(6,Math.max(1,wiz.step+dir));
+  if(wiz.step===6) renderReview();
+  wizPaint(); $('stage').scrollTop=0;
+}
+function renderReview(){
+  var scr=Object.keys(wiz.screeners).map(function(i){return SCREENER_LIBRARY[i]+(wiz.db[i]?' (deal breaker)':'');});
+  var payTxt = payFilled()
+    ? ($('wzPayType').value==='range' ? '$'+$('wzPayMin').value+' – $'+$('wzPayMax').value+' '+$('wzPayPer').value
+                                      : 'From $'+$('wzPayMin').value+' '+$('wzPayPer').value)
+    : '<span style="color:var(--in-red);font-weight:700">Not provided</span>';
+  $('wzReview').innerHTML =
+    '<div class="rev-line"><b>Job</b><span>'+esc($('wzTitle').value)+' — '+esc($('wzCity').value)+', '+esc($('wzState').value)+'</span></div>'+
+    '<div class="rev-line"><b>Pay</b><span>'+payTxt+'</span></div>'+
+    '<div class="rev-line"><b>Screeners</b><span>'+(scr.length? esc(scr.join(' · ')) : '<span style="color:var(--in-red);font-weight:700">None</span>')+'</span></div>'+
+    '<div class="rev-line"><b>Budget</b><span>'+(wiz.spon==='paid'?'Sponsored — $'+($('wzBudget').value||'—')+'/day':'Free listing')+'</span></div>';
+}
+function publishJob(){
+  var payOk=payFilled(), scrOk=Object.keys(wiz.screeners).length>0;
+  var payTxt = payOk ? ($('wzPayType').value==='range' ? '$'+$('wzPayMin').value+' – $'+$('wzPayMax').value+' '+($('wzPayPer').value==='per hour'?'an hour':'a year') : 'From $'+$('wzPayMin').value+' an hour') : 'Pay not listed';
+  JOBS.unshift({id:'j'+(JOBS.length+1)+'_'+Date.now(), title:$('wzTitle').value.trim(), city:$('wzCity').value.trim(), state:$('wzState').value.trim(),
+    status:'Open', budget:(wiz.spon==='paid'?'Sponsored':'Free'), views:0, applies:0, posted:'Just now', pay:payTxt, shift:'',
+    screeners:Object.keys(wiz.screeners).map(function(i){return SCREENER_LIBRARY[i];})});
+  wiz.active=false;
+  showView('jobs'); renderJobs();
+  toast('Job posted. It can take a few hours to appear in search on the real board.');
+  if(payOk && scrOk){ mark('post:published'); }
+  else { coachSay('Posted — but '+(!payOk?'without pay':'')+(!payOk&&!scrOk?' and ':'')+(!scrOk?'without a single screener':'')+'. In training that posting does not count. Post it again done right.'); }
+}
+
+/* ---------------- candidates ---------------- */
+var cdState={tab:'Awaiting review', sel:null};
+var CD_TABS=['Awaiting review','Reviewed','Contacting','Hired','Rejected'];
+function cdJobOptions(){
+  $('cdJob').innerHTML = JOBS.filter(function(j){return j.status!=='Closed';}).map(function(j){
+    return '<option value="'+j.id+'">'+esc(j.title)+' — '+esc(j.city)+', '+esc(j.state)+'</option>';
+  }).join('');
+}
+function renderCands(){
+  cdJobOptions();
+  var jobId=$('cdJob').value || (JOBS[0]&&JOBS[0].id);
+  if($('cdJob').value!==jobId) $('cdJob').value=jobId;
+  var pool=APPLICANTS.filter(function(a){return a.job===jobId;});
+  $('cdTabs').innerHTML = CD_TABS.map(function(t){
+    var n=pool.filter(function(a){return a.status===t;}).length;
+    return '<button class="cd-tab'+(cdState.tab===t?' on':'')+'" onclick="cdState.tab=\''+t+'\';cdState.sel=null;renderCands()">'+t+'<span class="n">'+n+'</span></button>';
+  }).join('');
+  var list=pool.filter(function(a){return a.status===cdState.tab;});
+  $('cdList').innerHTML = list.length ? list.map(function(a){
+    return '<div class="cd-card'+(cdState.sel===a.id?' on':'')+'" onclick="openCand(\''+a.id+'\')">'+
+      '<div class="cd-head"><span class="cd-name">'+esc(a.name)+'</span>'+(a.isNew?'<span class="pill pill-new">New</span>':'')+'</div>'+
+      '<div class="cd-hl">'+esc(a.hl)+'</div>'+
+      '<div class="cd-meta">'+esc(a.loc)+' &middot; Applied '+esc(a.applied)+'</div>'+
+    '</div>';
+  }).join('') : '<div style="color:var(--in-faint);padding:22px 6px;font-size:13px">No candidates in this status.</div>';
+  renderCandDetail();
+}
+function openCand(id){ cdState.sel=id; var a=APPLICANTS.find(function(x){return x.id===id;}); if(a){ a.isNew=false; mark('cand:open',{name:a.name}); } renderCands(); }
+function renderCandDetail(){
+  var a=APPLICANTS.find(function(x){return x.id===cdState.sel;});
+  if(!a){ $('cdDetail').innerHTML='<div style="color:var(--in-faint);padding:40px 0;text-align:center">Select a candidate to review their application.</div>'; return; }
+  var scrHtml = a.scr.length ? '<div class="scrans">'+a.scr.map(function(s){
+      return '<div class="r"><span>'+esc(s[0])+'</span><span class="'+(s[2]?'ok':'bad')+'">'+esc(s[1])+'</span></div>';
+    }).join('')+'</div>' : '<div style="color:var(--in-faint);font-size:13px">No screener questions on this job.</div>';
+  $('cdDetail').innerHTML =
+    '<div style="display:flex;align-items:center;gap:14px">'+
+      '<div class="ss-av">'+initials(a.name)+'</div>'+
+      '<div><div class="cd-name" style="font-size:19px">'+esc(a.name)+'</div><div class="cd-hl">'+esc(a.hl)+' &middot; '+esc(a.loc)+'</div></div>'+
+      '<div style="margin-left:auto"><span class="pill pill-new">'+esc(a.status)+'</span></div>'+
+    '</div>'+
+    '<div class="cd-actions">'+
+      '<button class="thumb'+(a.rating==='yes'?' on-yes':'')+'" onclick="rateCand(\''+a.id+'\',\'yes\')"><svg class="ic" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.3a2 2 0 002-1.7l1.4-9a2 2 0 00-2-2.3H14z"/><path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>Interested</button>'+
+      '<button class="thumb'+(a.rating==='maybe'?' on-maybe':'')+'" onclick="rateCand(\''+a.id+'\',\'maybe\')">Maybe</button>'+
+      '<button class="thumb'+(a.rating==='no'?' on-no':'')+'" onclick="openReject(\''+a.id+'\')"><svg class="ic" viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.7a2 2 0 00-2 1.7l-1.4 9a2 2 0 002 2.3H10z"/><path d="M17 2h3a2 2 0 012 2v7a2 2 0 01-2 2h-3"/></svg>Reject</button>'+
+      '<button class="btn btn-sec btn-sm" style="margin-left:auto" onclick="msgCand(\''+esc(a.name)+'\')">Message</button>'+
+    '</div>'+
+    '<div class="cd-sec"><h3>Screener answers</h3>'+scrHtml+'</div>'+
+    '<div class="cd-sec"><h3>Summary</h3><div style="font-size:13.5px;line-height:1.55">'+esc(a.summary)+'</div></div>'+
+    '<div class="cd-sec"><h3>Work experience</h3>'+a.work.map(function(w){return '<div class="wx"><b>'+esc(w[0])+'</b><span class="co">'+esc(w[1])+'</span><div class="dt">'+esc(w[2])+'</div></div>';}).join('')+'</div>'+
+    '<div class="cd-sec"><h3>Skills</h3><div class="tagrow">'+a.skills.map(function(s){return '<span class="tag">'+esc(s)+'</span>';}).join('')+'</div></div>';
+  /* viewing screener answers counts once the panel renders for a selected candidate */
+  if(a.scr.length) mark('cand:screeners',{name:a.name});
+}
+function rateCand(id,r){
+  var a=APPLICANTS.find(function(x){return x.id===id;}); if(!a) return;
+  a.rating=r;
+  if(r==='yes'){ a.status='Reviewed'; mark('cand:interested',{name:a.name}); toast(a.name+' marked Interested and moved to Reviewed.'); }
+  if(r==='maybe'){ toast(a.name+' marked Maybe.'); }
+  cdState.sel=id; cdState.tab=a.status; renderCands();
+}
+var rejTarget=null;
+function openReject(id){ rejTarget=id; var a=APPLICANTS.find(function(x){return x.id===id;}); $('rejWho').textContent=a? a.name+' — '+ (JOBS.find(function(j){return j.id===a.job;})||{}).title : ''; document.querySelectorAll('input[name=rejR]').forEach(function(r){r.checked=false;}); $('rejEmail').checked=true; $('rejModal').classList.remove('hide'); }
+function closeReject(){ $('rejModal').classList.add('hide'); rejTarget=null; }
+function confirmReject(){
+  var r=document.querySelector('input[name=rejR]:checked');
+  if(!r){ toast('Pick a rejection reason.'); return; }
+  var a=APPLICANTS.find(function(x){return x.id===rejTarget;}); if(!a){ closeReject(); return; }
+  a.rating='no'; a.status='Rejected';
+  var emailed=$('rejEmail').checked;
+  mark('cand:rejected',{name:a.name, emailed:emailed});
+  toast(a.name+' rejected — '+r.value+(emailed?' · rejection email queued.':' · no email sent.'));
+  if(!emailed) coachSay('You skipped the rejection email. Ghosted applicants tank the employer rating and they call the office asking. Always let Indeed close the loop.');
+  closeReject(); cdState.sel=null; renderCands();
+}
+function msgCand(name){
+  var t=THREADS.find(function(x){return x.who===name;});
+  if(!t){ t={id:'t'+Date.now(), who:name, re:'New conversation', unread:false, msgs:[]}; THREADS.unshift(t); }
+  showView('msgs'); openThread(t.id);
+}
+
+/* ---------------- smart sourcing ---------------- */
+var ssContacted={};
+function parseBoolean(q){
+  /* lite boolean: supports AND + parenthesized OR groups. returns fn(blob)->bool */
+  q=(q||'').trim(); if(!q) return null;
+  var isBool=/\b(AND|OR)\b/.test(q);
+  var groups=q.split(/\bAND\b/i).map(function(g){
+    g=g.replace(/[()]/g,'').trim();
+    return g.split(/\bOR\b/i).map(function(t){return t.trim().toLowerCase();}).filter(Boolean);
+  }).filter(function(g){return g.length;});
+  return { isBool:isBool, test:function(blob){
+    blob=blob.toLowerCase();
+    return groups.every(function(g){ return g.some(function(t){ return blob.indexOf(t)>-1; }); });
+  }};
+}
+function ssSearch(silent){
+  var q=$('ssQ').value, p=parseBoolean(q);
+  var res=POOL.filter(function(c){
+    if(p && !p.test(c.blob+' '+c.name+' '+c.hl)) return false;
+    if($('ssFAuth').checked && !c.auth) return false;
+    if($('ssFReloc').checked && !c.reloc) return false;
+    if($('ssFExp3').checked && c.exp<3) return false;
+    if($('ssF7').checked && c.active.indexOf('today')===-1 && c.active.indexOf('3 days')===-1 && c.active.indexOf('5 days')===-1) return false;
+    return true;
+  });
+  $('ssCount').textContent = res.length+' candidate'+(res.length===1?'':'s')+' in the talent pool near '+($('ssLoc').value||'you')+' ('+$('ssRad').value+')';
+  $('ssResults').innerHTML = res.map(function(c){
+    var invited=!!c.invited;
+    return '<div class="ss-card">'+
+      '<div class="ss-av">'+initials(c.name)+'</div>'+
+      '<div class="ss-main">'+
+        '<div style="display:flex;align-items:center;gap:10px"><span class="ss-name" onclick="openProfile(\''+c.id+'\')">'+esc(c.name)+'</span><span class="pill '+(c.match==='Great match'?'pill-great':'pill-good')+'">'+c.match+'</span></div>'+
+        '<div class="ss-hl">'+esc(c.hl)+'</div>'+
+        '<div class="ss-meta">'+esc(c.loc)+' &middot; '+esc(c.active)+' &middot; '+c.exp+' yrs experience</div>'+
+        '<div class="tagrow">'+c.skills.map(function(s){return '<span class="tag">'+esc(s)+'</span>';}).join('')+'</div>'+
+      '</div>'+
+      '<div class="ss-cta">'+
+        '<button class="btn btn-pri btn-sm" '+(invited?'disabled style="opacity:.55"':'')+' onclick="inviteCand(\''+c.id+'\')">'+(invited?'Invited':'Invite to apply')+'</button>'+
+        '<button class="btn btn-sec btn-sm" onclick="toast(\'Saved to project.\')">Save</button>'+
+      '</div>'+
+    '</div>';
+  }).join('') || '<div class="card" style="padding:26px;text-align:center;color:var(--in-faint)">No candidates match this search. Loosen a filter or a term.</div>';
+  if(!silent && p){ mark('src:search'); if(p.isBool) mark('src:boolean'); }
+}
+function inviteCand(id){
+  var c=POOL.find(function(x){return x.id===id;}); if(!c) return;
+  c.invited=true; ssSearch(true);
+  mark('src:invite',{name:c.name});
+  toast('Invite to apply sent to '+c.name+'.');
+}
+function openProfile(id){
+  var c=POOL.find(function(x){return x.id===id;}); if(!c) return;
+  mark('src:profile',{name:c.name});
+  var unlocked=!!ssContacted[id];
+  var mask=document.createElement('div'); mask.className='drawer-mask'; mask.id='ssDrawer';
+  mask.innerHTML='<div class="drawer">'+
+    '<button class="dr-close" onclick="closeProfile()">&times;</button>'+
+    '<div style="display:flex;gap:14px;align-items:center;margin-bottom:8px"><div class="ss-av" style="width:56px;height:56px;font-size:18px">'+initials(c.name)+'</div>'+
+    '<div><div style="font-weight:800;font-size:19px">'+esc(c.name)+'</div><div class="cd-hl">'+esc(c.hl)+'</div><div class="ss-meta">'+esc(c.loc)+' &middot; '+esc(c.active)+'</div></div></div>'+
+    '<div class="lockbox" id="ssLock">'+
+      (unlocked
+        ? '<div class="t"><b style="color:var(--in-navy)">Contact unlocked</b><br>'+esc(c.phone)+' &middot; '+esc(c.email)+'</div>'
+        : '<svg class="ic" viewBox="0 0 24 24" style="width:20px;height:20px;color:var(--in-muted)"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><div class="t">Phone and email are locked. Unlocking uses <b>1 contact credit</b> from the Smart Sourcing subscription.</div><button class="btn btn-pri btn-sm" onclick="unlockContact(\''+c.id+'\')">Unlock contact</button>')+
+    '</div>'+
+    '<div class="cd-sec"><h3>Resume</h3><div style="font-size:13.5px;line-height:1.6">'+esc(c.resume)+'</div></div>'+
+    '<div class="cd-sec"><h3>Skills</h3><div class="tagrow">'+c.skills.map(function(s){return '<span class="tag">'+esc(s)+'</span>';}).join('')+'</div></div>'+
+    '<div style="margin-top:22px;display:flex;gap:10px"><button class="btn btn-pri" onclick="inviteCand(\''+c.id+'\');closeProfile()">'+(c.invited?'Invited':'Invite to apply')+'</button><button class="btn btn-sec" onclick="closeProfile()">Close</button></div>'+
+  '</div>';
+  mask.addEventListener('click',function(e){ if(e.target===mask) closeProfile(); });
+  document.body.appendChild(mask);
+}
+function closeProfile(){ var d=$('ssDrawer'); if(d) d.remove(); }
+function unlockContact(id){
+  ssContacted[id]=true; var c=POOL.find(function(x){return x.id===id;});
+  $('ssLock').innerHTML='<div class="t"><b style="color:var(--in-navy)">Contact unlocked</b><br>'+esc(c.phone)+' &middot; '+esc(c.email)+'</div>';
+  mark('src:unlock',{name:c.name});
+  toast('1 contact credit used.');
+}
+
+/* ---------------- messages ---------------- */
+var msSel=null;
+function renderThreads(){
+  $('msList').innerHTML=THREADS.map(function(t){
+    var last=t.msgs[t.msgs.length-1]||{};
+    return '<div class="ms-item'+(msSel===t.id?' on':'')+'" onclick="openThread(\''+t.id+'\')">'+
+      '<div class="nm">'+(t.unread?'<span class="un"></span>':'')+esc(t.who)+'</div>'+
+      '<div class="sn">'+esc(last.txt||'')+'</div>'+
+      '<div class="tm">'+esc(t.re)+'</div>'+
+    '</div>';
+  }).join('');
+  $('msgDot').style.display = THREADS.some(function(t){return t.unread;}) ? '' : 'none';
+}
+function openThread(id){
+  msSel=id;
+  var t=THREADS.find(function(x){return x.id===id;}); if(!t) return;
+  t.unread=false;
+  mark('msg:open',{name:t.who});
+  paintConv(t); renderThreads();
+}
+function paintConv(t){
+  $('msConv').innerHTML=
+    '<div class="ms-head">'+esc(t.who)+'<span class="re">'+esc(t.re)+'</span></div>'+
+    '<div class="ms-body" id="msBody">'+t.msgs.map(function(m){
+      return '<div class="bub '+(m.from==='me'?'me':'them')+'">'+esc(m.txt)+'<span class="tm">'+esc(m.tm||'')+'</span></div>';
+    }).join('')+'</div>'+
+    '<div class="ms-compose">'+
+      '<div class="ms-tools"><select id="msTmpl" onchange="applyTemplate()"><option value="">Templates…</option>'+Object.keys(TEMPLATES).filter(Boolean).map(function(k){return '<option>'+k+'</option>';}).join('')+'</select></div>'+
+      '<div class="ms-row"><textarea id="msTxt" placeholder="Write a message…"></textarea><button class="btn btn-pri" onclick="sendMsg()">Send</button></div>'+
+    '</div>';
+  var b=$('msBody'); b.scrollTop=b.scrollHeight;
+}
+function applyTemplate(){
+  var t=THREADS.find(function(x){return x.id===msSel;}); if(!t) return;
+  var k=$('msTmpl').value; if(!k) return;
+  var job=t.re.split('—')[0].trim();
+  $('msTxt').value=TEMPLATES[k].replace(/\{name\}/g,t.who.split(' ')[0]).replace(/\{job\}/g,job).replace(/\{me\}/g,(TRAINEE.name||'Your Name').split(' ')[0]);
+  mark('msg:template');
+}
+function sendMsg(){
+  var t=THREADS.find(function(x){return x.id===msSel;}); if(!t) return;
+  var txt=$('msTxt').value.trim(); if(!txt){ toast('Write something first.'); return; }
+  t.msgs.push({from:'me', txt:txt, tm:'Just now'});
+  $('msTxt').value=''; paintConv(t); renderThreads();
+  mark('msg:sent',{name:t.who});
+  setTimeout(function(){
+    t.msgs.push({from:'them', txt:cannedReply(t), tm:'Just now'}); t.unread=(msSel!==t.id);
+    if(msSel===t.id) paintConv(t); renderThreads();
+  },1600);
+}
+function cannedReply(t){
+  var opts=[
+    'That works for me — tomorrow morning is best. Looking forward to it.',
+    'Yes, still very interested. What times did you have in mind?',
+    'Sounds good. My number is on my application if that\'s easier.'
+  ];
+  return opts[(t.msgs.length)%opts.length];
+}
+
+/* =====================================================================
+   SBX_IND_COACH_v1 — trainee identity, mission engine, reporting
+   Mirrors the ATS sandbox coach. Shares the sbx_trainee identity key
+   so the name carries across both sandboxes.
+===================================================================== */
+var TRAINEE={name:''};
+var mState={completed:{}, steps:{}, examStart:null, examSecs:null};
+var MISSIONS=[
+  {
+    id:'ind-m1', title:'Post the Req',
+    desc:'Aaron needs the Machine Operator req live on Indeed this morning: Troy, MI, $22 to $26 an hour, full-time, evening shift. Post it as a free listing — with pay and both screeners.',
+    steps:[
+      {k:'nav:jobs',        t:'Open the Jobs tab'},
+      {k:'post:open',       t:'Click Post a job'},
+      {k:'post:pay',        t:'Enter the pay range — $22 to $26 an hour'},
+      {k:'post:screener',   t:'Add both screeners: reliable transportation, and authorized to work — make authorization a deal breaker'},
+      {k:'post:published',  t:'Post it as a free listing'}
+    ],
+    hints:[
+      'Jobs is the first tab in the header.',
+      'Post a job — the blue button, top right of the Jobs page.',
+      'Pay is step 2 of the wizard. Range, 22 to 26, per hour. Indeed buries pay-blind listings and several states require pay in the posting.',
+      'Screeners are in step 4. Add both from the library, then flip the Deal breaker toggle on the authorization question — that auto-filters unauthorized applicants before you ever see them.',
+      'Step 5: Post without a budget. Sponsorship is a manager budget call, not a recruiter default. Then review and Post job.'
+    ],
+    debrief:'A posting with pay and deal-breaker screeners does half your phone screen for you. A pay-blind posting with no screeners is an inbox full of Rob Taskers.'
+  },
+  {
+    id:'ind-m2', title:'Work the Applicants',
+    desc:'The CNC Machinist req has fresh applicants. Screeners first, resume second, decision fast — Indeed scores you on response speed.',
+    steps:[
+      {k:'nav:cands',       t:'Open the Candidates tab'},
+      {k:'cand:open',       t:'Open Dana Whitfield on the CNC Machinist req'},
+      {k:'cand:screeners',  t:'Read her screener answers before the resume'},
+      {k:'cand:interested', t:'Mark her Interested'},
+      {k:'cand:rejected',   t:'Reject Rob Tasker — real reason, and let Indeed send the rejection email'}
+    ],
+    hints:[
+      'Candidates — second tab in the header.',
+      'Make sure the job selector says CNC Machinist, then click Dana\'s card in the Awaiting review column.',
+      'Screener answers sit above the resume for a reason. A "No" on transportation ends the review in two seconds.',
+      'Interested is the thumbs-up. It moves her to Reviewed and tells Indeed\'s matching engine what a good applicant looks like for this req.',
+      'Rob answered No on transportation from Toledo. Reject, pick the honest reason, keep the email box checked — ghosted applicants tank the employer rating.'
+    ],
+    debrief:'Every rating trains Indeed\'s algorithm on this req. And every applicant who reaches Salesforce gets Candidate Source = Indeed-Applied — applied, not sourced. That field drives marketing ROI and it has to be right.'
+  },
+  {
+    id:'ind-m3', title:'Source It Yourself',
+    desc:'Applies alone won\'t fill this req. Go find the candidate: run a real boolean in Smart Sourcing and invite the best match.',
+    steps:[
+      {k:'nav:src',      t:'Open Smart Sourcing'},
+      {k:'src:boolean',  t:'Run a boolean search: CNC AND (Haas OR Mazak)'},
+      {k:'src:profile',  t:'Open Marcus Delgado\'s profile'},
+      {k:'src:invite',   t:'Invite him to apply'}
+    ],
+    hints:[
+      'Smart Sourcing — third tab.',
+      'Type it exactly like you would on the real board: CNC AND (Haas OR Mazak). AND means every group must hit; OR means either machine counts.',
+      'Marcus is the Great match at the top — 8 years, both machines, prefers afternoons. Click his name.',
+      'Invite to apply is free. Unlocking his phone number costs a contact credit — spend those only after the invite goes unanswered.'
+    ],
+    debrief:'This candidate never applied — when he lands in Salesforce he is Candidate Source = Indeed-Sourced, not Indeed-Applied. Sourced placements are how a recruiter proves their desk, and the field is how the company proves the Indeed spend.'
+  },
+  {
+    id:'ind-m4', title:'Message Like a Human',
+    desc:'Dana messaged you two hours ago asking about 2nd shift. Answer her — template as the skeleton, your words on top.',
+    steps:[
+      {k:'nav:msgs',     t:'Open Messages'},
+      {k:'msg:open',     t:'Open Dana Whitfield\'s thread'},
+      {k:'msg:template', t:'Start from the Phone screen invite template'},
+      {k:'msg:sent',     t:'Personalize it and send'}
+    ],
+    hints:[
+      'The envelope icon, top right of the header.',
+      'Dana\'s thread has the blue unread dot.',
+      'Templates dropdown above the compose box — Phone screen invite.',
+      'Answer her actual question — she asked about 2nd shift, and this req IS 2nd shift. Say so, then send. Response speed feeds the employer responsiveness badge candidates see.'
+    ],
+    debrief:'Candidates ghost employers who sound like robots or reply in three days. Fast plus human is the whole game — and it is literally scored.'
+  },
+  {
+    id:'ind-m5', title:'Full Desk — Capstone', exam:true,
+    desc:'No hand-holding, and the clock is running. New req from Dave: Press Brake Operator, Warren, MI, from $19 an hour, days. Post it right (pay + at least one screener), then work your desk: mark one applicant Interested on any req, source one candidate with a boolean and invite them, and send one message. Go.',
+    steps:[
+      {k:'post:published', t:'Post the Press Brake Operator req — with pay and a screener'},
+      {k:'cand:interested',t:'Mark an applicant Interested'},
+      {k:'src:invite',     t:'Boolean-source and invite a candidate'},
+      {k:'msg:sent',       t:'Send one message'}
+    ],
+    hints:[
+      'You know the wizard. Pay-blind or screener-less postings do not count — I am watching.',
+      'Gloria Sandoval on the Press Operator req is sitting in Awaiting review.',
+      'Try: press brake OR "press brake operator". Jenny Kowalski is right there.',
+      'Any thread. Fast and human.'
+    ],
+    debrief:'That is the whole Indeed motion in one pass: a posting that filters, ratings that train the algorithm, sourcing that fills what applies won\'t, and messages that get answered. Do it exactly like this on the live account.'
+  }
+];
+
+function activeMissionIdx(){
+  for(var i=0;i<MISSIONS.length;i++){ if(!mState.completed[MISSIONS[i].id]) return i; }
+  return -1;
+}
+function mark(k, meta){
+  var idx=activeMissionIdx(); if(idx<0) return;
+  var m=MISSIONS[idx];
+  if(m.exam && !mState.examStart) mState.examStart=Date.now();
+  var st=mState.steps[m.id]=(mState.steps[m.id]||{});
+  var hit=false;
+  m.steps.forEach(function(s){
+    if(s.k===k && !st[s.k]){
+      /* named-target steps only fire on the right record */
+      if(k==='cand:open' && meta && meta.name!=='Dana Whitfield' && m.id==='ind-m2') return;
+      if(k==='src:profile' && meta && meta.name!=='Marcus Delgado' && m.id==='ind-m3') return;
+      if(k==='src:invite' && meta && meta.name!=='Marcus Delgado' && m.id==='ind-m3') return;
+      if(k==='msg:open' && meta && meta.name!=='Dana Whitfield' && m.id==='ind-m4') return;
+      st[s.k]=true; hit=true;
+    }
+  });
+  if(!hit) return;
+  saveState();
+  var open=m.steps.filter(function(s){return !st[s.k];});
+  if(!open.length){
+    mState.completed[m.id]=true;
+    if(m.exam && mState.examStart){ mState.examSecs=Math.round((Date.now()-mState.examStart)/1000); }
+    saveState();
+    coachSay(m.debrief, true);
+    sbxReport(m);
+    if(activeMissionIdx()===-1){
+      coachSay('That is all five. '+(TRAINEE.name?TRAINEE.name.split(' ')[0]+', y':'Y')+'our Indeed track is certified and it is on the board. Now go do it where it counts.', true);
+    }
+    coachToggle(true);
+  }
+  renderCoach();
+}
+
+/* persistence */
+function saveState(){ try{ localStorage.setItem('sbx_ind_state', JSON.stringify(mState)); }catch(e){} }
+function loadState(){
+  try{ var s=JSON.parse(localStorage.getItem('sbx_ind_state')||'null'); if(s){ mState=s; mState.examStart=null; } }catch(e){}
+  TRAINEE.name=localStorage.getItem('sbx_trainee')||'';
+}
+function saveTrainee(){
+  var v=$('tnInput').value.trim();
+  if(!v){ toast('Name first — the scoreboard needs it.'); return; }
+  TRAINEE.name=v;
+  try{ localStorage.setItem('sbx_trainee', v); }catch(e){}
+  $('nameModal').classList.add('hide');
+  coachToggle(true);
+  coachSay('Welcome, '+v.split(' ')[0]+'. Five missions on the Indeed employer track — same scoreboard as the ATS sandbox. Mission 1 is live: post the req.');
+  renderCoach();
+}
+
+/* coach UI */
+var coachSayQueue=[];
+function coachToggle(open){ $('coach').classList.toggle('open', open); $('coachTab').style.display = open?'none':''; }
+function coachSay(txt, debrief){
+  coachSayQueue.push({t:txt, d:!!debrief});
+  if(coachSayQueue.length>3) coachSayQueue.shift();
+  renderCoach();
+}
+function hintCycle(mid){
+  var m=MISSIONS.find(function(x){return x.id===mid;}); if(!m) return;
+  m._hint=((m._hint==null?-1:m._hint)+1)%m.hints.length;
+  coachSay('Hint '+(m._hint+1)+'/'+m.hints.length+': '+m.hints[m._hint]);
+}
+function renderCoach(){
+  $('coTrainee').textContent = TRAINEE.name ? TRAINEE.name : 'Indeed Employer Track';
+  var done=Object.keys(mState.completed).length;
+  $('coBar').style.width=(done/MISSIONS.length*100)+'%';
+  $('coProgTxt').textContent=done+' / '+MISSIONS.length+' MISSIONS COMPLETE'+(mState.examSecs?(' · CAPSTONE '+mState.examSecs+'s'):'');
+  var activeIdx=activeMissionIdx();
+  $('coBody').innerHTML=MISSIONS.map(function(m,i){
+    var st=mState.steps[m.id]||{};
+    var isDone=!!mState.completed[m.id];
+    var isActive=(i===activeIdx);
+    var locked=!isDone && !isActive;
+    var cls='co-mis'+(isDone?' done':'')+(isActive?' active':'')+(locked?' locked':'');
+    var body='';
+    if(isActive){
+      body='<div class="co-mis-b">'+esc(m.desc)+
+        '<div class="co-steps">'+m.steps.map(function(s){
+          return '<div class="co-step'+(st[s.k]?' done':'')+'"><span class="bx"></span><span>'+esc(s.t)+'</span></div>';
+        }).join('')+'</div>'+
+        '<div class="co-hint"><button onclick="hintCycle(\''+m.id+'\')">Hint</button></div>'+
+        coachSayQueue.map(function(q){return '<div class="co-say'+(q.d?' co-debrief':'')+'">'+esc(q.t)+'</div>';}).join('')+
+      '</div>';
+    } else if(isDone){
+      body='<div class="co-mis-b" style="color:#8f8a7c">Complete.</div>';
+    }
+    return '<div class="'+cls+'"><div class="co-mis-h"><span class="no">'+(i+1)+'</span>'+esc(m.title)+(m.exam?' <span style="color:var(--gold);font-size:10.5px;letter-spacing:1px;margin-left:auto">TIMED</span>':'')+'</div>'+body+'</div>';
+  }).join('');
+}
+
+/* =====================================================================
+   SBX_IND_LIVE_v1 — result reporting
+   Same worker, same route, same payload shape as the ATS sandbox.
+   Mission ids are ind-m* and titles are prefixed so the shared
+   Team Certification scoreboard can tell the tracks apart.
+===================================================================== */
+var SBX_LIVE = {
+  worker: 'https://spark-hq-worker.sparkcompanies.workers.dev',
+  token: 'sprk-train-2026-Kx9mWq4T'
+};
+function sbxLiveOn(){ return !!(SBX_LIVE.token && SBX_LIVE.token.indexOf('PASTE') !== 0 && typeof fetch !== 'undefined'); }
+function sbxReport(m){
+  if(!sbxLiveOn() || !m) return;
+  try{
+    fetch(SBX_LIVE.worker + '/sandbox-result', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: SBX_LIVE.token,
+        trainee: TRAINEE.name || 'Unknown',
+        missionId: m.id,
+        missionTitle: 'Indeed — ' + m.title,
+        exam: !!m.exam,
+        seconds: m.exam ? (mState.examSecs || null) : null,
+        completedCount: Object.keys(mState.completed).length,
+        totalMissions: MISSIONS.length
+      })
+    }).catch(function(){});
+  }catch(e){}
+}
+
+/* ---------------- boot ---------------- */
+loadState();
+renderJobs();
+cdJobOptions();
+renderThreads();
+renderCoach();
+if(!TRAINEE.name){ $('nameModal').classList.remove('hide'); setTimeout(function(){ $('tnInput').focus(); },100); }
+else { coachToggle(true); coachSay('Back at it, '+TRAINEE.name.split(' ')[0]+'. Progress is saved — pick up where you left off.'); }
+$('tnInput') && $('tnInput').addEventListener('keydown', function(e){ if(e.key==='Enter') saveTrainee(); });
+</script>
+</body>
+</html>
