@@ -1008,7 +1008,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-10';
+  var BUILD = 'b0820-11';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1808,21 +1808,22 @@ window.SPARK_LIVE = (function () {
     var el = document.getElementById('p-hc'); if (!el) return;
     var b = batches[curIso];
     if (!b || !b.rows) { el.innerHTML = '<div class="st">Head Count &mdash; ' + labelWe(curIso) + '</div><div style="font-size:11px;color:var(--dm)">No live contract data for this week (pre-import weeks have totals only).</div>'; return; }
-    var isH = function (x) { return !x || /^house/i.test(String(x)); };
-    var amOf = function (cr) { var c = (cr || []).find(function (x) { return /sales|full/i.test(x.type || ''); }); return c ? c.recipient : ''; };
-    var rcOf = function (cr) { var c = (cr || []).find(function (x) { return /recruit|full/i.test(x.type || ''); }); return c ? c.recipient : ''; };
+    // Same extraction the Contract Team Members tab uses — the two can never diverge.
     var P = {};
     var get = function (n) { return P[n] || (P[n] = { am: 0, fd: 0, rc: 0 }); };
     var house = { am: 0, fd: 0, rc: 0 };
     (b.rows || []).forEach(function (r) {
-      var a = amOf(r.credits), c = rcOf(r.credits);
-      var aH = isH(a), cH = isH(c);
-      // Buckets are exclusive: same person on both sides = 1 Full Desk, nothing else.
-      // Different people = 1 AM to one, 1 Recruiter to the other.
+      var a = String(ctAmOf(r.credits) || '').trim();
+      var c = String(ctRecOf(r.credits) || '').trim();
+      var aB = !a, cB = !c;
+      var aH = !aB && /^house/i.test(a), cH = !cB && /^house/i.test(c);
+      // Exclusive buckets: both slots same person = 1 Full Desk only.
+      // Split = 1 AM + 1 Recruiter. Blank slots count nowhere (they show in Needs Review).
+      if (aB && cB) return;
       if (aH && cH) { house.fd++; return; }
-      if (!aH && !cH && a === c) { get(a).fd++; return; }
-      if (aH) house.am++; else get(a).am++;
-      if (cH) house.rc++; else get(c).rc++;
+      if (!aB && !cB && !aH && !cH && a === c) { get(a).fd++; return; }
+      if (!aB) { if (aH) house.am++; else get(a).am++; }
+      if (!cB) { if (cH) house.rc++; else get(c).rc++; }
     });
     var tmap = {};
     ((H && H.hcTargets) || []).forEach(function (t) { tmap[t.person] = t; });
