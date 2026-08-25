@@ -1008,7 +1008,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-11';
+  var BUILD = 'b0820-12';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1860,8 +1860,9 @@ window.SPARK_LIVE = (function () {
       '<span style="font-size:10px;color:var(--dm)">Counts come straight from this week\u2019s contract lines \u00b7 buckets are exclusive: full desk = 1 FD only, split = 1 AM + 1 Recruiter \u00b7 Total = AM + FD + Rec \u00b7 admins: click HC Expectation to edit</span></div>';
     h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap">' +
       '<thead><tr>' + sTh('hc','n','Name',false,'rHC') + sTh('hc','bu','Business Unit',false,'rHC') + sTh('hc','focus','Focus',false,'rHC') + sTh('hc','exp','HC Expectation',true,'rHC') +
-      sTh('hc','am','AM',true,'rHC') + sTh('hc','pct','% To Target',true,'rHC') + sTh('hc','fd','Full Desk',true,'rHC') + sTh('hc','rc','Recruiter',true,'rHC') +
-      sTh('hc','tot','Total HC',true,'rHC') + sTh('hc','dht','DH Monthly Target',true,'rHC') + '</tr></thead><tbody>';
+      sTh('hc','tot','Total HC',true,'rHC') + sTh('hc','pct','% To Target',true,'rHC') +
+      sTh('hc','am','AM',true,'rHC') + sTh('hc','fd','Full Desk',true,'rHC') + sTh('hc','rc','Recruiter',true,'rHC') +
+      sTh('hc','dht','DH Monthly Target',true,'rHC') + '</tr></thead><tbody>';
     rows.forEach(function (r) {
       h += '<tr><td style="font-weight:700;font-size:12px">' + r.n + '</td>' +
         '<td style="font-size:10px;color:var(--dm)">' + r.bu + '</td>' +
@@ -1869,31 +1870,30 @@ window.SPARK_LIVE = (function () {
         (IS_ADMIN
           ? '<td class="r m" style="padding:4px 9px;cursor:pointer;border-bottom:1px dotted var(--gold);color:' + (r.exp ? 'var(--tx)' : 'var(--mt)') + '!important" title="Click to edit (admin + PIN)" data-n="' + dhAtt(r.n) + '" onclick="SPARK_LIVE.hcEditExp(this.dataset.n)">' + (r.exp || '--') + '</td>'
           : cell(r.exp || null)) +
-        cell(r.am, { strong: true, zero: true }) + pctCell(r.pct) +
-        cell(r.fd, { zero: true }) + cell(r.rc, { zero: true }) +
-        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)' }) +
+        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)' }) + pctCell(r.pct) +
+        cell(r.am, { strong: true, zero: true }) + cell(r.fd, { zero: true }) + cell(r.rc, { zero: true }) +
         cell(r.dht ? fmt(r.dht) : null) + '</tr>';
     });
     var houseTot = house.am + house.fd + house.rc;
     h += '<tr style="border-top:1px solid var(--bd);opacity:.8"><td style="font-weight:600;font-size:11px;color:var(--dm)">House Account</td><td></td><td></td>' +
-      cell(null) + cell(house.am, { zero: true }) + cell(null) + cell(house.fd, { zero: true }) + cell(house.rc, { zero: true }) + cell(houseTot, { zero: true }) + cell(null) + '</tr>';
+      cell(null) + cell(houseTot, { zero: true }) + cell(null) + cell(house.am, { zero: true }) + cell(house.fd, { zero: true }) + cell(house.rc, { zero: true }) + cell(null) + '</tr>';
     h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">GRAND TOTAL</td><td></td><td></td>' +
       cell(gt.exp, { strong: true, zero: true }) +
-      cell(gt.am + house.am, { strong: true, zero: true }) + pctCell(gt.exp > 0 ? gt.tot / gt.exp : null) +
-      cell(gt.fd + house.fd, { strong: true, zero: true }) + cell(gt.rc + house.rc, { strong: true, zero: true }) +
-      cell(gt.tot + houseTot, { strong: true, zero: true, color: 'var(--gold)' }) + cell(fmt(gt.dht), { strong: true }) + '</tr>';
+      cell(gt.tot + houseTot, { strong: true, zero: true, color: 'var(--gold)' }) + pctCell(gt.exp > 0 ? gt.tot / gt.exp : null) +
+      cell(gt.am + house.am, { strong: true, zero: true }) + cell(gt.fd + house.fd, { strong: true, zero: true }) + cell(gt.rc + house.rc, { strong: true, zero: true }) +
+      cell(fmt(gt.dht), { strong: true }) + '</tr>';
     h += '</tbody></table></div></div>';
     el.innerHTML = h;
     window.__hcRows = { rows: rows, house: house, gt: gt };
   };
   function hcTable(kind) {
     var d = window.__hcRows; if (!d) return '';
-    var cols = ['Name', 'Business Unit', 'Focus', 'HC Expectation', 'AM', '% To Target', 'Full Desk', 'Recruiter', 'Total HC', 'DH Monthly Target'];
-    var line = function (r) { return [r.n, r.bu, r.focus, r.exp || '', r.am, r.pct != null ? Math.round(r.pct * 100) + '%' : '', r.fd, r.rc, r.tot, r.dht || '']; };
+    var cols = ['Name', 'Business Unit', 'Focus', 'HC Expectation', 'Total HC', '% To Target', 'AM', 'Full Desk', 'Recruiter', 'DH Monthly Target'];
+    var line = function (r) { return [r.n, r.bu, r.focus, r.exp || '', r.tot, r.pct != null ? Math.round(r.pct * 100) + '%' : '', r.am, r.fd, r.rc, r.dht || '']; };
     var all = d.rows.map(line);
     var hTot = d.house.am + d.house.fd + d.house.rc;
-    all.push(['House Account', '', '', '', d.house.am, '', d.house.fd, d.house.rc, hTot, '']);
-    all.push(['GRAND TOTAL', '', '', d.gt.exp, d.gt.am + d.house.am, d.gt.exp > 0 ? Math.round(d.gt.tot / d.gt.exp * 100) + '%' : '', d.gt.fd + d.house.fd, d.gt.rc + d.house.rc, d.gt.tot + hTot, Math.round(d.gt.dht)]);
+    all.push(['House Account', '', '', '', hTot, '', d.house.am, d.house.fd, d.house.rc, '']);
+    all.push(['GRAND TOTAL', '', '', d.gt.exp, d.gt.tot + hTot, d.gt.exp > 0 ? Math.round(d.gt.tot / d.gt.exp * 100) + '%' : '', d.gt.am + d.house.am, d.gt.fd + d.house.fd, d.gt.rc + d.house.rc, Math.round(d.gt.dht)]);
     if (kind === 'csv') {
       var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       return [cols.map(e2).join(',')].concat(all.map(function (r) { return r.map(e2).join(','); })).join('\r\n');
