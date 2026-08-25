@@ -7774,6 +7774,11 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         .tcc-title{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:700;letter-spacing:.2px;color:#1a1a1a;}
         .tcc-launch{display:inline-block;background:#FFC800;color:#0e0e10;font-weight:700;font-size:13px;padding:9px 20px;border-radius:10px;text-decoration:none;margin-left:auto;font-family:inherit;}
         .tcc-launch:hover{background:#e6b400;}
+        /* TCC_IND_LAUNCH_v1 */
+        .tcc-launch.tcc-ind{background:#2557A7;color:#fff;margin-left:10px;}
+        .tcc-launch.tcc-ind:hover{background:#1F4B91;}
+        #teamCertCard .tcc-launch.tcc-ind{box-shadow:0 2px 6px rgba(37,87,167,.3);}
+        #teamCertCard .tcc-launch.tcc-ind:hover{box-shadow:0 6px 16px rgba(37,87,167,.4);}
         .tcc-refresh{background:transparent;border:none;color:#9a958a;font-size:12px;padding:5px 8px;border-radius:8px;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px;}
         .tcc-refresh:hover{border-color:#FFC800;color:#FFC800;}
         .tcc-sub{color:#7a7a72;font-size:12.5px;margin:6px 0 4px;}
@@ -7801,6 +7806,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
               Interactive ATS Sandbox
             </div>
             <a class="tcc-launch" href="ats-training.html" target="_blank" rel="noopener">Launch ATS Sandbox</a>
+            <!-- TCC_IND_LAUNCH_v1 -->
+            <a class="tcc-launch tcc-ind" href="indeed-training.html" target="_blank" rel="noopener">Launch Indeed Sandbox</a>
             <button type="button" class="tcc-refresh" onclick="tcLoadRoster(true)">Refresh</button>
           </div>
           <div class="tcc-sub">Click to launch the interactive training sandbox. Six missions to certify.</div>
