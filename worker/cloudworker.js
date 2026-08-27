@@ -4588,6 +4588,17 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/boards-people") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const res = await sbService(env, "GET", "profiles?select=email,full_name&order=full_name");
+        if (!res.ok) return json({ error: "Could not read profiles" }, 502, origin);
+        return json({ ok: true, users: (res.data || []).map((u) => ({ email: (u.email || "").toLowerCase(), name: u.full_name || u.email })) }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/boards-users") {
       const gate = await verifyAdmin(request, env);
       if (!gate.ok) return json({ error: gate.reason || "Admins only" }, 403, origin);

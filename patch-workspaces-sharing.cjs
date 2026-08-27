@@ -27,7 +27,7 @@ function findOne(name) {
   return hits[0];
 }
 function apply(file, edits, marker) {
-  let src = fs.readFileSync(file, "utf8");
+  let src = fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
   if (src.includes(marker)) throw new Error(file + " already patched (" + marker + "). Nothing written.");
   for (const [i, [oldS, newS]] of edits.entries()) {
     const n = src.split(oldS).length - 1;

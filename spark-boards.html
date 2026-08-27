@@ -58,6 +58,11 @@
   .board-row .star{margin-left:auto;opacity:0;color:var(--gold)}
   .board-row:hover .star{opacity:.6}
   .board-row .star.on{opacity:1}
+  .ws-head{display:flex;align-items:center;gap:7px;width:100%;background:none;border:0;color:#8A8C97;font:600 11px/1 'Jost',sans-serif;letter-spacing:.5px;text-transform:uppercase;padding:9px 14px 5px;cursor:pointer;text-align:left}
+  .ws-head:hover{color:#fff}
+  .ws-head .chev{transition:transform .15s;flex-shrink:0}
+  .ws-head.open .chev{transform:rotate(90deg)}
+  .ws-count{margin-left:auto;font-size:10.5px;opacity:.65;font-weight:500}
   .side-foot{margin-top:auto;border-top:1px solid var(--sidebar-line);padding:12px}
   .user-chip{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px}
   .user-chip:hover{background:var(--sidebar-2)}
@@ -1143,7 +1148,7 @@ function sparkMe() {
       }).join(' ');
     }
     var hit = TEAM.filter(function (t) { return t.name.toLowerCase() === nm.toLowerCase(); })[0];
-    if (hit) return hit;
+    if (hit) return Object.assign({}, hit, { email: email });
     var pal = ['#D4A843', '#579BFC', '#A25DDC', '#00C875', '#E14B8A', '#00A9A5', '#FDAB3D', '#7E5BD6'];
     var n = 0;
     for (var i = 0; i < email.length; i++) n = (n * 31 + email.charCodeAt(i)) >>> 0;
@@ -2589,7 +2594,7 @@ const primaryCol = b => b.columns.find(c => c.key === (b.primaryStatus || 'statu
 const optOf = (col, idx) => col && col.options && idx != null ? col.options[idx] : null;
 const isDoneLabel = s => /\b(done|approved|placed|clear to start|complete|synced)\b/i.test(s || '');
 // a private board is visible only to admins, its owner, and explicit members
-const canSeeBoard = (b, meId, role) => b.visibility !== 'private' || role === 'admin' || b.owner === meId || (b.members || []).includes(meId);
+const canSeeBoard = (b, meId, role, meEmail) => { if (b.visibility !== 'private' || role === 'admin') return true; const em = (meEmail || '').toLowerCase(); const own = String(b.owner || '').toLowerCase(); if (b.owner === meId || (em && own === em)) return true; return (b.members || []).some(m => m === meId || String(m).toLowerCase() === em); };
 
 /* ---------------- Activity log ---------------- */
 const relTime = ms => {
@@ -4652,7 +4657,8 @@ function SidebarBoardRow({
   canEdit,
   onOpen,
   onFav,
-  onDelete
+  onDelete,
+  onShare
 }) {
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -4738,6 +4744,14 @@ function SidebarBoardRow({
     },
     onClick: e => e.stopPropagation()
   }, /*#__PURE__*/React.createElement("button", {
+    className: "menu-item",
+    onClick: () => {
+      setMenu(false);
+      onShare && onShare();
+    }
+  }, /*#__PURE__*/React.createElement(Ic.lock, {
+    style: { width: 15, height: 15 }
+  }), "Sharing & privacy"), /*#__PURE__*/React.createElement("button", {
     className: "menu-item danger",
     onClick: () => {
       setMenu(false);
@@ -4749,6 +4763,123 @@ function SidebarBoardRow({
       height: 15
     }
   }), "Delete board")));
+}
+
+
+/* ---------------- Workspaces + Sharing (sb-ws-share) ---------------- */
+const WS_DEFAULT = 'Main workspace';
+const wsOf = b => (b.ws && String(b.ws).trim()) || WS_DEFAULT;
+function wsColGet() { try { return JSON.parse(localStorage.spark_sb_ws_collapse || '{}'); } catch (e) { return {}; } }
+function wsColSet(m) { try { localStorage.spark_sb_ws_collapse = JSON.stringify(m); } catch (e) {} }
+function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteBoard, shareBoard }) {
+  const [, setTick] = useState(0);
+  const groups = {};
+  visible.forEach(b => { const w = wsOf(b); (groups[w] = groups[w] || []).push(b); });
+  const names = Object.keys(groups).sort((a, b) => (a === WS_DEFAULT ? -1 : b === WS_DEFAULT ? 1 : a.localeCompare(b)));
+  const col = wsColGet();
+  const activeWs = activeBoard ? wsOf(activeBoard) : null;
+  if (names.length === 1) {
+    return groups[names[0]].map(b => React.createElement(SidebarBoardRow, {
+      key: b.id, b: b, active: !!(activeBoard && activeBoard.id === b.id), canEdit: canEdit,
+      onOpen: () => openBoard(b.id), onFav: () => toggleFav(b.id), onDelete: () => deleteBoard(b.id), onShare: () => shareBoard(b)
+    }));
+  }
+  return names.map(w => {
+    const open = col[w] !== undefined ? !col[w] : (w === WS_DEFAULT || w === activeWs);
+    return React.createElement(React.Fragment, { key: w },
+      React.createElement('button', {
+        className: 'ws-head' + (open ? ' open' : ''),
+        onClick: () => { const m = wsColGet(); m[w] = open; wsColSet(m); setTick(t => t + 1); }
+      },
+        React.createElement('svg', { className: 'chev', viewBox: '0 0 24 24', width: 11, height: 11, fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M9 6l6 6-6 6' })),
+        React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, w),
+        React.createElement('span', { className: 'ws-count' }, groups[w].length)
+      ),
+      open && groups[w].map(b => React.createElement(SidebarBoardRow, {
+        key: b.id, b: b, active: !!(activeBoard && activeBoard.id === b.id), canEdit: canEdit,
+        onOpen: () => openBoard(b.id), onFav: () => toggleFav(b.id), onDelete: () => deleteBoard(b.id), onShare: () => shareBoard(b)
+      }))
+    );
+  });
+}
+function ShareModal({ board, me, onApply, onClose }) {
+  const [vis, setVis] = useState(board.visibility === 'private' ? 'private' : 'workspace');
+  const [members, setMembers] = useState(Array.isArray(board.members) ? board.members.slice() : []);
+  const [ws, setWs] = useState(board.ws || WS_DEFAULT);
+  const [people, setPeople] = useState(null);
+  const [q, setQ] = useState('');
+  const [manual, setManual] = useState('');
+  useEffect(() => {
+    let on = true;
+    API.call('/boards-people').then(d => { if (on) setPeople((d && d.users) || []); }).catch(() => { if (on) setPeople([]); });
+    return () => { on = false; };
+  }, []);
+  const ownerEmail = String(board.owner || '').indexOf('@') !== -1 ? board.owner : (me.email || '');
+  const toggleM = em => setMembers(ms => ms.indexOf(em) !== -1 ? ms.filter(x => x !== em) : ms.concat([em]));
+  const addManual = () => {
+    const em = (manual || '').trim().toLowerCase();
+    if (em.indexOf('@') === -1) { sbFlash('Enter a full email address.'); return; }
+    if (members.indexOf(em) === -1) setMembers(ms => ms.concat([em]));
+    setManual('');
+  };
+  const list = (people || []).filter(p => p.email && p.email !== ownerEmail &&
+    (!q || p.email.toLowerCase().indexOf(q.toLowerCase()) !== -1 || (p.name || '').toLowerCase().indexOf(q.toLowerCase()) !== -1));
+  const save = () => onApply({
+    visibility: vis,
+    members: vis === 'private' ? members : [],
+    ws: (ws || '').trim() || WS_DEFAULT,
+    owner: String(board.owner || '').indexOf('@') !== -1 ? board.owner : ((me.email || '').toLowerCase() || board.owner || 'u1')
+  });
+  const pill = (key, label) => React.createElement('button', {
+    className: 'btn ' + (vis === key ? 'primary' : 'ghost'),
+    style: { flex: 1 },
+    onClick: () => setVis(key)
+  }, label);
+  return React.createElement('div', { className: 'overlay', onClick: onClose },
+    React.createElement('div', { className: 'modal', onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'modal-h' }, 'Sharing & privacy'),
+      React.createElement('div', { className: 'modal-b' },
+        React.createElement('div', { className: 'field' },
+          React.createElement('label', null, 'Board'),
+          React.createElement('div', { style: { fontSize: 14, fontWeight: 600 } }, board.name)),
+        React.createElement('div', { className: 'field' },
+          React.createElement('label', null, 'Workspace'),
+          React.createElement('input', { value: ws, onChange: e => setWs(e.target.value), placeholder: WS_DEFAULT })),
+        React.createElement('div', { className: 'field' },
+          React.createElement('label', null, 'Who can see this board'),
+          React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            pill('workspace', 'Everyone'),
+            pill('private', 'Private')),
+          React.createElement('div', { style: { fontSize: 12, color: 'var(--sub)', marginTop: 7 } },
+            vis === 'private' ? 'Only the owner, the people below, and admins can see it.' : 'Everyone signed in to Spark Boards can see it.')),
+        vis === 'private' && React.createElement('div', { className: 'field' },
+          React.createElement('label', null, 'Owner'),
+          React.createElement('div', { style: { fontSize: 13 } }, ownerEmail || 'you')),
+        vis === 'private' && React.createElement('div', { className: 'field' },
+          React.createElement('label', null, 'Shared with'),
+          people === null && React.createElement('div', { style: { fontSize: 13, color: 'var(--sub)' } }, 'Loading people...'),
+          people !== null && people.length > 0 && React.createElement(React.Fragment, null,
+            React.createElement('input', { value: q, onChange: e => setQ(e.target.value), placeholder: 'Search people', style: { marginBottom: 8 } }),
+            React.createElement('div', { style: { maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border-strong)', borderRadius: 8 } },
+              list.map(p => React.createElement('label', {
+                key: p.email,
+                style: { display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px', cursor: 'pointer', fontSize: 13.5, borderBottom: '1px solid var(--border)' }
+              },
+                React.createElement('input', { type: 'checkbox', checked: members.indexOf(p.email) !== -1, onChange: () => toggleM(p.email) }),
+                React.createElement('span', { style: { fontWeight: 600 } }, p.name || p.email),
+                React.createElement('span', { style: { color: 'var(--sub)', marginLeft: 'auto', fontSize: 12 } }, p.email))))),
+          people !== null && people.length === 0 && React.createElement('div', { style: { display: 'flex', gap: 8 } },
+            React.createElement('input', { value: manual, onChange: e => setManual(e.target.value), placeholder: 'name@sparkcompanies.com' }),
+            React.createElement('button', { className: 'btn ghost', onClick: addManual }, 'Add')),
+          members.length > 0 && React.createElement('div', { style: { marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 } },
+            members.map(em => React.createElement('span', {
+              key: em,
+              style: { fontSize: 12, background: 'var(--sidebar-2)', color: '#E8E9EE', borderRadius: 20, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }
+            }, em, React.createElement('span', { style: { cursor: 'pointer', opacity: .7 }, onClick: () => toggleM(em) }, '\u00D7'))))
+        )),
+      React.createElement('div', { className: 'modal-f' },
+        React.createElement('button', { className: 'btn ghost', onClick: onClose }, 'Cancel'),
+        React.createElement('button', { className: 'btn primary', onClick: save }, 'Save'))));
 }
 
 /* Workspace-level trash: restore or permanently remove deleted boards */
@@ -9224,8 +9355,9 @@ function App() {
     at: Date.now()
   }, ...n].slice(0, 30));
   // recruiters act as a non-member identity, so private boards stay hidden from them
+  const [shareBoard, setShareBoard] = useState(null);
   const actingId = role === 'viewer' ? '_recruiter' : me.id;
-  const visible = boards.filter(b => !b.deletedAt && canSeeBoard(b, actingId, role));
+  const visible = boards.filter(b => !b.deletedAt && canSeeBoard(b, actingId, role, me.email));
   const deletedBoards = boards.filter(b => b.deletedAt);
   const activeBoard = route.page === 'board' ? visible.find(b => b.id === route.id) : null;
   const updateBoard = (id, fn) => setBoards(bs => bs.map(b => b.id === id ? fn(b) : b));
@@ -9462,24 +9594,13 @@ function App() {
     }
   }), b.name)))), /*#__PURE__*/React.createElement("div", {
     className: "side-label"
-  }, "Boards"), /*#__PURE__*/React.createElement("div", {
+  }, "Workspaces"), /*#__PURE__*/React.createElement("div", {
     className: "side-section",
     style: {
       paddingTop: 0,
       overflowY: 'auto'
     }
-  }, visible.map(b => /*#__PURE__*/React.createElement(SidebarBoardRow, {
-    key: b.id,
-    b: b,
-    active: activeBoard && activeBoard.id === b.id,
-    canEdit: canEdit,
-    onOpen: () => setRoute({
-      page: 'board',
-      id: b.id
-    }),
-    onFav: () => toggleFav(b.id),
-    onDelete: () => deleteBoard(b.id)
-  })), canEdit && /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement(WsGroups, { visible: visible, activeBoard: activeBoard, canEdit: canEdit, openBoard: id => setRoute({ page: 'board', id: id }), toggleFav: toggleFav, deleteBoard: deleteBoard, shareBoard: b => setShareBoard(b) }), canEdit && /*#__PURE__*/React.createElement("button", {
     className: "new-board-btn",
     onClick: () => setModal({})
   }, /*#__PURE__*/React.createElement(Ic.plus, {
@@ -9549,7 +9670,7 @@ function App() {
       height: 15,
       color: '#8A8C97'
     }
-  })))), /*#__PURE__*/React.createElement("div", {
+  })))), shareBoard && /*#__PURE__*/React.createElement(ShareModal, { board: shareBoard, me: me, onClose: () => setShareBoard(null), onApply: patch => { updateBoard(shareBoard.id, b => { const nb = Object.assign({}, b, patch); Persist.board(nb); return nb; }); setShareBoard(null); } }), /*#__PURE__*/React.createElement("div", {
     className: "main"
   }, /*#__PURE__*/React.createElement("header", {
     className: "topbar"
