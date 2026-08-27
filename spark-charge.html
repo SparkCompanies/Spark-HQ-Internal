@@ -1008,7 +1008,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-12';
+  var BUILD = 'b0820-14';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1147,18 +1147,25 @@ window.SPARK_LIVE = (function () {
     return 0;
   }
   function engineWeek(batch) {
+    // One row = one AM + one Recruiter (via the same extraction the Contract tab shows).
+    // Same person on both sides = Full Desk bucket ONLY — so the AM/Rec/FD columns can
+    // always be reconciled by filtering the Contract Team Members tab. Raw is unchanged:
+    // a same-person pair used to add X to sales and X to rec ((X+X)/2 = X); it now adds
+    // X to fd (= X). House holds charge but is never a person bucket.
     var out = {};
+    var isH = function (x) { return !x || /^house/i.test(String(x)); };
+    var pick = function (cr, re, fb) {
+      for (var i = 0; i < cr.length; i++) { var t = String(cr[i].type || '').toLowerCase(); if (re.test(t)) return cr[i].recipient || ''; }
+      return (cr[fb] ? cr[fb].recipient : '') || '';
+    };
     (batch.rows || []).forEach(function (row) {
-      var seen = {};
-      (row.credits || []).forEach(function (c) {
-        var n = c.recipient; if (!n) return;
-        var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0, live: 1 });
-        if (!seen[n]) { p.tt += row.charge; seen[n] = 1; }
-        var t = String(c.type || '').toLowerCase();
-        if (t.indexOf('full') !== -1) p.fd += row.charge;
-        else if (t.indexOf('recruit') !== -1) p.rec += row.charge;
-        else if (t.indexOf('account') !== -1 || t.indexOf('sales') !== -1) p.sales += row.charge;
-      });
+      var cr = row.credits || [];
+      var a = String(pick(cr, /account|sales|full/, 0) || '').trim();
+      var r = String(pick(cr, /recruit|full/, 1) || '').trim();
+      var add = function (n, bk) { if (isH(n)) return; var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0, live: 1 }); p[bk] += row.charge; p.tt += row.charge; };
+      if (a && r && a === r) { add(a, 'fd'); return; }
+      if (a) add(a, 'sales');
+      if (r) add(r, 'rec');
     });
     return out;
   }
@@ -1293,7 +1300,7 @@ window.SPARK_LIVE = (function () {
       })();
     }
 
-    var rawOf = function (p) { if (!p) return 0; if (p.raw != null) return p.raw; var s = p.sales || 0, f = p.fd || 0, r = p.rec || 0; return p.live ? f + (s + r) / 2 : (s + f + r) / 2; };
+    var rawOf = function (p) { if (!p) return 0; if (p.raw != null) return p.raw; var s = p.sales || 0, f = p.fd || 0, r = p.rec || 0; return f + (s + r) / 2; };
     var names = {};
     Object.keys(master).forEach(function (n) { if (master[n].active !== false) names[n] = 1; });
     var curMonth = +curIso.split('-')[1];
@@ -1617,7 +1624,12 @@ window.SPARK_LIVE = (function () {
     if (!ensurePin()) return;
     var wasLocked = isLocked(curIso);
     if (wasLocked) {
-      if (!confirm('Unlock ' + labelWe(curIso) + '?\n\nYou do NOT need to unlock in order to edit \u2014 admin edits already work on a locked week and update everywhere.\n\nUnlocking rebuilds this week from whatever Salesforce and the trackers hold RIGHT NOW, so the numbers can change if any source has been edited since. Only do this if you deliberately want to rebuild the week from source.')) return;
+      if (confirm('Re-save ' + labelWe(curIso) + '?\n\nRefreshes the stored numbers with the current engine (new bucket logic, standing fixes) \u2014 the week STAYS LOCKED on the server throughout.\n\nOK = re-save (one more confirm follows) \u00b7 Cancel = more options')) {
+        LOCKS[curIso] = 0;
+        try { freezeWeek(); } finally { LOCKS[curIso] = 1; }
+        return;
+      }
+      if (!confirm('UNLOCK ' + labelWe(curIso) + ' instead?\n\nUnlocking rebuilds this week from whatever Salesforce and the trackers hold RIGHT NOW \u2014 numbers can change if any source was edited since. You do NOT need this for updates; Re-save handles those.')) return;
       var _uc = prompt('Unlock code for ' + labelWe(curIso) + ':');
       if (!_uc) return;
       api('/charge-week-lock', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Unlock-Pin': String(_uc).trim() }, body: JSON.stringify({ week_ending: curIso, locked: false }) })
@@ -1959,7 +1971,7 @@ window.SPARK_LIVE = (function () {
     if (!p) return 0;
     if (p.raw != null) return p.raw;
     var s2 = p.sales || 0, f2 = p.fd || 0, r2v = p.rec || 0;
-    return p.live ? f2 + (s2 + r2v) / 2 : (s2 + f2 + r2v) / 2;
+    return f2 + (s2 + r2v) / 2;
   }
   window.rComm = function () {
     var el = document.getElementById('p-comm'); if (!el) return;
@@ -2077,7 +2089,7 @@ window.SPARK_LIVE = (function () {
   var WOWQBG = ['rgba(255,200,0,.10)', 'rgba(128,131,140,.09)', 'rgba(255,200,0,.10)', 'rgba(128,131,140,.09)'];
   var WOWQCH = ['rgba(255,200,0,.20)', 'rgba(128,131,140,.20)', 'rgba(255,200,0,.20)', 'rgba(128,131,140,.20)'];
   function wowQi(w) { return Math.floor((Number(w.slice(5, 7)) - 1) / 3); }
-  function wowRaw(p) { if (!p) return 0; if (p.raw != null) return p.raw; var s2 = p.sales || 0, f2 = p.fd || 0, r2v = p.rec || 0; return p.live ? f2 + (s2 + r2v) / 2 : (s2 + f2 + r2v) / 2; }
+  function wowRaw(p) { if (!p) return 0; if (p.raw != null) return p.raw; var s2 = p.sales || 0, f2 = p.fd || 0, r2v = p.rec || 0; return f2 + (s2 + r2v) / 2; }
   function wowCell(v, pv, strong) {
     var n = Math.round(v || 0), p = pv == null ? null : Math.round(pv || 0);
     if (!n && !p) return '<td class="m r" style="padding:4px 9px;color:var(--mt)!important">--</td>';
