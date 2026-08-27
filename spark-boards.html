@@ -1186,6 +1186,36 @@ const TEAM = [{
 }];
 const initials = n => n.split(' ').map(w => w[0]).slice(0, 2).join('');
 const userById = id => TEAM.find(u => u.id === id);
+const hydrateTeam = list => {
+  try {
+    const pal = ['#D4A843', '#579BFC', '#A25DDC', '#00C875', '#E14B8A', '#00A9A5', '#FDAB3D', '#7E5BD6'];
+    (list || []).forEach(p => {
+      const email = (p.email || '').toLowerCase();
+      if (!email) return;
+      const user = email.split('@')[0];
+      const nm = p.full_name || SPARK_NAME_MAP[user] || user.split(/[._-]+/).filter(Boolean).map(x => x.charAt(0).toUpperCase() + x.slice(1)).join(' ');
+      const hit = TEAM.find(t => t.name.toLowerCase() === String(nm).toLowerCase() || t.email && t.email === email);
+      if (hit) {
+        hit.email = email;
+        return;
+      }
+      if (TEAM.some(t => t.id === 'sb_' + user)) return;
+      let n = 0;
+      for (let i = 0; i < email.length; i++) n = (n * 31 + email.charCodeAt(i)) >>> 0;
+      TEAM.push({
+        id: 'sb_' + user,
+        name: nm,
+        color: pal[n % pal.length],
+        email: email
+      });
+    });
+    TEAM.sort((a, b) => {
+      const au = a.id.charAt(0) === 'u' ? 0 : 1;
+      const bu = b.id.charAt(0) === 'u' ? 0 : 1;
+      return au !== bu ? au - bu : au === 0 ? 0 : a.name.localeCompare(b.name);
+    });
+  } catch (e) {}
+};
 const ENTITIES = ['Spark Talent', 'Flex', 'Packaging', 'Ignite', 'JJP', 'Bolt'];
 
 // status palette per board (label -> color)
@@ -9325,6 +9355,18 @@ function App() {
   const [bellOpen, setBellOpen] = useState(false);
   const [authed, setAuthed] = useState(() => !LIVE || Auth.adopt() || Auth.restore());
   const [users, setUsers] = useState(seedDirectory);
+  const [rosterV, setRosterV] = useState(0);
+  useEffect(() => {
+    let on = true;
+    API.call('/boards-people').then(d => {
+      if (!on || !d || !d.users) return;
+      hydrateTeam(d.users);
+      setRosterV(v => v + 1);
+    }).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, []);
   const [activityOpen, setActivityOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const canEdit = role !== 'viewer';
