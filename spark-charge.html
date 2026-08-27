@@ -244,7 +244,7 @@ var EC={"Spark Talent": "#FFC800", "Ignite Search": "#FF6B2B", "Spark Companies"
 var EB={"Spark Talent": ["MI Metro", "Automation", "Light Industrial", "Central", "Southeast", "Southwest", "Northeast", "Spark Sales", "Enterprise", "Fulfillment"], "Spark Companies": ["BPO", "Spark Companies - Other"], "Ignite Search": [], "Flex Workforce": [], "Bolt Creative": [], "Spark Packaging": [], "John Joseph Partners": []};
 
 // ═══ UTILS ═══
-function fmt(n){return "$"+Math.round(n||0).toLocaleString()}
+function fmt(n){var v=Number(n)||0;return "$"+v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fK(n){var a=Math.abs(n||0);if(a>=1e6)return "$"+(n/1e6).toFixed(2)+"M";if(a>=1e3)return "$"+(n/1e3).toFixed(1)+"K";return "$"+Math.round(n||0)}
 function dl(v,sz){sz=sz||11;return v>0?'<span class="m cg" style="font-size:'+sz+'px">&#9650; '+fK(v)+'</span>':v<0?'<span class="m cr" style="font-size:'+sz+'px">&#9660; '+fK(Math.abs(v))+'</span>':'<span class="cm" style="font-size:'+sz+'px">--</span>'}
 function bdg(i){return '<div class="bdg '+(i<3?['b1','b2','b3'][i]:'bn')+'">'+(i+1)+'</div>'}
@@ -768,6 +768,7 @@ function rArena(){
     });
   }
   rows.sort(function(a,b){return b.v-a.v});
+  rows=rows.filter(function(r){return !/^house/i.test(r.n||'')}).concat(rows.filter(function(r){return /^house/i.test(r.n||'')}));
   var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v)}))||1;
   var isPct=arM==='pace';
   function fv(v){return isPct?v+'%':fK(v)}
@@ -858,7 +859,7 @@ function rRaw(){
   var tot=D.raw.reduce(function(s,r){return s+r[7]},0), th=D.raw.reduce(function(s,r){return s+r[6]},0);
   var h='<div class="st">Contractors — WE 8.2.26</div>';
   h+='<div class="g g4" style="margin-bottom:16px">';
-  [['Contractors',D.raw.length,'var(--tx)'],['Total Hours',Math.round(th).toLocaleString(),'var(--tx)'],['Company Charge',fmt(tot),'var(--y)'],['Avg / Head',fmt(Math.round(tot/D.raw.length)),'var(--dm)']].forEach(function(k){
+  [['Contractors',D.raw.length,'var(--tx)'],['Total Hours',Math.round(th).toLocaleString(),'var(--tx)'],['Company Charge',fmt(tot),'var(--y)'],['Avg / Head',fmt((tot/D.raw.length)),'var(--dm)']].forEach(function(k){
     h+='<div class="cd" style="padding:16px 20px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.8px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:23px;font-weight:800;margin-top:4px;letter-spacing:-.8px;color:'+k[2]+'">'+k[1]+'</div></div>'});
   h+='</div>';
   h+='<div style="margin-bottom:12px"><input class="srch" id="rw-s" placeholder="Search client, employee, rep, title, BU..." style="width:360px" /></div>';
@@ -1008,7 +1009,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-14';
+  var BUILD = 'b0820-16';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1162,7 +1163,7 @@ window.SPARK_LIVE = (function () {
       var cr = row.credits || [];
       var a = String(pick(cr, /account|sales|full/, 0) || '').trim();
       var r = String(pick(cr, /recruit|full/, 1) || '').trim();
-      var add = function (n, bk) { if (isH(n)) return; var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0, live: 1 }); p[bk] += row.charge; p.tt += row.charge; };
+      var add = function (n, bk) { if (!n) return; if (isH(n)) n = 'House Account'; var p = out[n] || (out[n] = { sales: 0, fd: 0, rec: 0, tt: 0, live: 1 }); p[bk] += row.charge; p.tt += row.charge; };
       if (a && r && a === r) { add(a, 'fd'); return; }
       if (a) add(a, 'sales');
       if (r) add(r, 'rec');
@@ -1182,6 +1183,19 @@ window.SPARK_LIVE = (function () {
       var p = base[n] || (base[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
       p.sales += x.sales; p.fd += x.fd; p.rec += x.rec; p.tt += x.tt;
     });
+    if (d && d.drops) {
+      var hd = { sales: 0, fd: 0, rec: 0 };
+      d.drops.forEach(function (x) {
+        var a2 = Number(x.amount) || 0; if (!a2) return;
+        var sH = !x.sales_rep || /^house/i.test(String(x.sales_rep));
+        var rH = !x.recruiter || /^house/i.test(String(x.recruiter));
+        if (sH && rH) hd.fd += a2; else if (sH) hd.sales += a2; else if (rH) hd.rec += a2;
+      });
+      if (hd.sales || hd.fd || hd.rec) {
+        var hp = base['House Account'] || (base['House Account'] = { sales: 0, fd: 0, rec: 0, tt: 0 });
+        hp.sales += hd.sales; hp.fd += hd.fd; hp.rec += hd.rec; hp.tt += hd.sales + hd.fd + hd.rec;
+      }
+    }
     Object.keys(base).forEach(function (n) { base[n].live = true; });
     return base;
   }
@@ -1238,7 +1252,7 @@ window.SPARK_LIVE = (function () {
         var lw = 0;
         if (Pb) { var f = (Pb.rollups.byCompany || []).find(function (x) { return x.key === r.key; }); if (f) lw = f.charge; }
         var fr = firstRow[r.key] || {};
-        return { en: fr.entity || 'Spark Talent', bu: fr.bu || '—', cl: r.key, ch: Math.round(r.charge), dh: 0, ud: Math.round(r.charge - lw), lw: Math.round(lw), ath: Math.max(Math.round(r.charge), 1) };
+        return { en: fr.entity || 'Spark Talent', bu: fr.bu || '—', cl: r.key, ch: r.charge, dh: 0, ud: r.charge - lw, lw: lw, ath: Math.max(Math.abs(r.charge), 1) };
       }).sort(function (a, b) { return b.ch - a.ch; });
       // ── merge direct hires into the client list (per client, incl. DH-only clients) ──
       var dhEnt = {};
@@ -1261,15 +1275,15 @@ window.SPARK_LIVE = (function () {
         var idx = {};
         D.cST.forEach(function (c) { idx[norm(c.cl)] = c; });
         Object.keys(dhBy).forEach(function (k) {
-          var v = Math.round(dhBy[k]), pvv = Math.round(dhPrev[k] || 0);
+          var v = dhBy[k], pvv = dhPrev[k] || 0;
           if (idx[k]) {
             idx[k].dh = v;
-            idx[k].ch = Math.round(idx[k].ch + v);
-            idx[k].ud = Math.round(idx[k].ud + (v - pvv));
+            idx[k].ch = idx[k].ch + v;
+            idx[k].ud = idx[k].ud + (v - pvv);
             idx[k].ath = Math.max(idx[k].ath, Math.abs(idx[k].ch), 1);
           } else {
             var m = dhMeta[k] || {};
-            D.cST.push({ en: m.en || 'Spark Talent', bu: m.bu || '\u2014', cl: k, ch: v, dh: v, ud: Math.round(v - pvv), lw: pvv, ath: Math.max(Math.abs(v), 1) });
+            D.cST.push({ en: m.en || 'Spark Talent', bu: m.bu || '\u2014', cl: k, ch: v, dh: v, ud: v - pvv, lw: pvv, ath: Math.max(Math.abs(v), 1) });
           }
         });
         D.cST.sort(function (a, b) { return b.ch - a.ch; });
@@ -1287,14 +1301,14 @@ window.SPARK_LIVE = (function () {
           var dhTot = Number(c.dh) || 0;
           var slices = dhEnt[c.cl] || null;
           // contract portion stays with the client's own entity
-          add(c.en, c.cl, Math.round(c.ch - dhTot), c.ud);
+          add(c.en, c.cl, c.ch - dhTot, c.ud);
           // DH portion is split across the entities that actually earned it
-          if (slices) Object.keys(slices).forEach(function (en) { add(en, c.cl, Math.round(slices[en]), 0); });
-          else if (dhTot) add(c.en, c.cl, Math.round(dhTot), 0);
+          if (slices) Object.keys(slices).forEach(function (en) { add(en, c.cl, slices[en], 0); });
+          else if (dhTot) add(c.en, c.cl, dhTot, 0);
         });
         Object.keys(map).forEach(function (en) {
           D.cEnt[en] = Object.keys(map[en]).map(function (cl) { return map[en][cl]; })
-            .filter(function (x) { return Math.round(x.ch) !== 0; })
+            .filter(function (x) { return Math.abs(x.ch) > 0.005; })
             .sort(function (a, b) { return b.ch - a.ch; });
         });
       })();
@@ -1318,10 +1332,29 @@ window.SPARK_LIVE = (function () {
       });
       var c = cw[n] || { sales: 0, fd: 0, rec: 0, tt: 0 }, l = pv[n] || { tt: 0 };
       var m = master[n] || {};
-      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: Math.round(cumRaw), mo: Math.round(moRaw), q: Math.round(qRaw), cumRaw: Math.round(cumRaw), moRaw: Math.round(moRaw), qRaw: Math.round(qRaw), wkRaw: Math.round(rawOf(c)), rec: Math.round(c.rec), am: Math.round(c.sales), fd: Math.round(c.fd), tt: Math.round(c.tt), wow: Math.round(rawOf(c) - rawOf(l)) };
+      return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: cumRaw, mo: moRaw, q: qRaw, cumRaw: cumRaw, moRaw: moRaw, qRaw: qRaw, wkRaw: rawOf(c), rec: c.rec, am: c.sales, fd: c.fd, tt: c.tt, wow: rawOf(c) - rawOf(l) };
     }).sort(function (a, b) { return b.cumRaw - a.cumRaw; });
+    (function () {
+      var RAW_ANCHOR = '2026-08-02';
+      // House Account cumulative anchor as of WE 2026-08-02 (set 8/27/26); weekly raws add on top.
+      var HOUSE_CUM_ANCHOR = 461094.7733;
+      var cumRaw = HOUSE_CUM_ANCHOR, qRaw = 0, moRaw = 0, any = false;
+      isoList.forEach(function (w) {
+        var p = pweek(w)['House Account']; if (!p) return;
+        any = true; var rw = rawOf(p);
+        if (w > RAW_ANCHOR) cumRaw += rw;
+        if (+w.split('-')[1] >= 7) qRaw += rw;
+        if (+w.split('-')[1] === curMonth) moRaw += rw;
+      });
+      var c = cw['House Account'], l = pv['House Account'] || {};
+      if (any || c || cumRaw) {
+        c = c || { sales: 0, fd: 0, rec: 0, tt: 0 };
+        D.people.push({ n: 'House Account', rl: 'House \u00b7 not commissionable', en: '\u2014', bu: '\u2014', house: 1, cum: cumRaw, mo: moRaw, q: qRaw, cumRaw: cumRaw, moRaw: moRaw, qRaw: qRaw, wkRaw: rawOf(c), rec: c.rec, am: c.sales, fd: c.fd, tt: c.tt, wow: rawOf(c) - rawOf(l) });
+      }
+    })();
 
     D.iw = {};
+    if (D.people.some(function (p) { return p.house; })) names['House Account'] = 1;
     Object.keys(names).forEach(function (n) {
       D.iw[n] = isoList.map(function (w) { var p = pweek(w)[n]; return { w: shortWe(w), t: Math.round(p ? rawOf(p) : 0) }; });
     });
@@ -1336,7 +1369,7 @@ window.SPARK_LIVE = (function () {
         if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
         if (!pick.length) pick = rows;
         var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
-        return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g('q3', 'contest'), ai: g('annual', 'igniter'), q3i: g('q3', 'igniter'), ytd: Math.round(cumOf[p.person] || 0), q3: Math.round(q3Of[p.person] || 0) };
+        return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g('q3', 'contest'), ai: g('annual', 'igniter'), q3i: g('q3', 'igniter'), ytd: cumOf[p.person] || 0, q3: q3Of[p.person] || 0 };
       });
       D.annT = {};
       (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') D.annT[t.unit] = Number(t.amount); });
@@ -1344,7 +1377,7 @@ window.SPARK_LIVE = (function () {
       if (dcur && dcur.drops && dcur.drops.length) {
         D.dh = dcur.drops.map(function (d) {
           var wk = parseInt(d.drop, 10) || 1, of = parseInt(String(d.drop).split('of')[1], 10) || 1;
-          return { en: d.entity, bu: d.bu, cl: d.company, sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: Math.round(d.amount), wk: wk, of: of, rem: d.remaining, emp: d.employee + (d.split || d.pairSplit ? ' · split' : ''), st: d.remaining > 0 ? 'active' : 'done' };
+          return { en: d.entity, bu: d.bu, cl: d.company, sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: d.amount, wk: wk, of: of, rem: d.remaining, emp: d.employee + (d.split || d.pairSplit ? ' · split' : ''), st: d.remaining > 0 ? 'active' : 'done' };
         });
       } else {
         D.dh = (H.dh || []).map(function (r) {
@@ -1669,6 +1702,7 @@ window.SPARK_LIVE = (function () {
     if (_bu !== 'All') list = list.filter(function (p) { return (p.bu || p.en) === _bu; });
     if (lbQ) { var qq = lbQ.toLowerCase(); list = list.filter(function (p) { return (p.n + ' ' + p.rl + ' ' + p.bu).toLowerCase().indexOf(qq) !== -1; }); }
     list.sort(function (x, y) { return lbS.d === 'desc' ? (y[lbS.f] || 0) - (x[lbS.f] || 0) : (x[lbS.f] || 0) - (y[lbS.f] || 0); });
+    list = list.filter(function (p) { return !p.house; }).concat(list.filter(function (p) { return p.house; }));
     var bus = []; D.people.forEach(function (p) { var b = p.bu || p.en; if (b && bus.indexOf(b) < 0) bus.push(b); });
     bus.sort(function (a, b) { return a.localeCompare(b); });
     var h = '<div class="st">Rankings &mdash; ' + labelWe(curIso) + '</div>';
@@ -1991,6 +2025,7 @@ window.SPARK_LIVE = (function () {
     Object.keys(wk).forEach(function (n) { names[n] = 1; });
     Object.keys(dhP).forEach(function (n) { names[n] = 1; });
     Object.keys(names).forEach(function (n) {
+      if (/^house/i.test(n)) return;
       var p = wk[n] || { sales: 0, fd: 0, rec: 0 };
       var d = dhP[n] || { sales: 0, fd: 0, rec: 0 };
       // DH buckets always come from the live DH engine, whose convention is
@@ -2013,14 +2048,14 @@ window.SPARK_LIVE = (function () {
     if (commQ) { var q = commQ.toLowerCase(); rows = rows.filter(function (r) { return (r.n + ' ' + r.bu + ' ' + r.en).toLowerCase().indexOf(q) !== -1; }); }
     rows = sApply(rows, 'comm', 'tot');
     var money = function (v, strong, dim) {
-      var x = Math.round(v || 0);
+      var x = Math.round((v || 0) * 100) / 100;
       if (!x) return '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>';
       return '<td class="r m" style="padding:4px 9px;' + (strong ? 'font-weight:800;' : '') + 'color:' + (x < 0 ? 'var(--red)' : dim ? 'var(--dm)' : 'var(--tx)') + '!important">' + fmt(x) + '</td>';
     };
     var tot = rows.reduce(function (a, r) { return { cRaw: a.cRaw + r.cRaw, dhRaw: a.dhRaw + r.dhRaw, tot: a.tot + r.tot, cS: a.cS + r.cS, cF: a.cF + r.cF, cR: a.cR + r.cR, dS: a.dS + r.dS, dF: a.dF + r.dF, dR: a.dR + r.dR }; },
       { cRaw: 0, dhRaw: 0, tot: 0, cS: 0, cF: 0, cR: 0, dS: 0, dF: 0, dR: 0 });
     var h = '<div class="st">Commissions &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' people</span>' +
-      '<span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">' + fmt(Math.round(tot.tot)) + ' total raw</span></div>';
+      '<span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">' + fmt((tot.tot)) + ' total raw</span></div>';
     h += '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
       '<input class="srch" id="lvCommS" placeholder="Filter people..." style="max-width:240px"/>' +
       '<button class="fb" onclick="SPARK_LIVE.commExport()">Export</button>' +
@@ -2053,16 +2088,20 @@ window.SPARK_LIVE = (function () {
       var sH = isH(d.sales_rep), rH = isH(d.recruiter);
       if (sH && rH) hs.fd += a; else if (sH) hs.sales += a; else if (rH) hs.rec += a;
     });
+    var hsAll = wk['House Account'] || { sales: 0, fd: 0, rec: 0 };
     var houseRaw = hs.fd + (hs.sales + hs.rec) / 2;
-    if (Math.abs(houseRaw) >= 0.5) {
+    var houseTot = commRaw(hsAll) || houseRaw;
+    var hcS = (hsAll.sales || 0) - hs.sales, hcF = (hsAll.fd || 0) - hs.fd, hcR = (hsAll.rec || 0) - hs.rec;
+    var houseContract = houseTot - houseRaw;
+    if (Math.abs(houseTot) >= 0.005) {
       h += '<tr style="border-top:1px solid var(--bd);opacity:.75"><td class="m" style="padding:4px 9px;color:var(--dm)">—</td>' +
         '<td style="font-weight:600;font-size:11px;color:var(--dm)">House Account <span class="pl" style="background:rgba(128,128,128,.15);color:var(--dm)">not commissionable</span></td><td></td>' +
-        '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>' + money(houseRaw, false, true) + money(houseRaw, false, true) +
-        '<td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td><td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td><td class="r m" style="padding:4px 9px;color:var(--mt)!important">--</td>' +
+        money(houseContract, false, true) + money(houseRaw, false, true) + money(houseTot, false, true) +
+        money(hcS, false, true) + money(hcF, false, true) + money(hcR, false, true) +
         money(hs.sales, false, true) + money(hs.fd, false, true) + money(hs.rec, false, true) + '</tr>';
     }
     h += '</tbody></table></div></div>';
-    if (Math.abs(houseRaw) >= 0.5) h += '<div style="margin-top:8px;font-size:10px;color:var(--dm)">House Account holds ' + fmt(Math.round(houseRaw)) + ' of direct-hire raw charge this week. It counts toward entity and business-unit totals but is never paid out, so it sits outside the commissionable Σ above.</div>';
+    if (Math.abs(houseTot) >= 0.005) h += '<div style="margin-top:8px;font-size:10px;color:var(--dm)">House Account holds ' + fmt((houseTot)) + ' of raw charge this week (' + fmt((houseContract)) + ' contract \u00b7 ' + fmt((houseRaw)) + ' direct hire). It counts toward entity and business-unit totals but is never paid out, so it sits outside the commissionable Σ above.</div>';
     el.innerHTML = h;
     var si = document.getElementById('lvCommS');
     if (si) { si.value = commQ; si.oninput = function () { var pos = this.selectionStart; commQ = this.value; rComm(); var s2 = document.getElementById('lvCommS'); if (s2) { s2.focus(); try { s2.setSelectionRange(pos, pos); } catch (e) {} } }; }
@@ -2162,8 +2201,8 @@ window.SPARK_LIVE = (function () {
     var qRow = function () {
       if (!qName) return;
       h += '<tr style="border-top:2px solid var(--bd);background:rgba(255,200,0,.05)"><td class="m" style="padding:5px 9px;font-weight:900;color:var(--gold)">\u03a3</td><td class="m" style="padding:5px 9px;font-weight:800">' + qName + ' Total</td>';
-      units.forEach(function (u) { var v = qSum[u] || 0; h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--tx)!important">' + (Math.abs(v) > 0.5 ? fmt(Math.round(v)) : '--') + '</td>'; });
-      if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)!important">' + fmt(Math.round(qPort)) + '</td>';
+      units.forEach(function (u) { var v = qSum[u] || 0; h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--tx)!important">' + (Math.abs(v) > 0.5 ? fmt((v)) : '--') + '</td>'; });
+      if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)!important">' + fmt((qPort)) + '</td>';
       h += '</tr>';
     };
     isoList.forEach(function (w, wi) {
@@ -2180,8 +2219,8 @@ window.SPARK_LIVE = (function () {
     });
     qRow();
     h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.06)"><td class="m" style="padding:5px 9px;font-weight:900;color:var(--gold);border-left:3px solid var(--gold)">\u03a3</td><td class="m" style="padding:5px 9px;font-weight:800;color:var(--gold)">YTD</td>';
-    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)!important">' + (Math.abs(cum[u]) > 0.5 ? fmt(Math.round(cum[u])) : '--') + '</td>'; });
-    if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)!important">' + fmt(Math.round(portCum)) + '</td>';
+    units.forEach(function (u) { h += '<td class="m r" style="padding:5px 9px;font-weight:800;color:var(--gold)!important">' + (Math.abs(cum[u]) > 0.5 ? fmt((cum[u])) : '--') + '</td>'; });
+    if (hasPort) h += '<td class="m r" style="padding:5px 9px;font-weight:900;color:var(--gold)!important">' + fmt((portCum)) + '</td>';
     h += '</tr></tbody></table></div></div>';
     el.innerHTML = h;
   };
@@ -2222,7 +2261,7 @@ window.SPARK_LIVE = (function () {
     h += '<tr style="text-align:right"><th style="text-align:left;' + thS + '">Qtr</th><th style="text-align:left;' + thS + '">Week Ending</th><th style="' + thS + 'text-align:right">Sales</th><th style="' + thS + 'text-align:right">Full Desk</th><th style="' + thS + 'text-align:right">Recruiting</th><th style="' + thS + 'text-align:right">Raw</th></tr>';
     var lastQ = '', prev = null;
     var qs = { s: 0, f: 0, r: 0, raw: 0 }, ys = { s: 0, f: 0, r: 0, raw: 0 }, qName = '';
-    var tCell = function (v, gold) { return '<td class="m" style="padding:4px 9px;text-align:right;font-weight:800;color:' + (gold ? 'var(--gold)' : 'var(--tx)') + '">' + (Math.abs(v) > 0.5 ? fmt(Math.round(v)) : '--') + '</td>'; };
+    var tCell = function (v, gold) { return '<td class="m" style="padding:4px 9px;text-align:right;font-weight:800;color:' + (gold ? 'var(--gold)' : 'var(--tx)') + '">' + (Math.abs(v) > 0.5 ? fmt((v)) : '--') + '</td>'; };
     var qRow = function () { if (!qName) return; h += '<tr style="border-top:2px solid var(--bd);background:rgba(255,200,0,.05)"><td class="m" style="padding:4px 9px;font-weight:900;color:var(--gold)">\u03a3</td><td class="m" style="padding:4px 9px;font-weight:800">' + qName + ' Total</td>' + tCell(qs.s) + tCell(qs.f) + tCell(qs.r) + tCell(qs.raw, true) + '</tr>'; };
     isoList.forEach(function (wk) {
       var qn = 'Q' + Math.ceil((+wk.split('-')[1]) / 3);
@@ -2333,10 +2372,10 @@ window.SPARK_LIVE = (function () {
     var cols = RAW_COLS;
     var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     var lines = [cols.map(function (c) { return e2(c[1]); }).join(',')];
-    list.forEach(function (r) { lines.push(cols.map(function (c) { return e2(r[c[0]]); }).join(',')); });
+    list.forEach(function (r) { lines.push(cols.map(function (c) { var v = r[c[0]]; if (typeof v === 'number') v = Math.round(v * 100) / 100; return e2(v); }).join(',')); });
     var tt = { rt: 0, ot: 0, dt: 0, vac: 0, tot: 0, charge: 0 };
     list.forEach(function (r) { tt.rt += r.rt || 0; tt.ot += r.ot || 0; tt.dt += r.dt || 0; tt.vac += r.vac || 0; tt.tot += r.tot || 0; tt.charge += r.charge || 0; });
-    lines.push(cols.map(function (c) { return tt[c[0]] !== void 0 ? Math.round(tt[c[0]] * 10) / 10 : (c[0] === 'entity' ? 'TOTAL' : ''); }).join(','));
+    lines.push(cols.map(function (c) { return tt[c[0]] !== void 0 ? Math.round(tt[c[0]] * 100) / 100 : (c[0] === 'entity' ? 'TOTAL' : ''); }).join(','));
     var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -2527,7 +2566,7 @@ window.SPARK_LIVE = (function () {
     h += '<td class="r m" style="' + ftd + ';color:var(--red)">' + (sDT ? h1(sDT).toLocaleString() : '--') + '</td>';
     h += '<td class="r m" style="' + ftd + ';color:var(--blu)">' + (sV ? h1(sV).toLocaleString() : '--') + '</td>';
     h += '<td class="r m" style="' + ftd + '">' + h1(sH).toLocaleString() + '</td>';
-    h += '<td class="r m" style="' + ftd + ';color:' + (totC >= 0 ? 'var(--gold)' : 'var(--red)') + ';font-size:12px">' + fmt(Math.round(totC)) + '</td>' + (IS_ADMIN ? '<td style="' + ftd + '"></td>' : '') + '</tr>';
+    h += '<td class="r m" style="' + ftd + ';color:' + (totC >= 0 ? 'var(--gold)' : 'var(--red)') + ';font-size:12px">' + fmt((totC)) + '</td>' + (IS_ADMIN ? '<td style="' + ftd + '"></td>' : '') + '</tr>';
     h += '</tbody></table></div></div>';
     el.innerHTML = h;
     var s = document.getElementById('raw-s');
