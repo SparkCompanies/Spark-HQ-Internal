@@ -637,14 +637,32 @@ const Persist = {
       sbFlash('Clear the search box before editing. Changes are not saved while filtered.');
       return;
     }
-    API.call('/boards-save', {
+    const send = force => API.call('/boards-save', {
       method: 'POST',
       body: JSON.stringify({
-        board: b
+        board: b,
+        baseRev: b.__rev || null,
+        force: !!force
       })
-    }).catch(e => {
+    }).then(d => {
+      if (d && d.rev) b.__rev = d.rev;
+    });
+    send(false).catch(e => {
+      const msg = e && e.message ? e.message : '';
+      if (msg.indexOf('API 409') !== -1) {
+        let by = '';
+        try {
+          by = JSON.parse(msg.slice(msg.indexOf('{'))).updated_by || '';
+        } catch (x) {}
+        if (confirm('Heads up: ' + (by || 'someone else') + ' saved this board while you had it open.\n\nOK = keep YOUR version (overwrites theirs).\nCancel = reload and take theirs (your last change is lost).')) {
+          send(true).catch(e2 => sbFlash('NOT SAVED. ' + (e2 && e2.message ? e2.message : '')));
+        } else {
+          location.reload();
+        }
+        return;
+      }
       console.error('[Spark Boards] save failed', e);
-      sbFlash('NOT SAVED. ' + (e && e.message ? e.message : 'Unknown error'));
+      sbFlash('NOT SAVED. ' + (msg || 'Unknown error'));
     });
   },
   item() {/* covered by board() */},
