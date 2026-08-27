@@ -6392,10 +6392,12 @@ var worker_default = {
             off += 1000;
           }
         };
-        const personWeeks = await sbAll("charge_person_weeks?select=week_ending,person,sales,fd,rec,tt,raw&order=week_ending.asc");
+        const personWeeks = await sbAll("charge_person_weeks?select=*&order=week_ending.asc");
         const people = await sbAll("charge_people?select=person,role,entity,bu,active");
         const dh = await sbAll("charge_dh_schedule?select=*&order=created_at.desc");
-        return json({ ok: true, syncedBy: em, at: new Date().toISOString(), personWeeks: personWeeks, people: people, dh: dh }, 200, origin);
+        let dhSnap = [];
+        try { dhSnap = await sbAll("charge_dh_snap?select=*"); } catch (eSnap) { dhSnap = []; }
+        return json({ ok: true, syncedBy: em, at: new Date().toISOString(), personWeeks: personWeeks, people: people, dh: dh, dhSnap: dhSnap }, 200, origin);
       } catch (e) {
         return json({ error: "sv7 sync failed: " + String(e.message || e) }, 502, origin);
       }
