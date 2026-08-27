@@ -5036,6 +5036,22 @@ function TableView({
     Persist.board(nb);
     if (notes.length && onAutomation) onAutomation(notes);
   };
+  const [renameG, setRenameG] = useState(null);
+  const [renameV, setRenameV] = useState('');
+  const commitRename = () => {
+    const gid = renameG;
+    const val = (renameV || '').trim();
+    setRenameG(null);
+    if (!gid || !val) return;
+    update(b => {
+      const nb = structuredClone(b);
+      const t = nb.groups.find(x => x.id === gid);
+      if (!t || t.title === val) return nb;
+      t.title = val;
+      Persist.board(nb);
+      return nb;
+    });
+  };
   const addGroup = () => update(b => {
     const nb = structuredClone(b);
     nb.groups.push({
@@ -5044,6 +5060,9 @@ function TableView({
       color: '#9AA0AC',
       items: []
     });
+    Persist.board(nb);
+    setRenameG(nb.groups[nb.groups.length - 1].id);
+    setRenameV('New Group');
     return nb;
   });
 
@@ -5289,10 +5308,37 @@ function TableView({
         width: 11,
         height: 11
       }
-    }), /*#__PURE__*/React.createElement("span", {
+    }), /*#__PURE__*/renameG === g.id ? /*#__PURE__*/React.createElement("input", {
+      className: "group-title",
+      autoFocus: true,
+      value: renameV,
+      onChange: e => setRenameV(e.target.value),
+      onBlur: commitRename,
+      onFocus: e => e.target.select(),
+      onKeyDown: e => {
+        if (e.key === 'Enter') commitRename();
+        if (e.key === 'Escape') setRenameG(null);
+      },
+      style: {
+        color: g.color,
+        background: 'transparent',
+        border: 'none',
+        borderBottom: '2px solid ' + g.color,
+        outline: 'none',
+        width: 200,
+        padding: 0
+      }
+    }) : React.createElement("span", {
       className: "group-title",
       style: {
-        color: g.color
+        color: g.color,
+        cursor: canEdit ? 'text' : 'default'
+      },
+      title: canEdit ? 'Double-click to rename' : undefined,
+      onDoubleClick: () => {
+        if (!canEdit) return;
+        setRenameG(g.id);
+        setRenameV(g.title);
       }
     }, g.title), /*#__PURE__*/React.createElement("span", {
       className: "group-count"
