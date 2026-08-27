@@ -90,8 +90,8 @@ const WORKER_EDITS = [
  ]
 ];
 
-const page = findOne("spark-boards.html");
-const worker = findOne("cloudworker.js");
+const page = "spark-boards.html";
+const worker = "worker/cloudworker.js";
 
 // dry-run both BEFORE writing either (all-or-nothing)
 const pageOut = apply(page, PAGE_EDITS, "sb-ws-share");
