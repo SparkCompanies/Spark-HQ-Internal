@@ -6481,7 +6481,7 @@ var worker_default = {
           }
         };
         const personWeeks = await sbAll("charge_person_weeks?select=*&order=week_ending.asc");
-        const people = await sbAll("charge_people?select=person,role,entity,bu,active");
+        const people = await sbAll("charge_people?select=person,role,entity,bu,active,cum_raw,monthly_raw,quarterly_raw,rec_ath,sales_ath,fd_ath,tt_ath");
         const dh = await sbAll("charge_dh_schedule?select=*&order=created_at.desc");
         let dhSnap = [];
         try { dhSnap = await sbAll("charge_dh_snap?select=*"); } catch (eSnap) { dhSnap = []; }
