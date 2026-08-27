@@ -1,0 +1,150 @@
+    if (url.pathname === "/sandbox-seed") {
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: sbxCors() });
+      const t = url.searchParams.get("token") || "";
+      if (!env.SANDBOX_TOKEN || t !== env.SANDBOX_TOKEN) return sbxJson({ error: "Unauthorized" }, 401);
+      try {
+        const tok = await getSalesforceToken(env);
+        const jobsRes = await runSalesforceQueryAll(env, "SELECT Id, Name, bpats__Status__c, bpats__Account_Name__c, bpats__Number_of_Openings__c, bpats__Openings_Filled__c, Recruiter__r.Name FROM bpats__Job__c WHERE bpats__Status__c = 'Open' ORDER BY Name");
+        const jobs = jobsRes.ok ? (jobsRes.records || []).map((r) => ({ id: r.Id, name: r.Name, account: r.bpats__Account_Name__c || "", openings: r.bpats__Number_of_Openings__c || 0, filled: r.bpats__Openings_Filled__c || 0, recruiter: r.Recruiter__r && r.Recruiter__r.Name || "" })) : [];
+        let rateCards = [];
+        try {
+          const rc = await runSalesforceQueryAll(env, "SELECT Id, Name FROM bpats__Rate_Card__c ORDER BY Name LIMIT 500");
+          if (rc.ok) rateCards = (rc.records || []).map((r) => ({ id: r.Id, name: r.Name }));
+        } catch (e) {
+        }
+        const picklists = {};
+        picklists.Contact = await sbxPicklists(env, "Contact", tok);
+        picklists.Account = await sbxPicklists(env, "Account", tok);
+        return sbxJson({ ok: true, generatedAt: (/* @__PURE__ */ new Date()).toISOString(), jobCount: jobs.length, jobs, rateCards, picklists });
+      } catch (e) {
+        return sbxJson({ error: String(e.message || e).slice(0, 200) }, 502);
+      }
+    }
+    if (url.pathname === "/sandbox-jobmeta") {
+      /* SBX_JOBMETA_v2 — live object metadata + page layout for the ATS training sandbox */
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: sbxCors() });
+      const t = url.searchParams.get("token") || "";
+      if (!env.SANDBOX_TOKEN || t !== env.SANDBOX_TOKEN) return sbxJson({ error: "Unauthorized" }, 401);
+      const SBX_OBJECTS = ["bpats__Job__c", "bpats__Candidate__c", "bpats__Job_Applicant__c", "bpats__Placement__c", "Account", "Contact"];
+      const OBJ = (function(){ const o = url.searchParams.get("obj") || "bpats__Job__c"; return SBX_OBJECTS.indexOf(o) > -1 ? o : "bpats__Job__c"; })();
+      try {
+        const tok = await getSalesforceToken(env);
+        const H = { "Authorization": "Bearer " + tok.access_token };
+
+        /* 1) full describe: fields, picklists, controllers */
+        const dr = await fetch(tok.instance_url + "/services/data/v60.0/sobjects/" + OBJ + "/describe", { headers: H });
+        if (!dr.ok) return sbxJson({ error: "describe failed: " + dr.status }, 502);
+        const desc = await dr.json();
+        const byName = {};
+        (desc.fields || []).forEach((f) => { byName[f.name] = f; });
+
+        const fields = {};
+        const picklists = {};
+        (desc.fields || []).forEach((f) => {
+          fields[f.name] = {
+            label: f.label,
+            type: f.type,
+            required: !!(f.createable && !f.nillable && !f.defaultedOnCreate),
+            calculated: !!f.calculated
+          };
+          if (f.type === "picklist" || f.type === "multipicklist") {
+            picklists[f.name] = (f.picklistValues || []).filter((v) => v.active !== false).map((v) => v.label || v.value);
+          }
+        });
+
+        /* 2) dependent picklists: decode validFor bitmaps against the controller */
+        const bits = (b64) => {
+          const s = atob(b64 || ""); const out = [];
+          for (let i = 0; i < s.length; i++) {
+            const byte = s.charCodeAt(i);
+            for (let bit = 0; bit < 8; bit++) if (byte & (128 >> bit)) out.push(i * 8 + bit);
+          }
+          return out;
+        };
+        const dependencies = {};
+        (desc.fields || []).forEach((f) => {
+          if (!f.controllerName || !(f.type === "picklist" || f.type === "multipicklist")) return;
+          const ctl = byName[f.controllerName];
+          if (!ctl) return;
+          const ctlVals = (ctl.picklistValues || []).map((v) => v.label || v.value);
+          const map = {};
+          ctlVals.forEach((cv) => { map[cv] = []; });
+          (f.picklistValues || []).forEach((v) => {
+            if (v.active === false || !v.validFor) return;
+            bits(v.validFor).forEach((idx) => {
+              if (ctlVals[idx] !== undefined) map[ctlVals[idx]].push(v.label || v.value);
+            });
+          });
+          dependencies[f.name] = { controller: f.controllerName, controllerLabel: ctl.label, map };
+        });
+
+        /* 2.5) SBX_JOBMETA_v2 — edit page layout: sections, rows, field order, layout-required flags */
+        let layout = null;
+        try {
+          const lr = await fetch(tok.instance_url + "/services/data/v60.0/sobjects/" + OBJ + "/describe/layouts/", { headers: H });
+          if (lr.ok) {
+            const ld = await lr.json();
+            const lay = (ld.layouts || [])[0];
+            if (lay) {
+              layout = (lay.editLayoutSections || []).map((s) => ({
+                heading: s.useHeading ? s.heading : null,
+                columns: s.columns || 1,
+                rows: (s.layoutRows || []).map((row) =>
+                  (row.layoutItems || []).map((it) => {
+                    const comp = (it.layoutComponents || []).find((c) => c.type === "Field");
+                    if (!comp) return null;
+                    const fname = comp.value;
+                    return {
+                      field: fname,
+                      label: it.label || (fields[fname] ? fields[fname].label : fname),
+                      required: !!it.required,
+                      editableForNew: !!it.editableForNew,
+                      editableForUpdate: !!it.editableForUpdate,
+                      type: fields[fname] ? fields[fname].type : "string"
+                    };
+                  })
+                )
+              }));
+            }
+          }
+        } catch (e) {}
+
+        /* 3) validation rules: Tooling query, then per-Id fetch for formulas */
+        const rules = [];
+        try {
+          const q = encodeURIComponent(
+            "SELECT Id, ValidationName, Active, ErrorDisplayField, ErrorMessage FROM ValidationRule " +
+            "WHERE EntityDefinition.QualifiedApiName = '" + OBJ + "'"
+          );
+          const vr = await fetch(tok.instance_url + "/services/data/v60.0/tooling/query/?q=" + q, { headers: H });
+          if (vr.ok) {
+            const vd = await vr.json();
+            for (const rec of (vd.records || []).slice(0, 25)) {
+              let formula = null;
+              try {
+                const fr = await fetch(tok.instance_url + "/services/data/v60.0/tooling/sobjects/ValidationRule/" + rec.Id, { headers: H });
+                if (fr.ok) { const fd = await fr.json(); formula = fd.Metadata ? fd.Metadata.errorConditionFormula : null; }
+              } catch (e) {}
+              rules.push({
+                name: rec.ValidationName,
+                active: !!rec.Active,
+                field: rec.ErrorDisplayField || null,
+                fieldLabel: rec.ErrorDisplayField && fields[rec.ErrorDisplayField] ? fields[rec.ErrorDisplayField].label : null,
+                message: rec.ErrorMessage,
+                formula
+              });
+            }
+          }
+        } catch (e) {}
+
+        return sbxJson({
+          ok: true,
+          object: OBJ,
+          generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          fields, picklists, dependencies, rules, layout
+        });
+      } catch (e) {
+        return sbxJson({ error: String(e.message || e).slice(0, 300) }, 502);
+      }
+    }
+    if (url.pathname === "/sandbox-result") {

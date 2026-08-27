@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "spark-hq-worker" generated at 2026-08-21T19:06:05.582Z.

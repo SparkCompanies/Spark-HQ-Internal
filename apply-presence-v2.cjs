@@ -1,0 +1,19 @@
+// HOME_PRESENCE_v2 — fixes the 401 storm: the heartbeat now reads a fresh
+// Supabase token from localStorage on every beat instead of reusing the token
+// captured at page load (which expires after ~1 hour in long-lived tabs).
+// Run from the repo root, then commit + push.
+const fs = require("fs");
+const F = "spark-home.html";
+const raw = fs.readFileSync(F, "utf8");
+if (raw.includes("HOME_PRESENCE_v2")) { console.log("Already applied."); process.exit(0); }
+if (!raw.includes("HOME_PRESENCE_v1")) { console.error("ABORT — v1 not present"); process.exit(1); }
+const hadCRLF = /\r\n/.test(raw);
+let h = raw.replace(/\r\n/g, "\n");
+const OLD = "/* HOME_PRESENCE_v1 \u2014 real presence: heartbeat + live 5-min count (replaced a random 18-29) */\n(function(){\n var el=document.getElementById('presTxt'); var pill=el?el.parentElement:null; if(pill)pill.style.display='none';\n function beat(){ if(!window.__me)return;\n  fetch(SB_URL+\"/rest/v1/spark_hq_presence?on_conflict=email\",{method:\"POST\",headers:sbHdr({Prefer:\"resolution=merge-duplicates\"}),body:JSON.stringify({email:window.__me.email,last_seen:new Date().toISOString()})}).catch(function(){});\n }\n function count(){ if(!window.__me)return;\n  var cutoff=new Date(Date.now()-5*60*1000).toISOString();\n  sbGet(\"spark_hq_presence?select=email&last_seen=gte.\"+encodeURIComponent(cutoff)).then(function(rows){\n   var n=(rows||[]).length; if(!el||!pill)return;\n   if(n>0){el.textContent=n+(n===1?' spark':' sparks')+' in HQ right now';pill.style.display='';}\n   else{pill.style.display='none';}\n  }).catch(function(){ if(pill)pill.style.display='none'; });\n }\n function loop(){ beat(); setTimeout(count, 900); }\n setTimeout(loop, 1500); setInterval(loop, 60000);\n})();";
+const n = h.split(OLD).length - 1;
+if (n !== 1) { console.error("ABORT — presence v1 block found " + n + " times (want 1)"); process.exit(1); }
+h = h.split(OLD).join("/* HOME_PRESENCE_v2 \u2014 real presence; reads a FRESH auth token every beat (v1 reused a\n   page-load token that expires after ~1h, causing endless 401s in long-lived tabs) */\n(function(){\n var el=document.getElementById('presTxt'); var pill=el?el.parentElement:null; if(pill)pill.style.display='none';\n function tok(){try{var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}');return a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||'';}catch(e){return '';}}\n function hdr(extra){var o={apikey:SB_KEY,'Content-Type':'application/json'};var t=tok();if(t)o.Authorization='Bearer '+t;if(extra)for(var k in extra)o[k]=extra[k];return o;}\n function beat(){ if(!window.__me||!tok())return;\n  fetch(SB_URL+\"/rest/v1/spark_hq_presence?on_conflict=email\",{method:\"POST\",headers:hdr({Prefer:\"resolution=merge-duplicates\"}),body:JSON.stringify({email:window.__me.email,last_seen:new Date().toISOString()})}).catch(function(){});\n }\n function count(){ if(!tok())return;\n  var cutoff=new Date(Date.now()-5*60*1000).toISOString();\n  fetch(SB_URL+\"/rest/v1/spark_hq_presence?select=email&last_seen=gte.\"+encodeURIComponent(cutoff),{headers:hdr()}).then(function(r){return r.ok?r.json():Promise.reject(r.status);}).then(function(rows){\n   var n=(rows||[]).length; if(!el||!pill)return;\n   if(n>0){el.textContent=n+(n===1?' spark':' sparks')+' in HQ right now';pill.style.display='';}\n   else{pill.style.display='none';}\n  }).catch(function(){ if(pill)pill.style.display='none'; });\n }\n function loop(){ beat(); setTimeout(count, 900); }\n setTimeout(loop, 1500); setInterval(loop, 60000);\n})();");
+const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+fs.writeFileSync("spark-home.html.pres2-" + stamp + ".bak", raw);
+fs.writeFileSync(F, hadCRLF ? h.replace(/\n/g, "\r\n") : h);
+console.log("APPLIED HOME_PRESENCE_v2 — heartbeat uses fresh tokens; 401 storm ends");
