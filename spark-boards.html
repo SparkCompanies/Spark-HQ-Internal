@@ -530,6 +530,42 @@ const Auth = {
     }
     return this.token;
   },
+  serverRole: null,
+  _refreshing: null,
+  refresh() {
+    if (this._refreshing) return this._refreshing;
+    const self = this;
+    this._refreshing = (async function () {
+      try {
+        const raw = localStorage.getItem('spark_hq_sb_auth');
+        if (!raw) return null;
+        const v = JSON.parse(raw);
+        const s = v && (v.currentSession || v);
+        const rt = s && s.refresh_token;
+        if (!rt) return null;
+        const res = await fetch(CONFIG.SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY },
+          body: JSON.stringify({ refresh_token: rt })
+        });
+        if (!res.ok) return null;
+        const d = await res.json();
+        if (!d || !d.access_token) return null;
+        const ns = Object.assign({}, s, d);
+        if (d.expires_in) ns.expires_at = Math.floor(Date.now() / 1000) + d.expires_in;
+        try {
+          localStorage.setItem('spark_hq_sb_auth', JSON.stringify(v && v.currentSession ? Object.assign({}, v, { currentSession: ns }) : ns));
+        } catch (e) {}
+        self.token = d.access_token;
+        return d.access_token;
+      } catch (e) {
+        return null;
+      } finally {
+        setTimeout(function () { self._refreshing = null; }, 1500);
+      }
+    })();
+    return this._refreshing;
+  },
   save() {
     try {
       localStorage.setItem('sb-spark', JSON.stringify({
@@ -607,15 +643,19 @@ function sbFlash(msg, kind) {
 }
 const API = {
   async call(path, opts = {}) {
-    const tok = Auth.currentToken();
-    const r = await fetch(CONFIG.WORKER_URL + path, {
+    const hit = t => fetch(CONFIG.WORKER_URL + path, {
       ...opts,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + (tok || ''),
+        Authorization: 'Bearer ' + (t || ''),
         ...(opts.headers || {})
       }
     });
+    let r = await hit(Auth.currentToken());
+    if (r.status === 401) {
+      const nt = await Auth.refresh();
+      if (nt) r = await hit(nt);
+    }
     if (!r.ok) {
       let body = '';
       try { body = (await r.text()).slice(0, 200); } catch (e) {}
@@ -626,6 +666,7 @@ const API = {
   },
   async boards() {
     const d = await this.call('/boards-load');
+    if (d && d.role) Auth.serverRole = d.role;
     return d && d.boards || [];
   }
 };
@@ -9477,7 +9518,8 @@ function App() {
   }); // home | board | templates | automations | connectors
   const [modal, setModal] = useState(null); // {template?}
   const [query, setQuery] = useState('');
-  const [role, setRole] = useState('admin'); // admin | editor | viewer  (from Supabase profile at deploy)
+  const [role, setRole] = useState(Auth.serverRole === 'member' ? 'member' : 'admin'); // real role arrives from the worker on load
+  const [realRole, setRealRole] = useState(null);
   const [drawer, setDrawer] = useState(null); // {boardId,itemId}
   const [autoOpen, setAutoOpen] = useState(null); // boardId for automation center
   const [notifs, setNotifs] = useState([]);
@@ -9527,6 +9569,11 @@ function App() {
   useEffect(() => {
     if (LIVE && authed) {
       API.boards().then(bs => {
+        if (Auth.serverRole) {
+          const sr = Auth.serverRole === 'admin' || Auth.serverRole === 'superadmin' ? 'admin' : 'member';
+          setRealRole(sr);
+          if (sr !== 'admin') setRole('member');
+        }
         if (Array.isArray(bs) && bs.length) {
           const clean = bs.map(b => {
             const nb = {
@@ -9876,11 +9923,14 @@ function App() {
     className: "role-switch-lbl"
   }, "View as"), /*#__PURE__*/React.createElement("div", {
     className: "role-pills"
-  }, ROLES.map(r => /*#__PURE__*/React.createElement("button", {
+  }, ROLES.filter(r => realRole === 'admin' || realRole === null || r.key === role).map(r => /*#__PURE__*/React.createElement("button", {
     key: r.key,
     className: "role-pill" + (role === r.key ? ' on' : ''),
-    onClick: () => setRole(r.key),
-    title: r.label
+    onClick: () => {
+      if (realRole && realRole !== 'admin' && r.key === 'admin') return;
+      setRole(r.key);
+    },
+    title: realRole && realRole !== 'admin' ? 'Your access level is set by an admin in Spark HQ' : r.label
   }, r.label.split(' ')[0])))), /*#__PURE__*/React.createElement("div", {
     className: "user-chip"
   }, /*#__PURE__*/React.createElement(Avatar, {
