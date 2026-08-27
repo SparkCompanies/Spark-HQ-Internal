@@ -9996,12 +9996,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.c
           if (!b || !b.id || !b.name || !Array.isArray(b.columns) || !Array.isArray(b.groups)) throw new Error(p.name + " is not a Spark Boards file. Nothing imported.");
         });
         parsed.sort(function (a, b) { return rowsOf(a.data) - rowsOf(b.data); });
+        var dupes = parsed.filter(function (p) { return existing[p.data.id]; }).length;
+        var overwrite = dupes > 0 && confirm(dupes + " of the selected boards already exist. OK = OVERWRITE them with these files. Cancel = import only new boards.");
 
         var chain = Promise.resolve();
         parsed.forEach(function (p, i) {
           chain = chain.then(function () {
             var b = p.data, want = rowsOf(b);
-            if (existing[b.id]) { report.push("SKIP " + b.id + " (already exists)"); return; }
+            if (existing[b.id] && !overwrite) { report.push("SKIP " + b.id + " (already exists)"); return; }
             btn.textContent = "Importing " + (i + 1) + "/" + parsed.length + "...";
             return fetch(W + "/boards-save", { method: "POST", headers: H, body: JSON.stringify({ board: b }) })
               .then(function (r) {
