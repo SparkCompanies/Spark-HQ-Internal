@@ -3736,6 +3736,48 @@ function TextCell({
 }
 
 // column type catalog (the "add column" picker, Monday-style)
+const MyWork = ({ boards, meId, onOpen }) => {
+  const iso = new Date().toISOString().slice(0, 10);
+  const rows = [];
+  (boards || []).forEach(b => {
+    const dcol = (b.columns || []).find(c => c.type === 'date');
+    const scol = (b.columns || []).find(c => c.key === b.primaryStatus && c.type === 'status') || (b.columns || []).find(c => c.type === 'status');
+    (b.groups || []).forEach(g => (g.items || []).forEach(it => {
+      if (it.owner !== meId) return;
+      const d = dcol ? it[dcol.key] || null : null;
+      const so = scol && it[scol.key] != null && scol.options ? scol.options[it[scol.key]] : null;
+      const done = !!(so && /done|complete|placed|hired|closed|paid|approved/i.test(so.label || ''));
+      const bucket = done ? 3 : !d ? 2 : d < iso ? 0 : d === iso ? 1 : 2;
+      rows.push({ b, g, it, d, so, bucket });
+    }));
+  });
+  rows.sort((a, b) => (a.d || '9999') < (b.d || '9999') ? -1 : 1);
+  const SECTIONS = [['Overdue', '#E2445C'], ['Due today', '#FFC800'], ['In progress', '#579BFC'], ['Done', '#00C875']];
+  if (!rows.length) return React.createElement("div", { style: { textAlign: 'center', padding: '80px 20px', color: '#8A8A94' } },
+    React.createElement("div", { style: { fontWeight: 700, fontSize: 17, color: '#1C1C22', marginBottom: 6 } }, "Nothing assigned to you yet"),
+    "Items where you're set as the person show up here, grouped by due date.");
+  return React.createElement("div", { style: { maxWidth: 860, margin: '0 auto' } }, SECTIONS.map(([label, color], si) => {
+    const list = rows.filter(r => r.bucket === si);
+    if (!list.length) return null;
+    return React.createElement("div", { key: label, style: { marginBottom: 26 } },
+      React.createElement("div", { style: { display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 10px 2px' } },
+        React.createElement("span", { style: { width: 9, height: 9, borderRadius: 3, background: color, display: 'inline-block' } }),
+        React.createElement("span", { style: { fontWeight: 800, fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase', color: '#55555E' } }, label),
+        React.createElement("span", { style: { fontSize: 12, color: '#9A9AA2', fontWeight: 700 } }, list.length)),
+      list.map((r, i) => React.createElement("div", {
+        key: i, onClick: () => onOpen(r.b.id),
+        style: { display: 'flex', alignItems: 'center', gap: 12, background: '#fff', border: '1px solid #ECECF0', borderLeft: '3px solid ' + color, borderRadius: 10, padding: '11px 14px', marginBottom: 8, cursor: 'pointer' }
+      },
+        React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+          React.createElement("div", { style: { fontWeight: 700, fontSize: 14, color: '#1C1C22', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, r.it.name),
+          React.createElement("div", { style: { fontSize: 12, color: '#8A8A94', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 } },
+            React.createElement("span", { style: { width: 7, height: 7, borderRadius: 2, background: r.b.dot || '#FFC800', display: 'inline-block' } }),
+            r.b.name, " \u00B7 ", r.g.title)),
+        r.d && React.createElement("span", { style: { fontSize: 12.5, fontWeight: 600, color: si === 0 ? '#E2445C' : '#55555E', whiteSpace: 'nowrap' } }, r.d),
+        r.so && React.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: '#fff', background: r.so.color || '#C4C4C4', borderRadius: 6, padding: '3px 10px', whiteSpace: 'nowrap' } }, r.so.label))));
+  }));
+};
+
 const COLUMN_TYPES = [{
   type: 'status',
   label: 'Status',
@@ -9929,11 +9971,13 @@ function App() {
     })
   })), !query && route.page === 'work' && /*#__PURE__*/React.createElement("div", {
     className: "content"
-  }, /*#__PURE__*/React.createElement(Scaffold, {
-    icon: Ic.work,
-    title: "My Work",
-    desc: "Every item assigned to you across all boards, grouped into Overdue, Due Today, In Progress, and Done — the same aggregation the dashboard already computes, in a focused personal list.",
-    bullet: "Next iteration"
+  }, /*#__PURE__*/React.createElement(MyWork, {
+    boards: visible,
+    meId: me.id,
+    onOpen: id => setRoute({
+      page: 'board',
+      id
+    })
   })), !query && route.page === 'templates' && /*#__PURE__*/React.createElement("div", {
     className: "content"
   }, /*#__PURE__*/React.createElement(Templates, {
