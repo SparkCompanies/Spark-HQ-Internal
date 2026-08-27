@@ -4846,6 +4846,39 @@ function SidebarBoardRow({
     className: "menu-item",
     onClick: () => {
       setMenu(false);
+      try {
+        const clean = JSON.parse(JSON.stringify(b));
+        delete clean.__rev;
+        const url = URL.createObjectURL(new Blob([JSON.stringify(clean, null, 1)], { type: 'application/json' }));
+        const a2 = document.createElement('a');
+        a2.href = url;
+        a2.download = 'sparkboard-' + b.id + '.json';
+        document.body.appendChild(a2);
+        a2.click();
+        document.body.removeChild(a2);
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+      } catch (e) {
+        alert('Export failed: ' + (e && e.message || e));
+      }
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.9",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: { width: 15, height: 15 }
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 3v12"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M7 11l5 5 5-5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M4 20h16"
+  })), "Export JSON (backup)"), /*#__PURE__*/React.createElement("button", {
+    className: "menu-item",
+    onClick: () => {
+      setMenu(false);
       onHistory && onHistory();
     }
   }, /*#__PURE__*/React.createElement("svg", {
