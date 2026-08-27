@@ -649,7 +649,7 @@ var worker_default = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(we)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
       const d = new Date(we + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 5);
       const checkDate = (d.getUTCMonth() + 1) + "-" + d.getUTCDate() + "-" + d.getUTCFullYear() + " Check Date";
-      const out = { version: "preview-v35-git", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
+      const out = { version: "preview-v36-penske-assign", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
       let token;
       try { token = await getGraphToken(env); } catch (e) { out.tokenError = String(e.message || e); return json(out, 200, origin); }
       const H = { Authorization: "Bearer " + token, Accept: "application/json" };
@@ -784,6 +784,11 @@ var worker_default = {
       }
       out.penske.intakeRowsPreview = penskeRows;
       out.penske.flagged = out.penske.matching.filter((x) => x.status !== "matched");
+      const _pMatched = {};
+      penskeRows.forEach((r) => { _pMatched[r.worker] = 1; });
+      const _pPOs = [...new Set(penskeRaw.map((r) => String(r.po || "").trim()).filter(Boolean))];
+      out.rosters.penske_pos = _pPOs;
+      if (penskeRaw.length) penskePool.forEach((c) => { if (!_pMatched[c.name]) out.needsReview.push({ client: "penske", docName: c.name, nearest: null, score: 0, kind: "missing_split", pos: _pPOs }); });
       const paslinPool = roster["the paslin company"] || [];
       out.rosters.paslin = paslinPool.map((c) => c.name);
       out.paslin.rosterSize = paslinPool.length;
@@ -2723,6 +2728,29 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/fin-penske-assign" && request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    }
+    if (url.pathname === "/fin-penske-assign" && request.method === "POST") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let body; try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+      const we = String(body.weekEnding || "").slice(0, 10);
+      const worker = String(body.worker || "").slice(0, 120);
+      const po = String(body.po || "").slice(0, 60);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(we) || !worker || !po) return json({ error: "weekEnding, worker, po required" }, 400, origin);
+      try {
+        const cur = await sbService(env, "GET", "fin_weekly_intake?week_ending=eq." + encodeURIComponent(we) + "&kind=eq.penske&select=rows");
+        const rows = cur.ok && cur.data && cur.data[0] && Array.isArray(cur.data[0].rows) ? cur.data[0].rows : [];
+        const nzl = (x) => String(x || "").replace(/\s+/g, " ").trim().toLowerCase();
+        const next = rows.filter((r) => nzl(r.worker) !== nzl(worker));
+        next.push({ worker, po, reg: 0 });
+        const up = await sbService(env, "POST", "fin_weekly_intake?on_conflict=week_ending,kind", { week_ending: we, kind: "penske", rows: next });
+        if (!up.ok) return json({ error: "save failed: " + JSON.stringify(up.data).slice(0, 200) }, 502, origin);
+        console.log("PENSKE-ASSIGN by " + who.email + ": " + worker + " -> " + po + " (" + we + ")");
+        return json({ ok: true, worker, po }, 200, origin);
+      } catch (e) { return json({ error: String(e.message || e) }, 502, origin); }
+    }
     if (url.pathname === "/fin-aliases-save" && request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
@@ -4512,7 +4540,7 @@ var worker_default = {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       try {
-        const res = await sbService(env, "GET", "spark_boards?select=id,data,visibility,owner,members,updated_at&order=created_at.asc");
+        const res = await sbService(env, "GET", "spark_boards?select=id,data,visibility,owner,members&order=created_at.asc");
         if (!res.ok) return json({ error: "load failed: " + JSON.stringify(res.data).slice(0, 200) }, 502, origin);
         let role = "member";
         try {
@@ -4526,7 +4554,7 @@ var worker_default = {
           if (isAdmin) return true;
           if (b.owner === who.email) return true;
           return Array.isArray(b.members) && b.members.indexOf(who.email) !== -1;
-        }).map((b) => { if (b.data) b.data.__rev = b.updated_at || null; return b.data; }).filter(Boolean);
+        }).map((b) => b.data).filter(Boolean);
         return json({ ok: true, count: boards.length, boards }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
@@ -4554,85 +4582,9 @@ var worker_default = {
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       };
       try {
-        const baseRev = body.baseRev || (b && b.__rev) || null;
-        if (b && b.__rev) delete b.__rev;
-        const cur = await sbService(env, "GET", "spark_boards?select=updated_at,updated_by,data&id=eq." + encodeURIComponent(row.id) + "&limit=1");
-        const prev = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
-        if (prev && baseRev && !body.force && prev.updated_at && prev.updated_at !== baseRev) {
-          return json({ error: "conflict", conflict: true, updated_at: prev.updated_at, updated_by: prev.updated_by || "" }, 409, origin);
-        }
-        if (prev && prev.data) {
-          try {
-            await sbService(env, "POST", "spark_boards_versions", { board_id: row.id, saved_by: who.email, data: prev.data });
-            const old = await sbService(env, "GET", "spark_boards_versions?select=id&board_id=eq." + encodeURIComponent(row.id) + "&order=saved_at.desc&offset=10");
-            if (old.ok && old.data && old.data.length) {
-              await sbService(env, "DELETE", "spark_boards_versions?id=in.(" + old.data.map((v) => v.id).join(",") + ")");
-            }
-          } catch (e) {}
-        }
         const res = await sbService(env, "POST", "spark_boards?on_conflict=id", row);
         if (!res.ok) return json({ error: "save failed: " + JSON.stringify(res.data).slice(0, 250) }, 502, origin);
-        return json({ ok: true, id: row.id, rev: row.updated_at }, 200, origin);
-      } catch (e) {
-        return json({ error: String(e.message || e) }, 502, origin);
-      }
-    }
-    if (url.pathname === "/boards-versions") {
-      const who = await verifyUser(request, env);
-      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      const bid = String(url.searchParams.get("id") || "").slice(0, 60);
-      if (!bid) return json({ error: "id required" }, 400, origin);
-      try {
-        const res = await sbService(env, "GET", "spark_boards_versions?select=id,saved_by,saved_at&board_id=eq." + encodeURIComponent(bid) + "&order=saved_at.desc&limit=10");
-        if (!res.ok) return json({ error: "versions load failed" }, 502, origin);
-        return json({ ok: true, versions: res.data || [] }, 200, origin);
-      } catch (e) {
-        return json({ error: String(e.message || e) }, 502, origin);
-      }
-    }
-    if (url.pathname === "/boards-restore" && request.method === "POST") {
-      const who = await verifyUser(request, env);
-      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-      let rbody;
-      try {
-        rbody = await request.json();
-      } catch (e) {
-        return json({ error: "bad json" }, 400, origin);
-      }
-      const bid = String(rbody.board_id || "").slice(0, 60);
-      const vid = parseInt(rbody.version_id, 10);
-      if (!bid || !vid) return json({ error: "board_id and version_id required" }, 400, origin);
-      try {
-        const cur = await sbService(env, "GET", "spark_boards?id=eq." + encodeURIComponent(bid) + "&select=owner,data");
-        const curRow = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
-        let role = "member";
-        const pr = await sbService(env, "GET", "profiles?select=role&email=eq." + encodeURIComponent(who.email));
-        if (pr.ok && pr.data && pr.data[0] && pr.data[0].role) role = pr.data[0].role;
-        const isAdmin = role === "admin" || role === "superadmin";
-        if (!isAdmin && (!curRow || curRow.owner !== who.email)) return json({ error: "Only the owner or an admin can restore this board." }, 403, origin);
-        const v = await sbService(env, "GET", "spark_boards_versions?id=eq." + vid + "&board_id=eq." + encodeURIComponent(bid) + "&select=data&limit=1");
-        if (!v.ok || !v.data || !v.data[0] || !v.data[0].data) return json({ error: "version not found" }, 404, origin);
-        if (curRow && curRow.data) {
-          try {
-            await sbService(env, "POST", "spark_boards_versions", { board_id: bid, saved_by: who.email + " (pre-restore)", data: curRow.data });
-          } catch (e) {}
-        }
-        const d = v.data[0].data;
-        delete d.__rev;
-        const nrow = {
-          id: bid,
-          name: String(d.name || "").slice(0, 200),
-          data: d,
-          visibility: d.visibility === "private" ? "private" : "workspace",
-          owner: d.owner || who.email,
-          members: Array.isArray(d.members) ? d.members : [],
-          updated_by: who.email,
-          updated_at: new Date().toISOString()
-        };
-        const res = await sbService(env, "POST", "spark_boards?on_conflict=id", nrow);
-        if (!res.ok) return json({ error: "restore failed" }, 502, origin);
-        console.log("BOARDS-RESTORE by " + who.email + ": " + bid + " v" + vid);
-        return json({ ok: true, id: bid, rev: nrow.updated_at }, 200, origin);
+        return json({ ok: true, id: row.id }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
