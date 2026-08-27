@@ -6789,7 +6789,7 @@ var worker_default = {
           const cr = row.credits || [];
           const a = String(pickC(cr, /account|sales|full/, 0) || "").trim();
           const r = String(pickC(cr, /recruit|full/, 1) || "").trim();
-          const addB = (n, bk) => { if (isHse(n)) return; const p = ppl[n] || (ppl[n] = { sales: 0, fd: 0, rec: 0, tt: 0 }); p[bk] += row.charge; p.tt += row.charge; };
+          const addB = (n, bk) => { if (!n) return; if (isHse(n)) n = "House Account"; const p = ppl[n] || (ppl[n] = { sales: 0, fd: 0, rec: 0, tt: 0 }); p[bk] += row.charge; p.tt += row.charge; };
           if (a && r && a === r) { addB(a, "fd"); return; }
           if (a) addB(a, "sales");
           if (r) addB(r, "rec");
@@ -6820,6 +6820,22 @@ var worker_default = {
               if (!row) { row = { week_ending: weekEnding, person: n, sales: 0, fd: 0, rec: 0, tt: 0, raw: null }; personRows.push(row); }
               row.sales = r2s(row.sales + p.sales); row.fd = r2s(row.fd + p.fd); row.rec = r2s(row.rec + p.rec); row.tt = r2s(row.tt + p.tt);
             });
+            // House DH credits are excluded from byPerson upstream; fold them in from
+            // the drops so the stored House Account row carries contract + DH.
+            (function () {
+              const hd = { sales: 0, fd: 0, rec: 0 };
+              const isHx = (x) => !x || /^house/i.test(String(x));
+              for (const d of (dj.drops || [])) {
+                const a = Number(d.amount) || 0; if (!a) continue;
+                const sH = isHx(d.sales_rep), rH = isHx(d.recruiter);
+                if (sH && rH) hd.fd += a; else if (sH) hd.sales += a; else if (rH) hd.rec += a;
+              }
+              if (hd.sales || hd.fd || hd.rec) {
+                let row = personRows.find((x) => x.person === "House Account");
+                if (!row) { row = { week_ending: weekEnding, person: "House Account", sales: 0, fd: 0, rec: 0, tt: 0, raw: null }; personRows.push(row); }
+                row.sales = r2s(row.sales + hd.sales); row.fd = r2s(row.fd + hd.fd); row.rec = r2s(row.rec + hd.rec); row.tt = r2s(row.tt + hd.sales + hd.fd + hd.rec);
+              }
+            })();
             // advance paid counters for dropped schedules
             for (const d of (dj.drops || [])) {
               if (!d || d.id == null) continue;
