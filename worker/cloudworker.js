@@ -6780,16 +6780,19 @@ var worker_default = {
         const unitRows = [];
         ((b.rollups && b.rollups.byEntity) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
         ((b.rollups && b.rollups.byBU) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
-        const bucket = (t) => { t = String(t || "").toLowerCase(); if (t.indexOf("full") !== -1) return "fd"; if (t.indexOf("recruit") !== -1) return "rec"; if (t.indexOf("account") !== -1 || t.indexOf("sales") !== -1) return "sales"; return null; };
+        // Same normalization as the live client: one AM + one Recruiter per row via the
+        // Contract tab's extraction; same-person pair = Full Desk only. Raw-neutral.
+        const isHse = (x) => !x || /^house/i.test(String(x));
+        const pickC = (cr, re, fb) => { for (let i = 0; i < cr.length; i++) { const t = String(cr[i].type || "").toLowerCase(); if (re.test(t)) return cr[i].recipient || ""; } return (cr[fb] ? cr[fb].recipient : "") || ""; };
         const ppl = {};
         (b.rows || []).forEach((row) => {
-          const seen = {};
-          (row.credits || []).forEach((c) => {
-            const n = c.recipient; if (!n) return;
-            const p = ppl[n] || (ppl[n] = { sales: 0, fd: 0, rec: 0, tt: 0 });
-            if (!seen[n]) { p.tt += row.charge; seen[n] = 1; }
-            const bk = bucket(c.type); if (bk) p[bk] += row.charge;
-          });
+          const cr = row.credits || [];
+          const a = String(pickC(cr, /account|sales|full/, 0) || "").trim();
+          const r = String(pickC(cr, /recruit|full/, 1) || "").trim();
+          const addB = (n, bk) => { if (isHse(n)) return; const p = ppl[n] || (ppl[n] = { sales: 0, fd: 0, rec: 0, tt: 0 }); p[bk] += row.charge; p.tt += row.charge; };
+          if (a && r && a === r) { addB(a, "fd"); return; }
+          if (a) addB(a, "sales");
+          if (r) addB(r, "rec");
         });
         const personRows = Object.keys(ppl).map((n) => ({ week_ending: weekEnding, person: n, sales: r2s(ppl[n].sales), fd: r2s(ppl[n].fd), rec: r2s(ppl[n].rec), tt: r2s(ppl[n].tt), raw: null }));
         // merge DH drops into the freeze (self-fetch dh-batch)
