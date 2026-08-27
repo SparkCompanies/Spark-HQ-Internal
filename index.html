@@ -6779,9 +6779,11 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 
         <div id="finReviewPanel" style="display:none"></div>
 
+        <input id="finSearch" placeholder="Search client, reference, entity..." oninput="finFilterRows()" style="width:100%;margin:0 0 10px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:transparent;color:inherit;font:400 13px 'Space Grotesk',sans-serif">
+
         <div class="fin-tblwrap">
           <table class="fin-tbl">
-            <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="finSelAll" title="Select all" style="accent-color:#FFC800;cursor:pointer"></th><th>Client</th><th>Reference</th><th class="r">Contractors</th><th class="r">Hours</th><th class="r">Amount</th><th class="r">Due</th><th class="r">Status</th></tr></thead>
+            <thead><tr><th style="width:34px;text-align:center"><input type="checkbox" id="finSelAll" title="Select all" style="accent-color:#FFC800;cursor:pointer"></th><th onclick="finSortBy(1)" style="cursor:pointer" title="Click to sort">Client &#8597;</th><th onclick="finSortBy(2)" style="cursor:pointer" title="Click to sort">Reference &#8597;</th><th class="r" onclick="finSortBy(3)" style="cursor:pointer" title="Click to sort">Contractors &#8597;</th><th class="r" onclick="finSortBy(4)" style="cursor:pointer" title="Click to sort">Hours &#8597;</th><th class="r" onclick="finSortBy(5)" style="cursor:pointer" title="Click to sort">Amount &#8597;</th><th class="r">Due</th><th class="r">Status</th></tr></thead>
             <tbody id="finRows"></tbody>
           </table>
         </div>
@@ -11357,6 +11359,36 @@ window.FINRULES = (function () {
     window.SPARK_SB.getToken().then(function(tok){ return fetch(RP_WORKER+'/inv-approvals-save', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body:JSON.stringify({ week:(FIN_MODE==='dh'?FIN_WEEK_DH():FIN_WEEK()), invoiceKey:key, xeroId:(d&&d.invoiceID)||'', xeroNum:(d&&d.invoiceNumber)||'', xeroOrg:(d&&d.org)||'' }) }); })
       .catch(function(){}); }
   function FIN_ADAPT(d){ if(!d || !d.ok) return d; if(d.invoices) return d; var invoices = (d.ready||[]).map(function(inv){ return { client: inv.client, entity: inv.entity, reference: inv.reference, emp: inv.employees, lines: (inv.lines||[]).map(function(l){ return [l.desc, l.hours, l.rate, l.amount]; }), subtotal: inv.subtotal, dueDate: inv.dueDate, dueDateISO: (inv.dueDateISO || (function(){ var _p=String(inv.dueDate||'').split('/'); return _p.length===3 ? (_p[2]+'-'+_p[0]+'-'+_p[1]) : ''; })()), invDate: inv.invDate, account: inv.account, tax: inv.tax, flags: inv.flags||[], consolidatedFrom: inv.consolidatedFrom||null, invDateISO: (d.summary && d.summary.weekEndingRaw) || '' }; }); invoices.forEach(function(_iv){ _iv.reference = finShortRef(_iv.reference, (d.summary && d.summary.weekEndingRaw) || _iv.invDateISO || ''); }); return { ok:true, invoices: invoices, held: d.held||[], summary: { weekEnding: (d.summary && d.summary.weekEnding) || '', weekEndingRaw: (d.summary && d.summary.weekEndingRaw) || '', invoices: invoices.length, total: (d.summary && d.summary.readyTotal) || 0, employees: invoices.reduce(function(s,iv){ return s + (iv.emp||0); }, 0), entities: (function(){ var seen={},out=[]; invoices.forEach(function(iv){ var e=iv.entity||''; if(e&&!seen[e]){ seen[e]=1; out.push(e); } }); return out; })(), hours: invoices.reduce(function(s,iv){ return s + (iv.lines||[]).reduce(function(h,l){ return h + (Number(l[1])||0); }, 0); }, 0), held: (d.held||[]).length } }; }
+  window.finAssignPO = function(ri, po){
+    var it = (window.FIN_REVIEW||[])[ri]; if(!it) return;
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch(RP_WORKER+'/fin-penske-assign', { method:'POST', headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}, body: JSON.stringify({ weekEnding: FIN_WEEK(), worker: it.docName, po: po }) }).then(function(r){ return r.json(); });
+    }).then(function(d){
+      if(!d || d.error){ alert('Assign failed: '+((d&&d.error)||'unknown')); return; }
+      window.FIN_REVIEW = (window.FIN_REVIEW||[]).filter(function(x,i){ return i!==ri; });
+      window.finRenderReview();
+      if(typeof finLoad==='function') finLoad();
+    }).catch(function(e){ alert('Assign error: '+e); });
+  };
+  window.finFilterRows = function(){
+    var q = ((document.getElementById('finSearch')||{}).value||'').toLowerCase();
+    var trs = document.querySelectorAll('#finRows tr');
+    for (var i=0;i<trs.length;i++){ trs[i].style.display = (!q || trs[i].textContent.toLowerCase().indexOf(q)!==-1) ? '' : 'none'; }
+  };
+  window.FIN_SORT = { col:-1, dir:1 };
+  window.finSortBy = function(ci){
+    var tb = document.getElementById('finRows'); if(!tb) return;
+    if(window.FIN_SORT.col===ci) window.FIN_SORT.dir*=-1; else { window.FIN_SORT.col=ci; window.FIN_SORT.dir=1; }
+    var dir = window.FIN_SORT.dir;
+    var rows = Array.prototype.slice.call(tb.querySelectorAll('tr'));
+    rows.sort(function(a,b){
+      var x=(a.cells&&a.cells[ci]?a.cells[ci].textContent:'').trim(), y=(b.cells&&b.cells[ci]?b.cells[ci].textContent:'').trim();
+      var nx=parseFloat(x.replace(/[$,]/g,'')), ny=parseFloat(y.replace(/[$,]/g,''));
+      if(isFinite(nx)&&isFinite(ny)) return (nx-ny)*dir;
+      return x.localeCompare(y)*dir;
+    });
+    for (var j=0;j<rows.length;j++) tb.appendChild(rows[j]);
+  };
   window.finResolve = function(ri, action, sf){
     var items = window.FIN_REVIEW || []; var it = items[ri]; if(!it) return;
     window.SPARK_SB.getToken().then(function(tok){
@@ -11379,6 +11411,16 @@ window.FINRULES = (function () {
     h += '<div style=\"font-size:11px;color:#9aa;margin-bottom:8px\">Names the matcher was not sure about \u2014 pick a fix and it is saved and auto-applied next week.</div>';
     items.forEach(function(it, idx){
       var cl = LBL[it.client] || it.client; var roster = rosters[it.client] || [];
+      if(it.kind==='missing_split'){
+        var popts = (it.pos||[]).map(function(p){ return '<option value=\"'+esc(p)+'\">'+esc(p)+'</option>'; }).join('') + '<option value=\"__custom\">Other PO\u2026</option>';
+        h += '<div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,0.08)\">';
+        h += '<span style=\"font-size:13px\"><b>'+esc(cl)+'</b> \u00b7 <b>&quot;'+esc(it.docName)+'&quot;</b> has Salesforce hours but is not on this week\u2019s split</span>';
+        h += '<span style=\"flex:1\"></span>';
+        h += '<select data-pick=\"'+idx+'\" style=\"font-size:12px;padding:5px;border-radius:6px\">'+popts+'</select>';
+        h += '<button class=\"fin-btn\" data-ri=\"'+idx+'\" data-act=\"assignpo\">Assign PO</button>';
+        h += '</div>';
+        return;
+      }
       var opts = '<option value=\"\">pick someone else\u2026</option>' + roster.map(function(n){ return '<option value=\"'+esc(n)+'\">'+esc(n)+'</option>'; }).join('');
       h += '<div style=\"display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,0.08)\">';
       h += '<span style=\"font-size:13px\"><b>'+esc(cl)+'</b> \u00b7 sheet name <b>&quot;'+esc(it.docName)+'&quot;</b>'+(it.nearest?(' \u00b7 closest <b>'+esc(it.nearest)+'</b> ('+Math.round((it.score||0)*100)+'%)'):'')+'</span>';
@@ -11395,6 +11437,7 @@ window.FINRULES = (function () {
     el.onclick = function(ev){
       var b = (ev.target && ev.target.closest) ? ev.target.closest('button[data-act]') : null; if(!b) return;
       var ri = Number(b.getAttribute('data-ri')); var act = b.getAttribute('data-act'); var sf = b.getAttribute('data-sf') || null;
+      if(act==='assignpo'){ var s2 = el.querySelector('select[data-pick=\"'+ri+'\"]'); var po = s2 && s2.value; if(!po) return; if(po==='__custom'){ po = (window.prompt('Enter the PO exactly as Penske wrote it (e.g. POR 051660):')||'').trim(); if(!po) return; } window.finAssignPO(ri, po); return; }
       if(act==='pick'){ var sel = el.querySelector('select[data-pick=\"'+ri+'\"]'); sf = (sel && sel.value) ? sel.value : null; if(!sf) return; act='matched'; }
       window.finResolve(ri, act, sf);
     };
