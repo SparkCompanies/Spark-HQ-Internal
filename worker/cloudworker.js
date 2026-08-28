@@ -4536,6 +4536,26 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    /* ---- sbAccess: who may see which boards ---- */
+    const MEMBER_BOARDS = ["b1"];
+    const MANAGER_SEES_ALL = true;
+    const sbRoleOf = async (email) => {
+      try {
+        const r = await sbService(env, "GET", "profiles?select=role&email=eq." + encodeURIComponent(email));
+        if (r.ok && r.data && r.data[0] && r.data[0].role) return String(r.data[0].role).toLowerCase();
+      } catch (e) {}
+      return "member";
+    };
+    const sbSeesAll = (role) => role === "admin" || role === "superadmin" || (MANAGER_SEES_ALL && role === "manager");
+    const sbAccess = (board, email, role) => {
+      if (board.visibility === "private") {
+        /* an explicit share always wins, whatever the role */
+        const onIt = Array.isArray(board.members) && board.members.indexOf(email) !== -1;
+        return board.owner === email || onIt;
+      }
+      if (!sbSeesAll(role) && MEMBER_BOARDS.indexOf(String(board.id)) === -1) return false;
+      return true;
+    };
     if (url.pathname === "/boards-load") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -4548,13 +4568,7 @@ var worker_default = {
           if (pr.ok && pr.data && pr.data[0] && pr.data[0].role) role = pr.data[0].role;
         } catch (e) {
         }
-        const isAdmin = role === "admin" || role === "superadmin";
-        const boards = (res.data || []).filter((b) => {
-          if (b.visibility !== "private") return true;
-          if (isAdmin) return true;
-          if (b.owner === who.email) return true;
-          return Array.isArray(b.members) && b.members.indexOf(who.email) !== -1;
-        }).map((b) => { if (b.data) b.data.__rev = b.updated_at || null; return b.data; }).filter(Boolean);
+        const boards = (res.data || []).filter((b) => sbAccess(b, who.email, role)).map((b) => { if (b.data) b.data.__rev = b.updated_at || null; return b.data; }).filter(Boolean);
         return json({ ok: true, count: boards.length, role, boards }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
@@ -4586,16 +4600,10 @@ var worker_default = {
         if (b && b.__rev) delete b.__rev;
         const cur = await sbService(env, "GET", "spark_boards?select=updated_at,updated_by,data,visibility,owner,members&id=eq." + encodeURIComponent(row.id) + "&limit=1");
         const prev = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
-        if (prev && prev.visibility === "private") {
-          let prole = "member";
-          try {
-            const pr2 = await sbService(env, "GET", "profiles?select=role&email=eq." + encodeURIComponent(who.email));
-            if (pr2.ok && pr2.data && pr2.data[0] && pr2.data[0].role) prole = pr2.data[0].role;
-          } catch (e) {}
-          const padmin = prole === "admin" || prole === "superadmin";
-          const onIt = Array.isArray(prev.members) && prev.members.indexOf(who.email) !== -1;
-          if (!padmin && prev.owner !== who.email && !onIt) {
-            return json({ error: "You do not have access to this private board." }, 403, origin);
+        if (prev) {
+          const srole = await sbRoleOf(who.email);
+          if (!sbAccess({ id: row.id, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, srole)) {
+            return json({ error: "You do not have access to this board." }, 403, origin);
           }
         }
         if (prev && baseRev && !body.force && prev.updated_at && prev.updated_at !== baseRev) {
@@ -4634,16 +4642,10 @@ var worker_default = {
         const cur = await sbService(env, "GET", "spark_boards?select=data,visibility,owner,members,updated_at,updated_by&id=eq." + encodeURIComponent(pid) + "&limit=1");
         const prev = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
-        if (prev.visibility === "private") {
-          let prole = "member";
-          try {
-            const pr3 = await sbService(env, "GET", "profiles?select=role&email=eq." + encodeURIComponent(who.email));
-            if (pr3.ok && pr3.data && pr3.data[0] && pr3.data[0].role) prole = pr3.data[0].role;
-          } catch (e) {}
-          const padmin2 = prole === "admin" || prole === "superadmin";
-          const onIt2 = Array.isArray(prev.members) && prev.members.indexOf(who.email) !== -1;
-          if (!padmin2 && prev.owner !== who.email && !onIt2) {
-            return json({ error: "You do not have access to this private board." }, 403, origin);
+        {
+          const prole2 = await sbRoleOf(who.email);
+          if (!sbAccess({ id: pid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, prole2)) {
+            return json({ error: "You do not have access to this board." }, 403, origin);
           }
         }
         const data = prev.data;
@@ -4766,6 +4768,12 @@ var worker_default = {
       }
     }
     if (url.pathname === "/boards-delete" && request.method === "POST") {
+      {
+        const dwho = await verifyUser(request, env);
+        if (!dwho.ok) return json({ error: dwho.reason || "Unauthorized" }, 401, origin);
+        const drole = await sbRoleOf(dwho.email);
+        if (!sbSeesAll(drole)) return json({ error: "You do not have access to delete boards." }, 403, origin);
+      }
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       let body;
