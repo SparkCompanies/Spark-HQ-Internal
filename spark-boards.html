@@ -87,6 +87,12 @@
   .sidebar.rail .nav-item{justify-content:center;padding:9px 0;font-size:0;gap:0}
   .sidebar.rail .nav-item .tg-badge{display:none}
   .sidebar.rail .sb-hdr{padding:2px 0 8px;justify-content:center}
+  /* rail-fix: nothing but the nav icons survives collapse */
+  .sidebar.rail{overflow:hidden}
+  .sidebar.rail .board-row,.sidebar.rail .fold-head,.sidebar.rail .fold-kids,
+  .sidebar.rail .ws-menu,.sidebar.rail .sb-empty,.sidebar.rail .ws-count{display:none}
+  .sidebar.rail .side-section{overflow:hidden;white-space:nowrap}
+  .sidebar.rail .nav-item svg{opacity:1}
 
   /* Topbar */
   .topbar{height:60px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 22px}
