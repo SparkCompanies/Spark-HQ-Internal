@@ -745,9 +745,9 @@ const API = {
 };
 // Writes are POST-only (spark-hq-worker CORS) and save the whole board as JSON.
 const Persist = {
-  board(b) {
+  board(b, trusted) {
     if (!LIVE || !b) return;
-    if (typeof window !== 'undefined' && window.__sbNoSave) {
+    if (!trusted && typeof window !== 'undefined' && window.__sbNoSave) {
       sbFlash('Clear the search box before editing. Changes are not saved while filtered.');
       return;
     }
@@ -782,10 +782,6 @@ const Persist = {
   _q: Promise.resolve(),
   cell(b, ops, activity) {
     if (!LIVE || !b || !ops || !ops.length) return;
-    if (typeof window !== 'undefined' && window.__sbNoSave) {
-      sbFlash('Clear the search box before editing. Changes are not saved while filtered.');
-      return;
-    }
     const post = force => API.call('/boards-patch', {
       method: 'POST',
       body: JSON.stringify({
@@ -5424,14 +5420,20 @@ function BoardTrash({
 }
 function TableView({
   board,
+  fullBoard,
+  filtered,
   update,
-  canEdit,
+  canEdit: canEditRaw,
   onOpenItem,
   onAutomation,
   personFilter,
   sel,
   setSel
 }) {
+  /* cells stay editable while filtered; everything structural does not */
+  const cellEdit = canEditRaw;
+  const canEdit = canEditRaw && !filtered;
+  const baseBoard = fullBoard || board;
   const [collapsed, setCollapsed] = useState({});
   const pcol = primaryCol(board);
   const matchPF = it => !personFilter || personFilter.length === 0 || personFilter.some(f => String(it[f.key]) === String(f.val));
@@ -5450,9 +5452,15 @@ function TableView({
     Persist.board(nb);
   };
   const setItem = (gi, ii, key, val) => {
-    const nb = structuredClone(board);
     const col = board.columns.find(c => c.key === key);
-    const it = nb.groups[gi].items[ii];
+    const ref = ((board.groups[gi] || {}).items || [])[ii];
+    if (!ref) return;
+    const nb = structuredClone(baseBoard);
+    let it = null;
+    nb.groups.forEach(g => (g.items || []).forEach(x => {
+      if (x.id === ref.id) it = x;
+    }));
+    if (!it) return;
     const old = it[key];
     it[key] = val;
     if (key !== 'name' && String(old) !== String(val)) logAct(nb, {
@@ -5470,7 +5478,7 @@ function TableView({
     if (col && col.type === 'status') notes = runAutomations(nb, it, key);
     const _ev = nb.activity && nb.activity[0] && nb.activity[0].kind === 'cell' && nb.activity[0].itemId === it.id && nb.activity[0].col === key ? [nb.activity[0]] : [];
     update(() => nb);
-    if (notes.length) Persist.board(nb);else Persist.cell(nb, [{
+    if (notes.length) Persist.board(nb, true);else Persist.cell(nb, [{
       itemId: it.id,
       key: key,
       val: val,
@@ -6073,7 +6081,7 @@ function TableView({
       }, c.type === 'status' && /*#__PURE__*/React.createElement(StatusCell, {
         value: it[c.key],
         options: c.options,
-        canEdit: canEdit,
+        canEdit: cellEdit,
         onChange: v => setItem(gi, ii, c.key, v),
         onEditOptions: next => setColumnOptions(c.key, next),
         onDeleteOption: idx => deleteColumnOption(c.key, idx)
@@ -7907,6 +7915,8 @@ function SFNameCell({ value, onPick, onText }) {
 }
 function BoardView({
   board,
+  fullBoard,
+  filtered,
   update,
   canEdit,
   onOpenItem,
@@ -8072,6 +8082,8 @@ function BoardView({
     className: "content" + (canEdit ? '' : ' readonly') + (view === 'table' ? ' no-scroll' : '')
   }, view === 'table' && /*#__PURE__*/React.createElement(TableView, {
     board: board,
+    fullBoard: fullBoard,
+    filtered: filtered,
     update: update,
     canEdit: canEdit,
     onOpenItem: onOpenItem,
@@ -10696,8 +10708,10 @@ function App() {
     onPurge: purgeBoard
   })), route.page === 'board' && activeBoard && /*#__PURE__*/React.createElement(BoardView, {
     board: filterBoardRows(activeBoard, query),
+    fullBoard: activeBoard,
+    filtered: !!query,
     update: fn => updateBoard(activeBoard.id, fn),
-    canEdit: canEdit && !query,
+    canEdit: canEdit,
     onOpenItem: (gid, iid) => setDrawer({
       boardId: activeBoard.id,
       itemId: iid
