@@ -68,6 +68,25 @@
   .user-chip:hover{background:var(--sidebar-2)}
   .new-board-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:8px 0 4px;padding:9px;border-radius:8px;background:var(--gold);color:#1A1407;font-weight:600;font-size:13.5px}
   .new-board-btn:hover{background:#E0B654}
+  .sb-hdr{display:flex;align-items:center;gap:6px;padding:2px 12px 8px}
+  .sb-search{flex:1;display:flex;align-items:center;gap:7px;background:var(--sidebar-2);border:1px solid transparent;border-radius:8px;padding:6px 9px;transition:border-color .12s}
+  .sb-search:focus-within{border-color:var(--gold)}
+  .sb-search svg{width:14px;height:14px;flex-shrink:0;opacity:.55}
+  .sb-search input{flex:1;min-width:0;background:none;border:0;outline:none;color:#E8E9EE;font-size:13px;font-family:inherit}
+  .sb-search input::placeholder{color:#7A7C88}
+  .sb-iconbtn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex-shrink:0;border-radius:7px;background:none;border:0;color:#8A8C97;cursor:pointer}
+  .sb-iconbtn:hover{background:var(--sidebar-2);color:#fff}
+  .sb-iconbtn svg{width:16px;height:16px}
+  .board-glyph{width:16px;height:16px;flex-shrink:0;opacity:.9}
+  .sb-empty{color:#7A7C88;font-size:12.5px;padding:10px 12px}
+  .sidebar.rail{width:62px}
+  .sidebar.rail .brand-name,.sidebar.rail .sb-search,.sidebar.rail .side-label,.sidebar.rail .ws-head,
+  .sidebar.rail .board-row-wrap,.sidebar.rail .new-board-btn,.sidebar.rail .side-foot,.sidebar.rail .board-row span{display:none}
+  .sidebar.rail .brand{padding:18px 0 16px;justify-content:center}
+  .sidebar.rail .side-section{padding:6px 8px}
+  .sidebar.rail .nav-item{justify-content:center;padding:9px 0;font-size:0;gap:0}
+  .sidebar.rail .nav-item .tg-badge{display:none}
+  .sidebar.rail .sb-hdr{padding:2px 0 8px;justify-content:center}
 
   /* Topbar */
   .topbar{height:60px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 22px}
@@ -712,6 +731,30 @@ const Persist = {
 
 /* ---------------- Icons (inline SVG, no emoji) ---------------- */
 const Ic = {
+  boardGlyph: p => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8",
+    strokeLinecap: "round", strokeLinejoin: "round", ...p
+  }, /*#__PURE__*/React.createElement("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
+     /*#__PURE__*/React.createElement("path", { d: "M3 9.5h18" }),
+     /*#__PURE__*/React.createElement("path", { d: "M9 9.5V20" })),
+  boardLock: p => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8",
+    strokeLinecap: "round", strokeLinejoin: "round", ...p
+  }, /*#__PURE__*/React.createElement("path", { d: "M3 9.5h11" }),
+     /*#__PURE__*/React.createElement("path", { d: "M9 9.5V20" }),
+     /*#__PURE__*/React.createElement("path", { d: "M21 11V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9" }),
+     /*#__PURE__*/React.createElement("rect", { x: "16", y: "14", width: "7", height: "6", rx: "1.2" }),
+     /*#__PURE__*/React.createElement("path", { d: "M17.8 14v-1.4a1.7 1.7 0 0 1 3.4 0V14" })),
+  sbSearch: p => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2",
+    strokeLinecap: "round", strokeLinejoin: "round", ...p
+  }, /*#__PURE__*/React.createElement("circle", { cx: "11", cy: "11", r: "7" }),
+     /*#__PURE__*/React.createElement("path", { d: "m20 20-3.6-3.6" })),
+  chevrons: p => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2",
+    strokeLinecap: "round", strokeLinejoin: "round", ...p
+  }, /*#__PURE__*/React.createElement("path", { d: "m11 17-5-5 5-5" }),
+     /*#__PURE__*/React.createElement("path", { d: "m18 17-5-5 5-5" })),
   home: p => /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 24 24",
     fill: "none",
@@ -4807,10 +4850,10 @@ function SidebarBoardRow({
   }, /*#__PURE__*/React.createElement("button", {
     className: "board-row" + (active ? ' active' : ''),
     onClick: onOpen
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "board-dot",
+  }, /*#__PURE__*/React.createElement(b.visibility === 'private' ? Ic.boardLock : Ic.boardGlyph, {
+    className: "board-glyph",
     style: {
-      background: b.dot
+      color: b.dot || '#9AA0AC'
     }
   }), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -4819,14 +4862,7 @@ function SidebarBoardRow({
       whiteSpace: 'nowrap',
       flex: 1
     }
-  }, b.name), b.visibility === 'private' && /*#__PURE__*/React.createElement(Ic.lock, {
-    style: {
-      width: 12,
-      height: 12,
-      opacity: .6,
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", {
+  }, b.name), /*#__PURE__*/React.createElement("span", {
     className: "star" + (b.fav ? ' on' : ''),
     onClick: e => {
       e.stopPropagation();
@@ -4956,13 +4992,14 @@ const WS_DEFAULT = 'Main workspace';
 const wsOf = b => (b.ws && String(b.ws).trim()) || WS_DEFAULT;
 function wsColGet() { try { return JSON.parse(localStorage.spark_sb_ws_collapse || '{}'); } catch (e) { return {}; } }
 function wsColSet(m) { try { localStorage.spark_sb_ws_collapse = JSON.stringify(m); } catch (e) {} }
-function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteBoard, shareBoard, historyBoard }) {
+function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteBoard, shareBoard, historyBoard, q }) {
   const [, setTick] = useState(0);
   const groups = {};
   visible.forEach(b => { const w = wsOf(b); (groups[w] = groups[w] || []).push(b); });
   const names = Object.keys(groups).sort((a, b) => (a === WS_DEFAULT ? -1 : b === WS_DEFAULT ? 1 : a.localeCompare(b)));
   const col = wsColGet();
   const activeWs = activeBoard ? wsOf(activeBoard) : null;
+  const forceOpen = !!(typeof q === 'string' && q.trim());
   if (names.length === 1) {
     return groups[names[0]].map(b => React.createElement(SidebarBoardRow, {
       key: b.id, b: b, active: !!(activeBoard && activeBoard.id === b.id), canEdit: canEdit,
@@ -4970,7 +5007,7 @@ function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteB
     }));
   }
   return names.map(w => {
-    const open = col[w] !== undefined ? !col[w] : (w === WS_DEFAULT || w === activeWs);
+    const open = forceOpen ? true : (col[w] !== undefined ? !col[w] : (w === WS_DEFAULT || w === activeWs));
     return React.createElement(React.Fragment, { key: w },
       React.createElement('button', {
         className: 'ws-head' + (open ? ' open' : ''),
@@ -9663,6 +9700,24 @@ function App() {
   // recruiters act as a non-member identity, so private boards stay hidden from them
   const [shareBoard, setShareBoard] = useState(null);
   const [historyBoard, setHistoryBoard] = useState(null);
+  const [sideQ, setSideQ] = useState('');
+  const [rail, setRail] = useState(() => {
+    try {
+      return localStorage.spark_sb_rail === '1';
+    } catch (e) {
+      return false;
+    }
+  });
+  const toggleRail = () => setRail(r => {
+    try {
+      localStorage.spark_sb_rail = r ? '0' : '1';
+    } catch (e) {}
+    return !r;
+  });
+  const sideMatch = b => {
+    const s = sideQ.trim().toLowerCase();
+    return !s || String(b.name || '').toLowerCase().indexOf(s) !== -1;
+  };
   const actingId = role === 'viewer' ? '_recruiter' : me.id;
   const visible = boards.filter(b => !b.deletedAt && canSeeBoard(b, actingId, role, me.email));
   const deletedBoards = boards.filter(b => b.deletedAt);
@@ -9821,12 +9876,34 @@ function App() {
   return /*#__PURE__*/React.createElement("div", {
     className: "app"
   }, /*#__PURE__*/React.createElement("aside", {
-    className: "sidebar"
+    className: "sidebar" + (rail ? ' rail' : '')
   }, /*#__PURE__*/React.createElement("div", {
     className: "brand"
   }, /*#__PURE__*/React.createElement(SparkMark, null), /*#__PURE__*/React.createElement("span", {
     className: "brand-name"
   }, "SPARK ", /*#__PURE__*/React.createElement("b", null, "BOARDS"))), /*#__PURE__*/React.createElement("div", {
+    className: "sb-hdr"
+  }, !rail && /*#__PURE__*/React.createElement("div", {
+    className: "sb-search"
+  }, /*#__PURE__*/React.createElement(Ic.sbSearch, null), /*#__PURE__*/React.createElement("input", {
+    value: sideQ,
+    onChange: e => setSideQ(e.target.value),
+    placeholder: "Search boards",
+    spellCheck: false
+  }), sideQ && /*#__PURE__*/React.createElement("button", {
+    className: "sb-iconbtn",
+    style: { width: 18, height: 18 },
+    title: "Clear",
+    onClick: () => setSideQ('')
+  }, /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round"
+  }, /*#__PURE__*/React.createElement("path", { d: "M6 6l12 12M18 6L6 18" })))), /*#__PURE__*/React.createElement("button", {
+    className: "sb-iconbtn",
+    title: rail ? 'Expand sidebar' : 'Collapse sidebar',
+    onClick: toggleRail
+  }, /*#__PURE__*/React.createElement(Ic.chevrons, {
+    style: { transform: rail ? 'rotate(180deg)' : 'none' }
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "side-section"
   }, /*#__PURE__*/React.createElement(Nav, {
     page: "home",
@@ -9887,17 +9964,17 @@ function App() {
     style: {
       paddingTop: 0
     }
-  }, favs.map(b => /*#__PURE__*/React.createElement("button", {
+  }, favs.filter(sideMatch).map(b => /*#__PURE__*/React.createElement("button", {
     key: b.id,
     className: "board-row" + (activeBoard && activeBoard.id === b.id ? ' active' : ''),
     onClick: () => setRoute({
       page: 'board',
       id: b.id
     })
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "board-dot",
+  }, /*#__PURE__*/React.createElement(b.visibility === 'private' ? Ic.boardLock : Ic.boardGlyph, {
+    className: "board-glyph",
     style: {
-      background: b.dot
+      color: b.dot || '#9AA0AC'
     }
   }), b.name)))), /*#__PURE__*/React.createElement("div", {
     className: "side-label"
@@ -9907,7 +9984,9 @@ function App() {
       paddingTop: 0,
       overflowY: 'auto'
     }
-  }, /*#__PURE__*/React.createElement(WsGroups, { visible: visible, activeBoard: activeBoard, canEdit: canEdit, openBoard: id => setRoute({ page: 'board', id: id }), toggleFav: toggleFav, deleteBoard: deleteBoard, shareBoard: b => setShareBoard(b), historyBoard: b => setHistoryBoard(b) }), canEdit && /*#__PURE__*/React.createElement("button", {
+  }, sideQ.trim() && !visible.filter(sideMatch).length && /*#__PURE__*/React.createElement("div", {
+    className: "sb-empty"
+  }, 'No boards match "' + sideQ.trim() + '"'), /*#__PURE__*/React.createElement(WsGroups, { visible: visible.filter(sideMatch), q: sideQ, activeBoard: activeBoard, canEdit: canEdit, openBoard: id => setRoute({ page: 'board', id: id }), toggleFav: toggleFav, deleteBoard: deleteBoard, shareBoard: b => setShareBoard(b), historyBoard: b => setHistoryBoard(b) }), canEdit && /*#__PURE__*/React.createElement("button", {
     className: "new-board-btn",
     onClick: () => setModal({})
   }, /*#__PURE__*/React.createElement(Ic.plus, {
