@@ -6157,7 +6157,16 @@ var worker_default = {
         // Configured split rules are authoritative: load them first and mark the rows they
         // own so the inferred inter-entity pairing below can never claim them.
         const spR0 = await sbService(env, "GET", "charge_splits?select=*&active=eq.true");
-        const splitRules0 = (spR0.ok && spR0.data) || [];
+        // Effective dating: a rule applies to this week only when weekEnding falls inside
+        // [effective_from .. effective_to] (null bound = open side). Undated rows apply to
+        // every week, so legacy rules keep working. This lets percentages change week to
+        // week without rewriting history when past weeks re-render live.
+        const spWk = String(weekEnding || "").slice(0, 10);
+        const splitRules0 = ((spR0.ok && spR0.data) || []).filter((sp) => {
+          const f = sp.effective_from ? String(sp.effective_from).slice(0, 10) : "";
+          const t = sp.effective_to ? String(sp.effective_to).slice(0, 10) : "";
+          return (!f || f <= spWk) && (!t || spWk <= t);
+        });
         const ruleFor = (d) => splitRules0.find((sp) => {
           const c = String(sp.match_company || "").replace(/%/g, "").toLowerCase();
           const e = String(sp.match_employee || "").replace(/%/g, "").toLowerCase();
@@ -6292,7 +6301,7 @@ var worker_default = {
               entity: a.entity || d.entity,
               bu: a.bu || d.bu,
               company: d.company,
-              employee: d.employee + " · " + pct + "%",
+              employee: d.employee + (/mary\s*patrico/i.test(String(a.person || "")) ? " · " + pct + "%" : ""),
               sales_rep: bucket === "rec" ? "House" : who,
               recruiter: bucket === "sales" ? "House" : who,
               amount: r2s(d.amount * pct / 100),
