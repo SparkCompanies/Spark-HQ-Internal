@@ -191,7 +191,9 @@
   .group-count{font-size:12.5px;color:var(--faint);font-weight:500}
   .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
   .tbl thead th{font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--sub);text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface-2);white-space:nowrap}
-  .tbl td{padding:0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:13.5px}
+  .tbl td{padding:0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:13.5px;overflow:hidden}
+  .tbl td .cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tbl td .cell>span,.tbl td .cell>div{overflow:hidden;text-overflow:ellipsis}
   .tbl td:last-child{border-right:none}
   .tbl tr:last-child td{border-bottom:none}
   .grip{width:5px;padding:0!important}
@@ -5878,9 +5880,18 @@ function TableView({
     }, /*#__PURE__*/React.createElement("table", {
       className: "tbl",
       style: {
-        minWidth: board.columns.reduce((a, c) => a + (c.w || 150), 300)
+        minWidth: board.columns.reduce((a, c) => a + (c.w || 150), 300),
+        tableLayout: 'fixed'
       }
-    }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    }, /*#__PURE__*/React.createElement("colgroup", { className: "sb-colgroup" },
+      /*#__PURE__*/React.createElement("col", { style: { width: 5 } }),
+      /*#__PURE__*/React.createElement("col", { style: { width: 250 } }),
+      board.columns.map(c => /*#__PURE__*/React.createElement("col", {
+        key: c.key,
+        style: { width: c.w || 150 }
+      })),
+      canEdit ? /*#__PURE__*/React.createElement("col", { style: { width: 44 } }) : null
+    ), /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
       className: "grip",
       style: {
         background: g.color,
