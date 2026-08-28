@@ -180,8 +180,9 @@
   /* sticky-hdr: the table view scrolls here, so headers have something to pin to */
   .board-wrap.scroller{height:100%;overflow:auto;padding-top:0}
   .board-wrap.scroller .group{margin-bottom:24px}
-  .board-wrap.scroller .group-head{position:sticky;top:0;z-index:6;background:var(--bg);padding:14px 0 8px;margin-bottom:0;height:46px;box-sizing:border-box}
-  .board-wrap.scroller .tbl thead th{position:sticky;top:46px;z-index:5}
+  /* single-sticky: only the column header pins, so no strip can show rows */
+  .board-wrap.scroller .group-head{padding:14px 0 8px;margin-bottom:0;height:46px;box-sizing:border-box}
+  .board-wrap.scroller .tbl thead th{position:sticky;top:0;z-index:5;box-shadow:0 1px 0 var(--border)}
   .board-wrap.scroller .tbl thead th.name-th{z-index:7}
   .board-wrap.scroller .tbl{box-shadow:none}
   .group{margin-bottom:24px}
