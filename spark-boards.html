@@ -46,6 +46,11 @@
   .brand-name b{color:var(--gold);font-weight:700}
   .side-section{padding:6px 12px}
   .side-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6E6E7C;padding:14px 12px 7px}
+  .side-label.tight{padding-top:10px}
+  .fav-list{max-height:20vh;overflow-y:auto;flex-shrink:0}
+  .ws-scroll{flex:1 1 auto;min-height:140px;overflow-y:auto}
+  .sidebar>.side-section:first-of-type{flex-shrink:0}
+  .sidebar .side-foot{flex-shrink:0}
   .nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 12px;border-radius:8px;color:#C8CAD3;font-size:14px;font-weight:500;text-align:left;position:relative}
   .nav-item:hover{background:var(--sidebar-2);color:#fff}
   .nav-item.active{background:var(--sidebar-2);color:#fff}
@@ -80,6 +85,26 @@
   .sb-iconbtn svg{width:16px;height:16px}
   .board-glyph{width:16px;height:16px;flex-shrink:0;opacity:.9}
   .sb-empty{color:#7A7C88;font-size:12.5px;padding:10px 12px}
+  .ws-pill-wrap{position:relative;padding:0 12px 4px;display:flex;align-items:center;gap:6px}
+  .ws-pill{flex:1;min-width:0;display:flex;align-items:center;gap:9px;background:var(--sidebar-2);border:1px solid transparent;border-radius:9px;padding:7px 9px;color:#E8E9EE;cursor:pointer;text-align:left}
+  .ws-pill:hover{border-color:#3A3C48}
+  .ws-tile{width:24px;height:24px;flex-shrink:0;border-radius:6px;display:flex;align-items:center;justify-content:center;font:700 12px/1 'Jost',sans-serif;color:#1A1407}
+  .ws-pill-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:600}
+  .ws-pill .chev{flex-shrink:0;opacity:.6;transition:transform .15s}
+  .ws-pill.open .chev{transform:rotate(90deg)}
+  .ws-menu{position:absolute;top:100%;left:12px;right:12px;z-index:70;background:#25262F;border:1px solid #3A3C48;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.45);padding:5px;max-height:320px;overflow-y:auto}
+  .ws-opt{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border-radius:7px;background:none;border:0;color:#C8CAD3;font-size:13.5px;text-align:left;cursor:pointer}
+  .ws-opt:hover{background:#31333E;color:#fff}
+  .ws-opt.on{color:#fff;font-weight:600}
+  .ws-opt .ws-count{margin-left:auto;font-size:11px;color:#7A7C88}
+  .fold-head{display:flex;align-items:center;gap:8px;width:100%;padding:7px 12px;border-radius:8px;background:none;border:0;color:#C8CAD3;font-size:13.5px;text-align:left;cursor:pointer}
+  .fold-head:hover{background:var(--sidebar-2);color:#fff}
+  .fold-head .chev{width:11px;height:11px;flex-shrink:0;opacity:.7;transition:transform .15s}
+  .fold-head.open .chev{transform:rotate(90deg)}
+  .fold-head svg.fold-ic{width:16px;height:16px;flex-shrink:0;opacity:.85}
+  .fold-head .ws-count{margin-left:auto;font-size:11px;color:#7A7C88}
+  .fold-kids{padding-left:14px;border-left:1px solid #2E3038;margin-left:19px}
+  .sidebar.rail .ws-pill-wrap{display:none}
   .sidebar.rail{width:62px}
   .sidebar.rail .brand-name,.sidebar.rail .sb-search,.sidebar.rail .side-label,.sidebar.rail .ws-head,
   .sidebar.rail .board-row-wrap,.sidebar.rail .new-board-btn,.sidebar.rail .side-foot,.sidebar.rail .board-row span{display:none}
@@ -804,6 +829,10 @@ const Ic = {
      /*#__PURE__*/React.createElement("path", { d: "M21 11V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9" }),
      /*#__PURE__*/React.createElement("rect", { x: "16", y: "14", width: "7", height: "6", rx: "1.2" }),
      /*#__PURE__*/React.createElement("path", { d: "M17.8 14v-1.4a1.7 1.7 0 0 1 3.4 0V14" })),
+  folder: p => /*#__PURE__*/React.createElement("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8",
+    strokeLinecap: "round", strokeLinejoin: "round", ...p
+  }, /*#__PURE__*/React.createElement("path", { d: "M3 7.5a2 2 0 0 1 2-2h3.6a2 2 0 0 1 1.5.7l1 1.2H19a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" })),
   sbSearch: p => /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2",
     strokeLinecap: "round", strokeLinejoin: "round", ...p
@@ -4892,7 +4921,8 @@ function SidebarBoardRow({
   onFav,
   onDelete,
   onShare,
-  onHistory
+  onHistory,
+  onFolder
 }) {
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -4982,6 +5012,14 @@ function SidebarBoardRow({
     className: "menu-item",
     onClick: () => {
       setMenu(false);
+      onFolder && onFolder();
+    }
+  }, /*#__PURE__*/React.createElement(Ic.folder, {
+    style: { width: 15, height: 15 }
+  }), "Move to folder"), /*#__PURE__*/React.createElement("button", {
+    className: "menu-item",
+    onClick: () => {
+      setMenu(false);
       try {
         const clean = JSON.parse(JSON.stringify(b));
         delete clean.__rev;
@@ -5051,7 +5089,75 @@ const WS_DEFAULT = 'Main workspace';
 const wsOf = b => (b.ws && String(b.ws).trim()) || WS_DEFAULT;
 function wsColGet() { try { return JSON.parse(localStorage.spark_sb_ws_collapse || '{}'); } catch (e) { return {}; } }
 function wsColSet(m) { try { localStorage.spark_sb_ws_collapse = JSON.stringify(m); } catch (e) {} }
-function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteBoard, shareBoard, historyBoard, q }) {
+const WS_ALL = '__all__';
+const folderOf = b => (b.folder && String(b.folder).trim()) || '';
+function wsExtraGet() { try { return JSON.parse(localStorage.spark_sb_ws_extra || '[]'); } catch (e) { return []; } }
+function wsExtraSet(a) { try { localStorage.spark_sb_ws_extra = JSON.stringify(a); } catch (e) {} }
+function wsActiveGet() { try { return localStorage.spark_sb_ws_active || WS_DEFAULT; } catch (e) { return WS_DEFAULT; } }
+function wsActiveSet(v) { try { localStorage.spark_sb_ws_active = v; } catch (e) {} }
+function foldColGet() { try { return JSON.parse(localStorage.spark_sb_fold_collapse || '{}'); } catch (e) { return {}; } }
+function foldColSet(m) { try { localStorage.spark_sb_fold_collapse = JSON.stringify(m); } catch (e) {} }
+const wsTint = n => {
+  const pal = ['#FFC800', '#579BFC', '#00C875', '#A25DDC', '#FF7B54', '#2DA2BB', '#E2445C'];
+  let h = 0;
+  for (let i = 0; i < String(n).length; i++) h = (h * 31 + String(n).charCodeAt(i)) >>> 0;
+  return pal[h % pal.length];
+};
+function WsPill({ names, counts, active, onPick, onNew }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const h = () => setOpen(false);
+    window.addEventListener('click', h);
+    return () => window.removeEventListener('click', h);
+  }, [open]);
+  const label = active === WS_ALL ? 'All workspaces' : active;
+  return React.createElement('div', { className: 'ws-pill-wrap', onClick: e => e.stopPropagation() },
+    React.createElement('button', { className: 'ws-pill' + (open ? ' open' : ''), onClick: () => setOpen(o => !o) },
+      React.createElement('span', { className: 'ws-tile', style: { background: active === WS_ALL ? '#6E6E7C' : wsTint(active), color: active === WS_ALL ? '#fff' : '#1A1407' } }, (label[0] || 'W').toUpperCase()),
+      React.createElement('span', { className: 'ws-pill-name' }, label),
+      React.createElement('svg', { className: 'chev', viewBox: '0 0 24 24', width: 12, height: 12, fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round', style: { transform: 'rotate(90deg)' } }, React.createElement('path', { d: 'M9 6l6 6-6 6' }))),
+    React.createElement('button', { className: 'sb-iconbtn', title: 'New workspace', onClick: onNew },
+      React.createElement(Ic.plus, { style: { width: 16, height: 16 } })),
+    open && React.createElement('div', { className: 'ws-menu' },
+      names.map(w => React.createElement('button', {
+        key: w, className: 'ws-opt' + (w === active ? ' on' : ''),
+        onClick: () => { setOpen(false); onPick(w); }
+      },
+        React.createElement('span', { className: 'ws-tile', style: { width: 18, height: 18, fontSize: 10, background: wsTint(w) } }, (w[0] || 'W').toUpperCase()),
+        React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, w),
+        React.createElement('span', { className: 'ws-count' }, counts[w] || 0))),
+      React.createElement('div', { style: { height: 1, background: '#3A3C48', margin: '5px 4px' } }),
+      React.createElement('button', {
+        className: 'ws-opt' + (active === WS_ALL ? ' on' : ''),
+        onClick: () => { setOpen(false); onPick(WS_ALL); }
+      },
+        React.createElement('span', { className: 'ws-tile', style: { width: 18, height: 18, fontSize: 10, background: '#6E6E7C', color: '#fff' } }, 'A'),
+        React.createElement('span', { style: { flex: 1 } }, 'All workspaces'))));
+}
+function FolderModal({ board, folders, onClose, onApply }) {
+  const [val, setVal] = useState(folderOf(board));
+  return React.createElement('div', { className: 'overlay', onClick: onClose },
+    React.createElement('div', { className: 'modal', style: { maxWidth: 420 }, onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'modal-h' }, 'Move "' + board.name + '" to a folder'),
+      React.createElement('div', { className: 'modal-b' },
+        React.createElement('label', null, 'Folder'),
+        React.createElement('input', {
+          value: val, onChange: e => setVal(e.target.value),
+          placeholder: 'Type a new folder name, or pick below', list: 'sb-folder-list', autoFocus: true
+        }),
+        React.createElement('datalist', { id: 'sb-folder-list' }, folders.map(f => React.createElement('option', { key: f, value: f }))),
+        folders.length > 0 && React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 } },
+          folders.map(f => React.createElement('button', {
+            key: f, className: 'btn ghost', style: { padding: '5px 10px', fontSize: 12.5 }, onClick: () => setVal(f)
+          }, f))),
+        React.createElement('div', { style: { color: '#8A8A94', fontSize: 12.5, marginTop: 12 } },
+          'Leave the box empty to take this board out of its folder.')),
+      React.createElement('div', { className: 'modal-f' },
+        React.createElement('button', { className: 'btn ghost', onClick: onClose }, 'Cancel'),
+        React.createElement('button', { className: 'btn', onClick: () => onApply((val || '').trim()) }, 'Save'))));
+}
+function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteBoard, shareBoard, historyBoard, folderBoard, q }) {
   const [, setTick] = useState(0);
   const groups = {};
   visible.forEach(b => { const w = wsOf(b); (groups[w] = groups[w] || []).push(b); });
@@ -5059,12 +5165,35 @@ function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteB
   const col = wsColGet();
   const activeWs = activeBoard ? wsOf(activeBoard) : null;
   const forceOpen = !!(typeof q === 'string' && q.trim());
-  if (names.length === 1) {
-    return groups[names[0]].map(b => React.createElement(SidebarBoardRow, {
-      key: b.id, b: b, active: !!(activeBoard && activeBoard.id === b.id), canEdit: canEdit,
-      onOpen: () => openBoard(b.id), onFav: () => toggleFav(b.id), onDelete: () => deleteBoard(b.id), onShare: () => shareBoard(b), onHistory: () => historyBoard(b)
-    }));
-  }
+  const rowFor = b => React.createElement(SidebarBoardRow, {
+    key: b.id, b: b, active: !!(activeBoard && activeBoard.id === b.id), canEdit: canEdit,
+    onOpen: () => openBoard(b.id), onFav: () => toggleFav(b.id), onDelete: () => deleteBoard(b.id),
+    onShare: () => shareBoard(b), onHistory: () => historyBoard(b), onFolder: () => folderBoard && folderBoard(b)
+  });
+  const renderList = (list, wsKey) => {
+    const loose = list.filter(b => !folderOf(b));
+    const fmap = {};
+    list.filter(b => folderOf(b)).forEach(b => { const f = folderOf(b); (fmap[f] = fmap[f] || []).push(b); });
+    const fnames = Object.keys(fmap).sort((a, b) => a.localeCompare(b));
+    const fc = foldColGet();
+    return [].concat(
+      loose.map(rowFor),
+      fnames.map(f => {
+        const fk = wsKey + '/' + f;
+        const fopen = forceOpen ? true : !fc[fk];
+        return React.createElement(React.Fragment, { key: 'f' + fk },
+          React.createElement('button', {
+            className: 'fold-head' + (fopen ? ' open' : ''),
+            onClick: () => { const m = foldColGet(); m[fk] = fopen; foldColSet(m); setTick(t => t + 1); }
+          },
+            React.createElement('svg', { className: 'chev', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'M9 6l6 6-6 6' })),
+            React.createElement(Ic.folder, { className: 'fold-ic' }),
+            React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, f),
+            React.createElement('span', { className: 'ws-count' }, fmap[f].length)),
+          fopen && React.createElement('div', { className: 'fold-kids' }, fmap[f].map(rowFor)));
+      }));
+  };
+  if (names.length === 1) return renderList(groups[names[0]], names[0]);
   return names.map(w => {
     const open = forceOpen ? true : (col[w] !== undefined ? !col[w] : (w === WS_DEFAULT || w === activeWs));
     return React.createElement(React.Fragment, { key: w },
@@ -5076,10 +5205,7 @@ function WsGroups({ visible, activeBoard, canEdit, openBoard, toggleFav, deleteB
         React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, w),
         React.createElement('span', { className: 'ws-count' }, groups[w].length)
       ),
-      open && groups[w].map(b => React.createElement(SidebarBoardRow, {
-        key: b.id, b: b, active: !!(activeBoard && activeBoard.id === b.id), canEdit: canEdit,
-        onOpen: () => openBoard(b.id), onFav: () => toggleFav(b.id), onDelete: () => deleteBoard(b.id), onShare: () => shareBoard(b), onHistory: () => historyBoard(b)
-      }))
+      open && renderList(groups[w], w)
     );
   });
 }
@@ -9765,6 +9891,31 @@ function App() {
   const [shareBoard, setShareBoard] = useState(null);
   const [historyBoard, setHistoryBoard] = useState(null);
   const [sideQ, setSideQ] = useState('');
+  const [folderBoard, setFolderBoard] = useState(null);
+  const [wsActive, setWsActive] = useState(wsActiveGet);
+  const pickWs = w => {
+    wsActiveSet(w);
+    setWsActive(w);
+  };
+  const newWs = () => {
+    const n = (prompt('Name the new workspace') || '').trim();
+    if (!n) return;
+    const x = wsExtraGet();
+    if (x.indexOf(n) === -1) {
+      x.push(n);
+      wsExtraSet(x);
+    }
+    pickWs(n);
+  };
+  const setFolder = (id, f) => {
+    updateBoard(id, b => {
+      const nb = { ...b };
+      if (f) nb.folder = f;else delete nb.folder;
+      Persist.board(nb);
+      return nb;
+    });
+    setFolderBoard(null);
+  };
   const [rail, setRail] = useState(() => {
     try {
       return localStorage.spark_sb_rail === '1';
@@ -9785,6 +9936,36 @@ function App() {
   const actingId = role === 'viewer' ? '_recruiter' : me.id;
   const visible = boards.filter(b => !b.deletedAt && canSeeBoard(b, actingId, role, me.email));
   const deletedBoards = boards.filter(b => b.deletedAt);
+  const searchingSide = !!sideQ.trim();
+  const wsNames = (() => {
+    const s = {};
+    visible.forEach(b => {
+      s[wsOf(b)] = true;
+    });
+    wsExtraGet().forEach(n => {
+      s[n] = true;
+    });
+    s[WS_DEFAULT] = true;
+    if (wsActive && wsActive !== WS_ALL) s[wsActive] = true;
+    return Object.keys(s).sort((a, b) => a === WS_DEFAULT ? -1 : b === WS_DEFAULT ? 1 : a.localeCompare(b));
+  })();
+  const wsCounts = (() => {
+    const c = {};
+    visible.forEach(b => {
+      const w = wsOf(b);
+      c[w] = (c[w] || 0) + 1;
+    });
+    return c;
+  })();
+  const wsScoped = visible.filter(sideMatch).filter(b => searchingSide || wsActive === WS_ALL || wsOf(b) === wsActive);
+  const allFolders = (() => {
+    const s = {};
+    visible.forEach(b => {
+      const f = folderOf(b);
+      if (f) s[f] = true;
+    });
+    return Object.keys(s).sort((a, b) => a.localeCompare(b));
+  })();
   const activeBoard = route.page === 'board' ? visible.find(b => b.id === route.id) : null;
   const updateBoard = (id, fn) => setBoards(bs => bs.map(b => b.id === id ? fn(b) : b));
   const toggleFav = id => setBoards(bs => bs.map(b => b.id === id ? {
@@ -10024,7 +10205,7 @@ function App() {
   }, deletedBoards.length))), favs.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "side-label"
   }, "Favorites"), /*#__PURE__*/React.createElement("div", {
-    className: "side-section",
+    className: "side-section fav-list",
     style: {
       paddingTop: 0
     }
@@ -10042,15 +10223,22 @@ function App() {
     }
   }), b.name)))), /*#__PURE__*/React.createElement("div", {
     className: "side-label"
-  }, "Workspaces"), /*#__PURE__*/React.createElement("div", {
-    className: "side-section",
+  }, "Workspaces"), /*#__PURE__*/React.createElement(WsPill, {
+    names: wsNames,
+    counts: wsCounts,
+    active: wsActive,
+    onPick: pickWs,
+    onNew: newWs
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "side-section ws-scroll",
     style: {
-      paddingTop: 0,
-      overflowY: 'auto'
+      paddingTop: 0
     }
   }, sideQ.trim() && !visible.filter(sideMatch).length && /*#__PURE__*/React.createElement("div", {
     className: "sb-empty"
-  }, 'No boards match "' + sideQ.trim() + '"'), /*#__PURE__*/React.createElement(WsGroups, { visible: visible.filter(sideMatch), q: sideQ, activeBoard: activeBoard, canEdit: canEdit, openBoard: id => setRoute({ page: 'board', id: id }), toggleFav: toggleFav, deleteBoard: deleteBoard, shareBoard: b => setShareBoard(b), historyBoard: b => setHistoryBoard(b) }), canEdit && /*#__PURE__*/React.createElement("button", {
+  }, 'No boards match "' + sideQ.trim() + '"'), !sideQ.trim() && !wsScoped.length && /*#__PURE__*/React.createElement("div", {
+    className: "sb-empty"
+  }, 'No boards in this workspace yet.'), /*#__PURE__*/React.createElement(WsGroups, { visible: wsScoped, q: sideQ, folderBoard: b => setFolderBoard(b), activeBoard: activeBoard, canEdit: canEdit, openBoard: id => setRoute({ page: 'board', id: id }), toggleFav: toggleFav, deleteBoard: deleteBoard, shareBoard: b => setShareBoard(b), historyBoard: b => setHistoryBoard(b) }), canEdit && /*#__PURE__*/React.createElement("button", {
     className: "new-board-btn",
     onClick: () => setModal({})
   }, /*#__PURE__*/React.createElement(Ic.plus, {
@@ -10123,7 +10311,7 @@ function App() {
       height: 15,
       color: '#8A8C97'
     }
-  })))), shareBoard && /*#__PURE__*/React.createElement(ShareModal, { board: shareBoard, me: me, onClose: () => setShareBoard(null), onApply: patch => { updateBoard(shareBoard.id, b => { const nb = Object.assign({}, b, patch); Persist.board(nb); return nb; }); setShareBoard(null); } }), historyBoard && React.createElement(HistoryModal, { board: historyBoard, onClose: () => setHistoryBoard(null) }), /*#__PURE__*/React.createElement("div", {
+  })))), shareBoard && /*#__PURE__*/React.createElement(ShareModal, { board: shareBoard, me: me, onClose: () => setShareBoard(null), onApply: patch => { updateBoard(shareBoard.id, b => { const nb = Object.assign({}, b, patch); Persist.board(nb); return nb; }); setShareBoard(null); } }), historyBoard && React.createElement(HistoryModal, { board: historyBoard, onClose: () => setHistoryBoard(null) }), folderBoard && React.createElement(FolderModal, { board: folderBoard, folders: allFolders, onClose: () => setFolderBoard(null), onApply: f => setFolder(folderBoard.id, f) }), /*#__PURE__*/React.createElement("div", {
     className: "main"
   }, /*#__PURE__*/React.createElement("header", {
     className: "topbar"
