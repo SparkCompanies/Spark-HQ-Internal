@@ -37,6 +37,7 @@
   .sidebar{width:262px;flex-shrink:0;background:var(--sidebar);color:#E8E9EE;display:flex;flex-direction:column;border-right:1px solid #000}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
   .content{flex:1;overflow:auto}
+  .content.no-scroll{overflow:hidden}
 
   /* Sidebar */
   .brand{display:flex;align-items:center;gap:11px;padding:18px 20px 16px}
@@ -136,12 +137,19 @@
 
   /* Table */
   .board-wrap{padding:22px 22px 60px}
+  /* sticky-hdr: the table view scrolls here, so headers have something to pin to */
+  .board-wrap.scroller{height:100%;overflow:auto;padding-top:0}
+  .board-wrap.scroller .group{margin-bottom:24px}
+  .board-wrap.scroller .group-head{position:sticky;top:0;z-index:6;background:var(--bg);padding:14px 0 8px;margin-bottom:0;height:46px;box-sizing:border-box}
+  .board-wrap.scroller .tbl thead th{position:sticky;top:46px;z-index:5}
+  .board-wrap.scroller .tbl thead th.name-th{z-index:7}
+  .board-wrap.scroller .tbl{box-shadow:none}
   .group{margin-bottom:24px}
   .group-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
   .group-caret{color:var(--sub);display:flex;cursor:pointer}
   .group-title{font-family:'Jost';font-weight:600;font-size:15.5px}
   .group-count{font-size:12.5px;color:var(--faint);font-weight:500}
-  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
   .tbl thead th{font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--sub);text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface-2);white-space:nowrap}
   .tbl td{padding:0;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:13.5px}
   .tbl td:last-child{border-right:none}
@@ -5608,7 +5616,7 @@ function TableView({
     clearSel();
   };
   return /*#__PURE__*/React.createElement("div", {
-    className: "board-wrap"
+    className: "board-wrap scroller"
   }, board.groups.map((g, gi) => {
     const isC = collapsed[g.id];
     const shown = g.items.filter(it => isActiveItem(it) && matchPF(it));
@@ -5680,7 +5688,6 @@ function TableView({
       className: "group-count"
     }, shown.length, " items · ", done, " done")), !isC && /*#__PURE__*/React.createElement("div", {
       style: {
-        overflowX: 'auto',
         borderRadius: 'var(--radius)'
       }
     }, /*#__PURE__*/React.createElement("table", {
@@ -5695,11 +5702,11 @@ function TableView({
         width: 5
       }
     }), /*#__PURE__*/React.createElement("th", {
+      className: "name-th",
       style: {
         minWidth: 250,
         position: 'sticky',
         left: 0,
-        zIndex: 2,
         background: 'var(--surface-2)'
       }
     }, /*#__PURE__*/React.createElement("span", {
@@ -7800,7 +7807,7 @@ function BoardView({
       color: 'var(--faint)'
     }
   }, "Live — pulls placement status and links records in Salesforce.")), /*#__PURE__*/React.createElement("div", {
-    className: "content" + (canEdit ? '' : ' readonly')
+    className: "content" + (canEdit ? '' : ' readonly') + (view === 'table' ? ' no-scroll' : '')
   }, view === 'table' && /*#__PURE__*/React.createElement(TableView, {
     board: board,
     update: update,
