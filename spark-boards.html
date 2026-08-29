@@ -10282,26 +10282,31 @@ function App() {
     }
     return null;
   })() : null;
+  /* notes now persist */
   const postUpdate = textVal => {
     if (!drawer) return;
-    updateBoard(drawer.boardId, b => {
-      const nb = structuredClone(b);
-      for (const g of nb.groups) {
-        const it = g.items.find(i => i.id === drawer.itemId);
-        if (it) {
-          it.updates = it.updates || [];
-          it.updates.push({
-            id: 'u' + Date.now(),
-            author: me.name,
-            color: me.color,
-            text: textVal,
-            at: new Date().toISOString()
-          });
-          break;
-        }
+    const cur = boards.find(b => b.id === drawer.boardId);
+    if (!cur) return;
+    const nb = structuredClone(cur);
+    let target = null;
+    for (const g of nb.groups || []) {
+      const it = (g.items || []).find(i => i.id === drawer.itemId);
+      if (it) {
+        target = it;
+        break;
       }
-      return nb;
+    }
+    if (!target) return;
+    target.updates = target.updates || [];
+    target.updates.push({
+      id: 'u' + Date.now(),
+      author: me.name,
+      color: me.color,
+      text: textVal,
+      at: new Date().toISOString()
     });
+    updateBoard(drawer.boardId, () => nb);
+    Persist.board(nb, true);
   };
   const createBoard = (name, color, template, priv) => {
     const built = template ? template.build() : {
