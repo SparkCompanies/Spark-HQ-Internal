@@ -197,6 +197,7 @@
   .sfu-hint{font-size:12.5px}
   .sfu-chip{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font:700 10px/1 'Jost',sans-serif;color:#fff;background:#579BFC}
   .sfu-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sfu-backdrop{position:fixed;inset:0;z-index:399}
   .sfu-pop{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px;width:280px}
   .sfu-pop input{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;margin-bottom:6px}
   .sfu-pop input:focus{border-color:var(--gold)}
@@ -6620,21 +6621,8 @@ function SFUserCell({ value, onChange, canEdit }) {
   useEffect(() => {
     if (!SFU.list) SFU.load().then(u => setUsers(u.slice()));
   }, []);
-  useEffect(() => {
-    if (!open) return;
-    const t0 = Date.now();
-    const h = () => setOpen(false);
-    const hs = () => {
-      if (Date.now() - t0 > 350) setOpen(false);
-    };
-    window.addEventListener('click', h);
-    window.addEventListener('scroll', hs, true);
-    return () => {
-      window.removeEventListener('click', h);
-      window.removeEventListener('scroll', hs, true);
-    };
-  }, [open]);
-  const openAt = () => {
+  const openAt = e => {
+    if (e && e.stopPropagation) e.stopPropagation();
     if (!canEdit) return;
     if (open) {
       setOpen(false);
@@ -6642,23 +6630,26 @@ function SFUserCell({ value, onChange, canEdit }) {
     }
     SFU.load().then(u => setUsers(u.slice()));
     const el = anchor.current;
+    let box = { left: 40, top: 120 };
     if (el && el.getBoundingClientRect) {
       const r = el.getBoundingClientRect();
       const w = 280,
-        h = 300;
+        h = 320;
       let left = r.left;
       if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8;
       if (left < 8) left = 8;
       let top = r.bottom + 4;
       if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
-      setPos({ left: left, top: top });
+      box = { left: left, top: top };
     }
+    setPos(box);
     setQ('');
+    setShowAll(false);
     setOpen(true);
   };
   const nm = SFU.name(value);
   const source = !showAll && SFU.team && SFU.team.length ? SFU.team : users || [];
-  const shown = source.filter(u => !q.trim() || u.name.toLowerCase().indexOf(q.trim().toLowerCase()) !== -1).slice(0, showAll ? 60 : 40);
+  const shown = source.filter(u => !q.trim() || u.name.toLowerCase().indexOf(q.trim().toLowerCase()) !== -1).slice(0, showAll ? 80 : 40);
   const hiddenCount = !showAll && SFU.team ? Math.max(0, (users || []).length - SFU.team.length) : 0;
   return React.createElement('div', { className: 'emo-wrap' },
     React.createElement('div', {
@@ -6668,38 +6659,49 @@ function SFUserCell({ value, onChange, canEdit }) {
       onClick: openAt
     }, value ? React.createElement('span', { className: 'sfu-chip' }, sfuInitials(nm || '?')) : null,
        React.createElement('span', { className: 'sfu-name' }, nm || (value ? value : (canEdit ? 'Set\u2026' : '\u2014')))),
-    open && pos && React.createElement('div', {
+    open && React.createElement('div', {
+      className: 'sfu-backdrop',
+      onClick: e => {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    }, React.createElement('div', {
       className: 'sfu-pop',
-      style: pos,
+      style: pos || { left: 40, top: 120 },
       onClick: e => e.stopPropagation()
     },
       React.createElement('input', {
         value: q,
-        autoFocus: true,
-        placeholder: 'Search Salesforce users',
+        placeholder: 'Search ' + (showAll ? 'all Salesforce users' : 'your team'),
         onChange: e => setQ(e.target.value)
       }),
       React.createElement('div', { className: 'sfu-list' },
-        shown.length === 0 ? React.createElement('div', { style: { padding: 8, fontSize: 12.5, color: 'var(--faint)' } }, users && users.length ? 'No match' : 'Loading users...') :
+        shown.length === 0 ? React.createElement('div', { style: { padding: 8, fontSize: 12.5, color: 'var(--faint)' } }, users && users.length ? 'No match' : 'Loading users\u2026') :
         shown.map(u => React.createElement('button', {
           key: u.id,
-          onClick: () => {
+          onClick: e => {
+            e.stopPropagation();
             onChange(u.id);
             setOpen(false);
           }
         }, React.createElement('span', { className: 'sfu-chip' }, sfuInitials(u.name)), u.name))),
       hiddenCount > 0 && React.createElement('button', {
         className: 'sfu-clear',
-        onClick: () => setShowAll(true)
+        onClick: e => {
+          e.stopPropagation();
+          setShowAll(true);
+        }
       }, 'Show all Salesforce users (' + hiddenCount + ' more)'),
       React.createElement('button', {
         className: 'sfu-clear',
-        onClick: () => {
+        onClick: e => {
+          e.stopPropagation();
           onChange('');
           setOpen(false);
         }
-      }, 'Clear')));
+      }, 'Clear'))));
 }
+
 function EmojiCell({ value, onChange, canEdit }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
