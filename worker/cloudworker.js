@@ -5094,6 +5094,90 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/boards-push-start" && request.method === "POST") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let sb2;
+      try {
+        sb2 = await request.json();
+      } catch (e) {
+        return json({ error: "bad json" }, 400, origin);
+      }
+      const sbid = String(sb2.board_id || "").slice(0, 60);
+      const sitem = String(sb2.item_id || "").slice(0, 80);
+      if (!sbid || !sitem) return json({ error: "board_id and item_id required" }, 400, origin);
+      try {
+        const br2 = await sbService(env, "GET", "spark_boards?select=data,visibility,owner,members&id=eq." + encodeURIComponent(sbid) + "&limit=1");
+        if (!br2.ok || !br2.data || !br2.data[0]) return json({ error: "board not found" }, 404, origin);
+        const brow2 = br2.data[0];
+        {
+          const srole2 = typeof sbRoleOf === "function" ? await sbRoleOf(who.email) : "member";
+          if (typeof sbAccess === "function" && !sbAccess({ id: sbid, visibility: brow2.visibility, owner: brow2.owner, members: brow2.members }, who.email, srole2)) {
+            return json({ error: "You do not have access to this board." }, 403, origin);
+          }
+        }
+        const bd2 = brow2.data || {};
+        let it2 = null;
+        for (const g of bd2.groups || []) {
+          for (const x of g.items || []) if (x && x.id === sitem) it2 = x;
+        }
+        if (!it2) return json({ error: "row not found on this board" }, 404, origin);
+        const dcol = (bd2.columns || []).find((c) => c && c.type === "date" && /start/i.test(String(c.label || c.name || c.key || ""))) || (bd2.columns || []).find((c) => c && c.type === "date");
+        if (!dcol) return json({ error: "This board has no Start Date column." }, 400, origin);
+        const newDate = String(it2[dcol.key] || "").slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return json({ error: "Set a start date on this row first." }, 400, origin);
+        const plid = String(it2.sfId || "").replace(/[^a-zA-Z0-9]/g, "");
+        if (!plid) return json({ error: "This row is not linked to Salesforce yet. Run Sync with Salesforce first." }, 409, origin);
+        const pr4 = await runSalesforceQueryAll(env, "SELECT Id, Name, bpats__Start_Date__c, Status__c FROM bpats__Placement__c WHERE Id = '" + plid + "'");
+        if (!pr4.ok) return json({ error: "Salesforce lookup failed: " + pr4.error }, 502, origin);
+        const pl4 = pr4.records && pr4.records[0];
+        if (!pl4) return json({ error: "That placement no longer exists in Salesforce." }, 404, origin);
+        const wasDate = pl4.bpats__Start_Date__c ? String(pl4.bpats__Start_Date__c).slice(0, 10) : null;
+        if (sb2.preview === true) {
+          return json({ ok: true, preview: true, placement: pl4.Name || plid, from: wasDate, to: newDate, same: wasDate === newDate, status: pl4.Status__c || null }, 200, origin);
+        }
+        if (wasDate === newDate) return json({ ok: true, unchanged: true, placement: pl4.Name || plid, to: newDate }, 200, origin);
+        const ur2 = await sfWrite(env, "PATCH", "/sobjects/bpats__Placement__c/" + plid, { bpats__Start_Date__c: newDate });
+        if (!ur2.ok) return json({ error: "Salesforce rejected the update: " + JSON.stringify(ur2.data).slice(0, 200) }, 502, origin);
+        try {
+          const cur3 = await sbService(env, "GET", "spark_boards?select=data,visibility,owner,members&id=eq." + encodeURIComponent(sbid) + "&limit=1");
+          const row3 = cur3.ok && cur3.data && cur3.data[0] ? cur3.data[0] : null;
+          if (row3 && row3.data) {
+            const d3 = row3.data;
+            let t3 = null;
+            for (const g of d3.groups || []) {
+              for (const x of g.items || []) if (x && x.id === sitem) t3 = x;
+            }
+            if (t3) {
+              const now3 = (/* @__PURE__ */ new Date()).toISOString();
+              t3.sf_start = newDate;
+              t3.updates = Array.isArray(t3.updates) ? t3.updates : [];
+              t3.updates.push({
+                id: "u" + Date.now().toString(36),
+                author: who.email,
+                color: "#0086C0",
+                at: now3,
+                text: "Start date pushed to Salesforce: " + (wasDate || "(none)") + " \u2192 " + newDate
+              });
+              delete d3.__rev;
+              await sbService(env, "POST", "spark_boards?on_conflict=id", {
+                id: sbid,
+                name: String(d3.name || "").slice(0, 200),
+                data: d3,
+                visibility: row3.visibility,
+                owner: row3.owner,
+                members: Array.isArray(row3.members) ? row3.members : [],
+                updated_by: who.email,
+                updated_at: now3
+              });
+            }
+          }
+        } catch (e) {}
+        return json({ ok: true, placement: pl4.Name || plid, from: wasDate, to: newDate }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/boards-versions") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
