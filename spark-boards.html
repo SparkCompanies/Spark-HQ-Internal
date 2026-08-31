@@ -198,6 +198,12 @@
   .sfu-chip{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font:700 10px/1 'Jost',sans-serif;color:#fff;background:#579BFC}
   .sfu-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sfu-backdrop{position:fixed;inset:0;z-index:399}
+  .warn-chip{flex-shrink:0;display:flex;align-items:center;gap:3px;height:20px;padding:0 6px;border-radius:6px;font:700 10.5px/1 'Jost',sans-serif;cursor:default;margin-right:2px}
+  .warn-chip svg{width:12px;height:12px}
+  .warn-chip.overdue{background:#FDE2E0;color:#B4261B}
+  .warn-chip.urgent{background:#FCE9CF;color:#9A5B00}
+  .warn-chip.soon{background:#FFF4CC;color:#8A6A00}
+  .group-risk{margin-left:8px;padding:1px 8px;border-radius:999px;font:700 11px/1.7 'Jost',sans-serif;background:#FDE2E0;color:#B4261B;display:inline-block}
   .sf-link{flex-shrink:0;width:22px;height:22px;border:0;border-radius:6px;background:none;color:var(--faint);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s}
   tr:hover .sf-link{opacity:1}
   .sf-link:hover{background:var(--surface-2);color:#0086C0}
@@ -4035,6 +4041,47 @@ const sfInstanceOf = b => {
     return '';
   }
 };
+/* hireRisk: which onboarding steps are still open, and how close is the start */
+function hireRisk(board, it) {
+  const dcol = (board.columns || []).find(c => c && c.type === 'date' && /start/i.test(String(c.label || c.name || c.key || '')));
+  const raw = dcol ? String(it[dcol.key] || '').slice(0, 10) : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const today = new Date();
+  const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const parts = raw.split('-');
+  const sd = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  const days = Math.round((sd - t0) / 86400000);
+  if (days > 14) return null;
+  const skip = /^(type|position|company|entity|hr team member|started in sf|progress|on-boarding status)$/i;
+  const open = [];
+  (board.columns || []).forEach(c => {
+    if (!c || c.type !== 'status') return;
+    const label = String(c.label || c.name || c.key || '');
+    if (skip.test(label.trim())) return;
+    const o = optOf(c, it[c.key]);
+    if (!o || !o.label) {
+      open.push(label);
+      return;
+    }
+    if (!isDoneLabel(o.label) && !/not applicable|n\/a|clear|waived|received|synced/i.test(o.label)) open.push(label);
+  });
+  if (!open.length) return null;
+  const level = days < 0 ? 'overdue' : days <= 3 ? 'urgent' : 'soon';
+  return { level: level, days: days, open: open };
+}
+function WarnChip({ risk }) {
+  if (!risk) return null;
+  const when = risk.days < 0 ? 'started ' + Math.abs(risk.days) + 'd ago' : risk.days === 0 ? 'starts today' : 'in ' + risk.days + 'd';
+  return React.createElement('span', {
+    className: 'warn-chip ' + risk.level,
+    title: 'Starts ' + (risk.days < 0 ? Math.abs(risk.days) + ' days ago' : 'in ' + risk.days + ' days') + ' \u2014 still open:\n\u2022 ' + risk.open.join('\n\u2022 ')
+  }, React.createElement('svg', {
+    viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+    strokeWidth: '2.2', strokeLinecap: 'round', strokeLinejoin: 'round'
+  }, React.createElement('path', { d: 'M10.3 4.3 2.5 18a1.9 1.9 0 0 0 1.7 2.8h15.6A1.9 1.9 0 0 0 21.5 18L13.7 4.3a1.9 1.9 0 0 0-3.4 0Z' }),
+     React.createElement('path', { d: 'M12 9.5v4' }),
+     React.createElement('path', { d: 'M12 17h.01' })), risk.open.length + ' \u00B7 ' + when);
+}
 function SfLink({ board, recId, label }) {
   const base = sfInstanceOf(board);
   if (!recId || !base) return null;
@@ -6063,7 +6110,13 @@ function TableView({
       }
     }, g.title), /*#__PURE__*/React.createElement("span", {
       className: "group-count"
-    }, shown.length, " items · ", done, " done")), !isC && /*#__PURE__*/React.createElement("div", {
+    }, shown.length, " items · ", done, " done"), (() => {
+      const n = shown.filter(x => hireRisk(board, x)).length;
+      return n > 0 ? /*#__PURE__*/React.createElement("span", {
+        className: "group-risk",
+        title: "Rows starting soon with onboarding steps still open"
+      }, n, " at risk") : null;
+    })()), !isC && /*#__PURE__*/React.createElement("div", {
       style: {
         overflowX: 'auto',
         borderRadius: 'var(--radius)'
@@ -6291,7 +6344,9 @@ function TableView({
         value: it.name,
         onPick: rec => setItemSF(gi, ii, rec),
         onText: v => setItem(gi, ii, 'name', v)
-       })), /*#__PURE__*/React.createElement(SfLink, {
+       })), /*#__PURE__*/React.createElement(WarnChip, {
+        risk: hireRisk(board, it)
+      }), /*#__PURE__*/React.createElement(SfLink, {
         board: board,
         recId: it.sf_cand_id,
         label: "Open this candidate in Salesforce"
