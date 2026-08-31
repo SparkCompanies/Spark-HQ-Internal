@@ -4536,6 +4536,20 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    /* revisions are timestamps - compare by value, never by string format */
+    const sbSameRev = (a, b) => {
+      if (!a || !b) return false;
+      const x = Date.parse(a), y = Date.parse(b);
+      if (isNaN(x) || isNaN(y)) return String(a) === String(b);
+      return x === y;
+    };
+    const sbStoredRev = async (id) => {
+      try {
+        const r = await sbService(env, "GET", "spark_boards?select=updated_at&id=eq." + encodeURIComponent(id) + "&limit=1");
+        if (r.ok && r.data && r.data[0]) return r.data[0].updated_at || null;
+      } catch (e) {}
+      return null;
+    };
     /* ---- sbAccess: who may see which boards ---- */
     const MEMBER_BOARDS = ["b1"];
     const MANAGER_SEES_ALL = true;
@@ -4648,7 +4662,7 @@ var worker_default = {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
         }
-        if (prev && baseRev && !body.force && prev.updated_at && prev.updated_at !== baseRev) {
+        if (prev && baseRev && !body.force && prev.updated_at && !sbSameRev(prev.updated_at, baseRev)) {
           return json({ error: "conflict", conflict: true, updated_at: prev.updated_at, updated_by: prev.updated_by || "" }, 409, origin);
         }
         if (prev && prev.data) {
@@ -4662,7 +4676,8 @@ var worker_default = {
         }
         const res = await sbService(env, "POST", "spark_boards?on_conflict=id", row);
         if (!res.ok) return json({ error: "save failed: " + JSON.stringify(res.data).slice(0, 250) }, 502, origin);
-        return json({ ok: true, id: row.id, rev: row.updated_at }, 200, origin);
+        const realRev = (await sbStoredRev(row.id)) || row.updated_at;
+        return json({ ok: true, id: row.id, rev: realRev }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
@@ -4744,7 +4759,8 @@ var worker_default = {
           updated_at: stamp
         });
         if (!res.ok) return json({ error: "patch failed: " + JSON.stringify(res.data).slice(0, 250) }, 502, origin);
-        return json({ ok: true, id: pid, rev: stamp, applied: targets.length }, 200, origin);
+        const realRev2 = (await sbStoredRev(pid)) || stamp;
+        return json({ ok: true, id: pid, rev: realRev2, applied: targets.length }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
@@ -4872,7 +4888,8 @@ var worker_default = {
           updated_at: stamp
         });
         if (!res.ok) return json({ error: "op failed: " + JSON.stringify(res.data).slice(0, 250) }, 502, origin);
-        return json({ ok: true, id: oid, rev: stamp, applied, skipped, board: data }, 200, origin);
+        const realRev3 = (await sbStoredRev(oid)) || stamp;
+        return json({ ok: true, id: oid, rev: realRev3, applied, skipped, board: data }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
