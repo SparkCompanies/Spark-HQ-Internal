@@ -5280,6 +5280,114 @@ var worker_default = {
         return json({ error: String(e.message || e), probe: out }, 502, origin);
       }
     }
+    if (url.pathname === "/boards-pull-pending" && request.method === "POST") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let pp;
+      try {
+        pp = await request.json();
+      } catch (e) {
+        return json({ error: "bad json" }, 400, origin);
+      }
+      const ppid = String(pp.board_id || "").slice(0, 60);
+      if (!ppid) return json({ error: "board_id required" }, 400, origin);
+      try {
+        const br6 = await sbService(env, "GET", "spark_boards?select=data,visibility,owner,members&id=eq." + encodeURIComponent(ppid) + "&limit=1");
+        if (!br6.ok || !br6.data || !br6.data[0]) return json({ error: "board not found" }, 404, origin);
+        const row6 = br6.data[0];
+        {
+          const rr = typeof sbRoleOf === "function" ? await sbRoleOf(who.email) : "member";
+          if (typeof sbAccess === "function" && !sbAccess({ id: ppid, visibility: row6.visibility, owner: row6.owner, members: row6.members }, who.email, rr)) {
+            return json({ error: "You do not have access to this board." }, 403, origin);
+          }
+        }
+        const bd6 = row6.data || {};
+        const haveId = {}, haveName = {};
+        (bd6.groups || []).forEach((g) => (g.items || []).forEach((x) => {
+          if (!x) return;
+          if (x.sfId) haveId[String(x.sfId).slice(0, 15)] = true;
+          if (x.name) haveName[String(x.name).toLowerCase().replace(/\s+/g, " ").trim()] = true;
+        }));
+        const soql6 = "SELECT Id, Name, Status__c, bpats__Start_Date__c, bpats__ATS_Candidate__c, bpats__ATS_Candidate__r.Name, bpats__Account__r.Name, bpats__ATS_Job__c, bpats__ATS_Job__r.Name FROM bpats__Placement__c WHERE (bpats__Start_Date__c = LAST_N_DAYS:14 OR bpats__Start_Date__c = NEXT_N_DAYS:90) AND Terminated_Date__c = null ORDER BY bpats__Start_Date__c ASC";
+        const sf6 = await runSalesforceQueryAll(env, soql6);
+        if (!sf6.ok) return json({ error: "Salesforce query failed: " + sf6.error }, 502, origin);
+        const DEAD6 = /terminat|cancel|fell\s*off|void|withdraw|declin|rescind|closed\s*lost|no\s*show/i;
+        const found = [];
+        (sf6.records || []).forEach((r) => {
+          const nm = r.bpats__ATS_Candidate__r && r.bpats__ATS_Candidate__r.Name || "";
+          if (!nm) return;
+          if (r.Status__c && DEAD6.test(String(r.Status__c))) return;
+          if (haveId[String(r.Id).slice(0, 15)]) return;
+          if (haveName[nm.toLowerCase().replace(/\s+/g, " ").trim()]) return;
+          found.push({
+            sfId: r.Id,
+            name: nm,
+            status: r.Status__c || "",
+            start: r.bpats__Start_Date__c || "",
+            client: r.bpats__Account__r && r.bpats__Account__r.Name || "",
+            job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "",
+            candId: r.bpats__ATS_Candidate__c || "",
+            jobId: r.bpats__ATS_Job__c || ""
+          });
+        });
+        if (pp.preview !== false) return json({ ok: true, preview: true, found: found, checked: (sf6.records || []).length }, 200, origin);
+        const want = Array.isArray(pp.ids) && pp.ids.length ? found.filter((f) => pp.ids.indexOf(f.sfId) !== -1) : found;
+        if (!want.length) return json({ ok: true, added: 0, note: "nothing selected" }, 200, origin);
+        const cols6 = bd6.columns || [];
+        const colBy = (re, type) => cols6.find((c) => c && (!type || c.type === type) && re.test(String(c.label || c.name || c.key || "")));
+        const dcol6 = colBy(/start/i, "date");
+        const ccol6 = colBy(/client/i, "text");
+        let grp = (bd6.groups || []).find((g) => g && /unclaimed|pending/i.test(String(g.title || "")));
+        if (!grp) {
+          grp = { id: "g_unclaimed", title: "Unclaimed \u2014 to pick up", color: "#A25DDC", items: [] };
+          bd6.groups = [grp].concat(bd6.groups || []);
+        }
+        grp.items = Array.isArray(grp.items) ? grp.items : [];
+        const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+        want.forEach((f, i) => {
+          const it = {
+            id: "i_pull" + Date.now().toString(36) + i,
+            name: f.name,
+            sfId: f.sfId,
+            sf_status: f.status,
+            sf_start: f.start,
+            sf_client: f.client,
+            sf_job: f.job,
+            sf_cand_id: f.candId,
+            sf_job_id: f.jobId
+          };
+          if (dcol6 && f.start) it[dcol6.key] = String(f.start).slice(0, 10);
+          if (ccol6 && f.client) it[ccol6.key] = f.client;
+          const sfc = cols6.find((c) => c && c.type === "sf");
+          if (sfc) it[sfc.key] = 1;
+          grp.items.push(it);
+        });
+        bd6.activity = [{
+          id: "ev" + Date.now().toString(36),
+          at: Date.now(),
+          actor: { name: who.email, color: "#A25DDC" },
+          kind: "created",
+          item: want.length + " unclaimed candidates pulled from Salesforce",
+          group: grp.title
+        }].concat(Array.isArray(bd6.activity) ? bd6.activity : []);
+        if (bd6.activity.length > 200) bd6.activity.length = 200;
+        delete bd6.__rev;
+        const sv6 = await sbService(env, "POST", "spark_boards?on_conflict=id", {
+          id: ppid,
+          name: String(bd6.name || "").slice(0, 200),
+          data: bd6,
+          visibility: row6.visibility,
+          owner: row6.owner,
+          members: Array.isArray(row6.members) ? row6.members : [],
+          updated_by: who.email,
+          updated_at: nowIso
+        });
+        if (!sv6.ok) return json({ error: "save failed: " + JSON.stringify(sv6.data).slice(0, 200) }, 502, origin);
+        return json({ ok: true, added: want.length, group: grp.title, rev: nowIso }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/boards-versions") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
