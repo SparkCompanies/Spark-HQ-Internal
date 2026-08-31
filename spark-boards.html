@@ -202,13 +202,15 @@
   .sfu-chip{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font:700 10px/1 'Jost',sans-serif;color:#fff;background:#579BFC}
   .sfu-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sfu-backdrop{position:fixed;inset:0;z-index:399}
-  .warn-chip{flex-shrink:0;display:flex;align-items:center;gap:3px;height:20px;padding:0 6px;border-radius:6px;font:700 10.5px/1 'Jost',sans-serif;cursor:default;margin-right:2px}
+  /* warn-compact: icon and count only, so the name keeps its width */
+  .warn-chip{flex-shrink:0;display:flex;align-items:center;gap:2px;height:19px;padding:0 5px;border-radius:6px;font:700 10.5px/1 'Jost',sans-serif;cursor:default;margin-right:2px}
   .warn-chip svg{width:12px;height:12px}
   .warn-chip.overdue{background:#FDE2E0;color:#B4261B}
   .warn-chip.urgent{background:#FCE9CF;color:#9A5B00}
   .warn-chip.soon{background:#FFF4CC;color:#8A6A00}
   .group-risk{margin-left:8px;padding:1px 8px;border-radius:999px;font:700 11px/1.7 'Jost',sans-serif;background:#FDE2E0;color:#B4261B;display:inline-block}
   .sf-link{flex-shrink:0;width:22px;height:22px;border:0;border-radius:6px;background:none;color:var(--faint);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s}
+  .sf-link{opacity:.55}
   tr:hover .sf-link{opacity:1}
   .sf-link:hover{background:var(--surface-2);color:#0086C0}
   .sf-link svg{width:13px;height:13px}
@@ -4078,13 +4080,13 @@ function WarnChip({ risk }) {
   const when = risk.days < 0 ? 'started ' + Math.abs(risk.days) + 'd ago' : risk.days === 0 ? 'starts today' : 'in ' + risk.days + 'd';
   return React.createElement('span', {
     className: 'warn-chip ' + risk.level,
-    title: 'Starts ' + (risk.days < 0 ? Math.abs(risk.days) + ' days ago' : 'in ' + risk.days + ' days') + ' \u2014 still open:\n\u2022 ' + risk.open.join('\n\u2022 ')
+    title: (risk.days < 0 ? 'Started ' + Math.abs(risk.days) + ' days ago' : risk.days === 0 ? 'Starts today' : 'Starts in ' + risk.days + ' days') + ' \u2014 ' + risk.open.length + ' still open:\n\u2022 ' + risk.open.join('\n\u2022 ')
   }, React.createElement('svg', {
     viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
     strokeWidth: '2.2', strokeLinecap: 'round', strokeLinejoin: 'round'
   }, React.createElement('path', { d: 'M10.3 4.3 2.5 18a1.9 1.9 0 0 0 1.7 2.8h15.6A1.9 1.9 0 0 0 21.5 18L13.7 4.3a1.9 1.9 0 0 0-3.4 0Z' }),
      React.createElement('path', { d: 'M12 9.5v4' }),
-     React.createElement('path', { d: 'M12 17h.01' })), risk.open.length + ' \u00B7 ' + when);
+     React.createElement('path', { d: 'M12 17h.01' })), String(risk.open.length));
 }
 function SfLink({ board, recId, label }) {
   const base = sfInstanceOf(board);

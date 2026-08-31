@@ -5375,6 +5375,11 @@ var worker_default = {
             matched++;
           }
         }));
+        /* instance before save */
+        try {
+          const tk = await getSalesforceToken(env);
+          if (tk && tk.instance_url) board.sfInstance = tk.instance_url;
+        } catch (e) {}
         const save = await sbService(env, "POST", "spark_boards?on_conflict=id", {
           id: boardId,
           data: board,
@@ -5382,12 +5387,6 @@ var worker_default = {
           updated_at: (/* @__PURE__ */ new Date()).toISOString()
         });
         if (!save.ok) return json({ error: "saved match but re-save failed: " + JSON.stringify(save.data).slice(0, 200) }, 502, origin);
-        let sfInstance = "";
-        try {
-          const tk = await getSalesforceToken(env);
-          sfInstance = tk.instance_url || "";
-        } catch (e) {}
-        board.sfInstance = sfInstance;
         console.log("BOARDS-SF-SYNC by " + who.email + ": board " + boardId + " matched " + matched + "/" + (sf.records || []).length);
         return json({ ok: true, matched, placementsScanned: (sf.records || []).length }, 200, origin);
       } catch (e) {
