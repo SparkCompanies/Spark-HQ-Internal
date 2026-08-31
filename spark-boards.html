@@ -5514,8 +5514,24 @@ function TableView({
     if (rec.status) it.sf_status = rec.status;
     if (rec.start) { it.sf_start = rec.start; if (!it.start) it.start = rec.start; }
     logAct(nb, { actor: sparkMe(), kind: 'cell', itemId: it.id, item: rec.name, col: 'name', colLabel: 'Item', from: was, to: rec.name + ' (linked to Salesforce)', rawFrom: was });
+    /* sf sync via ops */
+    const sfVals = {
+      name: it.name,
+      sfId: it.sfId,
+      sf_ambiguous: false
+    };
+    if (board.sfColumn) sfVals[board.sfColumn] = it[board.sfColumn];
+    if (rec.status) sfVals.sf_status = it.sf_status;
+    if (rec.start) {
+      sfVals.sf_start = it.sf_start;
+      sfVals.start = it.start;
+    }
     update(() => nb);
-    Persist.board(nb);
+    Persist.op(nb, [{
+      type: 'set_fields',
+      itemId: it.id,
+      values: sfVals
+    }], nb.activity ? [nb.activity[0]] : []);
   };
   const setItem = (gi, ii, key, val) => {
     const col = board.columns.find(c => c.key === key);
@@ -10120,7 +10136,21 @@ function App() {
               automations: [],
               ...b
             };
-            if (purgeExpiredItems(nb)) Persist.board(nb);
+            const idsBefore = [];
+            (nb.groups || []).forEach(g => (g.items || []).forEach(x => {
+              if (x && x.id) idsBefore.push(x.id);
+            }));
+            if (purgeExpiredItems(nb)) {
+              const kept = {};
+              (nb.groups || []).forEach(g => (g.items || []).forEach(x => {
+                if (x && x.id) kept[x.id] = true;
+              }));
+              const gone = idsBefore.filter(id => !kept[id]).map(id => ({
+                type: 'remove_item',
+                itemId: id
+              }));
+              if (gone.length) Persist.op(nb, gone, []);
+            }
             return nb;
           });
           // hard-purge boards deleted more than 30 days ago
