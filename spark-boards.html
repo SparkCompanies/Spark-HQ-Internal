@@ -5589,11 +5589,23 @@ function TableView({
     if (rec.start) { it.sf_start = rec.start; if (!it.start) it.start = rec.start; }
     logAct(nb, { actor: sparkMe(), kind: 'cell', itemId: it.id, item: rec.name, col: 'name', colLabel: 'Item', from: was, to: rec.name + ' (linked to Salesforce)', rawFrom: was });
     /* sf sync via ops */
+    if (rec.client) {
+      it.sf_client = rec.client;
+      const ccol = board.columns.find(c => /client/i.test(String(c.label || c.name || c.key || '')) && c.type === 'text');
+      if (ccol && !String(it[ccol.key] || '').trim()) it[ccol.key] = rec.client;
+    }
+    if (rec.job) it.sf_job = rec.job;
     const sfVals = {
       name: it.name,
       sfId: it.sfId,
-      sf_ambiguous: false
+      sf_ambiguous: false,
+      sf_client: it.sf_client,
+      sf_job: it.sf_job
     };
+    {
+      const ccol2 = board.columns.find(c => /client/i.test(String(c.label || c.name || c.key || '')) && c.type === 'text');
+      if (ccol2) sfVals[ccol2.key] = it[ccol2.key];
+    }
     if (board.sfColumn) sfVals[board.sfColumn] = it[board.sfColumn];
     if (rec.status) sfVals.sf_status = it.sf_status;
     if (rec.start) {

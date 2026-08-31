@@ -5342,7 +5342,7 @@ var worker_default = {
         const br = await sbService(env, "GET", "spark_boards?id=eq." + encodeURIComponent(boardId) + "&select=data");
         if (!br.ok || !br.data || !br.data[0]) return json({ error: "board not found" }, 404, origin);
         const board = br.data[0].data;
-        const soql = "SELECT Id, bpats__ATS_Candidate__r.Name, Status__c, bpats__Start_Date__c FROM bpats__Placement__c WHERE (bpats__Start_Date__c = LAST_N_DAYS:" + days + " OR bpats__Start_Date__c = NEXT_N_DAYS:90) ORDER BY bpats__Start_Date__c DESC";
+        const soql = "SELECT Id, bpats__ATS_Candidate__r.Name, Status__c, bpats__Start_Date__c, bpats__Account__r.Name, bpats__ATS_Job__r.Name FROM bpats__Placement__c WHERE (bpats__Start_Date__c = LAST_N_DAYS:" + days + " OR bpats__Start_Date__c = NEXT_N_DAYS:90) ORDER BY bpats__Start_Date__c DESC";
         const sf = await runSalesforceQueryAll(env, soql);
         if (!sf.ok) return json({ error: sf.error }, 502, origin);
         const byName = {};
@@ -5350,7 +5350,7 @@ var worker_default = {
           const cand = r.bpats__ATS_Candidate__r && r.bpats__ATS_Candidate__r.Name ? r.bpats__ATS_Candidate__r.Name : "";
           const n = String(cand).toLowerCase().replace(/\s+/g, " ").trim();
           if (!n) return;
-          if (!byName[n]) byName[n] = { sfId: r.Id, status: r.Status__c || "", start: r.bpats__Start_Date__c || "", dup: false };
+          if (!byName[n]) byName[n] = { sfId: r.Id, status: r.Status__c || "", start: r.bpats__Start_Date__c || "", client: r.bpats__Account__r && r.bpats__Account__r.Name || "", job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "", dup: false };
           else byName[n].dup = true;
         });
         let matched = 0;
@@ -5363,6 +5363,13 @@ var worker_default = {
             it.sf_ambiguous = !!hit.dup;
             it.sf_status = hit.status;
             if (hit.start) it.sf_start = hit.start;
+            /* sfClientFill: fill the Client column only when it is empty */
+            if (hit.client) {
+              it.sf_client = hit.client;
+              const ccol = (board.columns || []).find((c) => c && /client/i.test(String(c.label || c.name || c.key || "")) && (c.type === "text" || c.type === "status"));
+              if (ccol && ccol.type === "text" && !String(it[ccol.key] || "").trim()) it[ccol.key] = hit.client;
+            }
+            if (hit.job) it.sf_job = hit.job;
             matched++;
           }
         }));
@@ -5847,14 +5854,16 @@ var worker_default = {
       safe = safe.trim().slice(0, 60);
       if (safe.length < 2) return json({ ok: true, results: [] }, 200, origin);
       try {
-        const soql = "SELECT Id, Status__c, bpats__Start_Date__c, bpats__ATS_Candidate__r.Name FROM bpats__Placement__c WHERE bpats__ATS_Candidate__r.Name LIKE '%" + safe + "%' ORDER BY bpats__Start_Date__c DESC LIMIT 25";
+        const soql = "SELECT Id, Status__c, bpats__Start_Date__c, bpats__ATS_Candidate__r.Name, bpats__Account__r.Name, bpats__ATS_Job__r.Name FROM bpats__Placement__c WHERE bpats__ATS_Candidate__r.Name LIKE '%" + safe + "%' ORDER BY bpats__Start_Date__c DESC LIMIT 25";
         const sf = await runSalesforceQueryAll(env, soql);
         if (!sf.ok) return json({ error: sf.error }, 502, origin);
         const results = (sf.records || []).map((r) => ({
           sfId: r.Id,
           name: r.bpats__ATS_Candidate__r && r.bpats__ATS_Candidate__r.Name || "",
           status: r.Status__c || "",
-          start: r.bpats__Start_Date__c || ""
+          start: r.bpats__Start_Date__c || "",
+          client: r.bpats__Account__r && r.bpats__Account__r.Name || "",
+          job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || ""
         })).filter((x) => x.name);
         return json({ ok: true, results }, 200, origin);
       } catch (e) {
