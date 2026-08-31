@@ -5342,7 +5342,7 @@ var worker_default = {
         const br = await sbService(env, "GET", "spark_boards?id=eq." + encodeURIComponent(boardId) + "&select=data");
         if (!br.ok || !br.data || !br.data[0]) return json({ error: "board not found" }, 404, origin);
         const board = br.data[0].data;
-        const soql = "SELECT Id, bpats__ATS_Candidate__r.Name, Status__c, bpats__Start_Date__c, bpats__Account__r.Name, bpats__ATS_Job__r.Name FROM bpats__Placement__c WHERE (bpats__Start_Date__c = LAST_N_DAYS:" + days + " OR bpats__Start_Date__c = NEXT_N_DAYS:90) ORDER BY bpats__Start_Date__c DESC";
+        const soql = "SELECT Id, bpats__ATS_Candidate__r.Name, Status__c, bpats__Start_Date__c, bpats__Account__r.Name, bpats__ATS_Job__r.Name, bpats__ATS_Candidate__c, bpats__ATS_Job__c FROM bpats__Placement__c WHERE (bpats__Start_Date__c = LAST_N_DAYS:" + days + " OR bpats__Start_Date__c = NEXT_N_DAYS:90) ORDER BY bpats__Start_Date__c DESC";
         const sf = await runSalesforceQueryAll(env, soql);
         if (!sf.ok) return json({ error: sf.error }, 502, origin);
         const byName = {};
@@ -5350,7 +5350,7 @@ var worker_default = {
           const cand = r.bpats__ATS_Candidate__r && r.bpats__ATS_Candidate__r.Name ? r.bpats__ATS_Candidate__r.Name : "";
           const n = String(cand).toLowerCase().replace(/\s+/g, " ").trim();
           if (!n) return;
-          if (!byName[n]) byName[n] = { sfId: r.Id, status: r.Status__c || "", start: r.bpats__Start_Date__c || "", client: r.bpats__Account__r && r.bpats__Account__r.Name || "", job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "", dup: false };
+          if (!byName[n]) byName[n] = { sfId: r.Id, status: r.Status__c || "", start: r.bpats__Start_Date__c || "", client: r.bpats__Account__r && r.bpats__Account__r.Name || "", job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "", candId: r.bpats__ATS_Candidate__c || "", jobId: r.bpats__ATS_Job__c || "", dup: false };
           else byName[n].dup = true;
         });
         let matched = 0;
@@ -5370,6 +5370,8 @@ var worker_default = {
               if (ccol && ccol.type === "text" && !String(it[ccol.key] || "").trim()) it[ccol.key] = hit.client;
             }
             if (hit.job) it.sf_job = hit.job;
+            if (hit.candId) it.sf_cand_id = hit.candId;
+            if (hit.jobId) it.sf_job_id = hit.jobId;
             matched++;
           }
         }));
@@ -5380,6 +5382,12 @@ var worker_default = {
           updated_at: (/* @__PURE__ */ new Date()).toISOString()
         });
         if (!save.ok) return json({ error: "saved match but re-save failed: " + JSON.stringify(save.data).slice(0, 200) }, 502, origin);
+        let sfInstance = "";
+        try {
+          const tk = await getSalesforceToken(env);
+          sfInstance = tk.instance_url || "";
+        } catch (e) {}
+        board.sfInstance = sfInstance;
         console.log("BOARDS-SF-SYNC by " + who.email + ": board " + boardId + " matched " + matched + "/" + (sf.records || []).length);
         return json({ ok: true, matched, placementsScanned: (sf.records || []).length }, 200, origin);
       } catch (e) {
@@ -5854,7 +5862,7 @@ var worker_default = {
       safe = safe.trim().slice(0, 60);
       if (safe.length < 2) return json({ ok: true, results: [] }, 200, origin);
       try {
-        const soql = "SELECT Id, Status__c, bpats__Start_Date__c, bpats__ATS_Candidate__r.Name, bpats__Account__r.Name, bpats__ATS_Job__r.Name FROM bpats__Placement__c WHERE bpats__ATS_Candidate__r.Name LIKE '%" + safe + "%' ORDER BY bpats__Start_Date__c DESC LIMIT 25";
+        const soql = "SELECT Id, Status__c, bpats__Start_Date__c, bpats__ATS_Candidate__r.Name, bpats__Account__r.Name, bpats__ATS_Job__r.Name, bpats__ATS_Candidate__c, bpats__ATS_Job__c FROM bpats__Placement__c WHERE bpats__ATS_Candidate__r.Name LIKE '%" + safe + "%' ORDER BY bpats__Start_Date__c DESC LIMIT 25";
         const sf = await runSalesforceQueryAll(env, soql);
         if (!sf.ok) return json({ error: sf.error }, 502, origin);
         const results = (sf.records || []).map((r) => ({
@@ -5863,7 +5871,9 @@ var worker_default = {
           status: r.Status__c || "",
           start: r.bpats__Start_Date__c || "",
           client: r.bpats__Account__r && r.bpats__Account__r.Name || "",
-          job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || ""
+          job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "",
+          candId: r.bpats__ATS_Candidate__c || "",
+          jobId: r.bpats__ATS_Job__c || ""
         })).filter((x) => x.name);
         return json({ ok: true, results }, 200, origin);
       } catch (e) {
