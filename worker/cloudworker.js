@@ -4974,11 +4974,11 @@ var worker_default = {
         const created = [];
         const errs = [];
         for (const r of plan) {
+          /* recipient is calculated on save from bpats__User__c - do not send it */
           const rec = {
             Name: r.Name,
             bpats__Placement__c: placementId,
             bpats__ATS_Role_Type__c: "User Lookup",
-            bpats__Credit_Recipient__c: r.recipient,
             bpats__Credit_Percentage__c: 100,
             bpats__User__c: r.userId
           };
