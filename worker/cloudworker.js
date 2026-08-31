@@ -5214,16 +5214,39 @@ var worker_default = {
         } catch (e) {
           out.notes.push("files: " + String(e.message || e));
         }
-        /* 2. which object is the candidate, and what hangs off it */
-        let candObj = "bpats__ATS_Candidate__c";
+        /* 2. resolve the object from the id's keyPrefix - candidates are Contacts here */
+        let candObj = null;
         try {
-          const r0 = await fetch(tok.instance_url + V + "/sobjects/bpats__ATS_Candidate__c/" + candId + "?fields=Id,Name", { headers: H });
+          const gr = await fetch(tok.instance_url + V + "/sobjects/", { headers: H });
+          const gj = await gr.json();
+          const pref = candId.slice(0, 3);
+          if (gr.ok && gj && Array.isArray(gj.sobjects)) {
+            const hit = gj.sobjects.find((s) => s.keyPrefix === pref && s.queryable);
+            if (hit) candObj = hit.name;
+          }
+        } catch (e) {
+          out.notes.push("describeGlobal: " + String(e.message || e));
+        }
+        out.candidate_object = candObj;
+        if (!candObj) {
+          out.notes.push("Could not resolve the object for id prefix " + candId.slice(0, 3));
+          return json({ ok: true, probe: out }, 200, origin);
+        }
+        try {
+          const r0 = await fetch(tok.instance_url + V + "/sobjects/" + candObj + "/" + candId + "?fields=Id,Name", { headers: H });
           const d0 = await r0.json();
           if (r0.ok && d0) out.candidate_name = d0.Name || null;
           else out.notes.push("candidate fetch: " + JSON.stringify(d0).slice(0, 120));
         } catch (e) {
           out.notes.push("candidate: " + String(e.message || e));
         }
+        /* legacy Attachments live separately from Files */
+        try {
+          const qa = "SELECT Name, ContentType, CreatedDate FROM Attachment WHERE ParentId = '" + candId + "' LIMIT 25";
+          const ra = await fetch(tok.instance_url + V + "/query?q=" + encodeURIComponent(qa), { headers: H });
+          const da = await ra.json();
+          if (ra.ok && da.records) out.attachments = da.records.map((x) => ({ name: x.Name, type: x.ContentType, created: x.CreatedDate }));
+        } catch (e) {}
         try {
           const rd = await fetch(tok.instance_url + V + "/sobjects/" + candObj + "/describe", { headers: H });
           const dd = await rd.json();
