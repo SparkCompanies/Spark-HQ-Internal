@@ -748,9 +748,14 @@ const API = {
 /* revisions live here, not on board objects, so a stale copy cannot carry an old one */
 const SB_REVS = {};
 const sbRev = b => b && b.id ? (SB_REVS[b.id] || b.__rev || null) : null;
+let SB_LAST_WRITE = 0;
+const sbTouch = () => {
+  SB_LAST_WRITE = Date.now();
+};
 const sbSetRev = (b, rev) => {
   if (!b || !b.id || !rev) return;
   SB_REVS[b.id] = rev;
+  SB_LAST_WRITE = Date.now();
   try {
     b.__rev = rev;
   } catch (e) {}
@@ -806,6 +811,7 @@ const Persist = {
      it currently holds, so it cannot clobber someone else's concurrent change */
   op(b, ops, activity, onMerged) {
     if (!LIVE || !b || !ops || !ops.length) return;
+    sbTouch();
     const run = () => API.call('/boards-op', {
       method: 'POST',
       body: JSON.stringify({
@@ -833,6 +839,7 @@ const Persist = {
   },
   cell(b, ops, activity) {
     if (!LIVE || !b || !ops || !ops.length) return;
+    sbTouch();
     const post = force => API.call('/boards-patch', {
       method: 'POST',
       body: JSON.stringify({
@@ -10271,6 +10278,53 @@ function App() {
   })();
   const activeBoard = route.page === 'board' ? visible.find(b => b.id === route.id) : null;
   const updateBoard = (id, fn) => setBoards(bs => bs.map(b => b.id === id ? fn(b) : b));
+  /* sbLivePoll: pick up other people's changes to the board you are looking at */
+  const liveId = activeBoard ? activeBoard.id : null;
+  useEffect(() => {
+    if (!LIVE || !liveId) return;
+    let stopped = false;
+    const busyTyping = () => {
+      const el = typeof document !== 'undefined' ? document.activeElement : null;
+      if (!el) return false;
+      const t = (el.tagName || '').toUpperCase();
+      return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || el.isContentEditable === true;
+    };
+    const tick = async () => {
+      try {
+        if (stopped) return;
+        if (typeof document !== 'undefined' && document.hidden) return;
+        if (busyTyping()) return;
+        if (Date.now() - SB_LAST_WRITE < 5000) return;
+        const d = await API.call('/boards-rev');
+        if (stopped || !d || !Array.isArray(d.revs)) return;
+        const hit = d.revs.find(r => r.id === liveId);
+        if (!hit || !hit.rev) return;
+        if (SB_REVS[liveId] === hit.rev) return;
+        const mine = String(d.me || '').toLowerCase();
+        if (String(hit.by || '').toLowerCase() === mine) {
+          SB_REVS[liveId] = hit.rev;
+          return;
+        }
+        if (busyTyping() || Date.now() - SB_LAST_WRITE < 5000) return;
+        const one = await API.call('/boards-one?id=' + encodeURIComponent(liveId));
+        if (stopped || !one || !one.board) return;
+        SB_REVS[liveId] = one.rev || hit.rev;
+        updateBoard(liveId, () => one.board);
+        const whoName = String(hit.by || '').split('@')[0].replace(/[._-]+/g, ' ');
+        sbFlash((whoName || 'Someone') + ' updated this board - refreshed', 'ok');
+      } catch (e) {}
+    };
+    const iv = setInterval(tick, 15000);
+    const onVis = () => {
+      if (typeof document !== 'undefined' && !document.hidden) tick();
+    };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stopped = true;
+      clearInterval(iv);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [liveId]);
   const toggleFav = id => setBoards(bs => bs.map(b => b.id === id ? {
     ...b,
     fav: !b.fav

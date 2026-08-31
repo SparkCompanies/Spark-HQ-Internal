@@ -4556,6 +4556,48 @@ var worker_default = {
       if (!sbSeesAll(role) && MEMBER_BOARDS.indexOf(String(board.id)) === -1) return false;
       return true;
     };
+    if (url.pathname === "/boards-rev") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const res = await sbService(env, "GET", "spark_boards?select=id,visibility,owner,members,updated_at,updated_by");
+        if (!res.ok) return json({ error: "rev failed" }, 502, origin);
+        let rrole = "member";
+        try {
+          const pr = await sbService(env, "GET", "profiles?select=role&email=eq." + encodeURIComponent(who.email));
+          if (pr.ok && pr.data && pr.data[0] && pr.data[0].role) rrole = pr.data[0].role;
+        } catch (e) {}
+        const revs = (res.data || []).filter((b) => sbAccess(b, who.email, rrole)).map((b) => ({
+          id: b.id,
+          rev: b.updated_at || null,
+          by: b.updated_by || ""
+        }));
+        return json({ ok: true, revs, me: who.email }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
+    if (url.pathname === "/boards-one") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const bid = String(url.searchParams.get("id") || "").slice(0, 60);
+      if (!bid) return json({ error: "id required" }, 400, origin);
+      try {
+        const res = await sbService(env, "GET", "spark_boards?select=id,data,visibility,owner,members,updated_at,updated_by&id=eq." + encodeURIComponent(bid) + "&limit=1");
+        if (!res.ok || !res.data || !res.data[0]) return json({ error: "board not found" }, 404, origin);
+        const row = res.data[0];
+        let orole = "member";
+        try {
+          const pr = await sbService(env, "GET", "profiles?select=role&email=eq." + encodeURIComponent(who.email));
+          if (pr.ok && pr.data && pr.data[0] && pr.data[0].role) orole = pr.data[0].role;
+        } catch (e) {}
+        if (!sbAccess(row, who.email, orole)) return json({ error: "You do not have access to this board." }, 403, origin);
+        if (row.data) row.data.__rev = row.updated_at || null;
+        return json({ ok: true, board: row.data, rev: row.updated_at || null, by: row.updated_by || "" }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/boards-load") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
