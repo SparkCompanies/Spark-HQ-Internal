@@ -802,6 +802,35 @@ const Persist = {
     });
   },
   _q: Promise.resolve(),
+  /* structural change as a typed operation - the server merges it into whatever
+     it currently holds, so it cannot clobber someone else's concurrent change */
+  op(b, ops, activity, onMerged) {
+    if (!LIVE || !b || !ops || !ops.length) return;
+    const run = () => API.call('/boards-op', {
+      method: 'POST',
+      body: JSON.stringify({
+        board_id: b.id,
+        ops: ops,
+        activity: activity || []
+      })
+    }).then(d => {
+      if (d && d.rev) sbSetRev(b, d.rev);
+      if (d && d.board && typeof onMerged === 'function') {
+        d.board.__rev = d.rev || null;
+        onMerged(d.board);
+      }
+    }).catch(e => {
+      const msg = e && e.message ? e.message : '';
+      if (msg.indexOf('API 404') !== -1 || msg.indexOf('API 400') !== -1) {
+        Persist.board(b, true);
+        return;
+      }
+      console.error('[Spark Boards] op failed', e);
+      sbFlash('NOT SAVED. ' + (msg || 'Unknown error'));
+    });
+    Persist._q = Persist._q.then(run, run);
+    return Persist._q;
+  },
   cell(b, ops, activity) {
     if (!LIVE || !b || !ops || !ops.length) return;
     const post = force => API.call('/boards-patch', {
@@ -5460,6 +5489,7 @@ function TableView({
   setSel
 }) {
   /* cells stay editable while filtered; everything structural does not */
+  const adopt = nb => update(() => nb);
   const cellEdit = canEditRaw;
   const canEdit = canEditRaw && !filtered;
   const baseBoard = fullBoard || board;
@@ -5555,7 +5585,16 @@ function TableView({
     });
     const notes = runAutomations(nb, blank, '__created__');
     update(() => nb);
-    Persist.board(nb);
+    if (notes.length) {
+      Persist.board(nb, true);
+    } else {
+      Persist.op(nb, [{
+        type: 'add_item',
+        groupId: nb.groups[gi].id,
+        groupIndex: gi,
+        item: blank
+      }], nb.activity ? [nb.activity[0]] : [], adopt);
+    }
     if (notes.length && onAutomation) onAutomation(notes);
   };
   const [renameG, setRenameG] = useState(null);
@@ -5570,23 +5609,31 @@ function TableView({
       const t = nb.groups.find(x => x.id === gid);
       if (!t || t.title === val) return nb;
       t.title = val;
-      Persist.board(nb);
+      Persist.op(nb, [{
+        type: 'rename_group',
+        groupId: gid,
+        title: val
+      }], [], adopt);
       return nb;
     });
   };
-  const addGroup = () => update(b => {
-    const nb = structuredClone(b);
-    nb.groups.push({
+  const addGroup = () => {
+    const nb = structuredClone(baseBoard);
+    const g = {
       id: 'g' + Date.now(),
       title: 'New Group',
       color: '#9AA0AC',
       items: []
-    });
-    Persist.board(nb);
-    setRenameG(nb.groups[nb.groups.length - 1].id);
+    };
+    nb.groups.push(g);
+    update(() => nb);
+    Persist.op(nb, [{
+      type: 'add_group',
+      group: g
+    }], [], adopt);
+    setRenameG(g.id);
     setRenameV('New Group');
-    return nb;
-  });
+  };
 
   // ---- column operations ----
   const commit = nb => {
@@ -8034,7 +8081,14 @@ function BoardView({
         delete it.deletedAt;
       }
     }));
-    Persist.board(nb);
+    Persist.op(nb, [{
+      type: 'set_fields',
+      itemId: id,
+      values: {
+        archivedAt: null,
+        deletedAt: null
+      }
+    }], []);
     return nb;
   });
   const purgeItem = id => update(b => {
@@ -8048,7 +8102,10 @@ function BoardView({
       });
       g.items = g.items.filter(it => !(it.id === id && it.deletedAt && !it.archivedAt));
     });
-    Persist.board(nb);
+    Persist.op(nb, [{
+      type: 'remove_item',
+      itemId: id
+    }], []);
     return nb;
   });
   const emptyDeleted = () => {
@@ -10305,8 +10362,13 @@ function App() {
       text: textVal,
       at: new Date().toISOString()
     });
+    const note = target.updates[target.updates.length - 1];
     updateBoard(drawer.boardId, () => nb);
-    Persist.board(nb, true);
+    Persist.op(nb, [{
+      type: 'post_note',
+      itemId: drawer.itemId,
+      note: note
+    }], [], merged => updateBoard(drawer.boardId, () => merged));
   };
   const createBoard = (name, color, template, priv) => {
     const built = template ? template.build() : {
