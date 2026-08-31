@@ -4922,14 +4922,16 @@ var worker_default = {
         const pl = pq.records && pq.records[0];
         if (!pl) return json({ error: "That placement no longer exists in Salesforce." }, 404, origin);
         const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-        const started = pl.bpats__Start_Date__c ? String(pl.bpats__Start_Date__c).slice(0, 10) <= today : false;
-        if (!started) {
+        const DEAD_STATUS = /terminat|cancel|fell\s*off|void|withdraw|declin|rescind|closed\s*lost|no\s*show/i;
+        const pstatus = String(pl.Status__c || "");
+        if (pstatus && DEAD_STATUS.test(pstatus)) {
           return json({
-            error: "Not started yet. Placement credits can be applied once the start date has passed.",
+            error: "This placement is " + pstatus + ", so credits cannot be applied.",
             status: pl.Status__c || null,
             start_date: pl.bpats__Start_Date__c || null
           }, 409, origin);
         }
+        const startsLater = pl.bpats__Start_Date__c ? String(pl.bpats__Start_Date__c).slice(0, 10) > today : false;
         const uq = await runSalesforceQueryAll(env, "SELECT Id, Name FROM User WHERE Id IN ('" + salesId + "','" + recId + "')");
         const uName = {};
         ((uq.ok && uq.records) || []).forEach((u) => {
@@ -4947,7 +4949,7 @@ var worker_default = {
         const eq = await runSalesforceQueryAll(env, "SELECT Id, Name, bpats__Credit_Recipient__c FROM bpats__Placement_Credit__c WHERE bpats__Placement__c = '" + placementId + "' AND bpats__Is_Void__c = false");
         const existing = (eq.ok && eq.records) || [];
         if (cb.preview === true) {
-          return json({ ok: true, preview: true, placement: pl.Name || placementId, start_date: pl.bpats__Start_Date__c, status: pl.Status__c || null, full_desk: fullDesk, plan: plan.map((r) => ({ name: r.Name, recipient: r.recipient })), existing: existing.map((c) => ({ id: c.Id, name: c.Name, recipient: c.bpats__Credit_Recipient__c })) }, 200, origin);
+          return json({ ok: true, preview: true, placement: pl.Name || placementId, start_date: pl.bpats__Start_Date__c, status: pl.Status__c || null, starts_later: startsLater, full_desk: fullDesk, plan: plan.map((r) => ({ name: r.Name, recipient: r.recipient })), existing: existing.map((c) => ({ id: c.Id, name: c.Name, recipient: c.bpats__Credit_Recipient__c })) }, 200, origin);
         }
         if (existing.length && cb.replace !== true) {
           return json({ error: "This placement already has " + existing.length + " credit(s).", existing: existing.map((c) => ({ id: c.Id, name: c.Name, recipient: c.bpats__Credit_Recipient__c })) }, 409, origin);
