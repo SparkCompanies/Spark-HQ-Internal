@@ -4987,6 +4987,35 @@ var worker_default = {
           if (cr.ok) created.push({ name: r.Name, recipient: r.recipient, id: cr.data && cr.data.id });
           else errs.push(r.Name + ": " + JSON.stringify(cr.data).slice(0, 160));
         }
+        /* placementUpdate: mark it Active and push the estimated end date out */
+        const placementUpdate = { attempted: false };
+        if (errs.length === 0) {
+          placementUpdate.attempted = true;
+          try {
+            let endField = null;
+            try {
+              const tok2 = await getSalesforceToken(env);
+              const pd = await fetch(tok2.instance_url + "/services/data/v60.0/sobjects/bpats__Placement__c/describe", { headers: { Authorization: "Bearer " + tok2.access_token } });
+              const pj = await pd.json();
+              if (pd.ok && pj && Array.isArray(pj.fields)) {
+                const f = pj.fields.find((x) => x.updateable && (x.type === "date" || x.type === "datetime") && /(estimated|projected|proj|est)[^a-z]*end/i.test(String(x.label || "") + " " + String(x.name || "")));
+                if (f) endField = f.name;
+              }
+            } catch (e) {}
+            const patch = { Status__c: "Active" };
+            if (endField) patch[endField] = "2999-01-01";
+            const ur = await sfWrite(env, "PATCH", "/sobjects/bpats__Placement__c/" + placementId, patch);
+            placementUpdate.ok = !!ur.ok;
+            placementUpdate.status = "Active";
+            placementUpdate.end_date_field = endField;
+            placementUpdate.end_date = endField ? "2999-01-01" : null;
+            if (!endField) placementUpdate.note = "No estimated end date field found on the placement object - status was still set.";
+            if (!ur.ok) placementUpdate.error = JSON.stringify(ur.data).slice(0, 200);
+          } catch (e) {
+            placementUpdate.ok = false;
+            placementUpdate.error = String(e.message || e);
+          }
+        }
         return json({
           ok: errs.length === 0,
           placement: pl.Name || placementId,
@@ -4994,6 +5023,7 @@ var worker_default = {
           deleted,
           created,
           type_field: typeField,
+          placement_update: placementUpdate,
           errors: errs.length ? errs : void 0
         }, errs.length ? 502 : 200, origin);
       } catch (e) {
