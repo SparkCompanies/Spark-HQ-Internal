@@ -191,6 +191,17 @@
   .emo-cell{height:42px;width:100%;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;cursor:pointer;user-select:none;padding:0}
   .emo-cell.empty{color:var(--faint);font-size:13px}
   .emo-wrap{position:relative;width:100%;height:42px}
+  .sfu-cell{height:42px;width:100%;display:flex;align-items:center;gap:7px;padding:0 12px;cursor:pointer;font-size:13.5px;overflow:hidden}
+  .sfu-cell.empty{color:var(--faint)}
+  .sfu-chip{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font:700 10px/1 'Jost',sans-serif;color:#fff;background:#579BFC}
+  .sfu-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sfu-pop{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px;width:280px}
+  .sfu-pop input{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;margin-bottom:6px}
+  .sfu-pop input:focus{border-color:var(--gold)}
+  .sfu-list{max-height:220px;overflow-y:auto}
+  .sfu-list button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;background:none;border-radius:7px;cursor:pointer;font-size:13px;text-align:left}
+  .sfu-list button:hover{background:var(--surface-2)}
+  .sfu-clear{width:100%;margin-top:6px;padding:5px;font-size:12.5px;color:var(--sub);background:var(--surface-2);border:0;border-radius:7px;cursor:pointer}
   .emo-pop{position:fixed;z-index:400;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:8px;width:268px}
   .emo-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:190px;overflow-y:auto}
   .emo-grid button{font-size:18px;line-height:1;padding:5px 0;border:0;background:none;border-radius:6px;cursor:pointer}
@@ -4111,6 +4122,10 @@ const COLUMN_TYPES = [{
   label: 'Emoji',
   c: '#FDAB3D'
 }, {
+  type: 'sfuser',
+  label: 'Salesforce User',
+  c: '#0086C0'
+}, {
   type: 'timeline',
   label: 'Timeline',
   c: '#579BFC',
@@ -6206,6 +6221,10 @@ function TableView({
       }), c.type === 'checkbox' && /*#__PURE__*/React.createElement(CheckboxCell, {
         value: it[c.key],
         onChange: v => setItem(gi, ii, c.key, v)
+      }), c.type === 'sfuser' && /*#__PURE__*/React.createElement(SFUserCell, {
+        value: it[c.key],
+        canEdit: cellEdit,
+        onChange: v => setItem(gi, ii, c.key, v)
       }), c.type === 'emoji' && /*#__PURE__*/React.createElement(EmojiCell, {
         value: it[c.key],
         canEdit: cellEdit,
@@ -6524,6 +6543,111 @@ function Scaffold({
 }
 
 const EMOJI_SET = ['\u2705','\u274C','\u26A0\uFE0F','\u2B50','\uD83D\uDD25','\uD83C\uDFAF','\uD83D\uDCC5','\u23F0','\uD83D\uDCCC','\uD83D\uDEA9','\uD83D\uDC4D','\uD83D\uDC4E','\uD83D\uDCAF','\u2757','\u2753','\uD83D\uDD04','\uD83D\uDFE2','\uD83D\uDFE1','\uD83D\uDD34','\uD83D\uDD35','\uD83D\uDFE3','\u26AB','\u26AA','\uD83D\uDFE4','\uD83D\uDE00','\uD83D\uDE42','\uD83D\uDE10','\uD83D\uDE41','\uD83D\uDE22','\uD83D\uDE21','\uD83E\uDD14','\uD83D\uDE0E','\uD83D\uDCBC','\uD83D\uDCDE','\uD83D\uDCE7','\uD83D\uDCC4','\uD83D\uDCCB','\uD83D\uDCB0','\uD83C\uDFE0','\uD83D\uDE97','\uD83D\uDC64','\uD83D\uDC65','\uD83E\uDD1D','\uD83C\uDF89','\uD83C\uDFC6','\uD83D\uDE80','\u26A1','\uD83E\uDD16','\uD83D\uDD27','\uD83C\uDFED','\uD83E\uDDEA','\uD83E\uDE7A','\uD83D\uDC8A','\uD83D\uDEE1\uFE0F','\uD83D\uDD12','\uD83D\uDD11'];
+/* Salesforce users, loaded once and shared by every SF user cell */
+const SFU = {
+  list: null,
+  loading: null,
+  byId: {},
+  load() {
+    if (this.list) return Promise.resolve(this.list);
+    if (this.loading) return this.loading;
+    this.loading = API.call('/charge-sf-users').then(d => {
+      this.list = (d && d.users) || [];
+      this.list.forEach(u => {
+        this.byId[u.id] = u.name;
+      });
+      return this.list;
+    }).catch(() => {
+      this.loading = null;
+      return [];
+    });
+    return this.loading;
+  },
+  name(id) {
+    if (!id) return '';
+    return this.byId[id] || '';
+  }
+};
+const sfuInitials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+function SFUserCell({ value, onChange, canEdit }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const [users, setUsers] = useState(SFU.list || []);
+  const [q, setQ] = useState('');
+  const anchor = useRef(null);
+  useEffect(() => {
+    if (!SFU.list) SFU.load().then(u => setUsers(u.slice()));
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const h = () => setOpen(false);
+    window.addEventListener('click', h);
+    window.addEventListener('scroll', h, true);
+    return () => {
+      window.removeEventListener('click', h);
+      window.removeEventListener('scroll', h, true);
+    };
+  }, [open]);
+  const openAt = () => {
+    if (!canEdit) return;
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    SFU.load().then(u => setUsers(u.slice()));
+    const el = anchor.current;
+    if (el && el.getBoundingClientRect) {
+      const r = el.getBoundingClientRect();
+      const w = 280,
+        h = 300;
+      let left = r.left;
+      if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8;
+      if (left < 8) left = 8;
+      let top = r.bottom + 4;
+      if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+      setPos({ left: left, top: top });
+    }
+    setQ('');
+    setOpen(true);
+  };
+  const nm = SFU.name(value);
+  const shown = (users || []).filter(u => !q.trim() || u.name.toLowerCase().indexOf(q.trim().toLowerCase()) !== -1).slice(0, 60);
+  return React.createElement('div', { className: 'emo-wrap' },
+    React.createElement('div', {
+      ref: anchor,
+      className: 'sfu-cell' + (value ? '' : ' empty'),
+      title: canEdit ? 'Pick a Salesforce user' : undefined,
+      onClick: openAt
+    }, value ? React.createElement('span', { className: 'sfu-chip' }, sfuInitials(nm || '?')) : null,
+       React.createElement('span', { className: 'sfu-name' }, nm || (value ? value : '\u2014'))),
+    open && pos && React.createElement('div', {
+      className: 'sfu-pop',
+      style: pos,
+      onClick: e => e.stopPropagation()
+    },
+      React.createElement('input', {
+        value: q,
+        autoFocus: true,
+        placeholder: 'Search Salesforce users',
+        onChange: e => setQ(e.target.value)
+      }),
+      React.createElement('div', { className: 'sfu-list' },
+        shown.length === 0 ? React.createElement('div', { style: { padding: 8, fontSize: 12.5, color: 'var(--faint)' } }, users && users.length ? 'No match' : 'Loading users...') :
+        shown.map(u => React.createElement('button', {
+          key: u.id,
+          onClick: () => {
+            onChange(u.id);
+            setOpen(false);
+          }
+        }, React.createElement('span', { className: 'sfu-chip' }, sfuInitials(u.name)), u.name))),
+      React.createElement('button', {
+        className: 'sfu-clear',
+        onClick: () => {
+          onChange('');
+          setOpen(false);
+        }
+      }, 'Clear')));
+}
 function EmojiCell({ value, onChange, canEdit }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
