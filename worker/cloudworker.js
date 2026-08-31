@@ -4949,7 +4949,7 @@ var worker_default = {
         const eq = await runSalesforceQueryAll(env, "SELECT Id, Name, bpats__Credit_Recipient__c FROM bpats__Placement_Credit__c WHERE bpats__Placement__c = '" + placementId + "' AND bpats__Is_Void__c = false");
         const existing = (eq.ok && eq.records) || [];
         if (cb.preview === true) {
-          return json({ ok: true, preview: true, placement: pl.Name || placementId, start_date: pl.bpats__Start_Date__c, status: pl.Status__c || null, starts_later: startsLater, full_desk: fullDesk, plan: plan.map((r) => ({ name: r.Name, recipient: r.recipient })), existing: existing.map((c) => ({ id: c.Id, name: c.Name, recipient: c.bpats__Credit_Recipient__c })) }, 200, origin);
+          return json({ ok: true, preview: true, applied_at: item.creditsAt || null, applied_by: item.creditsBy || null, applied_detail: item.creditsDetail || null, placement: pl.Name || placementId, start_date: pl.bpats__Start_Date__c, status: pl.Status__c || null, starts_later: startsLater, full_desk: fullDesk, plan: plan.map((r) => ({ name: r.Name, recipient: r.recipient })), existing: existing.map((c) => ({ id: c.Id, name: c.Name, recipient: c.bpats__Credit_Recipient__c })) }, 200, origin);
         }
         if (existing.length && cb.replace !== true) {
           return json({ error: "This placement already has " + existing.length + " credit(s).", existing: existing.map((c) => ({ id: c.Id, name: c.Name, recipient: c.bpats__Credit_Recipient__c })) }, 409, origin);
@@ -5016,6 +5016,69 @@ var worker_default = {
             placementUpdate.error = String(e.message || e);
           }
         }
+        /* stamp the board row so the record lives here too */
+        const boardLog = { attempted: false };
+        if (errs.length === 0) {
+          boardLog.attempted = true;
+          try {
+            const cur2 = await sbService(env, "GET", "spark_boards?select=data,visibility,owner,members&id=eq." + encodeURIComponent(cbid) + "&limit=1");
+            const row2 = cur2.ok && cur2.data && cur2.data[0] ? cur2.data[0] : null;
+            if (row2 && row2.data) {
+              const d2 = row2.data;
+              let tgt = null;
+              for (const g of d2.groups || []) {
+                for (const x of g.items || []) if (x && x.id === citem) tgt = x;
+              }
+              if (tgt) {
+                const stampNow = (/* @__PURE__ */ new Date()).toISOString();
+                const detail = created.map((c) => c.name + " \u2192 " + c.recipient).join(", ");
+                tgt.creditsAt = stampNow;
+                tgt.creditsBy = who.email;
+                tgt.creditsDetail = detail;
+                tgt.updates = Array.isArray(tgt.updates) ? tgt.updates : [];
+                tgt.updates.push({
+                  id: "u" + Date.now().toString(36),
+                  author: who.email,
+                  color: "#0086C0",
+                  at: stampNow,
+                  text: "Placement credits applied in Salesforce: " + detail + (placementUpdate.ok ? ". Placement set Active." : "") + (deleted ? " (replaced " + deleted + " existing)" : "")
+                });
+                d2.activity = [{
+                  id: "ev" + Date.now().toString(36),
+                  at: Date.now(),
+                  actor: { name: who.email, color: "#0086C0" },
+                  kind: "cell",
+                  itemId: citem,
+                  item: tgt.name || "",
+                  col: "credits",
+                  colLabel: "Placement credits",
+                  from: "",
+                  to: detail
+                }].concat(Array.isArray(d2.activity) ? d2.activity : []);
+                if (d2.activity.length > 200) d2.activity.length = 200;
+                delete d2.__rev;
+                const sv = await sbService(env, "POST", "spark_boards?on_conflict=id", {
+                  id: cbid,
+                  name: String(d2.name || "").slice(0, 200),
+                  data: d2,
+                  visibility: row2.visibility,
+                  owner: row2.owner,
+                  members: Array.isArray(row2.members) ? row2.members : [],
+                  updated_by: who.email,
+                  updated_at: (/* @__PURE__ */ new Date()).toISOString()
+                });
+                boardLog.ok = !!sv.ok;
+                boardLog.at = stampNow;
+              } else {
+                boardLog.ok = false;
+                boardLog.note = "row disappeared";
+              }
+            }
+          } catch (e) {
+            boardLog.ok = false;
+            boardLog.error = String(e.message || e);
+          }
+        }
         return json({
           ok: errs.length === 0,
           placement: pl.Name || placementId,
@@ -5024,6 +5087,7 @@ var worker_default = {
           created,
           type_field: typeField,
           placement_update: placementUpdate,
+          board_log: boardLog,
           errors: errs.length ? errs : void 0
         }, errs.length ? 502 : 200, origin);
       } catch (e) {

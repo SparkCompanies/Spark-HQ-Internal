@@ -9496,9 +9496,15 @@ function CreditPanel({ boardId, item }) {
   return React.createElement('div', { className: 'cred-box' },
     React.createElement('h4', null, React.createElement(Ic.bolt || 'span', { style: { width: 14, height: 14 } }), 'Salesforce placement credits'),
     s.phase === 'idle' && React.createElement('div', null,
-      React.createElement('div', { style: { fontSize: 12.5, color: 'var(--sub)', lineHeight: 1.5 } },
-        'Checks the placement in Salesforce and shows what would be created before anything is written.'),
-      React.createElement('button', { className: 'cred-btn', onClick: doPreview }, 'Check placement credits')),
+      item.creditsAt ? React.createElement('div', null,
+        React.createElement('div', { className: 'cred-msg good' },
+          'Applied ' + new Date(item.creditsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+          (item.creditsBy ? ' by ' + String(item.creditsBy).split('@')[0] : '')),
+        item.creditsDetail && React.createElement('div', { className: 'cred-msg' }, item.creditsDetail)) :
+        React.createElement('div', { style: { fontSize: 12.5, color: 'var(--sub)', lineHeight: 1.5 } },
+          'Checks the placement in Salesforce and shows what would be created before anything is written.'),
+      React.createElement('button', { className: 'cred-btn' + (item.creditsAt ? ' ghost' : ''), onClick: doPreview },
+        item.creditsAt ? 'Check again' : 'Check placement credits')),
     s.phase === 'loading' && React.createElement('div', { className: 'cred-msg' }, 'Checking Salesforce...'),
     s.phase === 'preview' && s.d && React.createElement('div', null,
       React.createElement('div', { className: 'cred-row' }, React.createElement('b', null, s.d.placement || '')),
