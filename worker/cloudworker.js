@@ -4561,6 +4561,7 @@ var worker_default = {
       return "member";
     };
     const sbSeesAll = (role) => role === "admin" || role === "superadmin" || (MANAGER_SEES_ALL && role === "manager");
+    const sbCanEdit = (role) => sbSeesAll(role);
     const sbAccess = (board, email, role) => {
       if (board.visibility === "private") {
         /* an explicit share always wins, whatever the role */
@@ -4656,8 +4657,9 @@ var worker_default = {
         if (b && b.__rev) delete b.__rev;
         const cur = await sbService(env, "GET", "spark_boards?select=updated_at,updated_by,data,visibility,owner,members&id=eq." + encodeURIComponent(row.id) + "&limit=1");
         const prev = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
+        const srole = await sbRoleOf(who.email);
+        if (!sbCanEdit(srole)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
         if (prev) {
-          const srole = await sbRoleOf(who.email);
           if (!sbAccess({ id: row.id, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, srole)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -4701,6 +4703,7 @@ var worker_default = {
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
         {
           const prole2 = await sbRoleOf(who.email);
+          if (!sbCanEdit(prole2)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
           if (!sbAccess({ id: pid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, prole2)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -4784,6 +4787,7 @@ var worker_default = {
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
         {
           const orole = typeof sbRoleOf === "function" ? await sbRoleOf(who.email) : "member";
+          if (!sbCanEdit(orole)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
           if (typeof sbAccess === "function" && !sbAccess({ id: oid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, orole)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }

@@ -10721,7 +10721,13 @@ function App() {
   }, []);
   const [activityOpen, setActivityOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const canEdit = role !== 'viewer';
+  const EDIT_ROLES = ['admin', 'superadmin', 'manager'];
+  const canEdit = (() => {
+    const rr = String(Auth.serverRole || '').toLowerCase();
+    const realIsEditor = LIVE ? EDIT_ROLES.indexOf(rr) !== -1 : true;
+    if (realRole === 'admin' && role !== 'admin') return false; // admin previewing a lower role via "View as"
+    return realIsEditor;
+  })();
   const me = sparkMe();
   const undoActivity = (boardId, ev) => updateBoard(boardId, b => {
     const nb = structuredClone(b);
