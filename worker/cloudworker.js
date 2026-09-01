@@ -7176,7 +7176,8 @@ var worker_default = {
       const p = await sbService(env, "GET", "bda_people?select=*&order=bda.asc");
       const a = await sbService(env, "GET", "bda_accounts?select=*&order=signed_date.asc");
       if (!p.ok || !a.ok) return json({ ok: false, error: "bda tables unreadable \u2014 run the BDA setup SQL?" }, 502, origin);
-      return json({ ok: true, people: p.data || [], accounts: a.data || [] }, 200, origin);
+      const hR = await sbService(env, "GET", "bda_history?select=bda,week_ending,entity,amount&order=week_ending.asc");
+      return json({ ok: true, people: p.data || [], accounts: a.data || [], history: hR.ok ? (hR.data || []) : [] }, 200, origin);
     }
 
     if (url.pathname === "/bda-account" || url.pathname === "/bda-person") {
