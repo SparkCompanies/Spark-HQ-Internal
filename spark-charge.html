@@ -1023,7 +1023,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-18';
+  var BUILD = 'b0820-19';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1407,7 +1407,7 @@ window.SPARK_LIVE = (function () {
     Q3WKS = D.weeks.filter(function (w) { var p = w.we.split('/'); return +p[0] >= 7; });
     Q3 = Q3WKS.reduce(function (s, w) { return s + wkTotal(w); }, 0);
     var we = document.getElementById('lvWe'); if (we) we.textContent = labelWe(curIso);
-    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rComm(); rHC(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
+    nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rComm(); rHC(); rBDA(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
     try { heroHover(); } catch (e) {}
     try { countUp('heroNum', TOTAL, 900); } catch (e) {}
     noteAndBadges();
@@ -1890,6 +1890,8 @@ window.SPARK_LIVE = (function () {
     var tmap = {};
     ((H && H.hcTargets) || []).forEach(function (t) { tmap[t.person] = t; });
     Object.keys(tmap).forEach(function (n) { get(n); });
+    // Everyone active on the charge_people roster gets a row, even at zero \u2014 new Settings adds show up immediately.
+    ((H && H.people) || []).forEach(function (x) { if (x && x.active !== false && x.person && !/house\s*account/i.test(x.person)) get(x.person); });
     var rows = Object.keys(P).map(function (n) {
       var p = P[n], t = tmap[n] || {};
       var meta = ((H && H.people) || []).find(function (x) { return x.person === n; }) || {};
@@ -1921,11 +1923,10 @@ window.SPARK_LIVE = (function () {
       '<button class="fb" onclick="SPARK_LIVE.hcEmail()">\u2709 Push to Email</button>' +
       '<button class="fb" onclick="SPARK_LIVE.hcCopy()">Copy for Outlook</button>' +
       '<button class="fb" onclick="SPARK_LIVE.hcExport()">Export CSV</button>' +
-      '<span style="font-size:10px;color:var(--dm)">Counts come straight from this week\u2019s contract lines \u00b7 buckets are exclusive: full desk = 1 FD only, split = 1 AM + 1 Recruiter \u00b7 per-person Total = AM + FD + Rec (credits) \u00b7 Grand Total HC counts each contract line once (bodies, not credits) \u00b7 admins: click HC Expectation to edit</span></div>';
+      '<span style="font-size:10px;color:var(--dm)">Counts come straight from this week\u2019s contract lines \u00b7 table shows Total HC only \u2014 hover a total for its AM / Full Desk / Recruiter split, and Export / Copy / Email carry all three bucket columns \u00b7 buckets stay exclusive: full desk = 1 FD, split = 1 AM + 1 Rec \u00b7 Grand Total counts each contract line once (bodies) \u00b7 admins: click HC Expectation to edit</span></div>';
     h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap">' +
       '<thead><tr>' + sTh('hc','n','Name',false,'rHC') + sTh('hc','bu','Business Unit',false,'rHC') + sTh('hc','focus','Focus',false,'rHC') + sTh('hc','exp','HC Expectation',true,'rHC') +
       sTh('hc','tot','Total HC',true,'rHC') + sTh('hc','pct','% To Target',true,'rHC') +
-      sTh('hc','am','AM',true,'rHC') + sTh('hc','fd','Full Desk',true,'rHC') + sTh('hc','rc','Recruiter',true,'rHC') +
       sTh('hc','dht','DH Monthly Target',true,'rHC') + '</tr></thead><tbody>';
     rows.forEach(function (r) {
       h += '<tr><td style="font-weight:700;font-size:12px">' + r.n + '</td>' +
@@ -1934,22 +1935,236 @@ window.SPARK_LIVE = (function () {
         (IS_ADMIN
           ? '<td class="r m" style="padding:4px 9px;cursor:pointer;border-bottom:1px dotted var(--gold);color:' + (r.exp ? 'var(--tx)' : 'var(--mt)') + '!important" title="Click to edit (admin + PIN)" data-n="' + dhAtt(r.n) + '" onclick="SPARK_LIVE.hcEditExp(this.dataset.n)">' + (r.exp || '--') + '</td>'
           : cell(r.exp || null)) +
-        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)' }) + pctCell(r.pct) +
-        cell(r.am, { strong: true, zero: true }) + cell(r.fd, { zero: true }) + cell(r.rc, { zero: true }) +
+        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)', title: 'AM ' + r.am + ' \u00b7 Full Desk ' + r.fd + ' \u00b7 Recruiter ' + r.rc } ) + pctCell(r.pct) +
         cell(r.dht ? fmt(r.dht) : null) + '</tr>';
     });
     var houseTot = house.am + house.fd + house.rc;
     h += '<tr style="border-top:1px solid var(--bd);opacity:.8"><td style="font-weight:600;font-size:11px;color:var(--dm)">House Account</td><td></td><td></td>' +
-      cell(null) + cell(houseTot, { zero: true }) + cell(null) + cell(house.am, { zero: true }) + cell(house.fd, { zero: true }) + cell(house.rc, { zero: true }) + cell(null) + '</tr>';
+      cell(null) + cell(houseTot, { zero: true, title: 'AM ' + house.am + ' \u00b7 Full Desk ' + house.fd + ' \u00b7 Recruiter ' + house.rc }) + cell(null) + cell(null) + '</tr>';
     h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">GRAND TOTAL</td><td></td><td></td>' +
       cell(gt.exp, { strong: true, zero: true }) +
-      cell(bodies, { strong: true, zero: true, color: 'var(--gold)', title: 'Distinct contract lines this week \u2014 each contractor counted once. Bucket columns credit both sides of a split, so AM+FD+Rec adds up to more than this.' }) + pctCell(gt.exp > 0 ? gt.tot / gt.exp : null, gt.tot + ' bucket credits vs ' + gt.exp + ' expected \u2014 targets are per-person credit counts') +
-      cell(gt.am + house.am, { strong: true, zero: true }) + cell(gt.fd + house.fd, { strong: true, zero: true }) + cell(gt.rc + house.rc, { strong: true, zero: true }) +
+      cell(bodies, { strong: true, zero: true, color: 'var(--gold)', title: 'Distinct contract lines this week \u2014 each contractor counted once. AM ' + (gt.am + house.am) + ' \u00b7 Full Desk ' + (gt.fd + house.fd) + ' \u00b7 Recruiter ' + (gt.rc + house.rc) + ' \u2014 full bucket detail rides along in Export / Copy / Email.' }) + pctCell(gt.exp > 0 ? gt.tot / gt.exp : null, gt.tot + ' bucket credits vs ' + gt.exp + ' expected \u2014 targets are per-person credit counts') +
       cell(fmt(gt.dht), { strong: true }) + '</tr>';
     h += '</tbody></table></div></div>';
     el.innerHTML = h;
     window.__hcRows = { rows: rows, house: house, gt: gt, bodies: bodies };
   };
+
+  // ── BDA: business development \u2014 a signed account earns its BDA all charge (contract + DH) at that client for 18 months (548 days, matching the tracker's Fall Off column) ──
+  window.__bda = void 0; var __bdaLoading = false, __bdaLoadedAll = false;
+  function bdaFetch(then) {
+    if (__bdaLoading) return; __bdaLoading = true;
+    api('/bda-data').then(function (j) { window.__bda = (j && j.ok) ? j : { people: [], accounts: [], err: (j && j.error) || 'load failed' }; __bdaLoading = false; if (then) then(); })
+      .catch(function (e) { window.__bda = { people: [], accounts: [], err: String(e && e.message || e) }; __bdaLoading = false; if (then) then(); });
+  }
+  function bdaRefresh() { window.__bda = void 0; bdaFetch(function () { try { rBDA(); } catch (e) {} }); }
+  function bdaFall(sd) { var t = new Date(sd + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + 548); return t.toISOString().slice(0, 10); }
+  function bdaElig(a, iso) { return a.active !== false && a.signed_date <= iso && iso <= bdaFall(a.signed_date); }
+  function bdaMatcher(accs) {
+    var exact = {}, pref = [];
+    accs.forEach(function (a) {
+      var k0 = String(a.client || '').trim().toLowerCase(); if (k0 && !exact[k0]) exact[k0] = a;
+      (a.aliases || []).forEach(function (al) { var k = String(al || '').trim().toLowerCase(); if (k && !exact[k]) exact[k] = a; });
+      if (a.match_prefix) pref.push(a);
+    });
+    pref.sort(function (x, y) { return String(y.client).length - String(x.client).length; });
+    return function (company) {
+      var k = String(company || '').trim().toLowerCase(); if (!k) return null;
+      if (exact[k]) return exact[k];
+      for (var i = 0; i < pref.length; i++) { if (k.indexOf(String(pref[i].client).trim().toLowerCase()) === 0) return pref[i]; }
+      return null;
+    };
+  }
+  // one BDA, one week: null = no account eligible yet \u00b7 undefined = eligible but row-level data not loaded \u00b7 else {tot, ent:{}}
+  function bdaWeek(iso, accs, tally) {
+    var el2 = accs.filter(function (a) { return bdaElig(a, iso); });
+    if (!el2.length) return null;
+    var b = batches[iso], d = dhb[iso];
+    if ((!b || !b.rows) && (!d || !d.drops)) return void 0;
+    var m = bdaMatcher(el2), out = { tot: 0, ent: {} };
+    var add = function (a, entity, amt, company) {
+      amt = Number(amt) || 0; if (!amt) return;
+      out.tot += amt; var e = entity || '\u2014'; out.ent[e] = (out.ent[e] || 0) + amt;
+      if (tally) { var t = tally[a.id] || (tally[a.id] = { wk: 0, comps: {} }); t.wk += amt; t.comps[company] = 1; }
+    };
+    if (b && b.rows) b.rows.forEach(function (r) { var a = m(r.company); if (a) add(a, r.entity, r.charge, r.company); });
+    if (d && d.drops) d.drops.forEach(function (x) { var a = m(x.company); if (a) add(a, x.entity, x.amount, x.company); });
+    return out;
+  }
+  window.rBDA = function () {
+    var el = document.getElementById('p-bda'); if (!el) return;
+    if (window.__bda === void 0) { el.innerHTML = '<div class="st">BDA &mdash; Business Development</div><div style="font-size:11px;color:var(--dm)">Loading signed-account data&hellip;</div>'; bdaFetch(function () { try { rBDA(); } catch (e) {} }); return; }
+    var BD = window.__bda, ppl = (BD.people || []).filter(function (p) { return p.active !== false; });
+    var h = '<div class="st">BDA &mdash; Business Development &middot; ' + labelWe(curIso) + '</div>';
+    h += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">' +
+      (IS_ADMIN ? '<button class="fb" onclick="SPARK_LIVE.bdaAdd()">+ Add Account</button><button class="fb" onclick="SPARK_LIVE.bdaAddPerson()">+ Add BDA</button>' : '') +
+      '<button class="fb" onclick="SPARK_LIVE.bdaExport()">Export CSV</button>' +
+      '<span style="font-size:10px;color:var(--dm)">A signed account earns its BDA all charge (contract + DH) at that client for 18 months (548 days) from the signed date \u00b7 eligibility is evaluated week by week' + (IS_ADMIN ? ' \u00b7 click an account to edit \u00b7 click the YTD anchor to set pre-system charge' : '') + '</span></div>';
+    if (BD.err) h += '<div class="cd" style="padding:12px;font-size:11px;color:var(--red)">BDA data failed to load (' + BD.err + ') \u2014 is the new worker deployed and the bda tables created?</div>';
+    if (!ppl.length && !BD.err) h += '<div class="cd" style="padding:16px;font-size:11px;color:var(--dm)">No active BDAs configured' + (IS_ADMIN ? ' \u2014 run the seed SQL or use + Add BDA.' : '.') + '</div>';
+    var isoList = weeksThrough(curIso);
+    var qOf = function (iso) { return Math.floor((+iso.slice(5, 7) - 1) / 3) + 1; };
+    var curQ = qOf(curIso), curYr = curIso.slice(0, 4);
+    var anyMissing = false;
+    window.__bdaCsv = [];
+    ppl.forEach(function (P) {
+      var accs = (BD.accounts || []).filter(function (a) { return a.bda === P.bda; });
+      var tally = {}, wkData = {}, missing = 0;
+      isoList.forEach(function (iso) { var v = bdaWeek(iso, accs, iso === curIso ? tally : null); wkData[iso] = v; if (v === void 0) missing++; });
+      if (missing) anyMissing = true;
+      var cur = wkData[curIso] || { tot: 0, ent: {} };
+      var sumW = function (f) { var s2 = 0; isoList.forEach(function (iso) { var v = wkData[iso]; if (v && f(iso)) s2 += v.tot; }); return s2; };
+      var qtd = sumW(function (iso) { return iso.slice(0, 4) === curYr && qOf(iso) === curQ; });
+      var anchor = Number(P.ytd_anchor) || 0;
+      var ytd = sumW(function (iso) { return iso.slice(0, 4) === curYr; }) + anchor;
+      var live = accs.filter(function (a) { return bdaElig(a, curIso); }).sort(function (x, y) { return (tally[y.id] ? tally[y.id].wk : 0) - (tally[x.id] ? tally[x.id].wk : 0); });
+      var future = accs.filter(function (a) { return a.active !== false && a.signed_date > curIso; });
+      var expired = accs.filter(function (a) { return a.active !== false && bdaFall(a.signed_date) < curIso; }).sort(function (x, y) { return y.signed_date < x.signed_date ? -1 : 1; });
+      // header + KPIs
+      h += '<div class="cd" style="padding:18px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">';
+      h += '<div><div style="font-size:19px;font-weight:800;letter-spacing:-.4px">' + P.bda + '</div><div style="font-size:10px;color:var(--dm);margin-top:2px">' + live.length + ' account' + (live.length === 1 ? '' : 's') + ' in the 18-month window this week' + (future.length ? ' \u00b7 ' + future.length + ' signed after this week' : '') + '</div></div>';
+      h += '<div style="display:flex;gap:22px;flex-wrap:wrap">';
+      [['This Week', fmt(cur.tot), 'var(--gold)'], ['QTD', fK(qtd), 'var(--tx)'], ['YTD', fK(ytd), 'var(--tx)']].forEach(function (k) {
+        h += '<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">' + k[0] + '</div><div class="m" style="font-size:20px;font-weight:800;color:' + k[2] + ';margin-top:3px">' + k[1] + '</div></div>'; });
+      h += '<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">YTD Anchor</div><div class="m" style="font-size:20px;font-weight:800;color:var(--dm);margin-top:3px;' + (IS_ADMIN ? 'cursor:pointer;border-bottom:1px dotted var(--gold)' : '') + '"' + (IS_ADMIN ? ' title="Charge earned this year before Spark HQ row data begins \u2014 click to edit (admin + PIN)" data-n="' + dhAtt(P.bda) + '" onclick="SPARK_LIVE.bdaAnchor(this.dataset.n)"' : '') + '>' + fK(anchor) + '</div></div>';
+      h += '</div></div>';
+      // pacing
+      var pace = function (label, val, tgt) {
+        if (!(tgt > 0)) return '';
+        var p = val / tgt * 100;
+        return '<div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dm);margin-bottom:4px"><span>' + label + '</span><span class="m" style="font-weight:700;color:' + pC(p) + '">' + Math.round(p) + '%</span></div><div style="height:8px;background:var(--ft);border-radius:5px;overflow:hidden"><div style="height:100%;width:' + Math.min(100, p) + '%;background:' + pC(p) + ';border-radius:5px"></div></div><div class="m" style="display:flex;justify-content:space-between;font-size:9px;color:var(--mt);margin-top:3px"><span>' + fK(val) + ' actual</span><span>' + fK(Math.max(0, tgt - val)) + ' needed \u00b7 ' + fK(tgt) + ' target</span></div></div>';
+      };
+      var paceH = [pace('Q' + curQ + ' Contest', qtd, Number(P.q_contest)), pace('Annual Contest', ytd, Number(P.annual_contest)), pace('Q' + curQ + ' Igniter', qtd, Number(P.q_igniter)), pace('Annual Igniter', ytd, Number(P.annual_igniter))].filter(Boolean);
+      if (paceH.length) h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 22px;margin-top:14px">' + paceH.join('') + '</div>';
+      h += '</div>';
+      // entity composition for the selected week
+      var entKeys = Object.keys(cur.ent).sort(function (a, b) { return Math.abs(cur.ent[b]) - Math.abs(cur.ent[a]); });
+      if (entKeys.length) {
+        var mx = Math.max.apply(null, entKeys.map(function (k) { return Math.abs(cur.ent[k]); }).concat([1]));
+        h += '<div class="cd" style="padding:18px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;margin-bottom:12px">By Entity \u2014 ' + labelWe(curIso) + '</div>';
+        entKeys.forEach(function (k) { h += barRow(k, cur.ent[k], mx, ecol(k)); });
+        h += '</div>';
+      }
+      // accounts this week
+      h += '<div class="cd" style="padding:0;margin-bottom:14px"><div class="cdh">Signed Accounts \u2014 in window ' + labelWe(curIso) + ' (' + live.length + ')</div><div class="scr" style="max-height:46vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Account</th><th>Signed</th><th>Falls Off</th><th class="r">Weeks Left</th><th class="r">This Wk Charge</th><th>Matched This Wk</th></tr></thead><tbody>';
+      live.forEach(function (a) {
+        var t = tally[a.id], amt = t ? t.wk : 0, comps = t ? Object.keys(t.comps) : [];
+        var fall = bdaFall(a.signed_date);
+        var wl = Math.max(0, Math.floor((new Date(fall + 'T00:00:00Z') - new Date(curIso + 'T00:00:00Z')) / 604800000));
+        var wc = wl <= 4 ? 'var(--red)' : wl <= 12 ? 'var(--gold)' : '#00C853';
+        h += '<tr' + (IS_ADMIN ? ' style="cursor:pointer" data-id="' + a.id + '" onclick="SPARK_LIVE.bdaEdit(+this.dataset.id)"' : '') + '>' +
+          '<td style="font-weight:700;font-size:12px">' + a.client + (a.match_prefix ? ' <span class="pl" style="background:rgba(120,160,255,.12);color:var(--blu)">prefix</span>' : '') + (a.notes ? ' <span style="font-size:9px;color:var(--dm)">' + a.notes + '</span>' : '') + '</td>' +
+          '<td class="m" style="font-size:10px;color:var(--dm)">' + a.signed_date + '</td>' +
+          '<td class="m" style="font-size:10px;color:var(--dm)">' + fall + '</td>' +
+          '<td class="r"><span class="pl" style="background:' + wc + '15;color:' + wc + '">' + wl + ' wks</span></td>' +
+          '<td class="r m" style="font-weight:800;color:' + (amt > 0 ? 'var(--gold)' : amt < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (amt ? fmt(amt) : '--') + '</td>' +
+          '<td style="font-size:10px;color:' + (comps.length ? 'var(--dm)' : 'var(--mt)') + '">' + (comps.length ? comps.join(' \u00b7 ') : 'no charge rows matched') + '</td></tr>';
+      });
+      if (!live.length) h += '<tr><td colspan="6" style="color:var(--dm);font-size:11px;padding:12px">No accounts in the 18-month window for this week.</td></tr>';
+      h += '</tbody></table></div>';
+      if (expired.length || future.length) {
+        h += '<div style="padding:9px 16px;border-top:1px solid var(--bd);font-size:10px;color:var(--dm)">';
+        if (future.length) h += 'Signed after this week: ' + future.map(function (a) { return a.client + ' (' + a.signed_date + ')'; }).join(' \u00b7 ') + (expired.length ? '<br>' : '');
+        if (expired.length) h += 'Fell off before this week: ' + expired.map(function (a) { return a.client + ' (off ' + bdaFall(a.signed_date) + ')' + (IS_ADMIN ? ' <span style="cursor:pointer;border-bottom:1px dotted var(--gold)" onclick="SPARK_LIVE.bdaEdit(' + a.id + ')">edit</span>' : ''); }).join(' \u00b7 ');
+        h += '</div>';
+      }
+      h += '</div>';
+      // week-over-week matrix, anchor-sheet style
+      var entTot = {}; isoList.forEach(function (iso) { var v = wkData[iso]; if (v) Object.keys(v.ent).forEach(function (k) { entTot[k] = (entTot[k] || 0) + v.ent[k]; }); });
+      var cols = Object.keys(entTot).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }).slice(0, 8);
+      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' without row-level data (shown as \u00b7) \u2014 covered by the YTD anchor</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+      var csvRows = [['BDA', P.bda], ['Week Ending', 'Total'].concat(cols)];
+      var qAcc = 0, qKey = null, qEnt = {};
+      var flushQ = function () {
+        if (qKey == null) return;
+        h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.03)"><td style="font-weight:800;font-size:10px;color:var(--gold)" class="m">\u03a3 ' + qKey + '</td><td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(qAcc) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
+        csvRows.push(['Q TOTAL ' + qKey, Math.round(qAcc * 100) / 100].concat(cols.map(function (c) { return Math.round((qEnt[c] || 0) * 100) / 100; })));
+        qAcc = 0; qEnt = {};
+      };
+      isoList.forEach(function (iso) {
+        var qk = 'Q' + qOf(iso) + ' ' + iso.slice(0, 4);
+        if (qKey !== null && qk !== qKey) flushQ();
+        qKey = qk;
+        var v = wkData[iso];
+        var cellTxt = v === void 0 ? '<span title="row-level data not loaded for this week">\u00b7</span>' : v === null ? '--' : fmt(v.tot);
+        h += '<tr><td class="m" style="font-size:10px;color:var(--dm)">WE ' + labelWe(iso).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:700;color:' + (v && v.tot > 0 ? 'var(--gold)' : v && v.tot < 0 ? 'var(--red)' : 'var(--mt)') + '">' + cellTxt + '</td>' +
+          cols.map(function (c) { var x = v && v.ent[c]; return '<td class="r m" style="color:' + (x ? 'var(--tx)' : 'var(--mt)') + '!important">' + (v === void 0 ? '\u00b7' : x ? fmt(x) : '--') + '</td>'; }).join('') + '</tr>';
+        if (v) { qAcc += v.tot; cols.forEach(function (c) { if (v.ent[c]) qEnt[c] = (qEnt[c] || 0) + v.ent[c]; }); }
+        csvRows.push(['WE ' + labelWe(iso).replace(/^WE\s*/, ''), v ? Math.round(v.tot * 100) / 100 : v === void 0 ? 'n/a' : 0].concat(cols.map(function (c) { return v && v.ent[c] ? Math.round(v.ent[c] * 100) / 100 : v === void 0 ? 'n/a' : 0; })));
+      });
+      flushQ();
+      h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">YTD' + (anchor ? ' (incl. anchor ' + fK(anchor) + ')' : '') + '</td><td class="r m" style="font-weight:900;color:var(--gold)">' + fmt(ytd) + '</td>' + cols.map(function () { return '<td></td>'; }).join('') + '</tr>';
+      h += '</tbody></table></div></div>';
+      csvRows.push(['YTD (incl. anchor ' + anchor + ')', Math.round(ytd * 100) / 100]);
+      csvRows.push([]);
+      csvRows.push(['Account', 'Signed', 'Falls Off', 'In Window ' + labelWe(curIso), 'This Wk Charge', 'Prefix Match', 'Notes']);
+      accs.slice().sort(function (a, b) { return a.signed_date < b.signed_date ? -1 : 1; }).forEach(function (a) {
+        var t = tally[a.id];
+        csvRows.push([a.client, a.signed_date, bdaFall(a.signed_date), bdaElig(a, curIso) ? 'Yes' : 'No', t ? Math.round(t.wk * 100) / 100 : 0, a.match_prefix ? 'Yes' : '', a.notes || '']);
+      });
+      csvRows.push([]);
+      window.__bdaCsv = window.__bdaCsv.concat(csvRows);
+    });
+    el.innerHTML = h;
+  };
+  function bdaPost(path, body, okMsg) {
+    return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (j) { if (!j || j.ok === false || j.error) { setStatus('BDA save failed: ' + ((j && j.error) || '?'), '#FF4466'); return; } setStatus(okMsg, '#00FF88'); bdaRefresh(); })
+      .catch(function (e) { setStatus('BDA save failed: ' + (e && e.message || e), '#FF4466'); });
+  }
+  function bdaAdd() {
+    var BD = window.__bda || { people: [] };
+    var bda = prompt('BDA name:', BD.people && BD.people[0] ? BD.people[0].bda : ''); if (!bda) return;
+    var client = prompt('Account name exactly as it appears in Salesforce charge rows:'); if (!client) return;
+    var signed = prompt('Signed date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10)); if (!signed || !/^\d{4}-\d{2}-\d{2}$/.test(signed)) { alert('Need YYYY-MM-DD'); return; }
+    var alias = prompt('Optional alias (another name this client appears under) \u2014 blank for none:', '') || '';
+    var pref = confirm('Prefix match? OK = any company starting with "' + client + '" counts (site families like Autokiniton). Cancel = exact/alias only.');
+    bdaPost('/bda-account', { op: 'upsert', bda: bda.trim(), client: client.trim(), signed_date: signed, aliases: alias.trim() ? [alias.trim()] : [], match_prefix: pref }, 'BDA account saved \u00b7 ' + client.trim());
+  }
+  function bdaAddPerson() {
+    var bda = prompt('New BDA full name:'); if (!bda) return;
+    var ac = Number(prompt('Annual Contest target:', '1560000')) || 0, qc = Number(prompt('Quarterly Contest target:', '390000')) || 0;
+    var ai = Number(prompt('Annual Igniter target:', '1000000')) || 0, qi = Number(prompt('Quarterly Igniter target:', '250000')) || 0;
+    bdaPost('/bda-person', { bda: bda.trim(), annual_contest: ac, q_contest: qc, annual_igniter: ai, q_igniter: qi }, 'BDA added \u00b7 ' + bda.trim());
+  }
+  function bdaAnchor(name) {
+    var BD = window.__bda || { people: [] };
+    var p = (BD.people || []).find(function (x) { return x.bda === name; });
+    var v = prompt('YTD anchor for ' + name + ' \u2014 charge earned this year before Spark HQ row data begins:', p && p.ytd_anchor != null ? p.ytd_anchor : '0');
+    if (v == null) return; var num = Number(String(v).replace(/[$,\s]/g, ''));
+    if (!isFinite(num)) { alert('Not a number'); return; }
+    bdaPost('/bda-person', { bda: name, ytd_anchor: num }, 'YTD anchor saved \u00b7 ' + name + ' \u2192 ' + num);
+  }
+  function bdaEdit(id) {
+    var BD = window.__bda || { accounts: [] };
+    var a = (BD.accounts || []).find(function (x) { return x.id === id; }); if (!a) return;
+    var act = prompt(a.client + ' \u00b7 signed ' + a.signed_date + ' \u00b7 falls off ' + bdaFall(a.signed_date) + '\n1 = add alias\n2 = change signed date\n3 = toggle prefix match (now ' + (a.match_prefix ? 'ON' : 'off') + ')\n4 = ' + (a.active === false ? 'reactivate' : 'deactivate') + '\n5 = delete\nEnter 1-5:');
+    if (!act) return;
+    if (act === '1') { var al = prompt('Alias to add (exact company name from charge rows):'); if (!al) return; bdaPost('/bda-account', { op: 'upsert', id: id, aliases: (a.aliases || []).concat([al.trim()]) }, 'Alias added \u00b7 ' + a.client); }
+    else if (act === '2') { var sd = prompt('New signed date (YYYY-MM-DD):', a.signed_date); if (!sd || !/^\d{4}-\d{2}-\d{2}$/.test(sd)) return; bdaPost('/bda-account', { op: 'upsert', id: id, signed_date: sd }, 'Signed date saved \u00b7 ' + a.client); }
+    else if (act === '3') bdaPost('/bda-account', { op: 'upsert', id: id, match_prefix: !a.match_prefix }, 'Prefix match ' + (!a.match_prefix ? 'ON' : 'off') + ' \u00b7 ' + a.client);
+    else if (act === '4') bdaPost('/bda-account', { op: 'upsert', id: id, active: a.active === false }, (a.active === false ? 'Reactivated' : 'Deactivated') + ' \u00b7 ' + a.client);
+    else if (act === '5') { if (confirm('Delete ' + a.client + ' from the BDA account list?')) bdaPost('/bda-account', { op: 'delete', id: id }, 'Deleted \u00b7 ' + a.client); }
+  }
+  function bdaLoadAll() {
+    var isoList = weeksThrough(curIso), need = [];
+    isoList.forEach(function (wk) {
+      if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
+      if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
+    });
+    if (!need.length) { __bdaLoadedAll = true; try { rBDA(); } catch (e) {} return; }
+    setStatus('Loading ' + need.length + ' week payloads for BDA history\u2026', '#FFC800');
+    Promise.all(need).then(function () { __bdaLoadedAll = true; setStatus('BDA history loaded', '#00FF88'); try { rBDA(); } catch (e) {} });
+  }
+  function bdaExport() {
+    var rows = window.__bdaCsv || []; if (!rows.length) return;
+    var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var csv = rows.map(function (r) { return r.map(e2).join(','); }).join('\r\n');
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'BDA_' + labelWe(curIso).replace(/[^0-9A-Za-z.]+/g, '_') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
   function hcTable(kind) {
     var d = window.__hcRows; if (!d) return '';
     var cols = ['Name', 'Business Unit', 'Focus', 'HC Expectation', 'Total HC', '% To Target', 'AM', 'Full Desk', 'Recruiter', 'DH Monthly Target'];
@@ -2683,8 +2898,12 @@ window.SPARK_LIVE = (function () {
           var _ri = TABS.findIndex(function (x) { return x.id === 'raw'; });
           TABS.splice(_ri >= 0 ? _ri + 1 : TABS.length, 0, { id: 'hc', l: 'Head Count', ic: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' });
         }
+        if (!TABS.some(function (x) { return x.id === 'bda'; })) {
+          var _di2 = TABS.findIndex(function (x) { return x.id === 'dh'; });
+          TABS.splice(_di2 >= 0 ? _di2 + 1 : TABS.length, 0, { id: 'bda', l: 'BDA', ic: 'M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2' });
+        }
         var _r = TABS.find(function (x) { return x.id === 'raw'; }); if (_r) _r.l = 'Contract Team Members';
-        if (typeof TT !== 'undefined') { TT.hc = 'Head Count'; TT.comm = 'Commissions'; TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.buw = 'Business Units \u00b7 WoW'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
+        if (typeof TT !== 'undefined') { TT.hc = 'Head Count'; TT.bda = 'BDA'; TT.comm = 'Commissions'; TT.raw = 'Contract Team Members'; TT.bu = 'Business Units'; TT.buw = 'Business Units \u00b7 WoW'; TT.hier = 'Settings \u00b7 Company \u2192 Unit \u2192 Person'; }
         var _plb = document.getElementById('p-lb');
         if (_plb && !document.getElementById('p-bu')) _plb.insertAdjacentHTML('afterend', '<div class="pnl" id="p-bu"></div>');
         var _pbu = document.getElementById('p-bu');
@@ -2693,6 +2912,8 @@ window.SPARK_LIVE = (function () {
         if (_ptg && !document.getElementById('p-comm')) _ptg.insertAdjacentHTML('afterend', '<div class="pnl" id="p-comm"></div>');
         var _praw = document.getElementById('p-raw');
         if (_praw && !document.getElementById('p-hc')) _praw.insertAdjacentHTML('afterend', '<div class="pnl" id="p-hc"></div>');
+        var _pdh2 = document.getElementById('p-dh');
+        if (_pdh2 && !document.getElementById('p-bda')) _pdh2.insertAdjacentHTML('afterend', '<div class="pnl" id="p-bda"></div>');
         try { if (window.rBU) rBU(); } catch (e3) {}
         try { nav(); } catch (e2) {}
       }
@@ -2734,7 +2955,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
