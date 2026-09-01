@@ -1023,7 +1023,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-20';
+  var BUILD = 'b0820-21';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -2095,7 +2095,7 @@ window.SPARK_LIVE = (function () {
       var cols = ENT6.concat(Object.keys(entTot).filter(function (k) { return ENT6.indexOf(k) === -1; }).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }));
       h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
       var csvRows = [['BDA', P.bda], ['Week Ending', 'Total'].concat(cols)];
-      var qAcc = 0, qKey = null, qEnt = {};
+      var qAcc = 0, qKey = null, qEnt = {}, ytdEnt = {};
       var flushQ = function () {
         if (qKey == null) return;
         h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.03)"><td style="font-weight:800;font-size:10px;color:var(--gold)" class="m">\u03a3 ' + qKey + '</td><td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(qAcc) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
@@ -2108,15 +2108,15 @@ window.SPARK_LIVE = (function () {
         qKey = qk;
         var v = wkData[iso];
         var cellTxt = v === void 0 ? '<span title="row-level data not loaded for this week">\u00b7</span>' : v === null ? '--' : fmt(v.tot);
-        h += '<tr><td class="m" style="font-size:10px;color:var(--dm)">WE ' + labelWe(iso).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:700;color:' + (v && v.tot > 0 ? 'var(--gold)' : v && v.tot < 0 ? 'var(--red)' : 'var(--mt)') + '">' + cellTxt + '</td>' +
+        h += '<tr><td class="m" style="font-size:10px;font-weight:800;color:var(--tx)">WE ' + labelWe(iso).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:700;color:' + (v && v.tot > 0 ? 'var(--gold)' : v && v.tot < 0 ? 'var(--red)' : 'var(--mt)') + '">' + cellTxt + '</td>' +
           cols.map(function (c) { var x = v && v.ent[c]; return '<td class="r m" style="color:' + (x ? 'var(--tx)' : 'var(--mt)') + '!important">' + (v === void 0 ? '\u00b7' : x ? fmt(x) : '--') + '</td>'; }).join('') + '</tr>';
-        if (v) { qAcc += v.tot; cols.forEach(function (c) { if (v.ent[c]) qEnt[c] = (qEnt[c] || 0) + v.ent[c]; }); }
+        if (v) { qAcc += v.tot; cols.forEach(function (c) { if (v.ent[c]) { qEnt[c] = (qEnt[c] || 0) + v.ent[c]; if (iso.slice(0, 4) === curYr) ytdEnt[c] = (ytdEnt[c] || 0) + v.ent[c]; } }); }
         csvRows.push(['WE ' + labelWe(iso).replace(/^WE\s*/, ''), v ? Math.round(v.tot * 100) / 100 : v === void 0 ? 'n/a' : 0].concat(cols.map(function (c) { return v && v.ent[c] ? Math.round(v.ent[c] * 100) / 100 : v === void 0 ? 'n/a' : 0; })));
       });
       flushQ();
-      h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">YTD' + (anchor ? ' (incl. anchor ' + fK(anchor) + ')' : '') + '</td><td class="r m" style="font-weight:900;color:var(--gold)">' + fmt(ytd) + '</td>' + cols.map(function () { return '<td></td>'; }).join('') + '</tr>';
+      h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">YTD' + (anchor ? ' (incl. anchor ' + fK(anchor) + ')' : '') + '</td><td class="r m" style="font-weight:900;color:var(--gold)">' + fmt(ytd) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(ytdEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
       h += '</tbody></table></div></div>';
-      csvRows.push(['YTD (incl. anchor ' + anchor + ')', Math.round(ytd * 100) / 100]);
+      csvRows.push(['YTD (incl. anchor ' + anchor + ')', Math.round(ytd * 100) / 100].concat(cols.map(function (c) { return Math.round((ytdEnt[c] || 0) * 100) / 100; })));
       csvRows.push([]);
       csvRows.push(['Account', 'Signed', 'Falls Off', 'In Window ' + labelWe(curIso), 'This Wk Charge', 'Prefix Match', 'Notes']);
       accs.slice().sort(function (a, b) { return a.signed_date < b.signed_date ? -1 : 1; }).forEach(function (a) {
@@ -2127,6 +2127,7 @@ window.SPARK_LIVE = (function () {
       window.__bdaCsv = window.__bdaCsv.concat(csvRows);
     });
     el.innerHTML = h;
+    if (anyMissing && !__bdaLoadedAll && !window.__bdaAutoTried) { window.__bdaAutoTried = true; bdaLoadAll(); }
   };
   function bdaPost(path, body, okMsg) {
     return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
