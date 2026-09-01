@@ -4561,7 +4561,6 @@ var worker_default = {
       return "member";
     };
     const sbSeesAll = (role) => role === "admin" || role === "superadmin" || (MANAGER_SEES_ALL && role === "manager");
-    const sbCanEdit = (role) => sbSeesAll(role);
     const sbAccess = (board, email, role) => {
       if (board.visibility === "private") {
         /* an explicit share always wins, whatever the role */
@@ -4657,9 +4656,8 @@ var worker_default = {
         if (b && b.__rev) delete b.__rev;
         const cur = await sbService(env, "GET", "spark_boards?select=updated_at,updated_by,data,visibility,owner,members&id=eq." + encodeURIComponent(row.id) + "&limit=1");
         const prev = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
-        const srole = await sbRoleOf(who.email);
-        if (!sbCanEdit(srole)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
         if (prev) {
+          const srole = await sbRoleOf(who.email);
           if (!sbAccess({ id: row.id, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, srole)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -4703,7 +4701,6 @@ var worker_default = {
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
         {
           const prole2 = await sbRoleOf(who.email);
-          if (!sbCanEdit(prole2)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
           if (!sbAccess({ id: pid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, prole2)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -4787,7 +4784,6 @@ var worker_default = {
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
         {
           const orole = typeof sbRoleOf === "function" ? await sbRoleOf(who.email) : "member";
-          if (!sbCanEdit(orole)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
           if (typeof sbAccess === "function" && !sbAccess({ id: oid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, orole)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -7171,6 +7167,58 @@ var worker_default = {
       if (!person || !isFinite(expectation) || expectation < 0) return json({ error: "person + non-negative expectation required" }, 400, origin);
       const r = await sbService(env, "POST", "charge_headcount_targets?on_conflict=person", { person, expectation });
       return json({ ok: r.ok, error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
+    }
+
+    // ══ BDA: business-development signed accounts + targets (bda_people, bda_accounts) ══
+    if (url.pathname === "/bda-data") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const p = await sbService(env, "GET", "bda_people?select=*&order=bda.asc");
+      const a = await sbService(env, "GET", "bda_accounts?select=*&order=signed_date.asc");
+      if (!p.ok || !a.ok) return json({ ok: false, error: "bda tables unreadable \u2014 run the BDA setup SQL?" }, 502, origin);
+      return json({ ok: true, people: p.data || [], accounts: a.data || [] }, 200, origin);
+    }
+
+    if (url.pathname === "/bda-account" || url.pathname === "/bda-person") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
+      if (email === "") { try { const t=(request.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"").trim(); const seg=t.split(".")[1]||""; email=String(JSON.parse(atob(seg.replace(/-/g,"+").replace(/_/g,"/"))).email||"").toLowerCase(); } catch(e){} }
+      const MAP_ADMINS = ["aspegel@sparkcompanies.com","mpatrico@sparkcompanies.com","pmalani@sparkcompanies.com","aopalewski@sparkcompanies.com","eurisitti@sparkcompanies.com","bnamma@sparkcompanies.com","bnaama@sparkcompanies.com"];
+      if (MAP_ADMINS.indexOf(email) === -1) return json({ error: "not a charge admin" }, 403, origin);
+      const CHARGE_PIN = String((env && env.CHARGE_ADMIN_PIN) || "5857");
+      if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
+      if (request.method !== "POST") return json({ error: "POST only" }, 405, origin);
+      const body = await request.json().catch(() => ({}));
+      if (url.pathname === "/bda-person") {
+        const bda = String(body.bda || "").trim();
+        if (!bda) return json({ error: "bda required" }, 400, origin);
+        const row = { bda };
+        ["annual_contest","q_contest","annual_igniter","q_igniter","ytd_anchor"].forEach((k) => { if (body[k] !== void 0) { const v = Number(body[k]); if (isFinite(v)) row[k] = v; } });
+        if (body.active !== void 0) row.active = !!body.active;
+        const r = await sbService(env, "POST", "bda_people?on_conflict=bda", [row]);
+        return json({ ok: r.ok, row: r.data && r.data[0], error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
+      }
+      if (body.op === "delete") {
+        if (!body.id) return json({ error: "id required" }, 400, origin);
+        const r = await sbService(env, "DELETE", "bda_accounts?id=eq." + Number(body.id));
+        return json({ ok: r.ok }, r.ok ? 200 : 502, origin);
+      }
+      const patch = {};
+      if (body.signed_date !== void 0) { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.signed_date))) return json({ error: "signed_date must be YYYY-MM-DD" }, 400, origin); patch.signed_date = body.signed_date; }
+      if (body.aliases !== void 0) patch.aliases = Array.isArray(body.aliases) ? body.aliases.map((x) => String(x == null ? "" : x).trim()).filter((x) => x) : [];
+      if (body.match_prefix !== void 0) patch.match_prefix = !!body.match_prefix;
+      if (body.active !== void 0) patch.active = !!body.active;
+      if (body.notes !== void 0) patch.notes = String(body.notes || "");
+      if (body.bda !== void 0) patch.bda = String(body.bda).trim();
+      if (body.client !== void 0) patch.client = String(body.client).trim();
+      if (body.id) {
+        const r = await sbService(env, "PATCH", "bda_accounts?id=eq." + Number(body.id), patch);
+        return json({ ok: r.ok, row: r.data && r.data[0], error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
+      }
+      if (!patch.bda || !patch.client || !patch.signed_date) return json({ error: "bda, client, signed_date required" }, 400, origin);
+      const r = await sbService(env, "POST", "bda_accounts?on_conflict=bda,client", [patch]);
+      return json({ ok: r.ok, row: r.data && r.data[0], error: r.ok ? void 0 : JSON.stringify(r.data).slice(0, 160) }, r.ok ? 200 : 502, origin);
     }
 
     if (url.pathname === "/charge-week-lock") {
