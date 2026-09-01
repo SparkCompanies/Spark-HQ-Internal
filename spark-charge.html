@@ -1023,7 +1023,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-21';
+  var BUILD = 'b0820-22';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1700,7 +1700,7 @@ window.SPARK_LIVE = (function () {
           .catch(function () {})
           .then(function () { return api('/charge-history'); });
       })
-      .then(function (h) { H = h; indexHistory(); applyAll(); })
+      .then(function (h) { H = h; indexHistory(); applyAll(); try { bdaPersist(curIso); } catch (e2) {} })
       .catch(function (e) { setStatus('LOCK: ' + String(e.message).slice(0, 44), '#FF4466'); });
     }).catch(function (e) { setStatus('LOCK prep failed: ' + String(e.message).slice(0, 40), '#FF4466'); });
   }
@@ -2092,7 +2092,7 @@ window.SPARK_LIVE = (function () {
       // week-over-week matrix, anchor-sheet style
       var entTot = {}; isoAll.forEach(function (iso) { var v = wkData[iso]; if (v) Object.keys(v.ent).forEach(function (k) { entTot[k] = (entTot[k] || 0) + v.ent[k]; }); });
       var ENT6 = ['Spark Talent', 'Spark Packaging', 'Flex Workforce Solutions', 'John Joseph Partners', 'Ignite Search', 'Spark Companies'];
-      var cols = ENT6.concat(Object.keys(entTot).filter(function (k) { return ENT6.indexOf(k) === -1; }).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }));
+      var cols = ENT6.concat(Object.keys(entTot).filter(function (k) { return ENT6.indexOf(k) === -1 && Math.abs(entTot[k]) > 0.005; }).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }));
       h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
       var csvRows = [['BDA', P.bda], ['Week Ending', 'Total'].concat(cols)];
       var qAcc = 0, qKey = null, qEnt = {}, ytdEnt = {};
@@ -2127,7 +2127,6 @@ window.SPARK_LIVE = (function () {
       window.__bdaCsv = window.__bdaCsv.concat(csvRows);
     });
     el.innerHTML = h;
-    if (anyMissing && !__bdaLoadedAll && !window.__bdaAutoTried) { window.__bdaAutoTried = true; bdaLoadAll(); }
   };
   function bdaPost(path, body, okMsg) {
     return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -2169,14 +2168,45 @@ window.SPARK_LIVE = (function () {
     else if (act === '5') { if (confirm('Delete ' + a.client + ' from the BDA account list?')) bdaPost('/bda-account', { op: 'delete', id: id }, 'Deleted \u00b7 ' + a.client); }
   }
   function bdaLoadAll() {
+    var BD = window.__bda || {};
+    var act = (BD.people || []).filter(function (p) { return p.active !== false; }).map(function (p) { return p.bda; });
+    var covered = {};
+    (BD.history || []).forEach(function (r) { var iso = String(r.week_ending || '').slice(0, 10); if (iso) (covered[iso] = covered[iso] || {})[r.bda] = 1; });
     var isoList = weeksThrough(curIso), need = [];
     isoList.forEach(function (wk) {
+      var c = covered[wk];
+      if (act.length && act.every(function (b) { return c && c[b]; })) return; // history covers this week for every BDA \u2014 nothing to fetch
       if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
       if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
     });
     if (!need.length) { __bdaLoadedAll = true; try { rBDA(); } catch (e) {} return; }
     setStatus('Loading ' + need.length + ' week payloads for BDA history\u2026', '#FFC800');
     Promise.all(need).then(function () { __bdaLoadedAll = true; setStatus('BDA history loaded', '#00FF88'); try { rBDA(); } catch (e) {} });
+  }
+  function bdaPersist(iso) {
+    if (!IS_ADMIN) return;
+    var go = function () {
+      var BD = window.__bda; if (!BD || !BD.people) return;
+      (BD.people || []).forEach(function (P) {
+        if (P.active === false) return;
+        var accs = (BD.accounts || []).filter(function (a) { return a.bda === P.bda; });
+        var v = bdaWeek(iso, accs, null);
+        if (v === void 0 || v === null) return; // no row data in memory, or no eligible accounts \u2014 nothing to freeze
+        var rows = [];
+        Object.keys(v.ent).forEach(function (e) { var n2 = Math.round((v.ent[e] || 0) * 100) / 100; if (n2) rows.push({ entity: e, amount: n2 }); });
+        if (!rows.length) rows.push({ entity: '\u2014', amount: 0 });
+        api('/bda-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bda: P.bda, week_ending: iso, rows: rows }) })
+          .then(function (j) {
+            if (!j || j.ok === false) return;
+            if (window.__bda) {
+              window.__bda.history = (window.__bda.history || []).filter(function (r) { return !(r.bda === P.bda && String(r.week_ending || '').slice(0, 10) === iso); })
+                .concat(rows.map(function (r) { return { bda: P.bda, week_ending: iso, entity: r.entity, amount: r.amount }; }));
+              try { rBDA(); } catch (e) {}
+            }
+          }).catch(function () {});
+      });
+    };
+    if (window.__bda === void 0) bdaFetch(go); else go();
   }
   function bdaExport() {
     var rows = window.__bdaCsv || []; if (!rows.length) return;
@@ -2587,7 +2617,7 @@ window.SPARK_LIVE = (function () {
       if (!batches[wk] || !dhb[wk] || !dhb[wk].ok) return;
       return api('/charge-snapshot?weekEnding=' + wk, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batch: batches[wk], dh: dhb[wk] }) })
         .then(function () { return api('/charge-history'); })
-        .then(function (h) { H = h; indexHistory(); applyAll(); });
+        .then(function (h) { H = h; indexHistory(); applyAll(); try { bdaPersist(wk); } catch (e2) {} });
     }).catch(function () {});
   }
   function ctPost(body) {
