@@ -1023,7 +1023,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-19';
+  var BUILD = 'b0820-20';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1975,6 +1975,8 @@ window.SPARK_LIVE = (function () {
       return null;
     };
   }
+  var ENTC = { 'flex workforce': 'Flex Workforce Solutions', 'flex': 'Flex Workforce Solutions', 'flex workforce solutions': 'Flex Workforce Solutions', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners', 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'spark talent': 'Spark Talent', 'spark packaging': 'Spark Packaging', 'spark companies': 'Spark Companies', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies' };
+  function entC(e) { var k = String(e == null ? '' : e).trim(); return k ? (ENTC[k.toLowerCase()] || k) : '\u2014'; }
   // one BDA, one week: null = no account eligible yet \u00b7 undefined = eligible but row-level data not loaded \u00b7 else {tot, ent:{}}
   function bdaWeek(iso, accs, tally) {
     var el2 = accs.filter(function (a) { return bdaElig(a, iso); });
@@ -1984,7 +1986,7 @@ window.SPARK_LIVE = (function () {
     var m = bdaMatcher(el2), out = { tot: 0, ent: {} };
     var add = function (a, entity, amt, company) {
       amt = Number(amt) || 0; if (!amt) return;
-      out.tot += amt; var e = entity || '\u2014'; out.ent[e] = (out.ent[e] || 0) + amt;
+      out.tot += amt; var e = entC(entity); out.ent[e] = (out.ent[e] || 0) + amt;
       if (tally) { var t = tally[a.id] || (tally[a.id] = { wk: 0, comps: {} }); t.wk += amt; t.comps[company] = 1; }
     };
     if (b && b.rows) b.rows.forEach(function (r) { var a = m(r.company); if (a) add(a, r.entity, r.charge, r.company); });
@@ -2009,11 +2011,29 @@ window.SPARK_LIVE = (function () {
     window.__bdaCsv = [];
     ppl.forEach(function (P) {
       var accs = (BD.accounts || []).filter(function (a) { return a.bda === P.bda; });
+      // Imported weekly history (old-book numbers). Stored history WINS over live computation for any week it covers.
+      var hb = {};
+      (BD.history || []).forEach(function (r) {
+        if (r.bda !== P.bda) return;
+        var iso = String(r.week_ending || '').slice(0, 10); if (!iso) return;
+        var o = hb[iso] || (hb[iso] = { tot: 0, ent: {} });
+        var amt = Number(r.amount) || 0, e = entC(r.entity);
+        o.tot += amt; o.ent[e] = (o.ent[e] || 0) + amt;
+      });
+      var isoAll = isoList.slice(), _seen = {};
+      isoAll.forEach(function (i) { _seen[i] = 1; });
+      Object.keys(hb).forEach(function (i) { if (i <= curIso && !_seen[i]) { isoAll.push(i); _seen[i] = 1; } });
+      isoAll.sort();
       var tally = {}, wkData = {}, missing = 0;
-      isoList.forEach(function (iso) { var v = bdaWeek(iso, accs, iso === curIso ? tally : null); wkData[iso] = v; if (v === void 0) missing++; });
+      isoAll.forEach(function (iso) {
+        var v;
+        if (hb[iso]) { v = hb[iso]; if (iso === curIso) bdaWeek(iso, accs, tally); }
+        else v = bdaWeek(iso, accs, iso === curIso ? tally : null);
+        wkData[iso] = v; if (v === void 0) missing++;
+      });
       if (missing) anyMissing = true;
       var cur = wkData[curIso] || { tot: 0, ent: {} };
-      var sumW = function (f) { var s2 = 0; isoList.forEach(function (iso) { var v = wkData[iso]; if (v && f(iso)) s2 += v.tot; }); return s2; };
+      var sumW = function (f) { var s2 = 0; isoAll.forEach(function (iso) { var v = wkData[iso]; if (v && f(iso)) s2 += v.tot; }); return s2; };
       var qtd = sumW(function (iso) { return iso.slice(0, 4) === curYr && qOf(iso) === curQ; });
       var anchor = Number(P.ytd_anchor) || 0;
       var ytd = sumW(function (iso) { return iso.slice(0, 4) === curYr; }) + anchor;
@@ -2046,7 +2066,7 @@ window.SPARK_LIVE = (function () {
         h += '</div>';
       }
       // accounts this week
-      h += '<div class="cd" style="padding:0;margin-bottom:14px"><div class="cdh">Signed Accounts \u2014 in window ' + labelWe(curIso) + ' (' + live.length + ')</div><div class="scr" style="max-height:46vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Account</th><th>Signed</th><th>Falls Off</th><th class="r">Weeks Left</th><th class="r">This Wk Charge</th><th>Matched This Wk</th></tr></thead><tbody>';
+      h += '<div class="cd" style="padding:0;margin-bottom:14px"><div class="cdh">Signed Accounts \u2014 in window ' + labelWe(curIso) + ' (' + live.length + ')' + (hb[curIso] ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 this week\u2019s totals come from imported history \u2014 per-account match detail reflects live rows only</span>' : '') + '</div><div class="scr" style="max-height:46vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Account</th><th>Signed</th><th>Falls Off</th><th class="r">Weeks Left</th><th class="r">This Wk Charge</th><th>Matched This Wk</th></tr></thead><tbody>';
       live.forEach(function (a) {
         var t = tally[a.id], amt = t ? t.wk : 0, comps = t ? Object.keys(t.comps) : [];
         var fall = bdaFall(a.signed_date);
@@ -2070,9 +2090,10 @@ window.SPARK_LIVE = (function () {
       }
       h += '</div>';
       // week-over-week matrix, anchor-sheet style
-      var entTot = {}; isoList.forEach(function (iso) { var v = wkData[iso]; if (v) Object.keys(v.ent).forEach(function (k) { entTot[k] = (entTot[k] || 0) + v.ent[k]; }); });
-      var cols = Object.keys(entTot).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }).slice(0, 8);
-      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' without row-level data (shown as \u00b7) \u2014 covered by the YTD anchor</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+      var entTot = {}; isoAll.forEach(function (iso) { var v = wkData[iso]; if (v) Object.keys(v.ent).forEach(function (k) { entTot[k] = (entTot[k] || 0) + v.ent[k]; }); });
+      var ENT6 = ['Spark Talent', 'Spark Packaging', 'Flex Workforce Solutions', 'John Joseph Partners', 'Ignite Search', 'Spark Companies'];
+      var cols = ENT6.concat(Object.keys(entTot).filter(function (k) { return ENT6.indexOf(k) === -1; }).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }));
+      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
       var csvRows = [['BDA', P.bda], ['Week Ending', 'Total'].concat(cols)];
       var qAcc = 0, qKey = null, qEnt = {};
       var flushQ = function () {
@@ -2081,7 +2102,7 @@ window.SPARK_LIVE = (function () {
         csvRows.push(['Q TOTAL ' + qKey, Math.round(qAcc * 100) / 100].concat(cols.map(function (c) { return Math.round((qEnt[c] || 0) * 100) / 100; })));
         qAcc = 0; qEnt = {};
       };
-      isoList.forEach(function (iso) {
+      isoAll.forEach(function (iso) {
         var qk = 'Q' + qOf(iso) + ' ' + iso.slice(0, 4);
         if (qKey !== null && qk !== qKey) flushQ();
         qKey = qk;
