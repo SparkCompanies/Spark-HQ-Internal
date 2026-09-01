@@ -7180,7 +7180,7 @@ var worker_default = {
       return json({ ok: true, people: p.data || [], accounts: a.data || [], history: hR.ok ? (hR.data || []) : [] }, 200, origin);
     }
 
-    if (url.pathname === "/bda-account" || url.pathname === "/bda-person") {
+    if (url.pathname === "/bda-account" || url.pathname === "/bda-person" || url.pathname === "/bda-history") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       let email = String(who.email || (who.user && who.user.email) || "").toLowerCase();
@@ -7191,6 +7191,17 @@ var worker_default = {
       if (String(request.headers.get("X-Admin-Pin") || "") !== CHARGE_PIN) return json({ error: "bad admin pin" }, 403, origin);
       if (request.method !== "POST") return json({ error: "POST only" }, 405, origin);
       const body = await request.json().catch(() => ({}));
+      if (url.pathname === "/bda-history") {
+        const bda = String(body.bda || "").trim();
+        const wk = String(body.week_ending || "");
+        if (!bda || !/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "bda + week_ending (YYYY-MM-DD) required" }, 400, origin);
+        const rows = Array.isArray(body.rows) ? body.rows.map((r) => ({ bda, week_ending: wk, entity: String((r && r.entity) || "").trim(), amount: Number(r && r.amount) })).filter((r) => r.entity && isFinite(r.amount)) : [];
+        const del = await sbService(env, "DELETE", "bda_history?bda=eq." + encodeURIComponent(bda) + "&week_ending=eq." + wk);
+        if (!del.ok) return json({ ok: false, error: "history delete failed" }, 502, origin);
+        if (!rows.length) return json({ ok: true, rows: 0 }, 200, origin);
+        const ins = await sbService(env, "POST", "bda_history", rows);
+        return json({ ok: ins.ok, rows: rows.length, error: ins.ok ? void 0 : JSON.stringify(ins.data).slice(0, 160) }, ins.ok ? 200 : 502, origin);
+      }
       if (url.pathname === "/bda-person") {
         const bda = String(body.bda || "").trim();
         if (!bda) return json({ error: "bda required" }, 400, origin);
