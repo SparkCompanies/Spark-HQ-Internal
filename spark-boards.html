@@ -3044,6 +3044,7 @@ function describeAutomation(board, a) {
 // mutates board (a clone); returns notifications produced
 function runAutomations(board, item, changedKey) {
   const notes = [];
+  let fired = 0;
   (board.automations || []).forEach(a => {
     if (!a.enabled) return;
     const t = a.trigger;
@@ -3053,6 +3054,7 @@ function runAutomations(board, item, changedKey) {
     } else if (t.type === 'item_created') {
       if (changedKey !== '__created__') return;
     } else return;
+    fired++;
     const ac = a.action;
     if (ac.type === 'move_group') {
       let cur = null;
@@ -3150,6 +3152,7 @@ function runAutomations(board, item, changedKey) {
       at: new Date().toISOString()
     });
   });
+  notes.fired = fired;
   return notes;
 }
 const seedAutomations = id => id !== 'b1' ? [] : [{
@@ -5771,7 +5774,7 @@ function TableView({
     if (col && col.type === 'status') notes = runAutomations(nb, it, key);
     const _ev = nb.activity && nb.activity[0] && nb.activity[0].kind === 'cell' && nb.activity[0].itemId === it.id && nb.activity[0].col === key ? [nb.activity[0]] : [];
     update(() => nb);
-    if (notes.length) Persist.board(nb, true);else Persist.cell(nb, [{
+    if (notes.length || notes.fired) Persist.board(nb, true);else Persist.cell(nb, [{
       itemId: it.id,
       key: key,
       val: val,
@@ -5819,7 +5822,7 @@ function TableView({
     });
     const notes = runAutomations(nb, blank, '__created__');
     update(() => nb);
-    if (notes.length) {
+    if (notes.length || notes.fired) {
       Persist.board(nb, true);
     } else {
       Persist.op(nb, [{
