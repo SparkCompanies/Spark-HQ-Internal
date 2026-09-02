@@ -251,6 +251,8 @@ function bdg(i){var c=i===0?'#FFC800':i===1?'#C0C0C8':i===2?'#CD7F32':null;if(c)
 function pill(t,c){return '<span class="pl" style="background:'+c+'15;color:'+c+'">'+t+'</span>'}
 function ecol(n){for(var k in EC){if(n&&n.indexOf(k.split(' ')[0])>=0)return EC[k]}return '#6B7280'}
 function pC(p){return p>=100?'var(--grn)':p>=75?'var(--y)':p>=50?'var(--org)':'var(--red)'}
+// New-hire tenure color (Aaron): first 6 months = light blue, months 6-12 = dark blue, then back to entity color.
+function tenureC(n,now){var hd=(window.__hireDates||{})[n];if(!hd)return null;var h=new Date(hd+'T12:00:00');if(isNaN(h))return null;var m6=new Date(h);m6.setMonth(m6.getMonth()+6);var m12=new Date(h);m12.setMonth(m12.getMonth()+12);now=now||new Date();return now<m6?'#7CC4FF':now<m12?'#1E56C8':null}
 function esc(s){return String(s).replace(/'/g,"\\'")}
 
 // Portfolio calc
@@ -763,7 +765,8 @@ function rArena(){
       var v;
       if(arM==='pace'){var t=D.mt.find(function(x){return x.n===p.n});v=t&&t.q3i>0?Math.round((t.q3||0)/t.q3i*100):null;if(v===null)return;}
       else v=p[arM]||0;
-      rows.push({n:p.n,sub:p.rl,en:p.en,v:v,c:ecol(p.en),sp:D.iw[p.n]?D.iw[p.n].map(function(w){return w.t}):null,mv:rankMove(p.n),obj:p});
+      var _tc=tenureC(p.n);
+      rows.push({n:p.n,sub:p.rl,en:p.en,v:v,c:_tc||ecol(p.en),ten:_tc?(_tc==='#7CC4FF'?'First 6 months':'Months 6\u201312'):null,sp:D.iw[p.n]?D.iw[p.n].map(function(w){return w.t}):null,mv:rankMove(p.n),obj:p});
     });
   } else if(arScope==='units'){
     var STBUS2=(window.BU_ORDER||['MI Metro','Automation','Light Industrial','Central','Southeast','Southwest','Northwest','Northeast','Spark Talent','Ignite Search','Spark Companies','BPO','Spark Companies - Other','Spark Packaging','Flex Workforce']);
@@ -816,7 +819,7 @@ function rArena(){
   rows.slice(3).forEach(function(r,i){
     var w=Math.max(1.5,Math.abs(r.v)/mx*100);
     var neg=r.v<0;
-    h+='<div class="race" style="animation-delay:'+Math.min(1.2,(i*.045))+'s" onclick="'+(arScope==='people'?'openPerson(\''+esc(r.n)+'\')':'go(\'hier\')')+'">';
+    h+='<div class="race"'+(r.ten?' title="'+r.ten+' \u2014 new-hire highlight"':'')+' style="animation-delay:'+Math.min(1.2,(i*.045))+'s" onclick="'+(arScope==='people'?'openPerson(\''+esc(r.n)+'\')':'go(\'hier\')')+'">';
     h+='<div class="m" style="width:26px;text-align:center;font-size:11px;font-weight:700;color:var(--dm)">'+(i+4)+'</div>';
     h+='<div class="av" style="background:'+r.c+'22;color:'+r.c+';border:1px solid '+r.c+'35">'+initials(r.n)+'</div>';
     h+='<div style="width:150px;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.n+'</div><div style="font-size:9px;color:var(--dm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.sub+'</div></div>';
@@ -1023,7 +1026,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-25';
+  var BUILD = 'b0820-26';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1136,6 +1139,8 @@ window.SPARK_LIVE = (function () {
   function indexHistory() {
     LOCKS = {};
     ((H && H.locks) || []).forEach(function (l) { if (l && l.week_ending && l.locked !== false) LOCKS[String(l.week_ending).slice(0, 10)] = 1; });
+    window.__hireDates = {};
+    ((H && H.people) || []).forEach(function (p) { if (p && p.person && p.hire_date) window.__hireDates[p.person] = String(p.hire_date).slice(0, 10); });
     histUnit = {}; histPerson = {}; master = {};
     (H.unitWeeks || []).forEach(function (r) {
       var w = histUnit[r.week_ending] || (histUnit[r.week_ending] = {});
@@ -1601,7 +1606,7 @@ window.SPARK_LIVE = (function () {
           '<td><input id="lvTmF_ai" style="' + inp + ';text-align:right" value="' + (t.ai || '') + '"/></td>' +
           '<td><input id="lvTmF_q3c" style="' + inp + ';text-align:right" value="' + (t.q3c || '') + '"/></td>' +
           '<td><input id="lvTmF_ac" style="' + inp + ';text-align:right" value="' + (t.ac || '') + '"/></td>' +
-          '<td></td>' +
+          '<td><input id="lvTmF_hd" style="' + inp + ';width:96px" placeholder="hire YYYY-MM-DD" value="' + dhAtt(p.hire_date ? String(p.hire_date).slice(0, 10) : '') + '"/></td>' +
           '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px;background:var(--gold);color:#1a1a2e" onclick="SPARK_LIVE.tmSave(\'' + nm + '\')">save</button> <button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmCancel()">cancel</button></td></tr>';
         return;
       }
@@ -1609,7 +1614,7 @@ window.SPARK_LIVE = (function () {
         '<td style="color:var(--dm)">' + (p.role || '\u2014') + '</td><td>' + (p.entity || '') + '</td><td>' + (p.bu || '\u2014') + '</td>' +
         '<td style="text-align:right" class="m">' + fmtT(t.q3i) + '</td><td style="text-align:right" class="m">' + fmtT(t.ai) + '</td>' +
         '<td style="text-align:right" class="m">' + fmtT(t.q3c) + '</td><td style="text-align:right" class="m">' + fmtT(t.ac) + '</td>' +
-        '<td>' + (off ? '<span class="pl" style="background:rgba(255,68,102,.12);color:#FF4466">inactive</span>' : '<span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">active</span>') + '</td>' +
+        '<td>' + (off ? '<span class="pl" style="background:rgba(255,68,102,.12);color:#FF4466">inactive</span>' : '<span class="pl" style="background:rgba(0,255,136,.1);color:#00FF88">active</span>') + (p.hire_date ? '<div class="m" style="font-size:9px;color:var(--dm);margin-top:2px">hired ' + String(p.hire_date).slice(0, 10) + '</div>' : '') + '</td>' +
         '<td style="white-space:nowrap"><button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmEdit(\'' + nm + '\')">edit</button> ' +
         '<button class="fb" style="padding:3px 8px" onclick="SPARK_LIVE.tmToggle(\'' + nm + '\',' + off + ')">' + (off ? 'reactivate' : 'remove') + '</button></td></tr>';
     });
@@ -1642,7 +1647,11 @@ window.SPARK_LIVE = (function () {
     var gv = function (id) { var el = document.getElementById(id); return el ? el.value : null; };
     var st = function (v) { return String(v == null ? '' : v).trim(); };
     var body = { person: name }, any = false;
-    var rl = gv('lvTmF_rl'), en = gv('lvTmF_en'), bu = gv('lvTmF_bu');
+    var rl = gv('lvTmF_rl'), en = gv('lvTmF_en'), bu = gv('lvTmF_bu'), hd2 = gv('lvTmF_hd');
+    if (hd2 !== null && st(hd2) !== st(p.hire_date ? String(p.hire_date).slice(0, 10) : '')) {
+      if (st(hd2) && !/^\d{4}-\d{2}-\d{2}$/.test(st(hd2))) { alert('Hire date must be YYYY-MM-DD'); return; }
+      body.hire_date = st(hd2); any = true;
+    }
     if (rl !== null && st(rl) !== st(p.role)) { body.role = st(rl); any = true; }
     if (en !== null && st(en) !== st(p.entity)) { body.entity = st(en); any = true; }
     if (bu !== null && st(bu) !== st(p.bu)) { body.bu = st(bu); any = true; }
