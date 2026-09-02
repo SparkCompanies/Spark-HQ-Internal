@@ -1023,7 +1023,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-23';
+  var BUILD = 'b0820-25';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1036,6 +1036,10 @@ window.SPARK_LIVE = (function () {
     return out;
   }
   function shortWe(iso) { var p = iso.split('-'); return (+p[1]) + '/' + (+p[2]); }
+  // Hidden from every people surface (leaderboard, arena, hierarchy, ticker, palette, targets, commissions, HC).
+  // Roster rows stay intact \u2014 this is display-side only.
+  var CHARGE_HIDE = { 'aaron opalewski': 1, 'ryan aymen': 1 };
+  function chargeHidden(n) { return !!CHARGE_HIDE[String(n || '').trim().toLowerCase()]; }
   function labelWe(iso) { if (!iso) return ''; var p = iso.split('-'); return 'WE ' + (+p[1]) + '.' + (+p[2]) + '.' + p[0].slice(2); }
   function prevIso(iso) { var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - 7); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
 
@@ -1333,7 +1337,7 @@ window.SPARK_LIVE = (function () {
     Object.keys(master).forEach(function (n) { if (master[n].active !== false) names[n] = 1; });
     var curMonth = +curIso.split('-')[1];
     var cw = pweek(curIso), pv = pweek(prev);
-    D.people = Object.keys(names).map(function (n) {
+    D.people = Object.keys(names).filter(function (n) { return !chargeHidden(n); }).map(function (n) {
       var RAW_ANCHOR = '2026-08-02';
       var m0 = master[n] || {};
       var cum = 0, q = 0, mo = 0, cumRaw = Number(m0.cum_raw) || 0, qRaw = 0, moRaw = 0;
@@ -1377,7 +1381,7 @@ window.SPARK_LIVE = (function () {
       var tmap = {};
       (H.personTargets || []).forEach(function (t) { (tmap[t.person] = tmap[t.person] || []).push(t); });
       var cumOf = {}, q3Of = {}; D.people.forEach(function (p) { cumOf[p.n] = p.cumRaw; q3Of[p.n] = p.qRaw; });
-      D.mt = (H.people || []).filter(function (p) { return p.active !== false; }).map(function (p) {
+      D.mt = (H.people || []).filter(function (p) { return p.active !== false && !chargeHidden(p.person); }).map(function (p) {
         var rows = tmap[p.person] || [];
         var pick = rows.filter(function (t) { return t.unit === p.bu; });
         if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
@@ -1870,7 +1874,10 @@ window.SPARK_LIVE = (function () {
     if (!b || !b.rows) { el.innerHTML = '<div class="st">Head Count &mdash; ' + labelWe(curIso) + '</div><div style="font-size:11px;color:var(--dm)">No live contract data for this week (pre-import weeks have totals only).</div>'; return; }
     // Same extraction the Contract Team Members tab uses — the two can never diverge.
     var P = {};
-    var get = function (n) { return P[n] || (P[n] = { am: 0, fd: 0, rc: 0 }); };
+    // Hidden from the HC tab (display + exports). Roster rows stay intact for splits, commissions, and every other tab.
+    var HC_HIDE = { 'mary patrico': 1, 'aaron opalewski': 1, 'ryan aymen': 1, 'nicholas greenfelder': 1 };
+    var _hcVoid = { am: 0, fd: 0, rc: 0 };
+    var get = function (n) { if (HC_HIDE[String(n || '').trim().toLowerCase()]) return _hcVoid; return P[n] || (P[n] = { am: 0, fd: 0, rc: 0 }); };
     var house = { am: 0, fd: 0, rc: 0 };
     var bodies = 0; // each contract line counted once \u2014 a split line is still one contractor
     (b.rows || []).forEach(function (r) {
@@ -2224,7 +2231,7 @@ window.SPARK_LIVE = (function () {
     if (kind === 'csv') {
       var lastData = all.length + 1; // header is row 1; person + House rows run 2..lastData
       var su = function (col) { return '=SUM(' + col + '2:' + col + lastData + ')'; };
-      var gRow = ['GRAND TOTAL', '', '', su('D'), d.bodies, gPct, su('G'), su('H'), su('I'), su('J'), su('K')];
+      var gRow = ['GRAND TOTAL', '', '', su('D'), su('E'), gPct, su('G'), su('H'), su('I'), su('J'), su('K')];
       var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       return [cols.map(e2).join(',')].concat(all.map(function (r) { return r.map(e2).join(','); })).concat([gRow.map(e2).join(',')]).join('\r\n');
     }
@@ -2311,6 +2318,7 @@ window.SPARK_LIVE = (function () {
     Object.keys(dhP).forEach(function (n) { names[n] = 1; });
     Object.keys(names).forEach(function (n) {
       if (/^house/i.test(n)) return;
+      if (chargeHidden(n)) return;
       var p = wk[n] || { sales: 0, fd: 0, rec: 0 };
       var d = dhP[n] || { sales: 0, fd: 0, rec: 0 };
       // DH buckets always come from the live DH engine, whose convention is
