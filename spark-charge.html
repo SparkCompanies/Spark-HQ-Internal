@@ -552,7 +552,8 @@ function rPulse(){
   document.getElementById('sb-tot').textContent=fK(TOTAL);
   document.getElementById('sb-wow').innerHTML=dl(TOTAL-LASTW,12);
   document.getElementById('tp-q3').innerHTML='<span style="color:'+pC(Q3/Q3T*100)+'">'+Math.round(Q3/Q3T*100)+'%</span>';
-  document.getElementById('tp-pr').textContent=D.people.filter(function(p){return p.mo>0}).length+' / '+D.people.length;
+  var _prod=D.people.filter(function(p){return !rankHidden(p.n)&&!(p.house||/house account/i.test(p.n))});
+  document.getElementById('tp-pr').textContent=_prod.filter(function(p){return p.mo>0}).length+' / '+_prod.length;
 }
 
 // ═══ HIERARCHY: Company → Unit → Person ═══
@@ -761,13 +762,14 @@ function rArena(){
     h+='<button class="fb'+(arM===m[0]?' on':'')+'" onclick="arM=\''+m[0]+'\';rArena()">'+m[1]+'</button>'});
   h+='</div>';
 
-  var rows=[];
+  var rows=[],hRows=[];
   if(arScope==='people'){
     D.people.forEach(function(p){
       var v;
       if(arM==='pace'){var t=D.mt.find(function(x){return x.n===p.n});v=t&&t.q3i>0?Math.round((t.q3||0)/t.q3i*100):null;if(v===null)return;}
       else v=p[arM]||0;
       if(rankHidden(p.n))return;
+      if(p.house||/house account/i.test(p.n)){hRows.push({n:p.n,sub:p.rl,en:p.en,v:v,c:ecol(p.en),sp:D.iw[p.n]?D.iw[p.n].map(function(w){return w.t}):null,mv:null,obj:p});return;}
       var _tc=tenureC(p.n);
       rows.push({n:p.n,sub:p.rl,en:p.en,v:v,c:_tc||ecol(p.en),ten:_tc?(_tc==='#7CC4FF'?'First 6 months':'Months 6\u201312'):null,sp:D.iw[p.n]?D.iw[p.n].map(function(w){return w.t}):null,mv:rankMove(p.n),obj:p});
     });
@@ -788,7 +790,6 @@ function rArena(){
     });
   }
   rows.sort(function(a,b){return b.v-a.v});
-  rows=rows.filter(function(r){return !/^house/i.test(r.n||'')}).concat(rows.filter(function(r){return /^house/i.test(r.n||'')}));
   var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v)}))||1;
   var isPct=arM==='pace';
   function fv(v){return isPct?v+'%':fK(v)}
@@ -833,6 +834,23 @@ function rArena(){
     h+='</div>';
   });
   h+='</div>';
+  if(arScope==='people'&&hRows.length){
+    hRows.sort(function(a,b){return b.v-a.v});
+    h+='<div class="cd" style="padding:12px 14px;margin-top:12px">';
+    hRows.forEach(function(r){
+      var w=Math.min(100,Math.max(1.5,Math.abs(r.v)/mx*100));
+      var neg=r.v<0;
+      h+='<div class="race" style="animation-delay:0s" onclick="openPerson(\''+esc(r.n)+'\')">';
+      h+='<div class="m" style="width:26px;text-align:center;font-size:11px;font-weight:700;color:var(--dm)">&middot;</div>';
+      h+='<div class="av" style="background:'+r.c+'22;color:'+r.c+';border:1px solid '+r.c+'35">'+initials(r.n)+'</div>';
+      h+='<div style="width:150px;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+r.n+'</div><div style="font-size:9px;color:var(--dm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.sub||'house')+'</div></div>';
+      h+='<div class="race-track"><div class="race-fill" style="width:'+w+'%;background:'+(neg?'linear-gradient(90deg,#FF446688,#FF4466)':'linear-gradient(90deg,'+r.c+'55,'+r.c+')')+';animation-delay:0s">';
+      h+='<span class="m" style="font-size:10px;font-weight:800;color:'+(neg?'#fff':'#000')+'">'+fv(r.v)+'</span></div></div>';
+      h+='<div style="width:52px"></div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
   h+='<div class="m" style="margin-top:10px;font-size:9px;color:var(--mt)">&#9650;&#9660; = weekly rank movement (this week vs last week performance). Click any row to drill in.</div>';
   el.innerHTML=h;
 }
@@ -1052,7 +1070,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-29';
+  var BUILD = 'b0820-30';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
