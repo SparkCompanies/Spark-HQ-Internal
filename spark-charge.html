@@ -247,7 +247,7 @@ var EB={"Spark Talent": ["MI Metro", "Automation", "Light Industrial", "Central"
 function fmt(n){var v=Number(n)||0;return "$"+v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fK(n){var a=Math.abs(n||0);if(a>=1e6)return "$"+(n/1e6).toFixed(2)+"M";if(a>=1e3)return "$"+(n/1e3).toFixed(1)+"K";return "$"+Math.round(n||0)}
 function dl(v,sz){sz=sz||11;return v>0?'<span class="m cg" style="font-size:'+sz+'px">&#9650; '+fK(v)+'</span>':v<0?'<span class="m cr" style="font-size:'+sz+'px">&#9660; '+fK(Math.abs(v))+'</span>':'<span class="cm" style="font-size:'+sz+'px">--</span>'}
-function bdg(i){return '<div class="bdg '+(i<3?['b1','b2','b3'][i]:'bn')+'">'+(i+1)+'</div>'}
+function bdg(i){var c=i===0?'#FFC800':i===1?'#C0C0C8':i===2?'#CD7F32':null;if(c)return '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:'+c+';color:#1a1a2e;font-weight:900;font-size:10px" class="m">'+(i+1)+'</span>';return '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--bd);color:var(--dm);font-weight:800;font-size:10px" class="m">'+(i+1)+'</span>'}
 function pill(t,c){return '<span class="pl" style="background:'+c+'15;color:'+c+'">'+t+'</span>'}
 function ecol(n){for(var k in EC){if(n&&n.indexOf(k.split(' ')[0])>=0)return EC[k]}return '#6B7280'}
 function pC(p){return p>=100?'var(--grn)':p>=75?'var(--y)':p>=50?'var(--org)':'var(--red)'}
@@ -1023,7 +1023,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-22';
+  var BUILD = 'b0820-23';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1923,28 +1923,24 @@ window.SPARK_LIVE = (function () {
       '<button class="fb" onclick="SPARK_LIVE.hcEmail()">\u2709 Push to Email</button>' +
       '<button class="fb" onclick="SPARK_LIVE.hcCopy()">Copy for Outlook</button>' +
       '<button class="fb" onclick="SPARK_LIVE.hcExport()">Export CSV</button>' +
-      '<span style="font-size:10px;color:var(--dm)">Counts come straight from this week\u2019s contract lines \u00b7 table shows Total HC only \u2014 hover a total for its AM / Full Desk / Recruiter split, and Export / Copy / Email carry all three bucket columns \u00b7 buckets stay exclusive: full desk = 1 FD, split = 1 AM + 1 Rec \u00b7 Grand Total counts each contract line once (bodies) \u00b7 admins: click HC Expectation to edit</span></div>';
+      '<span style="font-size:10px;color:var(--dm)">Counts come straight from this week\u2019s contract lines \u00b7 table shows Total HC only \u2014 hover a total for its AM / Full Desk / Recruiter split \u00b7 buckets stay exclusive: full desk = 1 FD, split = 1 AM + 1 Rec \u00b7 grand totals live in Export / Copy / Email, where Total HC counts each contract line once \u00b7 admins: click HC Expectation to edit</span></div>';
     h += '<div class="cd" style="padding:0"><div class="scr" style="max-height:74vh;overflow:auto"><table class="tb" style="white-space:nowrap">' +
-      '<thead><tr>' + sTh('hc','n','Name',false,'rHC') + sTh('hc','bu','Business Unit',false,'rHC') + sTh('hc','focus','Focus',false,'rHC') + sTh('hc','exp','HC Expectation',true,'rHC') +
-      sTh('hc','tot','Total HC',true,'rHC') + sTh('hc','pct','% To Target',true,'rHC') +
+      '<thead><tr>' + sTh('hc','n','Name',false,'rHC') + sTh('hc','bu','Business Unit',false,'rHC') + sTh('hc','focus','Focus',false,'rHC') + sTh('hc','tot','Total HC',true,'rHC') +
+      sTh('hc','exp','HC Expectation',true,'rHC') + sTh('hc','pct','% To Target',true,'rHC') +
       sTh('hc','dht','DH Monthly Target',true,'rHC') + '</tr></thead><tbody>';
     rows.forEach(function (r) {
       h += '<tr><td style="font-weight:700;font-size:12px">' + r.n + '</td>' +
         '<td style="font-size:10px;color:var(--dm)">' + r.bu + '</td>' +
         '<td style="font-size:10px;color:var(--dm)">' + (r.focus || '\u2014') + '</td>' +
+        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)', title: 'AM ' + r.am + ' \u00b7 Full Desk ' + r.fd + ' \u00b7 Recruiter ' + r.rc } ) +
         (IS_ADMIN
           ? '<td class="r m" style="padding:4px 9px;cursor:pointer;border-bottom:1px dotted var(--gold);color:' + (r.exp ? 'var(--tx)' : 'var(--mt)') + '!important" title="Click to edit (admin + PIN)" data-n="' + dhAtt(r.n) + '" onclick="SPARK_LIVE.hcEditExp(this.dataset.n)">' + (r.exp || '--') + '</td>'
-          : cell(r.exp || null)) +
-        cell(r.tot, { strong: true, zero: true, color: 'var(--gold)', title: 'AM ' + r.am + ' \u00b7 Full Desk ' + r.fd + ' \u00b7 Recruiter ' + r.rc } ) + pctCell(r.pct) +
+          : cell(r.exp || null)) + pctCell(r.pct) +
         cell(r.dht ? fmt(r.dht) : null) + '</tr>';
     });
     var houseTot = house.am + house.fd + house.rc;
     h += '<tr style="border-top:1px solid var(--bd);opacity:.8"><td style="font-weight:600;font-size:11px;color:var(--dm)">House Account</td><td></td><td></td>' +
-      cell(null) + cell(houseTot, { zero: true, title: 'AM ' + house.am + ' \u00b7 Full Desk ' + house.fd + ' \u00b7 Recruiter ' + house.rc }) + cell(null) + cell(null) + '</tr>';
-    h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">GRAND TOTAL</td><td></td><td></td>' +
-      cell(gt.exp, { strong: true, zero: true }) +
-      cell(bodies, { strong: true, zero: true, color: 'var(--gold)', title: 'Distinct contract lines this week \u2014 each contractor counted once. AM ' + (gt.am + house.am) + ' \u00b7 Full Desk ' + (gt.fd + house.fd) + ' \u00b7 Recruiter ' + (gt.rc + house.rc) + ' \u2014 full bucket detail rides along in Export / Copy / Email.' }) + pctCell(gt.exp > 0 ? gt.tot / gt.exp : null, gt.tot + ' bucket credits vs ' + gt.exp + ' expected \u2014 targets are per-person credit counts') +
-      cell(fmt(gt.dht), { strong: true }) + '</tr>';
+      cell(houseTot, { zero: true, title: 'AM ' + house.am + ' \u00b7 Full Desk ' + house.fd + ' \u00b7 Recruiter ' + house.rc }) + cell(null) + cell(null) + cell(null) + '</tr>';
     h += '</tbody></table></div></div>';
     el.innerHTML = h;
     window.__hcRows = { rows: rows, house: house, gt: gt, bodies: bodies };
@@ -2219,16 +2215,20 @@ window.SPARK_LIVE = (function () {
   }
   function hcTable(kind) {
     var d = window.__hcRows; if (!d) return '';
-    var cols = ['Name', 'Business Unit', 'Focus', 'HC Expectation', 'Total HC', '% To Target', 'AM', 'Full Desk', 'Recruiter', 'DH Monthly Target'];
-    var line = function (r) { return [r.n, r.bu, r.focus, r.exp || '', r.tot, r.pct != null ? Math.round(r.pct * 100) + '%' : '', r.am, r.fd, r.rc, r.dht || '']; };
+    var cols = ['Name', 'Business Unit', 'Focus', 'HC Expectation', 'Total HC', '% To Target', 'AM', 'Full Desk', 'True AM HC', 'Recruiter', 'DH Monthly Target'];
+    var line = function (r) { return [r.n, r.bu, r.focus, r.exp || '', r.tot, r.pct != null ? Math.round(r.pct * 100) + '%' : '', r.am, r.fd, r.am + r.fd, r.rc, r.dht || '']; };
     var all = d.rows.map(line);
     var hTot = d.house.am + d.house.fd + d.house.rc;
-    all.push(['House Account', '', '', '', hTot, '', d.house.am, d.house.fd, d.house.rc, '']);
-    all.push(['GRAND TOTAL', '', '', d.gt.exp, d.bodies, d.gt.exp > 0 ? Math.round(d.gt.tot / d.gt.exp * 100) + '%' : '', d.gt.am + d.house.am, d.gt.fd + d.house.fd, d.gt.rc + d.house.rc, Math.round(d.gt.dht)]);
+    all.push(['House Account', '', '', '', hTot, '', d.house.am, d.house.fd, d.house.am + d.house.fd, d.house.rc, '']);
+    var gPct = d.gt.exp > 0 ? Math.round(d.gt.tot / d.gt.exp * 100) + '%' : '';
     if (kind === 'csv') {
+      var lastData = all.length + 1; // header is row 1; person + House rows run 2..lastData
+      var su = function (col) { return '=SUM(' + col + '2:' + col + lastData + ')'; };
+      var gRow = ['GRAND TOTAL', '', '', su('D'), d.bodies, gPct, su('G'), su('H'), su('I'), su('J'), su('K')];
       var e2 = function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-      return [cols.map(e2).join(',')].concat(all.map(function (r) { return r.map(e2).join(','); })).join('\r\n');
+      return [cols.map(e2).join(',')].concat(all.map(function (r) { return r.map(e2).join(','); })).concat([gRow.map(e2).join(',')]).join('\r\n');
     }
+    all.push(['GRAND TOTAL', '', '', d.gt.exp, d.bodies, gPct, d.gt.am + d.house.am, d.gt.fd + d.house.fd, (d.gt.am + d.house.am) + (d.gt.fd + d.house.fd), d.gt.rc + d.house.rc, Math.round(d.gt.dht)]);
     if (kind === 'html') {
       var td = 'border:1px solid #ddd;padding:5px 9px;font-family:Arial,sans-serif;font-size:12px';
       var out = '<table style="border-collapse:collapse"><tr>' + cols.map(function (c) { return '<th style="' + td + ';background:#f3f1ea;text-align:left">' + c + '</th>'; }).join('') + '</tr>';
@@ -2238,7 +2238,7 @@ window.SPARK_LIVE = (function () {
       });
       return out + '</table>';
     }
-    var w2 = [22, 16, 26, 8, 4, 6, 5, 5, 6, 10];
+    var w2 = [22, 16, 26, 8, 4, 6, 5, 5, 11, 6, 10];
     var pad = function (v, n2) { v = String(v == null ? '' : v); return (v.length > n2 ? v.slice(0, n2 - 1) + '\u2026' : v) + Array(Math.max(0, n2 - v.length + 1)).join(' '); };
     return [cols.map(function (c, i) { return pad(c, w2[i]); }).join(' ')].concat(all.map(function (r) { return r.map(function (v, i) { return pad(v, w2[i]); }).join(' '); })).join('\n');
   }
