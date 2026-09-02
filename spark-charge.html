@@ -1052,7 +1052,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-28';
+  var BUILD = 'b0820-29';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1752,12 +1752,13 @@ window.SPARK_LIVE = (function () {
   window.rLB = function () {
     var el = document.getElementById('p-lb'); if (!el) return;
     if (typeof lbS === 'undefined' || !lbS || ['cumRaw','wkRaw','moRaw','qRaw','am','rec','fd','wow'].indexOf(lbS.f) === -1) lbS = { f: 'cumRaw', d: 'desc' };
-    var list = D.people.slice();
+    var list = D.people.filter(function (p) { return !rankHidden(p.n); });
+    var housed = list.filter(function (p) { return p.house || /house account/i.test(p.n); });
+    list = list.filter(function (p) { return !(p.house || /house account/i.test(p.n)); });
     var _bu = (typeof lbBU !== 'undefined' && lbBU) ? lbBU : 'All';
     if (_bu !== 'All') list = list.filter(function (p) { return (p.bu || p.en) === _bu; });
     if (lbQ) { var qq = lbQ.toLowerCase(); list = list.filter(function (p) { return (p.n + ' ' + p.rl + ' ' + p.bu).toLowerCase().indexOf(qq) !== -1; }); }
     list.sort(function (x, y) { return lbS.d === 'desc' ? (y[lbS.f] || 0) - (x[lbS.f] || 0) : (x[lbS.f] || 0) - (y[lbS.f] || 0); });
-    list = list.filter(function (p) { return !p.house; }).concat(list.filter(function (p) { return p.house; }));
     var bus = []; D.people.forEach(function (p) { var b = p.bu || p.en; if (b && bus.indexOf(b) < 0) bus.push(b); });
     bus.sort(function (a, b) { return a.localeCompare(b); });
     var h = '<div class="st">Rankings &mdash; ' + labelWe(curIso) + '</div>';
@@ -1786,6 +1787,27 @@ window.SPARK_LIVE = (function () {
       h += '<td class="r">' + dl(p.wow) + '</td></tr>';
     });
     h += '</tbody></table></div></div>';
+    if (housed.length) {
+      housed.sort(function (a, b) { return (b.cumRaw || 0) - (a.cumRaw || 0); });
+      h += '<div class="st" style="margin-top:16px">House Accounts<span class="pl" style="margin-left:10px">not ranked</span></div>';
+      h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px"></th><th>Account</th><th>Entity / BU</th><th class="r">Cumulative Raw</th><th class="r">Raw (Wk)</th><th class="r">Monthly Raw</th><th class="r">Quarterly Raw</th><th class="r">Account Manager</th><th class="r">Recruiter</th><th class="r">Full Desk</th><th class="r">WoW</th></tr></thead><tbody>';
+      housed.forEach(function (p) {
+        var c = ecol(p.en);
+        h += '<tr onclick="openPerson(\'' + esc(p.n) + '\')" style="cursor:pointer">';
+        h += '<td class="m" style="color:var(--dm)">&middot;</td>';
+        h += '<td><div style="font-weight:600;font-size:12px">' + p.n + '</div><div style="font-size:10px;color:var(--dm)">' + (p.rl || 'house') + '</div></td>';
+        h += '<td>' + pill(p.en, c) + (p.bu ? '<span style="font-size:10px;color:var(--dm);margin-left:5px">' + p.bu + '</span>' : '') + '</td>';
+        h += '<td class="r m" style="font-weight:700;font-size:11px;color:' + (p.cumRaw >= 0 ? 'var(--tx)' : 'var(--red)') + '">' + fmt(p.cumRaw) + '</td>';
+        h += '<td class="r m" style="font-size:10px;color:' + (p.wkRaw > 0 ? 'var(--y)' : p.wkRaw < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.wkRaw ? fmt(p.wkRaw) : '--') + '</td>';
+        h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + fK(p.moRaw) + '</td>';
+        h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + fK(p.qRaw) + '</td>';
+        h += '<td class="r m" style="font-size:10px;color:' + (p.am > 0 ? 'var(--blu)' : p.am < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.am ? fmt(p.am) : '--') + '</td>';
+        h += '<td class="r m" style="font-size:10px;color:' + (p.rec > 0 ? 'var(--tea)' : p.rec < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.rec ? fmt(p.rec) : '--') + '</td>';
+        h += '<td class="r m" style="font-size:10px;color:' + (p.fd > 0 ? 'var(--y)' : p.fd < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (p.fd ? fmt(p.fd) : '--') + '</td>';
+        h += '<td class="r">' + dl(p.wow) + '</td></tr>';
+      });
+      h += '</tbody></table></div></div>';
+    }
     el.innerHTML = h;
     var s = document.getElementById('lb-s');
     if (s) { s.value = lbQ; s.oninput = function () { lbQ = this.value; var pos = this.selectionStart; rLB(); var s2 = document.getElementById('lb-s'); if (s2) { s2.focus(); try { s2.setSelectionRange(pos, pos); } catch (e) {} } }; }
