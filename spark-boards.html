@@ -8576,7 +8576,7 @@ function SFNameCell({ value, onPick, onText }) {
       }
     }),
     busy && React.createElement('div', { style: { position: 'absolute', right: 6, top: 5, fontSize: 10, color: '#9A9CA8', pointerEvents: 'none' } }, '···'),
-    open && React.createElement('div', { style: menuStyle },
+    open && ReactDOM.createPortal(React.createElement('div', { style: menuStyle },
       res.length === 0 && !busy
         ? React.createElement('div', { style: { padding: '10px 12px', fontSize: 12, color: '#7A7D8C' } }, 'No match in Salesforce')
         : res.map(r => React.createElement('div', {
@@ -8586,7 +8586,7 @@ function SFNameCell({ value, onPick, onText }) {
             onMouseEnter: ev => ev.currentTarget.style.background = '#F7F8FB',
             onMouseLeave: ev => ev.currentTarget.style.background = 'transparent'
           }, React.createElement('div', { style: { fontWeight: 600, color: '#16161D' } }, r.name),
-             React.createElement('div', { style: { fontSize: 11, color: '#7A7D8C', marginTop: 2 } }, (r.start || 'no start date') + '  ·  ' + (r.status || ''))))));
+             React.createElement('div', { style: { fontSize: 11, color: '#7A7D8C', marginTop: 2 } }, (r.start || 'no start date') + '  ·  ' + (r.status || ''))))), document.body));
 }
 function BoardView({
   board,
