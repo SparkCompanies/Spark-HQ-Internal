@@ -7881,7 +7881,21 @@ var worker_default = {
     }
 
     if (url.pathname === "/charge-batch") {
-      const who = await verifyUser(request, env);
+      let who = await verifyUser(request, env);
+            if (!who.ok) {
+        // SparkV7 (Microsoft token) fallback — Spark domains only
+        try {
+          const gtok = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+          if (gtok) {
+            const mR = await fetch("https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName", { headers: { "Authorization": "Bearer " + gtok } });
+            if (mR.ok) {
+              const me = await mR.json();
+              const em = String((me && (me.mail || me.userPrincipalName)) || "").toLowerCase();
+              if (/@(sparkcompanies|sparktalentinc)\.com$/.test(em)) who = { ok: true, email: em, via: "graph" };
+            }
+          }
+        } catch (e) {}
+      }
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
       let weekEnding = (url.searchParams.get("weekEnding") || "").trim();
       const wantDebug = url.searchParams.get("debug") === "1";
