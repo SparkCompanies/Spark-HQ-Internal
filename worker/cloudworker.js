@@ -5880,6 +5880,8 @@ var worker_default = {
       const itemId = String(body.itemId || "").slice(0, 60);
       if (!boardId || !itemId) return json({ error: "boardId and itemId required" }, 400, origin);
       const ALLOWED = ["Active", "Completed", "Pending Start"];
+      const sfwRole = await sbRoleOf(who.email);
+      if (!sbSeesAll(sfwRole)) return json({ error: "read-only", readOnly: true, message: "Placing candidates is limited to admins, super admins, and managers." }, 403, origin);
       try {
         const br = await sbService(env, "GET", "spark_boards?id=eq." + encodeURIComponent(boardId) + "&select=data");
         if (!br.ok || !br.data || !br.data[0]) return json({ error: "board not found" }, 404, origin);
@@ -5988,6 +5990,8 @@ var worker_default = {
       const itemId = String(body.itemId || "").slice(0, 60);
       const dryRun = body.dryRun !== false;
       if (!boardId || !itemId) return json({ error: "boardId and itemId required" }, 400, origin);
+      const sfsRole = await sbRoleOf(who.email);
+      if (!sbSeesAll(sfsRole)) return json({ error: "read-only", readOnly: true, message: "Placing candidates is limited to admins, super admins, and managers." }, 403, origin);
       function sfid(v) {
         let o = ""; const s = String(v || "");
         for (let k = 0; k < s.length; k++) {
