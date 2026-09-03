@@ -982,6 +982,11 @@ function rCL(){
 function rDH(){
   var el=document.getElementById('p-dh');
   var act=D.dh.filter(function(d){return d.st==='active'}),done=D.dh.filter(function(d){return d.st==='done'}),fo=D.dh.filter(function(d){return d.st==='falloff'});
+  // Project Miner: Cupertino + Summit hourly lines live in their own grouping (extend the regex for future project clients)
+  var PM_RE=/cupertino|summit/i;
+  var pm=D.dh.filter(function(d){return d.st!=='falloff'&&PM_RE.test(d.cl||'')});
+  act=act.filter(function(d){return !PM_RE.test(d.cl||'')});
+  done=done.filter(function(d){return !PM_RE.test(d.cl||'')});
   var totP=D.dh.filter(function(d){return d.ch>0}).reduce(function(s,d){return s+d.ch},0);
   var h='<div class="st">Direct Hire Tracker</div>';
   h+='<div class="g g4" style="margin-bottom:16px">';
@@ -1005,6 +1010,7 @@ function rDH(){
   }
   h+=dhTable(act,'Active Placements','var(--blu)');
   h+=dhTable(done,'Completed','var(--grn)');
+  h+=dhTable(pm,'Project Miner','var(--gold)');
   h+=dhTable(fo,'Fall-Offs & Credit Notes','var(--red)');
   el.innerHTML=h;
 }
@@ -1070,7 +1076,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-30';
+  var BUILD = 'b0820-31';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
