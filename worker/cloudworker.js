@@ -7073,6 +7073,10 @@ var worker_default = {
           if (!own.credEdited) { own.sales_rep = "House"; own.recruiter = "House"; }
           // The client is always the client: the placer's internal invoice adopts the
           // hire's actual client name; the entity it billed is retained for reference.
+          // Preserve the raw match identity BEFORE the company rewrite below \u2014 the DH editor's
+          // overrides match on pre-split identities, so without this, edits to the placer slice
+          // (e.g. its BU) save but never re-apply on the next derivation.
+          if (!pd.m_company && !pd.m_employee) { pd.m_entity = pd.entity; pd.m_company = pd.company; pd.m_employee = pd.employee; }
           pd.internal_billed_to = pd.company;
           pd.company = own.company;
           own.pairSplit = true; pd.pairSplit = true;
