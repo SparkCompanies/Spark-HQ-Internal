@@ -6806,7 +6806,7 @@ var worker_default = {
         const ENTSET = { "spark talent": 1, "spark packaging": 1, "john joseph partners": 1, "flex workforce": 1, "ignite search": 1, "spark companies": 1, "bolt creative": 1, "jjp": 1 };
         const burdenFor = (entity, company, employee, title) => {
           const c = String(company || "").toLowerCase(), e = String(employee || "") + " " + String(title || "");
-          if (c.indexOf("cupertino") !== -1) return 0;
+          if (c.indexOf("cupertino") !== -1 || c.indexOf("summit") !== -1) return 0; // Project Miner: hourly invoices carry no burden
           if (entity === "Spark Companies" && /bpo/i.test(e + " " + c)) return 0;
           if (entity === "Bolt Creative" && /content|social|media|creative|marketing/i.test(e + " " + c)) return 0;
           return 0.05;
@@ -6911,43 +6911,51 @@ var worker_default = {
           if (k < 0 || k >= (n - paid)) continue;
           drops.push({ source: "manual", schedId: s.id, entity: s.entity, company: s.company, employee: s.employee, title: "", sales_rep: s.sales_rep || "", recruiter: s.recruiter || "", bu: s.bu || "", invoicing_type: s.interval, invoiced: null, burden: null, amount: r2s(total / n), internal: false, drop: (paid + k + 1) + " of " + n });
         }
-        // \u2500\u2500 Cupertino: hourly-billed direct hires \u2014 auto-ingested from Mary's "Data Center Hours Tracker" \u2500\u2500
-        // One synthesized drop per week: Cupertino-tagged hours (Company col) \u00d7 the tracker's billing rate.
-        // The charge_splits rule then fans it out exactly like the old hand-typed weekly row. Skipped if a
-        // Cupertino drop already exists for the week (manual add / prior data), so it can never double-count.
+        // \u2500\u2500 Project Miner (Cupertino + Summit): hourly-billed direct hires auto-ingested from Mary's tracker \u2500\u2500
+        // One synthesized drop per client per week: Company-tagged hours (Company col) \u00d7 the tracker's billing rate.
+        // charge_splits rules fan each drop out (Mary 10% + production 90%). Per-client guard: skipped when a drop
+        // for that client already exists for the week (manual add / prior data), so it can never double-count.
+        // Adding a future Project Miner client = one entry here + a Company tag in the tracker + a charge_splits rule.
         try {
-          if (!drops.some((d) => String(d.company || "").toLowerCase().indexOf("cupertino") !== -1)) {
+          const PM_TRACKER = [
+            { tag: "cupertino", label: "Cupertino", warnIfZero: true },
+            { tag: "summit", label: "Summit Line Constructions", warnIfZero: false }
+          ];
+          const pmNeed = PM_TRACKER.filter((pc) => !drops.some((d) => String(d.company || "").toLowerCase().indexOf(pc.tag) !== -1));
+          if (pmNeed.length) {
             const CUP = "https://graph.microsoft.com/v1.0/drives/b!2B6OMGQ_qkK-tdHQnfEbIITD6KbeLR5LppbR6C2T9BlKhev4bYIOS6hYGHDH5oBD/items/01QQCIXH7ZHXFZUYC7BZF2JGGDHT722U24";
             const rateR = await fetch(CUP + "/workbook/worksheets('Settings')/range(address='B3')?$select=values", { headers: GH });
             const rateD = await rateR.json();
-            const cupRate = (rateR.ok && Number(rateD.values && rateD.values[0] && rateD.values[0][0])) || 11;
+            const pmRate = (rateR.ok && Number(rateD.values && rateD.values[0] && rateD.values[0][0])) || 11;
             const logR = await fetch(CUP + "/workbook/worksheets('Weekly%20Hours%20Log')/range(address='A2:F400')?$select=values", { headers: GH });
             const logD = await logR.json();
             if (!logR.ok) throw new Error((logD.error && logD.error.message) || "hours log unreadable");
             // Tracker "Week of" is the Monday as an Excel serial; this charge week's Monday = weekEnding - 6 days.
             const monMs = d0.getTime() - 6 * 864e5;
             const monSerial = Math.round((monMs - Date.UTC(1899, 11, 30, 12)) / 864e5);
-            let cupHours = 0, cupRows = 0;
-            for (const row of (logD.values || [])) {
-              if (!row || !String(row[2] || "").trim()) continue;
-              if (Math.round(Number(row[1]) || 0) !== monSerial) continue;
-              if (String(row[5] || "").trim().toLowerCase() !== "cupertino") continue;
-              const hrs = Number(row[3]) || 0;
-              if (hrs) { cupHours += hrs; cupRows++; }
-            }
-            if (cupHours > 0) {
-              drops.push({
-                source: "cupertino-tracker", entity: "Spark Talent", company: "Cupertino",
-                employee: "Data Center hours \u00b7 " + cupRows + " workers \u00b7 " + r2s(cupHours) + " hrs @ $" + cupRate,
-                title: "", sales_rep: "House", recruiter: "House", bu: "",
-                invoicing_type: "weekly hours", invoiced: r2s(cupHours * cupRate), burden: 0,
-                amount: r2s(cupHours * cupRate), internal: false, drop: "1 of 1", remaining: 0
-              });
-            } else {
-              review.push({ company: "Cupertino", candidate: "(hours tracker)", flags: ["dh_tracker_error"], credits: ["Tracker read OK but no Cupertino hours logged for week of " + new Date(monMs).toISOString().slice(0, 10)] });
+            for (const pc of pmNeed) {
+              let pmHours = 0, pmRows = 0;
+              for (const row of (logD.values || [])) {
+                if (!row || !String(row[2] || "").trim()) continue;
+                if (Math.round(Number(row[1]) || 0) !== monSerial) continue;
+                if (String(row[5] || "").trim().toLowerCase() !== pc.tag) continue;
+                const hrs = Number(row[3]) || 0;
+                if (hrs) { pmHours += hrs; pmRows++; }
+              }
+              if (pmHours > 0) {
+                drops.push({
+                  source: pc.tag + "-tracker", entity: "Spark Talent", company: pc.label,
+                  employee: "Data Center hours \u00b7 " + pmRows + " workers \u00b7 " + r2s(pmHours) + " hrs @ $" + pmRate,
+                  title: "", sales_rep: "House", recruiter: "House", bu: "",
+                  invoicing_type: "weekly hours", invoiced: r2s(pmHours * pmRate), burden: 0,
+                  amount: r2s(pmHours * pmRate), internal: false, drop: "1 of 1", remaining: 0
+                });
+              } else if (pc.warnIfZero) {
+                review.push({ company: pc.label, candidate: "(hours tracker)", flags: ["dh_tracker_error"], credits: ["Tracker read OK but no " + pc.label + " hours logged for week of " + new Date(monMs).toISOString().slice(0, 10)] });
+              }
             }
           }
-        } catch (e) { review.push({ company: "Cupertino", candidate: "(hours tracker)", flags: ["dh_tracker_error"], credits: ["Data Center Hours Tracker: " + String(e.message || e).slice(0, 100)] }); }
+        } catch (e) { review.push({ company: "Project Miner", candidate: "(hours tracker)", flags: ["dh_tracker_error"], credits: ["Data Center Hours Tracker: " + String(e.message || e).slice(0, 100)] }); }
         // ── resolve tracker short names to roster full names (charge_people) ──
         try {
           const pplR = await sbService(env, "GET", "charge_people?select=person");
