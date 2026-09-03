@@ -4550,6 +4550,22 @@ var worker_default = {
       } catch (e) {}
       return null;
     };
+    /* sbNameKey: tolerant person-name key for Salesforce matching. Strips accents and punctuation,
+       flips "Last, First", drops middle names and Jr/Sr/II/III/IV, and keys on first + last.
+       A looser key can only make MORE rows collide, and collisions land in the existing dup /
+       sf_ambiguous guard, so this can flag a row as ambiguous but never mis-link it. */
+    const sbNameKey = (raw) => {
+      let s = String(raw == null ? "" : raw);
+      try { s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); } catch (e) {}
+      s = s.toLowerCase();
+      if (s.indexOf(",") !== -1) { const p = s.split(","); s = p.slice(1).join(" ") + " " + p[0]; }
+      s = s.replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+      if (!s) return "";
+      const t = s.split(" ").filter((w) => w && !/^(jr|sr|ii|iii|iv|v)$/.test(w));
+      if (!t.length) return "";
+      if (t.length === 1) return t[0];
+      return t[0] + " " + t[t.length - 1];
+    };
     /* ---- sbAccess: who may see which boards ---- */
     const MEMBER_BOARDS = ["b1"];
     const MANAGER_SEES_ALL = true;
@@ -4561,6 +4577,8 @@ var worker_default = {
       return "member";
     };
     const sbSeesAll = (role) => role === "admin" || role === "superadmin" || (MANAGER_SEES_ALL && role === "manager");
+    /* sbCanEdit: who may WRITE. sbAccess governs visibility only; members are view-only. */
+    const sbCanEdit = (role) => sbSeesAll(role);
     const sbAccess = (board, email, role) => {
       if (board.visibility === "private") {
         /* an explicit share always wins, whatever the role */
@@ -4570,6 +4588,93 @@ var worker_default = {
       if (!sbSeesAll(role) && MEMBER_BOARDS.indexOf(String(board.id)) === -1) return false;
       return true;
     };
+    /* ---- /hq-celebrations: today's + upcoming birthdays and hire anniversaries for the HQ homepage.
+       Readable by any signed-in employee. Computes server-side in Detroit time and returns names,
+       event type, and years ONLY - raw birthdates and hire dates never leave the worker. ---- */
+    if (url.pathname === "/hq-celebrations") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const hcToday = (function () {
+          const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/Detroit", year: "numeric", month: "2-digit", day: "2-digit" });
+          const p = {}; f.formatToParts(new Date()).forEach((x) => { if (x.type !== "literal") p[x.type] = parseInt(x.value, 10); });
+          return { y: p.year, m: p.month, d: p.day };
+        })();
+        const hcLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+        const hcAdd = (t, n) => { const dt = new Date(Date.UTC(t.y, t.m - 1, t.d + n)); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() }; };
+        const hcParse = (v) => {
+          if (!v) return null;
+          if (typeof v === "object" && v.date) v = v.date;
+          const s = String(v).trim();
+          const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (m) return { y: +m[1], m: +m[2], d: +m[3] };
+          const dt = new Date(s);
+          if (!isNaN(dt)) return { y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() };
+          return null;
+        };
+        const hcObs = (md, year) => (md.m === 2 && md.d === 29 && !hcLeap(year)) ? { m: 2, d: 28 } : { m: md.m, d: md.d };
+        const hcName = (raw) => {
+          const s = String(raw || "").replace(/\s+/g, " ").trim();
+          if (!s) return { first: "", display: "" };
+          const tc = (w) => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w;
+          const tcAll = (str) => str.split(" ").map(tc).join(" ");
+          if (s.indexOf(",") !== -1) {
+            const parts = s.split(",").map((x) => x.trim());
+            const first = tc((parts[1] || "").split(" ")[0] || "");
+            return { first, display: (first + " " + tcAll(parts[0])).trim() };
+          }
+          const toks = s.split(" ");
+          const shouting = s === s.toUpperCase() && /[A-Z]/.test(s);
+          return { first: shouting ? tc(toks[0]) : toks[0], display: shouting ? tcAll(s) : s };
+        };
+        const hcCol = (board, re) => (board.columns || []).find((c) => c && re.test(String(c.label || c.name || c.key || "")));
+        const lst = await sbService(env, "GET", "spark_boards?select=id,name");
+        if (!lst.ok) return json({ error: "boards unreadable" }, 502, origin);
+        const hit = (lst.data || []).find((b) => /birthday/i.test(String(b.name || "")));
+        if (!hit) return json({ ok: true, today: [], upcoming: [], note: "no birthday board found" }, 200, origin);
+        const br = await sbService(env, "GET", "spark_boards?select=data&id=eq." + encodeURIComponent(hit.id) + "&limit=1");
+        if (!br.ok || !br.data || !br.data[0] || !br.data[0].data) return json({ error: "board unreadable" }, 502, origin);
+        const board = br.data[0].data;
+        const cBirth = hcCol(board, /birth.?date|\bdob\b/i);
+        const cHire = hcCol(board, /hire.?date|start.?date/i);
+        const cCo = hcCol(board, /company/i);
+        const coOf = (it) => {
+          if (!cCo) return "";
+          const v = it[cCo.key];
+          if (v == null) return "";
+          if (cCo.type === "status" && cCo.options && cCo.options[v]) return cCo.options[v].label || "";
+          return String(v);
+        };
+        const out = { today: [], upcoming: [] };
+        const HORIZON = 7;
+        (board.groups || []).forEach((g) => (g.items || []).forEach((it) => {
+          if (!it || it.deletedAt || it.archivedAt) return;
+          const np = hcName(it.name);
+          if (!np.first) return;
+          const b = cBirth ? hcParse(it[cBirth.key]) : null;
+          const h = cHire ? hcParse(it[cHire.key]) : null;
+          for (let n = 0; n <= HORIZON; n++) {
+            const day = hcAdd(hcToday, n);
+            const bucket = n === 0 ? "today" : "upcoming";
+            const push = (type, years) => {
+              const e = { name: np.display, first: np.first, company: coOf(it), type: type };
+              if (type === "anniversary") e.years = years;
+              if (bucket === "upcoming") { e.date = day.y + "-" + String(day.m).padStart(2, "0") + "-" + String(day.d).padStart(2, "0"); e.inDays = n; }
+              out[bucket].push(e);
+            };
+            if (b) { const md = hcObs(b, day.y); if (md.m === day.m && md.d === day.d) push("birthday", null); }
+            if (h) { const md = hcObs(h, day.y); if (md.m === day.m && md.d === day.d) { const yrs = day.y - h.y; if (yrs >= 1) push("anniversary", yrs); } }
+          }
+        }));
+        out.upcoming.sort((a, b) => a.inDays - b.inDays || a.name.localeCompare(b.name));
+        const asOf = hcToday.y + "-" + String(hcToday.m).padStart(2, "0") + "-" + String(hcToday.d).padStart(2, "0");
+        return new Response(JSON.stringify({ ok: true, asOf: asOf, board: hit.name, today: out.today, upcoming: out.upcoming }), {
+          status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "private, max-age=300", ...corsHeaders(origin) }
+        });
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/boards-rev") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -4656,8 +4761,9 @@ var worker_default = {
         if (b && b.__rev) delete b.__rev;
         const cur = await sbService(env, "GET", "spark_boards?select=updated_at,updated_by,data,visibility,owner,members&id=eq." + encodeURIComponent(row.id) + "&limit=1");
         const prev = cur.ok && cur.data && cur.data[0] ? cur.data[0] : null;
+        const srole = await sbRoleOf(who.email);
+        if (!sbCanEdit(srole)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
         if (prev) {
-          const srole = await sbRoleOf(who.email);
           if (!sbAccess({ id: row.id, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, srole)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -4701,6 +4807,7 @@ var worker_default = {
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
         {
           const prole2 = await sbRoleOf(who.email);
+          if (!sbCanEdit(prole2)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
           if (!sbAccess({ id: pid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, prole2)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -4784,6 +4891,7 @@ var worker_default = {
         if (!prev || !prev.data) return json({ error: "board not found" }, 404, origin);
         {
           const orole = typeof sbRoleOf === "function" ? await sbRoleOf(who.email) : "member";
+          if (!sbCanEdit(orole)) return json({ error: "read-only", readOnly: true, message: "Your Spark Boards access is view-only." }, 403, origin);
           if (typeof sbAccess === "function" && !sbAccess({ id: oid, visibility: prev.visibility, owner: prev.owner, members: prev.members }, who.email, orole)) {
             return json({ error: "You do not have access to this board." }, 403, origin);
           }
@@ -5323,7 +5431,7 @@ var worker_default = {
         (bd6.groups || []).forEach((g) => (g.items || []).forEach((x) => {
           if (!x) return;
           if (x.sfId) haveId[String(x.sfId).slice(0, 15)] = true;
-          if (x.name) haveName[String(x.name).toLowerCase().replace(/\s+/g, " ").trim()] = true;
+          if (x.name) haveName[sbNameKey(x.name)] = true;
         }));
         const soql6 = "SELECT Id, Name, Status__c, bpats__Start_Date__c, bpats__ATS_Candidate__c, bpats__ATS_Candidate__r.Name, bpats__Account__r.Name, bpats__ATS_Job__c, bpats__ATS_Job__r.Name FROM bpats__Placement__c WHERE (bpats__Start_Date__c = LAST_N_DAYS:14 OR bpats__Start_Date__c = NEXT_N_DAYS:90) AND Terminated_Date__c = null ORDER BY bpats__Start_Date__c ASC";
         const sf6 = await runSalesforceQueryAll(env, soql6);
@@ -5335,7 +5443,7 @@ var worker_default = {
           if (!nm) return;
           if (r.Status__c && DEAD6.test(String(r.Status__c))) return;
           if (haveId[String(r.Id).slice(0, 15)]) return;
-          if (haveName[nm.toLowerCase().replace(/\s+/g, " ").trim()]) return;
+          if (haveName[sbNameKey(nm)]) return;
           found.push({
             sfId: r.Id,
             name: nm,
@@ -5573,17 +5681,22 @@ var worker_default = {
         const sf = await runSalesforceQueryAll(env, soql);
         if (!sf.ok) return json({ error: sf.error }, 502, origin);
         const byName = {};
+        const byId = {};
         (sf.records || []).forEach((r) => {
           const cand = r.bpats__ATS_Candidate__r && r.bpats__ATS_Candidate__r.Name ? r.bpats__ATS_Candidate__r.Name : "";
-          const n = String(cand).toLowerCase().replace(/\s+/g, " ").trim();
+          const n = sbNameKey(cand);
+          const rec = { sfId: r.Id, status: r.Status__c || "", start: r.bpats__Start_Date__c || "", client: r.bpats__Account__r && r.bpats__Account__r.Name || "", job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "", candId: r.bpats__ATS_Candidate__c || "", jobId: r.bpats__ATS_Job__c || "", dup: false };
+          /* an Id is unique, so the byId copy is never marked dup */
+          byId[String(r.Id).slice(0, 15)] = Object.assign({}, rec);
           if (!n) return;
-          if (!byName[n]) byName[n] = { sfId: r.Id, status: r.Status__c || "", start: r.bpats__Start_Date__c || "", client: r.bpats__Account__r && r.bpats__Account__r.Name || "", job: r.bpats__ATS_Job__r && r.bpats__ATS_Job__r.Name || "", candId: r.bpats__ATS_Candidate__c || "", jobId: r.bpats__ATS_Job__c || "", dup: false };
+          if (!byName[n]) byName[n] = rec;
           else byName[n].dup = true;
         });
         let matched = 0;
         (board.groups || []).forEach((g) => (g.items || []).forEach((it) => {
-          const key = String(it.name || "").toLowerCase().replace(/\s+/g, " ").trim();
-          const hit = byName[key];
+          const key = sbNameKey(it.name);
+          /* a row that has ever been linked matches by Id first, so it never falls out on a spelling change */
+          const hit = (it.sfId && byId[String(it.sfId).slice(0, 15)]) || byName[key];
           if (hit) {
             it[sfColumn] = 1;
             if (!it.sfId && !hit.dup) it.sfId = hit.sfId;
