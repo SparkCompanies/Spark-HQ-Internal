@@ -6807,6 +6807,7 @@ var worker_default = {
         const burdenFor = (entity, company, employee, title) => {
           const c = String(company || "").toLowerCase(), e = String(employee || "") + " " + String(title || "");
           if (c.indexOf("cupertino") !== -1 || c.indexOf("summit") !== -1) return 0; // Project Miner: hourly invoices carry no burden
+          if (c.indexOf("comau") !== -1) return 0; // Comau RPO services: direct-hire invoices post at the full amount, no burden
           if (entity === "Spark Companies" && /bpo/i.test(e + " " + c)) return 0;
           if (entity === "Bolt Creative" && /content|social|media|creative|marketing/i.test(e + " " + c)) return 0;
           return 0.05;
