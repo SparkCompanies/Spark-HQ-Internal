@@ -280,6 +280,20 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
 .cb-row.was{opacity:.4}
 .cb-ico{flex:0 0 auto;width:16px;height:16px}
 .cb-none{font-size:12px;color:#b6b0a4;padding:1px 0 3px}
+/* falling balloons, birthdays column only. Purely decorative: sits behind the text,
+   ignores pointer events, and holds still for anyone who asks for reduced motion. */
+.cb-col{position:relative;overflow:hidden}
+.cb-col>.cb-ct,.cb-col>.cb-row,.cb-col>.cb-none{position:relative;z-index:1}
+.cb-blns{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.cb-bln{position:absolute;top:-42px;width:20px;height:34px;opacity:0;animation:cbFall linear infinite}
+@keyframes cbFall{
+  0%{transform:translate3d(0,-45px,0) rotate(-8deg);opacity:0}
+  12%{opacity:.5}
+  50%{transform:translate3d(9px,50%,0) rotate(7deg)}
+  88%{opacity:.5}
+  100%{transform:translate3d(-6px,var(--cbEnd,340px),0) rotate(-6deg);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){.cb-bln{animation:none;opacity:.22;top:8px}}
 </style>
 </head>
 <body>
@@ -1302,6 +1316,42 @@ function nextClassLine(){
     r.appendChild(el('div',null,'<span class="n">'+esc(e.name)+'</span>'+m));
     return r;
   }
+  /* one balloon: body + knot + string, in a soft party palette */
+  function balloon(i){
+    var COL=['#F5C518','#F0908A','#7FB7E8','#9BD4A4','#C9A7E8','#F3B96B'];
+    var c=COL[i%COL.length];
+    var s=document.createElementNS(NS,'svg');
+    s.setAttribute('viewBox','0 0 20 34'); s.setAttribute('class','cb-bln');
+    s.setAttribute('aria-hidden','true');
+    var b=document.createElementNS(NS,'ellipse');
+    b.setAttribute('cx','10'); b.setAttribute('cy','11'); b.setAttribute('rx','7.4'); b.setAttribute('ry','9.2');
+    b.setAttribute('fill',c);
+    var g=document.createElementNS(NS,'ellipse');
+    g.setAttribute('cx','7.4'); g.setAttribute('cy','7.6'); g.setAttribute('rx','2'); g.setAttribute('ry','3');
+    g.setAttribute('fill','#fff'); g.setAttribute('opacity','.45');
+    var k=document.createElementNS(NS,'path');
+    k.setAttribute('d','M10 20.2l-1.5 2h3z'); k.setAttribute('fill',c);
+    var t=document.createElementNS(NS,'path');
+    t.setAttribute('d','M10 22.2c2 3 -2 5 0 8'); t.setAttribute('fill','none');
+    t.setAttribute('stroke',c); t.setAttribute('stroke-width','.9'); t.setAttribute('opacity','.55');
+    s.appendChild(b); s.appendChild(g); s.appendChild(k); s.appendChild(t);
+    return s;
+  }
+  function balloonLayer(count){
+    var lay=el('div','cb-blns');
+    /* deterministic spread: no RNG, so the layout never jitters between renders */
+    var lefts=[6,22,38,54,70,86,14,46,78,30];
+    var durs=[13,16,11,18,14,17,12,15,19,16];
+    for(var i=0;i<count;i++){
+      var b=balloon(i);
+      b.style.left=lefts[i%lefts.length]+'%';
+      b.style.animationDuration=durs[i%durs.length]+'s';
+      b.style.animationDelay=(-i*2.3).toFixed(1)+'s';
+      b.style.setProperty('--cbEnd',(300+(i%4)*60)+'px');
+      lay.appendChild(b);
+    }
+    return lay;
+  }
   function build(j){
     var card=el('div','cb-card');
     var h=el('div','cb-head');
@@ -1326,6 +1376,8 @@ function nextClassLine(){
     [['b',(j.monthBirthdays||[]),(j.monthName||'This month')+' birthdays'],
      ['a',(j.monthAnniversaries||[]),(j.monthName||'This month')+' anniversaries']].forEach(function(spec){
       var c=el('div','cb-col');
+      /* balloons drift down behind the birthdays list only, and only when there are birthdays */
+      if(spec[0]==='b'&&spec[1].length) c.appendChild(balloonLayer(Math.min(6,Math.max(3,spec[1].length+1))));
       c.appendChild(el('div','cb-ct',spec[2]));
       if(spec[1].length) spec[1].forEach(function(e){c.appendChild(row(e,spec[0]));});
       else c.appendChild(el('div','cb-none','None this month'));
