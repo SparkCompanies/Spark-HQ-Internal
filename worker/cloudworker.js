@@ -4645,14 +4645,26 @@ var worker_default = {
           if (cCo.type === "status" && cCo.options && cCo.options[v]) return cCo.options[v].label || "";
           return String(v);
         };
-        const out = { today: [], upcoming: [] };
-        const HORIZON = 7;
+        const out = { today: [], upcoming: [], monthBirthdays: [], monthAnniversaries: [] };
+        const HORIZON = 14;
+        const MON_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
         (board.groups || []).forEach((g) => (g.items || []).forEach((it) => {
           if (!it || it.deletedAt || it.archivedAt) return;
           const np = hcName(it.name);
           if (!np.first) return;
           const b = cBirth ? hcParse(it[cBirth.key]) : null;
           const h = cHire ? hcParse(it[cHire.key]) : null;
+          /* whole-month roll-ups: every birthday and work anniversary falling in the current
+             calendar month, regardless of whether it has already passed this month. */
+          if (b) {
+            const md = hcObs(b, hcToday.y);
+            if (md.m === hcToday.m) out.monthBirthdays.push({ name: np.display, first: np.first, company: coOf(it), day: md.d, past: md.d < hcToday.d, today: md.d === hcToday.d });
+          }
+          if (h) {
+            const md = hcObs(h, hcToday.y);
+            const yrs = hcToday.y - h.y;
+            if (md.m === hcToday.m && yrs >= 1) out.monthAnniversaries.push({ name: np.display, first: np.first, company: coOf(it), day: md.d, years: yrs, past: md.d < hcToday.d, today: md.d === hcToday.d });
+          }
           for (let n = 0; n <= HORIZON; n++) {
             const day = hcAdd(hcToday, n);
             const bucket = n === 0 ? "today" : "upcoming";
@@ -4667,8 +4679,11 @@ var worker_default = {
           }
         }));
         out.upcoming.sort((a, b) => a.inDays - b.inDays || a.name.localeCompare(b.name));
+        out.monthBirthdays.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
+        out.monthAnniversaries.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
+        out.monthName = MON_NAMES[hcToday.m - 1];
         const asOf = hcToday.y + "-" + String(hcToday.m).padStart(2, "0") + "-" + String(hcToday.d).padStart(2, "0");
-        return new Response(JSON.stringify({ ok: true, asOf: asOf, board: hit.name, today: out.today, upcoming: out.upcoming }), {
+        return new Response(JSON.stringify({ ok: true, asOf: asOf, board: hit.name, monthName: out.monthName, today: out.today, upcoming: out.upcoming, monthBirthdays: out.monthBirthdays, monthAnniversaries: out.monthAnniversaries }), {
           status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "private, max-age=300", ...corsHeaders(origin) }
         });
       } catch (e) {
