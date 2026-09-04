@@ -11,3 +11,4 @@ index.backup-*.html
 *.bak
 *.bak-*
 index.html.*.bak
+site/
