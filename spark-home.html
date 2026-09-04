@@ -259,9 +259,21 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
 .celebs{margin:0 0 18px}
 .celebs:empty{display:none}
 .cb-card{background:linear-gradient(180deg,#fffdf7,#fff);border:1px solid rgba(23,22,20,.09);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(23,22,20,.05)}
-.cb-head{display:flex;align-items:baseline;gap:10px;padding:15px 20px 12px;border-bottom:1px solid rgba(184,145,46,.16)}
-.cb-eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#B8912E}
-.cb-sub{font-size:11.5px;color:#9a948a;margin-left:auto}
+.cb-head{position:relative;display:flex;align-items:center;gap:13px;padding:16px 20px 15px;overflow:hidden;
+  background:radial-gradient(120% 180% at 0% 0%,rgba(245,197,24,.16),rgba(245,197,24,.03) 46%,transparent 70%)}
+.cb-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:linear-gradient(90deg,rgba(184,145,46,.55),rgba(184,145,46,.16) 42%,transparent)}
+/* icon badge */
+.cb-badge{position:relative;flex:0 0 auto;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,#F5C518,#DFA512);box-shadow:0 3px 10px rgba(184,145,46,.38),inset 0 1px 0 rgba(255,255,255,.5)}
+.cb-badge svg{width:19px;height:19px;display:block}
+.cb-badge::after{content:"";position:absolute;inset:-4px;border-radius:15px;border:1px solid rgba(245,197,24,.35);opacity:.9}
+/* title stack */
+.cb-hstack{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.cb-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#B8912E;opacity:.95}
+.cb-title{font-size:19px;font-weight:700;letter-spacing:-.015em;color:#171614;margin-top:1px}
+.cb-sub{margin-left:auto;flex:0 0 auto;display:flex;align-items:center;gap:8px}
+@media(max-width:520px){.cb-title{font-size:17px}.cb-sub{display:none}}
 .cb-today{display:flex;flex-wrap:wrap;gap:18px;padding:14px 20px;background:linear-gradient(90deg,rgba(245,197,24,.13),rgba(245,197,24,0))}
 .cb-hero{display:flex;align-items:center;gap:11px;font-size:15px;line-height:1.25}
 .cb-hero b{font-weight:800;color:#171614}
@@ -1418,7 +1430,20 @@ function nextClassLine(){
   function build(j){
     var card=el('div','cb-card');
     var h=el('div','cb-head');
-    h.appendChild(el('div','cb-eyebrow','Celebrations'));
+    /* gold badge holding a bolt-in-a-spark mark */
+    var badge=el('div','cb-badge');
+    var bsvg=document.createElementNS(NS,'svg');
+    bsvg.setAttribute('viewBox','0 0 24 24'); bsvg.setAttribute('aria-hidden','true');
+    var bp=document.createElementNS(NS,'path');
+    bp.setAttribute('d','M13.6 2 5.4 13.6h4.9L8.9 22l8.4-11.9h-5z');
+    bp.setAttribute('fill','#2a2205');
+    bsvg.appendChild(bp);
+    badge.appendChild(bsvg);
+    h.appendChild(badge);
+    var stack=el('div','cb-hstack');
+    stack.appendChild(el('div','cb-eyebrow','This month at Spark'));
+    stack.appendChild(el('div','cb-title','Celebrations'));
+    h.appendChild(stack);
     var n=(j.monthBirthdays||[]).length+(j.monthAnniversaries||[]).length;
     var pill=el('div','cb-sub');
     pill.appendChild(el('span','cb-count',(j.monthName||'')+' &middot; '+n));
