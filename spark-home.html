@@ -294,6 +294,18 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
   100%{transform:translate3d(-6px,var(--cbEnd,340px),0) rotate(-6deg);opacity:0}
 }
 @media(prefers-reduced-motion:reduce){.cb-bln{animation:none;opacity:.22;top:8px}}
+/* raining lightning bolts, anniversaries column only. Same rules as the balloons:
+   behind the text, no pointer events, fixed timings, still for reduced motion. */
+.cb-bolt{position:absolute;top:-34px;width:13px;height:26px;opacity:0;animation:cbRain linear infinite}
+@keyframes cbRain{
+  0%{transform:translate3d(0,-36px,0) rotate(-10deg);opacity:0}
+  10%{opacity:.55}
+  45%{opacity:.28}
+  60%{opacity:.6}
+  90%{opacity:.4}
+  100%{transform:translate3d(-5px,var(--cbEnd,340px),0) rotate(8deg);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){.cb-bolt{animation:none;opacity:.24;top:8px}}
 </style>
 </head>
 <body>
@@ -342,7 +354,8 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
         <div class="qab"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More Apps</div>
       </div>
     </section>
-    <section class="kpis"><!-- HOME_DEFAKE_v1 -->
+    <!-- KPIS_HIDDEN_v1 — KPI strip parked. Remove style="display:none" below to bring it back. -->
+    <section class="kpis" style="display:none"><!-- HOME_DEFAKE_v1 -->
       <div class="kpi"><div class="kv"><span class="big" id="kpiHc" data-live="sf">&mdash;</span></div><div class="kl">ON PAYROLL &middot; THIS WEEK</div></div>
       <div class="kpi"><div class="kv"><span class="big" id="kpiPipe" data-live="sf">&mdash;</span></div><div class="kl">OPEN PIPELINE</div></div>
       <div class="kpi"><div class="kv"><span class="big" id="kpiHrs" data-live="sf">&mdash;</span></div><div class="kl">HOURS LOGGED &middot; THIS WEEK</div></div>
@@ -1352,6 +1365,37 @@ function nextClassLine(){
     }
     return lay;
   }
+  /* one bolt, in Spark gold with a lighter core so it reads at low opacity */
+  function bolt(i){
+    var COL=['#F5C518','#D4A017','#FFC800','#E8B33A'];
+    var c=COL[i%COL.length];
+    var s=document.createElementNS(NS,'svg');
+    s.setAttribute('viewBox','0 0 13 26'); s.setAttribute('class','cb-bolt');
+    s.setAttribute('aria-hidden','true');
+    var p=document.createElementNS(NS,'path');
+    p.setAttribute('d','M8.2 0 1 14.4h4.2L4.4 26 12 10.6H7.6z');
+    p.setAttribute('fill',c);
+    var hi=document.createElementNS(NS,'path');
+    hi.setAttribute('d','M7.6 3.2 3.6 12.2h2.2z');
+    hi.setAttribute('fill','#fff'); hi.setAttribute('opacity','.42');
+    s.appendChild(p); s.appendChild(hi);
+    return s;
+  }
+  function boltLayer(count){
+    var lay=el('div','cb-blns');
+    /* offset from the balloon lanes so the two columns do not look copy-pasted */
+    var lefts=[12,30,48,66,84,20,58,76,38,90];
+    var durs=[9,12,8,13,10,11,14,9,12,10];
+    for(var i=0;i<count;i++){
+      var b=bolt(i);
+      b.style.left=lefts[i%lefts.length]+'%';
+      b.style.animationDuration=durs[i%durs.length]+'s';
+      b.style.animationDelay=(-i*1.7).toFixed(1)+'s';
+      b.style.setProperty('--cbEnd',(300+(i%4)*60)+'px');
+      lay.appendChild(b);
+    }
+    return lay;
+  }
   function build(j){
     var card=el('div','cb-card');
     var h=el('div','cb-head');
@@ -1378,6 +1422,7 @@ function nextClassLine(){
       var c=el('div','cb-col');
       /* balloons drift down behind the birthdays list only, and only when there are birthdays */
       if(spec[0]==='b'&&spec[1].length) c.appendChild(balloonLayer(Math.min(6,Math.max(3,spec[1].length+1))));
+      if(spec[0]==='a'&&spec[1].length) c.appendChild(boltLayer(Math.min(7,Math.max(4,spec[1].length+2))));
       c.appendChild(el('div','cb-ct',spec[2]));
       if(spec[1].length) spec[1].forEach(function(e){c.appendChild(row(e,spec[0]));});
       else c.appendChild(el('div','cb-none','None this month'));
