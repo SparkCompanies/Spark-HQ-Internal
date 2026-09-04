@@ -272,8 +272,11 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
 .cb-hstack{display:flex;flex-direction:column;min-width:0;line-height:1.15}
 .cb-eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#B8912E;opacity:.95}
 .cb-title{font-size:19px;font-weight:700;letter-spacing:-.015em;color:#171614;margin-top:1px}
-.cb-sub{margin-left:auto;flex:0 0 auto;display:flex;align-items:center;gap:8px}
-@media(max-width:520px){.cb-title{font-size:17px}.cb-sub{display:none}}
+.cb-sub{margin-left:auto;flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.cb-month{font-size:23px;font-weight:800;letter-spacing:-.02em;color:#B8912E;
+  background:linear-gradient(180deg,#D9A916,#B8912E);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cb-tally{margin-top:3px;font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#9a948a}
+@media(max-width:520px){.cb-title{font-size:17px}.cb-month{font-size:19px}.cb-tally{letter-spacing:.08em}}
 .cb-today{display:flex;flex-wrap:wrap;gap:18px;padding:14px 20px;background:linear-gradient(90deg,rgba(245,197,24,.13),rgba(245,197,24,0))}
 .cb-hero{display:flex;align-items:center;gap:11px;font-size:15px;line-height:1.25}
 .cb-hero b{font-weight:800;color:#171614}
@@ -1445,9 +1448,12 @@ function nextClassLine(){
     stack.appendChild(el('div','cb-title','Celebrations'));
     h.appendChild(stack);
     var n=(j.monthBirthdays||[]).length+(j.monthAnniversaries||[]).length;
-    var pill=el('div','cb-sub');
-    pill.appendChild(el('span','cb-count',(j.monthName||'')+' &middot; '+n));
-    h.appendChild(pill);
+    /* the month reads as the headline; the tally always carries a word, because
+       "September · 7" was being read as the 7th of September rather than 7 people. */
+    var side=el('div','cb-sub');
+    side.appendChild(el('div','cb-month',esc(j.monthName||'')));
+    side.appendChild(el('div','cb-tally',n+(n===1?' to celebrate':' to celebrate')));
+    h.appendChild(side);
     card.appendChild(h);
     var t=(j.today||[]);
     if(t.length){
