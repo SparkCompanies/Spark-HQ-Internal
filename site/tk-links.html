@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TimeKeep · Salesforce Links</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0A0B; --surface:#131316; --raised:#1A1A1E; --line:#242429;
+  --gold:#FFC800; --gold-dim:rgba(255,200,0,.10); --gold-line:rgba(255,200,0,.28);
+  --t1:#F4F4F5; --t2:#A1A1AA; --t3:#71717A; --t4:#52525B;
+  --ok:#4ADE80; --warn:#FB923C; --err:#F87171;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t1);font-family:Jost,system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+h1{font-size:26px;font-weight:600;letter-spacing:-.02em}
+h1 span{color:var(--gold)}
+.sub{font-size:14px;color:var(--t3);margin-top:2px}
+.who{font-size:13px;color:var(--t4);font-family:var(--mono)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat .n{font-size:26px;font-weight:600;font-family:var(--mono);line-height:1.1}
+.stat .l{font-size:12px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+.stat.gold .n{color:var(--gold)}
+.stat.warn .n{color:var(--warn)}
+
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:none;border:0;color:var(--t2);font-family:inherit;font-size:14px;padding:8px 15px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--gold-dim);color:var(--gold);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.find{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--line);color:var(--t1);
+  font-family:inherit;font-size:14px;padding:9px 13px;border-radius:8px;outline:none}
+.find:focus{border-color:var(--gold-line)}
+
+.rows{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.row{display:grid;grid-template-columns:1fr 1.25fr auto;gap:14px;align-items:center;
+  padding:12px 16px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row.open{background:var(--raised)}
+.nm{font-weight:500}
+.meta{font-size:12px;color:var(--t4);font-family:var(--mono);margin-top:2px}
+
+.link{display:flex;align-items:center;gap:9px;min-width:0}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.dot.on{background:var(--gold)} .dot.off{background:var(--t4)} .dot.stale{background:var(--warn)}
+.ltext{min-width:0}
+.ljob{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lid{font-size:11px;color:var(--t4);font-family:var(--mono)}
+.none{font-size:14px;color:var(--t4)}
+
+button.act{background:var(--raised);border:1px solid var(--line);color:var(--t2);font-family:inherit;
+  font-size:13px;font-weight:500;padding:6px 13px;border-radius:7px;cursor:pointer;white-space:nowrap}
+button.act:hover{border-color:var(--gold-line);color:var(--gold)}
+button.act:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button.act.on{background:var(--gold);border-color:var(--gold);color:#000;font-weight:600}
+
+.panel{grid-column:1/-1;padding-top:12px;margin-top:4px;border-top:1px dashed var(--line)}
+.panel input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--t1);
+  font-family:inherit;font-size:14px;padding:9px 12px;border-radius:7px;outline:none}
+.panel input:focus{border-color:var(--gold-line)}
+.hits{margin-top:8px;display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto}
+.hit{display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:left;width:100%;
+  background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 12px;cursor:pointer;
+  color:var(--t1);font-family:inherit;font-size:14px}
+.hit:hover{border-color:var(--gold-line)}
+.hit:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.hit small{color:var(--t4);font-family:var(--mono);font-size:11px}
+.hit .tag{font-size:11px;font-family:var(--mono);padding:2px 7px;border-radius:5px;white-space:nowrap}
+.tag.taken{background:rgba(248,113,113,.12);color:var(--err)}
+.tag.notime{background:rgba(251,146,60,.12);color:var(--warn)}
+.note{font-size:13px;color:var(--t3);margin-top:8px}
+.note.bad{color:var(--err)}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--raised);
+  border:1px solid var(--gold-line);color:var(--t1);padding:11px 20px;border-radius:9px;font-size:14px;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);z-index:50}
+.toast.bad{border-color:rgba(248,113,113,.5)}
+.gate{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:34px;text-align:center}
+.gate h2{font-size:19px;font-weight:600;margin-bottom:8px}
+.gate p{color:var(--t3);font-size:14px}
+.gate a{color:var(--gold)}
+@media(max-width:720px){.row{grid-template-columns:1fr}.link{padding-left:0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>TimeKeep <span>·</span> Salesforce Links</h1>
+      <div class="sub">Connect each TimeKeep employee to their Salesforce placement.</div>
+    </div>
+    <div class="who" id="who"></div>
+  </header>
+  <div id="app"></div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   CONFIG
+   Copy SUPABASE_ANON from spark-boards.html (line ~484) — it is
+   the same key every Spark HQ page uses.
+   ───────────────────────────────────────────────────────────── */
+const CONFIG = {
+  SUPABASE_URL: "https://rdyzvohphrmkkowdsoam.supabase.co",
+  SUPABASE_ANON: "sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5",
+  WORKER_URL: "https://spark-hq-worker.sparkcompanies.workers.dev"
+};
+
+const SESSION_KEY = "spark_hq_sb_auth";
+const $ = (s, r) => (r || document).querySelector(s);
+
+/* ── session ───────────────────────────────────────────────── */
+function readSession(){
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "{}"); }
+  catch(e){ return {}; }
+}
+function pluck(o, field){
+  if(!o) return null;
+  return o[field] || (o.currentSession && o.currentSession[field]) || (o.session && o.session[field]) || null;
+}
+const token   = () => pluck(readSession(), "access_token");
+const refresh = () => pluck(readSession(), "refresh_token");
+
+function writeToken(next){
+  const raw = readSession();
+  if(raw.currentSession) Object.assign(raw.currentSession, next);
+  else if(raw.session)   Object.assign(raw.session, next);
+  else                   Object.assign(raw, next);
+  localStorage.setItem(SESSION_KEY, JSON.stringify(raw));
+}
+
+function emailFromToken(){
+  const t = token(); if(!t) return "";
+  try {
+    const p = t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+    return JSON.parse(atob(p + "=".repeat((4 - p.length % 4) % 4))).email || "";
+  } catch(e){ return ""; }
+}
+
+/* HQ's session expires while tabs sit open, so every call refreshes once on 401. */
+async function renew(){
+  const rt = refresh(); if(!rt) return null;
+  try {
+    const r = await fetch(CONFIG.SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", apikey: CONFIG.SUPABASE_ANON },
+      body: JSON.stringify({ refresh_token: rt })
+    });
+    if(!r.ok) return null;
+    const j = await r.json();
+    if(!j.access_token) return null;
+    writeToken({ access_token:j.access_token, refresh_token:j.refresh_token || rt, expires_at:j.expires_at });
+    return j.access_token;
+  } catch(e){ return null; }
+}
+
+async function call(url, opts, supabase){
+  opts = opts || {};
+  const send = t => fetch(url, Object.assign({}, opts, {
+    headers: Object.assign({}, opts.headers || {},
+      { Authorization: "Bearer " + t },
+      supabase ? { apikey: CONFIG.SUPABASE_ANON } : {})
+  }));
+  let t = token();
+  if(!t) throw new Error("no-session");
+  let r = await send(t);
+  if(r.status === 401){
+    const nt = await renew();
+    if(!nt) throw new Error("no-session");
+    r = await send(nt);
+  }
+  return r;
+}
+
+const rest = (path, opts) => call(CONFIG.SUPABASE_URL + "/rest/v1/" + path, opts, true);
+const worker = path => call(CONFIG.WORKER_URL + path, {}, false);
+
+/* ── state ─────────────────────────────────────────────────── */
+let EMPS = [], ROSTER = new Map(), CLAIMED = new Map();
+let filter = "all", find = "", openId = null, hits = [], hitState = "";
+let searchSeq = 0;
+
+/* ── load ──────────────────────────────────────────────────── */
+async function load(){
+  const cols = "id,badge,fn,ln,dept,shift,status,sf_placement_id,sf_candidate_id,sf_link_method,sf_linked_at,sf_linked_by";
+  const [eRes, rRes] = await Promise.all([
+    rest("tk_employees?select=" + cols + "&status=eq.active&order=ln.asc,fn.asc"),
+    worker("/tk-active-roster").catch(() => null)
+  ]);
+  if(!eRes.ok) throw new Error("Could not load employees (" + eRes.status + ")");
+  EMPS = await eRes.json();
+
+  ROSTER = new Map();
+  if(rRes && rRes.ok){
+    const d = await rRes.json();
+    (d.roster || []).forEach(p => ROSTER.set(p.placementId, p));
+  }
+  CLAIMED = new Map();
+  EMPS.forEach(e => { if(e.sf_placement_id) CLAIMED.set(e.sf_placement_id, e); });
+}
+
+/* ── render ────────────────────────────────────────────────── */
+function visible(){
+  const q = find.trim().toLowerCase();
+  return EMPS.filter(e => {
+    if(filter === "linked"   && !e.sf_placement_id) return false;
+    if(filter === "unlinked" &&  e.sf_placement_id) return false;
+    if(!q) return true;
+    return ((e.fn+" "+e.ln+" "+(e.badge||"")+" "+(e.dept||"")).toLowerCase()).includes(q);
+  });
+}
+
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function linkCell(e){
+  if(!e.sf_placement_id) return '<div class="link"><span class="dot off"></span><span class="none">Not linked</span></div>';
+  const p = ROSTER.get(e.sf_placement_id);
+  if(!p) return '<div class="link"><span class="dot stale"></span><div class="ltext">'
+    + '<div class="ljob">Linked, not in this week\'s timesheet run</div>'
+    + '<div class="lid">' + esc(e.sf_placement_id) + '</div></div></div>';
+  return '<div class="link"><span class="dot on"></span><div class="ltext">'
+    + '<div class="ljob">' + esc(p.candidateName) + ' · ' + esc(p.jobTitle || "no job title") + '</div>'
+    + '<div class="lid">' + esc(e.sf_placement_id) + (e.sf_link_method ? " · " + esc(e.sf_link_method) : "") + '</div>'
+    + '</div></div>';
+}
+
+function render(){
+  const list = visible();
+  const linked = EMPS.filter(e => e.sf_placement_id).length;
+  const stale  = EMPS.filter(e => e.sf_placement_id && !ROSTER.get(e.sf_placement_id)).length;
+
+  let h = '<div class="stats">'
+    + '<div class="stat"><div class="n">' + EMPS.length + '</div><div class="l">Active</div></div>'
+    + '<div class="stat gold"><div class="n">' + linked + '</div><div class="l">Linked</div></div>'
+    + '<div class="stat warn"><div class="n">' + (EMPS.length - linked) + '</div><div class="l">Not linked</div></div>'
+    + '<div class="stat"><div class="n">' + ROSTER.size + '</div><div class="l">Placements this week</div></div>'
+    + '</div>';
+
+  if(stale) h += '<div class="note">' + stale + ' linked ' + (stale===1?'placement is':'placements are')
+    + ' not in this week\'s timesheet run. That can mean the person left, or the placement stopped generating time.</div>';
+
+  h += '<div class="bar"><div class="seg">'
+    + ['all','unlinked','linked'].map(k => '<button data-f="' + k + '" aria-pressed="' + (filter===k) + '">'
+        + k.charAt(0).toUpperCase() + k.slice(1) + '</button>').join("")
+    + '</div><input class="find" id="find" placeholder="Filter by name, badge, or department" value="' + esc(find) + '"></div>';
+
+  h += '<div class="rows">';
+  if(!list.length) h += '<div class="row"><span class="none">No employees match that filter.</span></div>';
+
+  list.forEach(e => {
+    const open = openId === e.id;
+    h += '<div class="row' + (open ? " open" : "") + '">'
+      + '<div><div class="nm">' + esc(e.fn) + ' ' + esc(e.ln) + '</div>'
+      + '<div class="meta">' + esc(e.badge || "no badge") + ' · ' + esc(e.dept || "no dept") + '</div></div>'
+      + linkCell(e)
+      + '<div style="display:flex;gap:6px">'
+      + '<button class="act' + (open ? " on" : "") + '" data-pick="' + e.id + '">'
+        + (open ? "Close" : (e.sf_placement_id ? "Change" : "Link")) + '</button>'
+      + (e.sf_placement_id ? '<button class="act" data-unlink="' + e.id + '">Unlink</button>' : '')
+      + '</div>';
+
+    if(open){
+      h += '<div class="panel">'
+        + '<input id="q" placeholder="Search Salesforce placements by candidate name" '
+        + 'value="' + esc(e.fn + " " + e.ln) + '" autocomplete="off">';
+      if(hitState) h += '<div class="note' + (hitState.charAt(0)==="!" ? " bad" : "") + '">'
+        + esc(hitState.replace(/^!/,"")) + '</div>';
+      if(hits.length){
+        h += '<div class="hits">';
+        hits.forEach((p, i) => {
+          const owner = CLAIMED.get(p.placementId);
+          const taken = owner && owner.id !== e.id;
+          h += '<button class="hit" data-hit="' + i + '"' + (taken ? " disabled" : "") + '>'
+            + '<span><strong>' + esc(p.candidateName) + '</strong> · ' + esc(p.jobTitle || "no job title")
+            + '<br><small>' + esc(p.placementId) + ' · ' + esc(p.status || "no status") + '</small></span>'
+            + (taken ? '<span class="tag taken">' + esc(owner.fn + " " + owner.ln) + '</span>'
+                     : (p.generatesTimesheets ? '' : '<span class="tag notime">no time</span>'))
+            + '</button>';
+        });
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  });
+
+  h += '</div>';
+  $("#app").innerHTML = h;
+  $("#who").textContent = emailFromToken();
+
+  const q = $("#q");
+  if(q){ q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+
+/* ── search ────────────────────────────────────────────────── */
+let timer = null;
+function search(term){
+  clearTimeout(timer);
+  const seq = ++searchSeq;
+  if(term.trim().length < 2){ hits = []; hitState = ""; render(); return; }
+  hitState = "Searching…"; hits = []; render();
+  timer = setTimeout(async () => {
+    try {
+      const r = await worker("/tk-placements?q=" + encodeURIComponent(term.trim()));
+      if(seq !== searchSeq) return;
+      if(!r.ok){ hitState = "!Salesforce search failed (" + r.status + ")"; hits = []; render(); return; }
+      const d = await r.json();
+      hits = d.placements || [];
+      hitState = hits.length ? "" : "No placements match that name.";
+      render();
+    } catch(err){
+      if(seq !== searchSeq) return;
+      hitState = "!" + (err.message === "no-session" ? "Session expired. Reload the page." : "Search failed.");
+      hits = []; render();
+    }
+  }, 280);
+}
+
+/* ── write ─────────────────────────────────────────────────── */
+function toast(msg, bad){
+  const el = document.createElement("div");
+  el.className = "toast" + (bad ? " bad" : "");
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+async function save(empId, placement){
+  const body = placement ? {
+    sf_placement_id: placement.placementId,
+    sf_candidate_id: placement.candidateId || null,
+    sf_link_method: "picker",
+    sf_linked_at: new Date().toISOString(),
+    sf_linked_by: emailFromToken() || "unknown"
+  } : {
+    sf_placement_id: null, sf_candidate_id: null, sf_link_method: null,
+    sf_linked_at: null, sf_linked_by: null
+  };
+  const r = await rest("tk_employees?id=eq." + encodeURIComponent(empId), {
+    method: "PATCH",
+    headers: { "Content-Type":"application/json", Prefer:"return=representation" },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){
+    const txt = await r.text();
+    /* the partial unique index on sf_placement_id is what stops double-booking */
+    if(txt.indexOf("tk_employees_sf_placement_uniq") !== -1)
+      throw new Error("That placement is already linked to another employee.");
+    throw new Error("Save failed (" + r.status + ")");
+  }
+  const rows = await r.json();
+  const i = EMPS.findIndex(x => x.id === empId);
+  if(i > -1 && rows[0]) EMPS[i] = Object.assign({}, EMPS[i], rows[0]);
+  CLAIMED = new Map();
+  EMPS.forEach(e => { if(e.sf_placement_id) CLAIMED.set(e.sf_placement_id, e); });
+}
+
+/* ── events ────────────────────────────────────────────────── */
+document.addEventListener("click", async ev => {
+  const f = ev.target.closest("[data-f]");
+  if(f){ filter = f.dataset.f; openId = null; hits = []; hitState = ""; render(); return; }
+
+  const pick = ev.target.closest("[data-pick]");
+  if(pick){
+    const id = pick.dataset.pick;
+    if(openId === id){ openId = null; hits = []; hitState = ""; render(); }
+    else {
+      openId = id; hits = []; hitState = "";
+      const e = EMPS.find(x => x.id === id);
+      render();
+      if(e) search(e.fn + " " + e.ln);
+    }
+    return;
+  }
+
+  const un = ev.target.closest("[data-unlink]");
+  if(un){
+    const e = EMPS.find(x => x.id === un.dataset.unlink);
+    if(!e || !confirm("Remove the Salesforce link for " + e.fn + " " + e.ln + "?")) return;
+    try { await save(e.id, null); toast("Unlinked " + e.fn + " " + e.ln); render(); }
+    catch(err){ toast(err.message, true); }
+    return;
+  }
+
+  const hit = ev.target.closest("[data-hit]");
+  if(hit && !hit.disabled){
+    const p = hits[+hit.dataset.hit], e = EMPS.find(x => x.id === openId);
+    if(!p || !e) return;
+    try {
+      await save(e.id, p);
+      openId = null; hits = []; hitState = "";
+      toast("Linked " + e.fn + " " + e.ln + " to " + p.candidateName);
+      render();
+    } catch(err){ toast(err.message, true); }
+  }
+});
+
+document.addEventListener("input", ev => {
+  if(ev.target.id === "q") search(ev.target.value);
+  if(ev.target.id === "find"){ find = ev.target.value; openId = null; render();
+    const el = $("#find"); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+});
+
+document.addEventListener("keydown", ev => {
+  if(ev.key === "Escape" && openId){ openId = null; hits = []; hitState = ""; render(); }
+});
+
+/* ── boot ──────────────────────────────────────────────────── */
+(async function(){
+  if(CONFIG.SUPABASE_ANON.indexOf("PASTE_") === 0){
+    $("#app").innerHTML = '<div class="gate"><h2>Add the Supabase key</h2>'
+      + '<p>Copy SUPABASE_ANON from spark-boards.html into the CONFIG block at the top of this file.</p></div>';
+    return;
+  }
+  if(!token()){
+    $("#app").innerHTML = '<div class="gate"><h2>Sign in to Spark HQ first</h2>'
+      + '<p>This page uses your Spark HQ session. <a href="./index.html">Open Spark HQ</a>, sign in, then come back.</p></div>';
+    return;
+  }
+  try { await load(); render(); }
+  catch(err){
+    $("#app").innerHTML = '<div class="gate"><h2>Could not load</h2><p>'
+      + esc(err.message === "no-session" ? "Your session expired. Sign in to Spark HQ again." : err.message)
+      + '</p></div>';
+  }
+})();
+</script>
+</body>
+</html>

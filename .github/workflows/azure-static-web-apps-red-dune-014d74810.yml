@@ -13,8 +13,18 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p site
-          cp *.html site/
+          # Stage only the real pages. "cp *.html site/" also published every backup at the
+          # repo root (index.backup-*, *.bak.html, spark-home.backup-*, index.2026-*), which
+          # bloated the deploy and, worse, made those old copies fetchable on the live site.
+          for f in *.html; do
+            case "$f" in
+              *.backup-*|*.bak.html|*.bak-*|index.2026-*) continue ;;
+            esac
+            cp "$f" site/
+          done
           cp *.mp4 *.png *.jpg *.svg *.pdf *.webm *.mp3 site/ 2>/dev/null || true
           cp staticwebapp.config.json site/staticwebapp.config.json
+          echo "Staged $(ls site/*.html | wc -l) pages:"
+          ls site/*.html | sed 's|site/|  |'
       - name: Deploy via SWA CLI
         run: npx -y @azure/static-web-apps-cli@latest deploy ./site --env production --deployment-token ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_RED_DUNE_014D74810 }}
