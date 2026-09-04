@@ -1076,7 +1076,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-31';
+  var BUILD = 'b0820-32';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1900,7 +1900,14 @@ window.SPARK_LIVE = (function () {
       var xv = x[f] == null ? -1e15 : x[f], yv = y[f] == null ? -1e15 : y[f];
       return (xv - yv) * dd;
     });
-    var port = Object.keys(PORT).length ? calc(PORT, 'Spark Portfolio Total') : null;
+    // Portfolio Total = the sum of the unit rows shown above. (The old book carried its own
+    // "Spark Portfolio" history rows, but the live engine never writes new ones, so that series
+    // froze at the seed boundary \u2014 weekly/monthly blank, quarterly stale. Summing is always honest.)
+    var port = null;
+    if (rows.length) {
+      port = { u: 'Spark Portfolio Total', wk: 0, wow: 0, mo: 0, q: 0, cum: 0, goal: 0, pct: null };
+      rows.forEach(function (r) { port.wk += r.wk || 0; port.wow += r.wow || 0; port.mo += r.mo || 0; port.q += r.q || 0; port.cum += r.cum || 0; });
+    }
     var LEG_ORDER = ['Spark Sales', 'Enterprise', 'Fulfillment'];
     var legRows = Object.keys(LEG).map(function (c2) { return calc(LEG[c2], c2); });
     legRows.sort(function (x, y) { var ax = LEG_ORDER.indexOf(x.u), ay = LEG_ORDER.indexOf(y.u); return (ax < 0 ? 99 : ax) - (ay < 0 ? 99 : ay); });
@@ -1957,7 +1964,7 @@ window.SPARK_LIVE = (function () {
       legRows.forEach(function (r) { h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer"><td class="m" style="color:var(--dm)">&middot;</td>' + cell(r, false) + '</tr>'; });
       h += '</tbody></table></div></div>';
     }
-    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; Spark Portfolio Total stays pinned at the bottom</div>';
+    h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; Spark Portfolio Total stays pinned at the bottom (= the sum of the units above)</div>';
     el.innerHTML = h;
   };
 
@@ -2573,11 +2580,11 @@ window.SPARK_LIVE = (function () {
     var legV = {}, legC = {}; legU.forEach(function (u) { legC[u] = 0; });
     var allU = Object.keys(GROUPS);
     allU.forEach(function (u) { cum[u] = 0; });
-    var hasPort = Object.keys(PORT).length > 0;
+    var hasPort = true; // Portfolio Total column = live sum of the unit columns (stale named rows unused)
     isoList.forEach(function (w) {
       vals[w] = {};
       allU.forEach(function (u) { var v = grpOf(w, GROUPS[u]); vals[w][u] = v; cum[u] += v; });
-      if (hasPort) { portV[w] = grpOf(w, PORT); portCum += portV[w]; }
+      if (hasPort) { portV[w] = 0; for (var pu in vals[w]) portV[w] += (vals[w][pu] || 0); portCum += portV[w]; }
       legV[w] = {}; legU.forEach(function (u) { var lv = grpOf(w, LEG[u]); legV[w][u] = lv; legC[u] += lv; });
     });
     var extras = allU.filter(function (u) { return ORDER.indexOf(u) === -1 && Math.abs(cum[u]) > 0.5; });
