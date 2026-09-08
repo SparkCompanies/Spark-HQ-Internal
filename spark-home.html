@@ -333,6 +333,73 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
 }
 @media(prefers-reduced-motion:reduce){.cb-bolt{animation:none;opacity:.24;top:8px}}
 </style>
+<style>/*HERO_v2 — depth, light and texture for the home band*/
+/* --- the band: layered gradients, a slow-breathing gold aura, and a fine grid texture --- */
+.hero{background:
+  radial-gradient(900px 520px at 12% 0%, rgba(255,200,0,.16), transparent 60%),
+  radial-gradient(700px 480px at 88% 110%, rgba(74,163,255,.10), transparent 62%),
+  linear-gradient(160deg,#141628 0%,#0d0e1a 46%,#0a0b14 100%) !important;}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(ellipse at 40% 30%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse at 40% 30%,#000 30%,transparent 78%);}
+.hero::after{content:"";position:absolute;width:560px;height:560px;left:-140px;top:-260px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,200,0,.22),rgba(255,200,0,0) 62%);filter:blur(28px);
+  animation:heroAura 9s ease-in-out infinite alternate;}
+@keyframes heroAura{from{transform:translate3d(0,0,0) scale(1);opacity:.85}to{transform:translate3d(60px,26px,0) scale(1.12);opacity:1}}
+@media(prefers-reduced-motion:reduce){.hero::after{animation:none}}
+.hero>*{position:relative;z-index:1}
+/* gold hairline across the top of the band */
+.hero .greet{position:relative}
+.hero .greet::before{content:"";position:absolute;left:26px;right:26px;top:0;height:2px;
+  background:linear-gradient(90deg,var(--gold),rgba(255,200,0,.25) 40%,transparent 75%);opacity:.85;border-radius:2px}
+.greet{padding-top:18px !important}
+.greet .pres i{box-shadow:0 0 0 3px rgba(39,201,63,.18),0 0 12px rgba(39,201,63,.6)}
+.datebadge{color:#a7a6b8}
+
+/* --- core values: bigger, warmer, with a gradient sweep on the value itself --- */
+.banner{padding:34px 30px 30px !important;gap:34px !important}
+.bnr-eyebrow{display:inline-flex;align-items:center;gap:9px;color:var(--gold);letter-spacing:.24em}
+.bnr-eyebrow::before{content:"";width:22px;height:1px;background:var(--gold);opacity:.7}
+.bnr-title{font-size:38px !important;line-height:1.12 !important;letter-spacing:-.02em;max-width:640px !important;
+  background:linear-gradient(92deg,#fff 0%,#fff 55%,rgba(255,200,0,.92) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:none}
+.bnr-sub{font-size:14px !important;color:#b6b5c6 !important;max-width:520px}
+.bnr-num{display:inline-flex;align-items:center;gap:8px;color:#7d81a0 !important}
+.bnr-num::before{content:"";display:inline-block;width:38px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--gold),rgba(255,200,0,.2))}
+
+/* --- this week panel: glass, with a gold edge-light --- */
+.bnr-panel{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035)) !important;
+  border:1px solid rgba(255,255,255,.14) !important;border-radius:16px !important;padding:18px 20px !important;
+  box-shadow:0 20px 50px -24px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.14);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.bnr-panel::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,200,0,.75),transparent)}
+.bnr-panel-label{color:#c5c2d6 !important;display:flex;align-items:center;gap:8px}
+.bnr-panel-label::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px rgba(255,200,0,.8)}
+.bnr-item{transition:transform .18s,color .18s}
+.bnr-item svg{width:17px !important;height:17px !important;filter:drop-shadow(0 0 6px rgba(255,200,0,.35))}
+.bnr-item.link:hover{transform:translateX(3px)}
+.bnr-item.link b{transition:transform .18s}
+.bnr-item.link:hover b{transform:translateX(3px)}
+
+/* --- quick nav: pill-like hover with a lit indicator --- */
+.quicknav{border-top:1px solid rgba(255,255,255,.10) !important;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0))}
+.quicknav a{padding:14px 6px !important;color:#cfcee0 !important;font-weight:500;letter-spacing:.01em}
+.quicknav a::after{background:linear-gradient(180deg,rgba(255,200,0,0),rgba(255,200,0,.16)) !important}
+.quicknav i{box-shadow:0 0 0 3px rgba(255,255,255,.06),0 0 10px currentColor;transition:transform .18s}
+.quicknav a:hover i{transform:scale(1.35)}
+.quicknav a::before{content:"";position:absolute;left:12%;right:12%;bottom:0;height:2px;border-radius:2px 2px 0 0;background:var(--gold);transform:scaleX(0);transition:transform .22s}
+.quicknav a:hover::before{transform:scaleX(1)}
+
+/* --- ticker: sits like a lit rail, not a black bar --- */
+.ticker{background:linear-gradient(180deg,#0b0c16,#07080f) !important;border-top:1px solid rgba(255,200,0,.28) !important}
+.ticker::before,.ticker::after{content:"";position:absolute;top:0;bottom:0;width:70px;z-index:2;pointer-events:none}
+.ticker::before{left:0;background:linear-gradient(90deg,#0a0b14,transparent)}
+.ticker::after{right:0;background:linear-gradient(270deg,#0a0b14,transparent)}
+.ticker span{color:#efeee4 !important}
+</style>
 </head>
 <body>
 <div class="layout">
