@@ -1076,7 +1076,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-32';
+  var BUILD = 'b0820-33';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1278,7 +1278,7 @@ window.SPARK_LIVE = (function () {
     var v = unitVal(we, unit);
     var d = dhb[we];
     // locked weeks already include their DH in the saved rows
-    if (d && !isLocked(we) && !(histPerson[we] && !batches[we])) { if (d.byEntity && d.byEntity[unit]) v += d.byEntity[unit]; if (d.byBU && d.byBU[unit]) v += d.byBU[unit]; }
+    if (d && !isLocked(we) && !(histPerson[we] && !batches[we])) { if (d.byEntity && d.byEntity[unit] != null) v += d.byEntity[unit]; else if (d.byBU && d.byBU[unit] != null) v += d.byBU[unit]; }
     return v;
   }
   function weeksThrough(cur) {
@@ -1289,6 +1289,8 @@ window.SPARK_LIVE = (function () {
   }
 
   function applyAll() {
+    window.__weLabel = labelWe(curIso);
+    var _sl = document.querySelector('.sb-lb'); if (_sl) _sl.textContent = 'Portfolio \u00b7 ' + labelWe(curIso);
     var isoList = weeksThrough(curIso);
     if (!isoList.length) return;
     var prev = prevIso(curIso);
@@ -1871,8 +1873,9 @@ window.SPARK_LIVE = (function () {
       if (isLocked(we)) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
       var v = 0, b = batches[we], d = dhb[we];
       if (b && b.rollups) {
-        var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
-        var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge;
+        var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; });
+        if (f1) v += f1.charge;
+        else { var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge; }
         if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
         return v;
       }
@@ -2563,8 +2566,9 @@ window.SPARK_LIVE = (function () {
       if (isLocked(we)) return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
       var v = 0, b = batches[we], d = dhb[we];
       if (b && b.rollups) {
-        var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; }); if (f1) v += f1.charge;
-        var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge;
+        var f1 = (b.rollups.byBU || []).find(function (x) { return x.key === raw; });
+        if (f1) v += f1.charge;
+        else { var f2 = (b.rollups.byEntity || []).find(function (x) { return x.key === raw; }); if (f2) v += f2.charge; }
         if (d) { if (d.byBU && d.byBU[raw]) v += d.byBU[raw]; else if (d.byEntity && d.byEntity[raw]) v += d.byEntity[raw]; }
         return v;
       }
