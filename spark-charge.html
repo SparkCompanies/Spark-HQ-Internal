@@ -1076,7 +1076,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-33';
+  var BUILD = 'b0820-34';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1321,7 +1321,7 @@ window.SPARK_LIVE = (function () {
     if (b0) {
       D.raw = (b0.rows || []).map(function (r) {
         var c = r.credits || [];
-        return [r.company, r.bu || '—', r.candidate, r.title || '', c[0] ? c[0].recipient : '', c[1] ? c[1].recipient : '', r.totalHrs, Math.round(r.charge)];
+        return [r.company, r.bu || '—', r.candidate, r.title || '', c[0] ? c[0].recipient : '', c[1] ? c[1].recipient : '', r.totalHrs, Math.round((r.charge) * 100) / 100];
       });
       var firstRow = {}; (b0.rows || []).forEach(function (r) { if (!firstRow[r.company]) firstRow[r.company] = r; });
       var Pb = batches[prev];
@@ -2720,7 +2720,7 @@ window.SPARK_LIVE = (function () {
     var b = batches[curIso];
     if (b && b.rows) return b.rows.map(function (r, bi) {
       var c = r.credits || [];
-      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: ctAmOf(c), rec: ctRecOf(c), rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round(r.charge), edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, bi: bi, flags: r.flags || [], plid: r.placementId || '', needsRev: (r.flags || []).some(function (f) { return f === 'no_credits' || f === 'lone_house' || f === 'no_recruiter'; }), mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
+      return { entity: r.entity || '\u2014', company: r.company || '', bu: r.bu || '\u2014', candidate: r.candidate || '', title: r.title || '', am: ctAmOf(c), rec: ctRecOf(c), rt: r.regHrs || 0, ot: r.otHrs || 0, dt: r.dtHrs || 0, vac: r.vacHrs || 0, tot: r.totalHrs || 0, charge: Math.round((r.charge) * 100) / 100, edited: !!r.edited, manual: r.source === 'manual_add', ovId: r.ovId || null, bi: bi, flags: r.flags || [], plid: r.placementId || '', needsRev: (r.flags || []).some(function (f) { return f === 'no_credits' || f === 'lone_house' || f === 'no_recruiter'; }), mcand: r.m_candidate || r.candidate || '', mco: r.m_company || r.company || '' };
     });
     return (D.raw || []).map(function (r) { return { entity: '\u2014', company: r[0], bu: r[1], candidate: r[2], title: r[3], am: r[4], rec: r[5], rt: 0, ot: 0, dt: 0, vac: 0, tot: r[6], charge: r[7] }; });
   }
