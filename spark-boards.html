@@ -3638,6 +3638,124 @@ function exportBoardToXlsx(board) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, board.name.slice(0, 28));
   XLSX.writeFile(wb, board.name.replace(/[^\w]+/g, '_') + '_' + todayShift(0) + '.xlsx');
+/* ---------------- update from Excel (SheetJS) ----------------
+   Inverse of exportBoardToXlsx. Reads an exported-and-edited workbook, matches each row to a board
+   item BY NAME, maps spreadsheet headers to board columns BY LABEL, and produces a list of cell
+   changes. Nothing is written here: the caller shows the plan and, on confirm, applies it through
+   /boards-patch in chunks with each cell's previous value, so a row a colleague changed in the
+   meantime is rejected by the worker rather than overwritten.
+   Rules: blank spreadsheet cells never clear a board value (a blank almost always means
+   "untouched", not "erase"). Person and Salesforce cells are never written from a spreadsheet. */
+function sbNorm(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase(); }
+function planXlsxUpdates(board, aoa) {
+  const plan = { ops: [], changes: [], unmatched: [], ambiguous: [], ignoredCols: [], badValues: [], rowsSeen: 0, rowsMatched: 0 };
+  const cols = board.columns || [];
+  const byLabel = {};
+  cols.forEach(c => { if (c && c.label) byLabel[sbNorm(c.label)] = c; });
+  /* items by normalised name; keep all matches so we can flag ambiguity */
+  const byName = {};
+  (board.groups || []).forEach(g => (g.items || []).forEach(it => {
+    if (!it || it.archivedAt || it.deletedAt) return;
+    const k = sbNorm(it.name); if (!k) return;
+    (byName[k] = byName[k] || []).push(it);
+  }));
+  let map = null; /* [{ci, col}] for the current header */
+  const isHeader = row => row && row.some(c => ['item', 'name'].indexOf(sbNorm(c)) !== -1);
+  const NOWRITE = { person: 'people are matched by account, not spreadsheet text', sf: 'Salesforce link state is owned by the Sync' };
+  aoa.forEach(row => {
+    if (!row) return;
+    if (isHeader(row)) {
+      map = []; let nameIdx = -1;
+      row.forEach((h, ci) => {
+        const n = sbNorm(h);
+        if (n === 'item' || n === 'name') { if (nameIdx === -1) nameIdx = ci; return; }
+        if (!n) return;
+        const col = byLabel[n];
+        if (!col) { if (plan.ignoredCols.indexOf(String(h)) === -1) plan.ignoredCols.push(String(h) + ' (no such column)'); return; }
+        if (NOWRITE[col.type]) { const t = col.label + ' (' + NOWRITE[col.type] + ')'; if (plan.ignoredCols.indexOf(t) === -1) plan.ignoredCols.push(t); return; }
+        map.push({ ci: ci, col: col });
+      });
+      map.nameIdx = nameIdx;
+      return;
+    }
+    if (!map || map.nameIdx === -1) return;
+    const rawName = row[map.nameIdx];
+    const k = sbNorm(rawName);
+    if (!k) return; /* spacer, title or summary row */
+    plan.rowsSeen++;
+    const hits = byName[k] || [];
+    if (!hits.length) { plan.unmatched.push(String(rawName)); return; }
+    if (hits.length > 1) { plan.ambiguous.push(String(rawName)); return; }
+    const it = hits[0];
+    plan.rowsMatched++;
+    map.forEach(m => {
+      const col = m.col, raw = row[m.ci];
+      const txt = raw == null ? '' : String(raw).trim();
+      if (txt === '') return; /* blanks never clear */
+      let val, cur = it[col.key];
+      if (col.type === 'status') {
+        const i = (col.options || []).findIndex(o => sbNorm(o.label) === sbNorm(txt));
+        if (i === -1) { plan.badValues.push(it.name + ' · ' + col.label + ': "' + txt + '" is not a ' + col.label + ' option'); return; }
+        val = i; if (cur === val) return;
+      } else if (col.type === 'priority') {
+        const i = (typeof PRIORITIES !== 'undefined' ? PRIORITIES : []).findIndex(p => sbNorm(p.label) === sbNorm(txt));
+        if (i === -1) { plan.badValues.push(it.name + ' · ' + col.label + ': "' + txt + '" is not a priority'); return; }
+        val = i; if (cur === val) return;
+      } else if (col.type === 'checkbox') {
+        val = /^(x|yes|y|true|1|✓|✔)$/i.test(txt); if (!!cur === val) return;
+      } else if (col.type === 'number' || col.type === 'progress') {
+        const n = Number(String(txt).replace(/[%,]/g, ''));
+        if (isNaN(n)) { plan.badValues.push(it.name + ' · ' + col.label + ': "' + txt + '" is not a number'); return; }
+        val = n; if (Number(cur == null ? NaN : cur) === val) return;
+      } else if (col.type === 'date') {
+        let d = txt;
+        const m1 = txt.match(/^(\d{4})-(\d{2})-(\d{2})/); const m2 = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (m1) d = m1[1] + '-' + m1[2] + '-' + m1[3];
+        else if (m2) { const y = m2[3].length === 2 ? '20' + m2[3] : m2[3]; d = y + '-' + String(m2[1]).padStart(2, '0') + '-' + String(m2[2]).padStart(2, '0'); }
+        else { const dt = new Date(txt); if (isNaN(dt)) { plan.badValues.push(it.name + ' · ' + col.label + ': "' + txt + '" is not a date'); return; } d = dt.toISOString().slice(0, 10); }
+        val = d; if (String(cur || '') === val) return;
+      } else {
+        val = txt; if (String(cur == null ? '' : cur).trim() === val) return;
+      }
+      plan.ops.push({ itemId: it.id, key: col.key, val: val, was: cur === undefined ? null : cur });
+      const shown = col.type === 'status' ? txt : col.type === 'checkbox' ? (val ? 'checked' : 'unchecked') : String(val);
+      const before = col.type === 'status' ? ((col.options || [])[cur] || {}).label || '(blank)' : cur == null || cur === '' ? '(blank)' : String(cur);
+      plan.changes.push({ item: it.name, col: col.label, from: before, to: shown });
+    });
+  });
+  return plan;
+}
+function readXlsxAoa(file) {
+  return new Promise((res, rej) => {
+    if (typeof XLSX === 'undefined') { rej(new Error('Spreadsheet library still loading. Try again in a second.')); return; }
+    const r = new FileReader();
+    r.onerror = () => rej(new Error('Could not read that file.'));
+    r.onload = () => {
+      try {
+        const wb = XLSX.read(new Uint8Array(r.result), { type: 'array', cellDates: false });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        res(XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false }));
+      } catch (e) { rej(new Error('That does not look like an Excel file.')); }
+    };
+    r.readAsArrayBuffer(file);
+  });
+}
+function describeXlsxPlan(plan) {
+  const L = [];
+  L.push(plan.changes.length + ' cell' + (plan.changes.length === 1 ? '' : 's') + ' will change across ' + plan.rowsMatched + ' matched row' + (plan.rowsMatched === 1 ? '' : 's') + '.');
+  if (plan.unmatched.length) L.push('', 'NOT on this board (skipped): ' + plan.unmatched.slice(0, 8).join(', ') + (plan.unmatched.length > 8 ? ' +' + (plan.unmatched.length - 8) + ' more' : ''));
+  if (plan.ambiguous.length) L.push('', 'Name appears more than once on the board (skipped): ' + plan.ambiguous.join(', '));
+  if (plan.ignoredCols.length) L.push('', 'Columns ignored: ' + plan.ignoredCols.join('; '));
+  if (plan.badValues.length) L.push('', 'Values that did not fit (skipped): ' + plan.badValues.slice(0, 6).join(' | ') + (plan.badValues.length > 6 ? ' | +' + (plan.badValues.length - 6) + ' more' : ''));
+  if (plan.changes.length) {
+    L.push('', 'Changes:');
+    plan.changes.slice(0, 22).forEach(c => L.push('  ' + c.item + ' · ' + c.col + ': ' + c.from + ' → ' + c.to));
+    if (plan.changes.length > 22) L.push('  … and ' + (plan.changes.length - 22) + ' more');
+  }
+  L.push('', 'Blank spreadsheet cells never clear a board value.');
+  return L.join('\n');
+}
+
 }
 
 /* ---------------- small components ---------------- */
@@ -8926,6 +9044,32 @@ function BoardView({
     title: "Export to Excel",
     onClick: () => exportBoardToXlsx(board)
   }, /*#__PURE__*/React.createElement(Ic.download, null), "Export"), canEdit && /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    title: "Update this board from an edited Excel export (matches rows by name)",
+    onClick: () => {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = '.xlsx,.xls,.csv';
+      inp.onchange = () => {
+        const f = inp.files && inp.files[0]; if (!f) return;
+        const base = fullBoard || board;
+        readXlsxAoa(f).then(aoa => {
+          const plan = planXlsxUpdates(base, aoa);
+          if (!plan.rowsSeen) { alert('No rows found. The sheet needs a header row with "Item" or "Name" and the column labels from this board.'); return; }
+          if (!plan.changes.length) { alert('Nothing to update: every matched row already has these values.\n\n' + describeXlsxPlan(plan)); return; }
+          if (!confirm('Update "' + base.name + '" from ' + f.name + '?\n\n' + describeXlsxPlan(plan) + '\n\nOK = apply these changes.')) return;
+          const nb = structuredClone(base);
+          const idx = {}; nb.groups.forEach(g => (g.items || []).forEach(it => { idx[it.id] = it; }));
+          plan.ops.forEach(o => { if (idx[o.itemId]) idx[o.itemId][o.key] = o.val; });
+          logAct(nb, { actor: sparkMe(), kind: 'bulk', note: 'Updated ' + plan.ops.length + ' cells on ' + plan.rowsMatched + ' rows from ' + f.name, count: plan.ops.length });
+          update(() => nb);
+          const CH = 200;
+          for (let i = 0; i < plan.ops.length; i += CH) Persist.cell(nb, plan.ops.slice(i, i + CH), i === 0 && nb.activity ? [nb.activity[0]] : []);
+          sbFlash('Updated ' + plan.ops.length + ' cell' + (plan.ops.length === 1 ? '' : 's') + ' on ' + plan.rowsMatched + ' rows from ' + f.name + '.', 'ok');
+        }).catch(e => alert('Import stopped: ' + (e && e.message ? e.message : e)));
+      };
+      inp.click();
+    }
+  }, /*#__PURE__*/React.createElement(Ic.upload || Ic.download, null), "Update from Excel"), canEdit && /*#__PURE__*/React.createElement("button", {
     className: "btn",
     onClick: onOpenAutomations
   }, /*#__PURE__*/React.createElement(Ic.auto, null), "Automate", (board.automations || []).filter(a => a.enabled).length > 0 && /*#__PURE__*/React.createElement("span", {
