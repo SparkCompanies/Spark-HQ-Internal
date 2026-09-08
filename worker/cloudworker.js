@@ -8070,6 +8070,11 @@ var worker_default = {
         const rrKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(corporation|corp|incorporated|inc|llc|company|co)\b/g, "").replace(/\s+/g, " ").trim();
         const rrNorm = {};
         Object.keys(rateRules).forEach((k) => { rrNorm[rrKey(k)] = rateRules[k]; });
+        // Client map gets the same tolerant matching: exact SF name first, canonical fallback
+        // (case / punctuation / dash-variant / corp-suffix insensitive), so map rows survive
+        // en-dash vs hyphen and spacing drift in Salesforce account names.
+        const cmNorm = {};
+        Object.keys(clientMap).forEach((k) => { cmNorm[rrKey(k)] = clientMap[k]; });
         const workerRates = {};
         try {
           const wrR = await sbService(env, "GET", "fin_worker_ot_rates?select=sf_account_name,candidate,ot_bill,dt_bill");
@@ -8111,7 +8116,7 @@ var worker_default = {
           const pl = ts.Placement__r || {};
           const acct = (pl.bpats__Account__r && pl.bpats__Account__r.Name) || "(no account)";
           const cand = ts.ASYMBL_Time__Candidate_Name__c || "Unknown";
-          const map = clientMap[acct];
+          const map = clientMap[acct] || cmNorm[rrKey(acct)] || null;
           if (map) dbg.mappedAccounts++; else dbg.unmappedAccounts[acct] = (dbg.unmappedAccounts[acct] || 0) + 1;
           const company = map ? map.company : acct;
           const dvRaw = String(pl.Division__c || "").trim();
@@ -8316,7 +8321,7 @@ var worker_default = {
                       const ct = canon(e.client).split(" ").filter((w) => w.length >= 3)[0] || "";
                       const pick = q.records.find((p) => ct && canon((p.bpats__Account__r && p.bpats__Account__r.Name) || "").indexOf(ct) !== -1) || q.records[0];
                       const acct = (pick.bpats__Account__r && pick.bpats__Account__r.Name) || "(no account)";
-                      const map = clientMap[acct];
+                      const map = clientMap[acct] || cmNorm[rrKey(acct)] || null;
                       const pay = Number(pick.bpats__Pay_Rate__c) || 0, bill = Number(pick.bpats__Bill_Rate__c) || 0;
                       let burden = Number(pick.bpats__Burden_Percentage__c) || 0; if (burden > 1) burden = burden / 100;
                       const vacM = -(bill - pay) * (1 + burden);
