@@ -8098,6 +8098,15 @@ var worker_default = {
         const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
         const r4 = (n) => Math.round((Number(n) || 0) * 10000) / 10000;
 
+        // Salesforce Division strings drift ("Flex Workforce Solutions" vs "Flex Workforce");
+        // canonize known variants so entity rollups and the portfolio sum key consistently.
+        const ENT_ALIAS = {
+          "flex workforce solutions": "Flex Workforce",
+          "spark talent acquisition": "Spark Talent",
+          "spark talent acquisition inc": "Spark Talent",
+          "john joseph partners llc": "John Joseph Partners",
+          "ignite search llc": "Ignite Search"
+        };
         for (const ts of tsRes.records || []) {
           const pl = ts.Placement__r || {};
           const acct = (pl.bpats__Account__r && pl.bpats__Account__r.Name) || "(no account)";
@@ -8105,7 +8114,8 @@ var worker_default = {
           const map = clientMap[acct];
           if (map) dbg.mappedAccounts++; else dbg.unmappedAccounts[acct] = (dbg.unmappedAccounts[acct] || 0) + 1;
           const company = map ? map.company : acct;
-          const entity = pl.Division__c || (map && map.entity) || null;
+          const dvRaw = String(pl.Division__c || "").trim();
+          const entity = (ENT_ALIAS[dvRaw.toLowerCase()] || dvRaw) || (map && map.entity) || null;
           const bu = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || null;
 
           // Job title: placement name is "Account… - Title" (candidate suffix when present)
