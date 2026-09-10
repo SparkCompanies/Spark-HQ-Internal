@@ -6937,6 +6937,9 @@ var worker_default = {
             { tag: "cupertino", label: "Cupertino", warnIfZero: true },
             { tag: "summit", label: "Summit Line Constructions", warnIfZero: false }
           ];
+          // Workers on Mary's tracker who are NOT Spark placements ("not our guy") \u2014 their hours
+          // never count toward a synthesized invoice or the production split.
+          const PM_EXCLUDE = ["adrian nino"];
           const pmNeed = PM_TRACKER.filter((pc) => !drops.some((d) => String(d.company || "").toLowerCase().indexOf(pc.tag) !== -1));
           if (pmNeed.length) {
             const CUP = "https://graph.microsoft.com/v1.0/drives/b!2B6OMGQ_qkK-tdHQnfEbIITD6KbeLR5LppbR6C2T9BlKhev4bYIOS6hYGHDH5oBD/items/01QQCIXH7ZHXFZUYC7BZF2JGGDHT722U24";
@@ -6953,6 +6956,7 @@ var worker_default = {
               let pmHours = 0, pmRows = 0;
               for (const row of (logD.values || [])) {
                 if (!row || !String(row[2] || "").trim()) continue;
+                if (PM_EXCLUDE.indexOf(String(row[2] || "").trim().toLowerCase()) !== -1) continue;
                 if (Math.round(Number(row[1]) || 0) !== monSerial) continue;
                 if (String(row[5] || "").trim().toLowerCase() !== pc.tag) continue;
                 const hrs = Number(row[3]) || 0;
