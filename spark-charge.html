@@ -260,7 +260,7 @@ function esc(s){return String(s).replace(/'/g,"\\'")}
 // Portfolio calc
 var CUR=D.weeks[D.weeks.length-1], PREV=D.weeks[D.weeks.length-2]||{};
 var ENT_KEYS=['Spark Talent','John Joseph Partners','Ignite Search','Spark Companies','Spark Packaging','Flex Workforce','Bolt Creative'];
-function wkTotal(w){var s=0;ENT_KEYS.forEach(function(k){s+=(w[k]||0)});return s}
+function wkTotal(w){var s=0;ENT_KEYS.forEach(function(k){s+=(w[k]||0)});return s+(w['Unassigned']||0)}
 var TOTAL=wkTotal(CUR), LASTW=wkTotal(PREV);
 var YTD=D.weeks.reduce(function(s,w){return s+wkTotal(w)},0);
 // Q3 = weeks from 7/1 onward (7/5 first WE)
@@ -468,9 +468,12 @@ function rPulse(){
   // HERO
   h+='<div class="cd" style="padding:26px 30px;margin-bottom:16px;background:linear-gradient(135deg,var(--sf) 0%,var(--bg2) 100%)">';
   h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px">';
-  h+='<div><div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:2.5px;font-weight:700">Portfolio Raw Charge &middot; '+(window.__weLabel||'WE 8.2.26')+'</div>';
+  h+='<div><div style="font-size:9px;color:var(--dm);text-transform:uppercase;letter-spacing:2.5px;font-weight:700">Portfolio Raw Charge &middot; '+(window.__weLabel||'')+'</div>';
   h+='<div class="m" style="font-size:52px;font-weight:900;letter-spacing:-3px;line-height:1.05;margin-top:6px;background:linear-gradient(135deg,#FFC800 20%,#CC9F00 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 18px rgba(255,200,0,.15))" id="heroNum">'+fmt(TOTAL)+'</div>';
-  h+='<div style="margin-top:8px;display:flex;gap:14px;align-items:center">'+dl(TOTAL-LASTW,13)+'<span style="font-size:11px;color:var(--dm)">vs last week</span></div></div>';
+  h+='<div style="margin-top:8px;display:flex;gap:14px;align-items:center">'+dl(TOTAL-LASTW,13)+'<span style="font-size:11px;color:var(--dm)">vs last week</span></div>';
+  var _un=(CUR&&CUR['Unassigned'])||0;
+  if(Math.abs(_un)>0.5)h+='<div class="m" style="margin-top:6px;font-size:10px;color:var(--org)">includes '+fmt(_un)+' coded to a blank / unmapped entity \u2014 map it via fin_client_map or the SF Division field</div>';
+  h+='</div>';
   h+='<div style="display:flex;gap:26px;flex-wrap:wrap">';
   [['YTD Raw Charge',fK(YTD),'var(--tx)'],['Q3 QTD',fK(Q3),'var(--y)'],['Q3 Target',fK(Q3T),'var(--dm)'],['Q3 Pace',Math.round(Q3/Q3T*100)+'%',pC(Q3/Q3T*100)]].forEach(function(k){
     h+='<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:21px;font-weight:800;color:'+k[2]+';margin-top:3px;letter-spacing:-.5px">'+k[1]+'</div></div>';
@@ -1076,7 +1079,7 @@ window.SPARK_LIVE = (function () {
   var histUnit = {};       // we -> unit -> {total, contract, direct}
   var histPerson = {};     // we -> person -> {sales, fd, rec, tt}
   var master = {};         // person -> {role, entity, bu, ...aths}
-  var BUILD = 'b0820-34';
+  var BUILD = 'b0820-35';
   try { window.SPARK_BUILD = BUILD; document.body.setAttribute('data-build', BUILD); console.log('[Spark Charge] build', BUILD); } catch (e) {}
   var IS_ADMIN = false;    // set by /charge-admin-check
   var PIN_KEY = 'spark_charge_pin';
@@ -1306,6 +1309,17 @@ window.SPARK_LIVE = (function () {
       var o = { we: shortWe(w) };
       Object.keys(allUnits).forEach(function (u) { var v = entCh(w, u); if (v) o[u] = v; });
       ENT_KEYS.forEach(function (u) { if (o[u] == null) o[u] = entCh(w, u); });
+      // Charge coded to a blank or non-standard entity used to vanish from the portfolio sum.
+      // Catch it so the total is always complete and the leak is visible on the Pulse hero.
+      var bw = batches[w], dw = dhb[w];
+      if (bw && !isLocked(w)) {
+        var cAll = 0; (bw.rows || []).forEach(function (r) { cAll += (Number(r.charge) || 0); });
+        var cKey = 0; (bw.rollups.byEntity || []).forEach(function (r) { if (ENT_KEYS.indexOf(r.key) !== -1) cKey += (Number(r.charge) || 0); });
+        var dAll = 0, dKey = 0;
+        if (dw && dw.byEntity) Object.keys(dw.byEntity).forEach(function (k) { var v = Number(dw.byEntity[k]) || 0; dAll += v; if (ENT_KEYS.indexOf(k) !== -1) dKey += v; });
+        var un = (cAll - cKey) + (dAll - dKey);
+        if (Math.abs(un) > 0.5) o['Unassigned'] = un;
+      }
       return o;
     });
 
@@ -1881,7 +1895,12 @@ window.SPARK_LIVE = (function () {
       }
       return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
     };
-    var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
+    var grpOf = function (we, names) {
+      var ks = Object.keys(names);
+      var ents = ks.filter(function (r) { return ENT_KEYS.indexOf(r) !== -1; });
+      if (ents.length) ks = ents; // entity lane already carries all of that entity's dollars; BU-spelling variants would double-count
+      var t = 0; ks.forEach(function (raw) { t += one(we, raw); }); return t;
+    };
     var tg = {}; (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') tg[canonU(t.unit)] = (tg[canonU(t.unit)] || 0) + (Number(t.amount) || 0); });
     var prev = prevIso(curIso);
     var moKey = curIso.slice(0, 7), yKey = curIso.slice(0, 4);
@@ -2574,7 +2593,12 @@ window.SPARK_LIVE = (function () {
       }
       return unitVal(we, raw) + unitVal(we, raw + ' \u00b7 DH');
     };
-    var grpOf = function (we, names) { var t = 0; Object.keys(names).forEach(function (raw) { t += one(we, raw); }); return t; };
+    var grpOf = function (we, names) {
+      var ks = Object.keys(names);
+      var ents = ks.filter(function (r) { return ENT_KEYS.indexOf(r) !== -1; });
+      if (ents.length) ks = ents; // entity lane already carries all of that entity's dollars; BU-spelling variants would double-count
+      var t = 0; ks.forEach(function (raw) { t += one(we, raw); }); return t;
+    };
     var isoList = weeksThrough(curIso);
     var ORDER = ['MI Metro', 'Automation', 'Light Industrial', 'Central', 'Southeast', 'Southwest', 'Northwest', 'Northeast', 'Spark Talent', 'Ignite Search', 'Spark Companies', 'BPO', 'Spark Companies - Other', 'Spark Packaging', 'Flex Workforce'];
     ORDER.forEach(function (u) { GROUPS[u] = GROUPS[u] || {}; GROUPS[u][u] = 1; });
