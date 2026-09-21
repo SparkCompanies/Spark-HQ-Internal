@@ -7025,6 +7025,11 @@ var worker_default = {
         drops.forEach((d) => { if (/^bolt/i.test(String(d.entity || "")) && !d.buEdited) d.bu = "Bolt Creative Strategies"; });
         // ── BPO services always code to the BPO unit ──
         drops.forEach((d) => { if (/\bbpo\b/i.test(String(d.employee || "") + " " + String(d.title || "")) && !d.buEdited) d.bu = "BPO"; });
+        // ── Client-pinned BUs: these clients' DH always codes to a fixed unit
+        //    (Aaron, 9/2026: all DFM -> Light Industrial); editor BU edits still win ──
+        const DH_CBU_KEY = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(corporation|corp|incorporated|inc|llc|company|co)\b/g, "").replace(/\s+/g, " ").trim();
+        const DH_CLIENT_BU = { "dfm solutions": "Light Industrial" };
+        drops.forEach((d) => { const o = DH_CLIENT_BU[DH_CBU_KEY(d.company)]; if (o && !d.buEdited) d.bu = o; });
         // ── geographic BU: client state → territory → BU ──
         const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
         const stateBU = {};
@@ -8109,6 +8114,11 @@ var worker_default = {
 
         // Salesforce Division strings drift ("Flex Workforce Solutions" vs "Flex Workforce");
         // canonize known variants so entity rollups and the portfolio sum key consistently.
+        // ── Client-pinned BUs: these clients' charge always codes to a fixed unit,
+        //    regardless of the SF job's Subdivision (Aaron, 9/2026: all DFM -> Light
+        //    Industrial). Keys are rrKey-normalized so dash/suffix/case variants catch;
+        //    per-row editor BU patches still win because overrides apply after row build.
+        const CLIENT_BU = { "dfm solutions": "Light Industrial" };
         const ENT_ALIAS = {
           "flex workforce solutions": "Flex Workforce",
           "spark talent acquisition": "Spark Talent",
@@ -8125,7 +8135,8 @@ var worker_default = {
           const company = map ? map.company : acct;
           const dvRaw = String(pl.Division__c || "").trim();
           const entity = (ENT_ALIAS[dvRaw.toLowerCase()] || dvRaw) || (map && map.entity) || null;
-          const bu = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || null;
+          const buPin = CLIENT_BU[rrKey(company)] || CLIENT_BU[rrKey(acct)] || null;
+          const bu = buPin || (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || null;
 
           // Job title: placement name is "Account… - Title" (candidate suffix when present)
           let title = String(pl.Name || "");
