@@ -8017,6 +8017,26 @@ var worker_default = {
         if (!dhOK && posted && posted.allow_no_dh !== true) {
           return json({ error: "DH data unavailable \u2014 freeze aborted to protect the books. Open the Direct Hires tab (so DH loads), then freeze again. If this week genuinely has no direct hires, re-run with allow_no_dh.", dhOK: false }, 503, origin);
         }
+        // ── Self-correcting canonization: case/alias drift must never mint duplicate
+        //    units ("Mi Metro") or people ("Nicholas Greenfelder") in the frozen books.
+        //    Units canonize to charge_units casing; people through charge_name_aliases
+        //    then charge_people casing; rows sharing a key after canonization merge. ──
+        try {
+          const alias2 = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan", "Kazeem Olanyian": "CJ Olaniyan" };
+          try { const ar = await sbService(env, "GET", "charge_name_aliases?select=sf_name,display_name"); if (ar && ar.ok && Array.isArray(ar.data)) ar.data.forEach((m) => { alias2[m.sf_name] = m.display_name; }); } catch (e2) {}
+          const nk = (x) => String(x || "").toLowerCase().replace(/\s+/g, " ").trim();
+          const uCanon = {}, pCanon = {};
+          try { const ur = await sbService(env, "GET", "charge_units?select=unit"); if (ur && ur.ok) (ur.data || []).forEach((u) => { uCanon[nk(u.unit)] = u.unit; }); } catch (e2) {}
+          try { const pr = await sbService(env, "GET", "charge_people?select=person"); if (pr && pr.ok) (pr.data || []).forEach((p) => { pCanon[nk(p.person)] = p.person; }); } catch (e2) {}
+          unitRows.forEach((r) => { r.unit = uCanon[nk(r.unit)] || r.unit; });
+          personRows.forEach((r) => { const a = alias2[r.person] || r.person; r.person = pCanon[nk(a)] || a; });
+          const uM = {}, uOut = [];
+          unitRows.forEach((r) => { const k = r.week_ending + "|" + r.unit + "|" + r.kind; if (uM[k]) uM[k].charge = r2s((Number(uM[k].charge) || 0) + (Number(r.charge) || 0)); else { uM[k] = r; uOut.push(r); } });
+          unitRows.length = 0; uOut.forEach((r) => unitRows.push(r));
+          const pM = {}, pOut = [];
+          personRows.forEach((r) => { const k = r.week_ending + "|" + r.person; if (pM[k]) { ["sales", "fd", "rec", "tt"].forEach((f) => { pM[k][f] = r2s((Number(pM[k][f]) || 0) + (Number(r[f]) || 0)); }); pM[k].raw = r2s((Number(pM[k].fd) || 0) + ((Number(pM[k].sales) || 0) + (Number(pM[k].rec) || 0)) / 2); } else { pM[k] = r; pOut.push(r); } });
+          personRows.length = 0; pOut.forEach((r) => personRows.push(r));
+        } catch (eC) {}
         // wipe the week first so re-freezes fully reconcile (BU moves, removed rows, stale \u00b7 DH lines)
         await sbService(env, "DELETE", "charge_unit_weeks?week_ending=eq." + weekEnding);
         await sbService(env, "DELETE", "charge_person_weeks?week_ending=eq." + weekEnding);
