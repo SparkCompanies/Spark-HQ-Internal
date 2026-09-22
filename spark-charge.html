@@ -2322,12 +2322,14 @@ window.SPARK_LIVE = (function () {
     setStatus('Loading ' + need.length + ' week payloads for BDA history\u2026', '#FFC800');
     Promise.all(need).then(function () {
       __bdaLoadedAll = true;
-      redo.forEach(function (wk) { try { bdaPersist(wk); } catch (e) {} }); // re-freeze with the contract/DH split
-      setStatus('BDA history loaded' + (redo.length ? ' \u00b7 rebuilding splits for ' + redo.length + ' week' + (redo.length === 1 ? '' : 's') : ''), '#00FF88');
+      window.__bdaSkipped = 0;
+      redo.forEach(function (wk) { try { bdaPersist(wk, true); } catch (e) {} }); // re-dimension frozen weeks; guard skips any week whose live total drifted
+      setStatus('BDA history loaded \u00b7 rebuilding splits for ' + redo.length + ' week' + (redo.length === 1 ? '' : 's'), '#00FF88');
+      setTimeout(function () { if (window.__bdaSkipped) setStatus(window.__bdaSkipped + ' week(s) kept their frozen totals \u2014 live recompute no longer matches, split stays unknown there', '#FFC800'); }, 2500);
       try { rBDA(); } catch (e) {}
     });
   }
-  function bdaPersist(iso) {
+  function bdaPersist(iso, guard) {
     if (!IS_ADMIN) return;
     var go = function () {
       var BD = window.__bda; if (!BD || !BD.people) return;
@@ -2336,6 +2338,11 @@ window.SPARK_LIVE = (function () {
         var accs = (BD.accounts || []).filter(function (a) { return a.bda === P.bda; });
         var v = bdaWeek(iso, accs, null);
         if (v === void 0 || v === null) return; // no row data in memory, or no eligible accounts \u2014 nothing to freeze
+        if (guard) { // rebuild mode: re-dimension only, never re-write drifted history
+          var frz = null;
+          (BD.history || []).forEach(function (r) { if (r.bda === P.bda && String(r.week_ending || '').slice(0, 10) === iso) frz = (frz || 0) + (Number(r.amount) || 0); });
+          if (frz !== null && Math.abs(frz - v.tot) > 1) { window.__bdaSkipped = (window.__bdaSkipped || 0) + 1; return; }
+        }
         var rows = [];
         Object.keys(v.entk || {}).forEach(function (ek) { var n2 = Math.round((v.entk[ek] || 0) * 100) / 100; if (n2) { var ix = ek.indexOf('|'); rows.push({ entity: ek.slice(ix + 1), amount: n2, kind: ek.slice(0, ix) }); } });
         if (!rows.length) rows.push({ entity: '\u2014', amount: 0, kind: 'ct' });
