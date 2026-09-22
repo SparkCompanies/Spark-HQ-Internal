@@ -1913,7 +1913,8 @@ window.SPARK_LIVE = (function () {
         if (w.slice(0, 4) === yKey && Math.floor((Number(w.slice(5, 7)) - 1) / 3) === qIdx) qv += v;
       });
       var goal = tg[label] || 0;
-      return { u: label, wk: Math.round(wk), wow: Math.round(wk - grpOf(prev, names)), mo: Math.round(mo), q: Math.round(qv), cum: Math.round(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null };
+      var r2c = function (n) { return Math.round((Number(n) || 0) * 100) / 100; };
+      return { u: label, wk: r2c(wk), wow: r2c(wk - grpOf(prev, names)), mo: r2c(mo), q: r2c(qv), cum: r2c(cum), goal: goal, pct: goal > 0 ? cum / goal * 100 : null };
     };
     var rows = Object.keys(GROUPS).map(function (c) { return calc(GROUPS[c], c); }).filter(function (r) { return r.wk || r.cum || r.goal; });
     rows.sort(function (x, y) {
@@ -1963,7 +1964,7 @@ window.SPARK_LIVE = (function () {
     };
     var totWk = rows.reduce(function (s2, r) { return s2 + r.wk; }, 0);
     var h = '<style>@keyframes buFlick{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}@keyframes buGlow{0%,100%{box-shadow:0 0 5px rgba(255,107,43,.35)}50%{box-shadow:0 0 14px rgba(255,107,43,.8)}}</style>';
-    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + totWk.toLocaleString() + ' raw this week</span></div>';
+    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totWk).toLocaleString() + ' raw this week</span></div>';
     var cols = [['u', 'Business Unit'], ['wk', 'Raw Charge (Wk)'], ['wow', 'WoW'], ['mo', 'Monthly Raw'], ['q', 'Quarterly Raw'], ['cum', 'Cumulative Raw'], ['goal', 'Igniter'], ['pct', '% to Ignite']];
     h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th>';
     cols.forEach(function (cd) {
@@ -2110,14 +2111,14 @@ window.SPARK_LIVE = (function () {
     if (!el2.length) return null;
     var b = batches[iso], d = dhb[iso];
     if ((!b || !b.rows) && (!d || !d.drops)) return void 0;
-    var m = bdaMatcher(el2), out = { tot: 0, ent: {} };
-    var add = function (a, entity, amt, company) {
+    var m = bdaMatcher(el2), out = { tot: 0, ct: 0, dh: 0, ent: {} };
+    var add = function (a, entity, amt, company, kind) {
       amt = Number(amt) || 0; if (!amt) return;
-      out.tot += amt; var e = entC(entity); out.ent[e] = (out.ent[e] || 0) + amt;
-      if (tally) { var t = tally[a.id] || (tally[a.id] = { wk: 0, comps: {} }); t.wk += amt; t.comps[company] = 1; }
+      out.tot += amt; out[kind] += amt; var e = entC(entity); out.ent[e] = (out.ent[e] || 0) + amt;
+      if (tally) { var t = tally[a.id] || (tally[a.id] = { wk: 0, ct: 0, dh: 0, comps: {} }); t.wk += amt; t[kind] += amt; t.comps[company] = 1; }
     };
-    if (b && b.rows) b.rows.forEach(function (r) { var a = m(r.company); if (a) add(a, r.entity, r.charge, r.company); });
-    if (d && d.drops) d.drops.forEach(function (x) { var a = m(x.company); if (a) add(a, x.entity, x.amount, x.company); });
+    if (b && b.rows) b.rows.forEach(function (r) { var a = m(r.company); if (a) add(a, r.entity, r.charge, r.company, 'ct'); });
+    if (d && d.drops) d.drops.forEach(function (x) { var a = m(x.company); if (a) add(a, x.entity, x.amount, x.company, 'dh'); });
     return out;
   }
   window.rBDA = function () {
@@ -2171,7 +2172,7 @@ window.SPARK_LIVE = (function () {
       h += '<div class="cd" style="padding:18px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">';
       h += '<div><div style="font-size:19px;font-weight:800;letter-spacing:-.4px">' + P.bda + '</div><div style="font-size:10px;color:var(--dm);margin-top:2px">' + live.length + ' account' + (live.length === 1 ? '' : 's') + ' in the 18-month window this week' + (future.length ? ' \u00b7 ' + future.length + ' signed after this week' : '') + '</div></div>';
       h += '<div style="display:flex;gap:22px;flex-wrap:wrap">';
-      [['This Week', fmt(cur.tot), 'var(--gold)'], ['QTD', fK(qtd), 'var(--tx)'], ['YTD', fK(ytd), 'var(--tx)']].forEach(function (k) {
+      [['This Week', fmt(cur.tot), 'var(--gold)'], ['Contract (Wk)', cur.ct == null ? '--' : fmt(cur.ct), 'var(--tx)'], ['DH (Wk)', cur.dh == null ? '--' : fmt(cur.dh), 'var(--y)'], ['QTD', fK(qtd), 'var(--tx)'], ['YTD', fK(ytd), 'var(--tx)']].forEach(function (k) {
         h += '<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">' + k[0] + '</div><div class="m" style="font-size:20px;font-weight:800;color:' + k[2] + ';margin-top:3px">' + k[1] + '</div></div>'; });
       h += '<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">YTD Anchor</div><div class="m" style="font-size:20px;font-weight:800;color:var(--dm);margin-top:3px;' + (IS_ADMIN ? 'cursor:pointer;border-bottom:1px dotted var(--gold)' : '') + '"' + (IS_ADMIN ? ' title="Charge earned this year before Spark HQ row data begins \u2014 click to edit (admin + PIN)" data-n="' + dhAtt(P.bda) + '" onclick="SPARK_LIVE.bdaAnchor(this.dataset.n)"' : '') + '>' + fK(anchor) + '</div></div>';
       h += '</div></div>';
@@ -2193,9 +2194,9 @@ window.SPARK_LIVE = (function () {
         h += '</div>';
       }
       // accounts this week
-      h += '<div class="cd" style="padding:0;margin-bottom:14px"><div class="cdh">Signed Accounts \u2014 in window ' + labelWe(curIso) + ' (' + live.length + ')' + (hb[curIso] ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 this week\u2019s totals come from imported history \u2014 per-account match detail reflects live rows only</span>' : '') + '</div><div class="scr" style="max-height:46vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Account</th><th>Signed</th><th>Falls Off</th><th class="r">Weeks Left</th><th class="r">This Wk Charge</th><th>Matched This Wk</th></tr></thead><tbody>';
+      h += '<div class="cd" style="padding:0;margin-bottom:14px"><div class="cdh">Signed Accounts \u2014 in window ' + labelWe(curIso) + ' (' + live.length + ')' + (hb[curIso] ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 this week\u2019s totals come from imported history \u2014 per-account match detail reflects live rows only</span>' : '') + '</div><div class="scr" style="max-height:46vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Account</th><th>Signed</th><th>Falls Off</th><th class="r">Weeks Left</th><th class="r">Contract (Wk)</th><th class="r">DH (Wk)</th><th class="r">This Wk Total</th><th>Matched This Wk</th></tr></thead><tbody>';
       live.forEach(function (a) {
-        var t = tally[a.id], amt = t ? t.wk : 0, comps = t ? Object.keys(t.comps) : [];
+        var t = tally[a.id], amt = t ? t.wk : 0, ctA = t ? (t.ct || 0) : 0, dhA = t ? (t.dh || 0) : 0, comps = t ? Object.keys(t.comps) : [];
         var fall = bdaFall(a.signed_date);
         var wl = Math.max(0, Math.floor((new Date(fall + 'T00:00:00Z') - new Date(curIso + 'T00:00:00Z')) / 604800000));
         var wc = wl <= 4 ? 'var(--red)' : wl <= 12 ? 'var(--gold)' : '#00C853';
@@ -2204,10 +2205,12 @@ window.SPARK_LIVE = (function () {
           '<td class="m" style="font-size:10px;color:var(--dm)">' + a.signed_date + '</td>' +
           '<td class="m" style="font-size:10px;color:var(--dm)">' + fall + '</td>' +
           '<td class="r"><span class="pl" style="background:' + wc + '15;color:' + wc + '">' + wl + ' wks</span></td>' +
+          '<td class="r m" style="color:' + (ctA ? 'var(--tx)' : 'var(--mt)') + '!important">' + (ctA ? fmt(ctA) : '--') + '</td>' +
+          '<td class="r m" style="color:' + (dhA ? 'var(--y)' : 'var(--mt)') + '!important">' + (dhA ? fmt(dhA) : '--') + '</td>' +
           '<td class="r m" style="font-weight:800;color:' + (amt > 0 ? 'var(--gold)' : amt < 0 ? 'var(--red)' : 'var(--mt)') + '">' + (amt ? fmt(amt) : '--') + '</td>' +
           '<td style="font-size:10px;color:' + (comps.length ? 'var(--dm)' : 'var(--mt)') + '">' + (comps.length ? comps.join(' \u00b7 ') : 'no charge rows matched') + '</td></tr>';
       });
-      if (!live.length) h += '<tr><td colspan="6" style="color:var(--dm);font-size:11px;padding:12px">No accounts in the 18-month window for this week.</td></tr>';
+      if (!live.length) h += '<tr><td colspan="8" style="color:var(--dm);font-size:11px;padding:12px">No accounts in the 18-month window for this week.</td></tr>';
       h += '</tbody></table></div>';
       if (expired.length || future.length) {
         h += '<div style="padding:9px 16px;border-top:1px solid var(--bd);font-size:10px;color:var(--dm)">';
@@ -2220,14 +2223,14 @@ window.SPARK_LIVE = (function () {
       var entTot = {}; isoAll.forEach(function (iso) { var v = wkData[iso]; if (v) Object.keys(v.ent).forEach(function (k) { entTot[k] = (entTot[k] || 0) + v.ent[k]; }); });
       var ENT6 = ['Spark Talent', 'Spark Packaging', 'Flex Workforce Solutions', 'John Joseph Partners', 'Ignite Search', 'Spark Companies'];
       var cols = ENT6.concat(Object.keys(entTot).filter(function (k) { return ENT6.indexOf(k) === -1 && Math.abs(entTot[k]) > 0.005; }).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }));
-      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
-      var csvRows = [['BDA', P.bda], ['Week Ending', 'Total'].concat(cols)];
-      var qAcc = 0, qKey = null, qEnt = {}, ytdEnt = {};
+      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th><th class="r">Contract</th><th class="r">DH</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+      var csvRows = [['BDA', P.bda], ['Week Ending', 'Total', 'Contract', 'DH'].concat(cols)];
+      var qAcc = 0, qCt = 0, qDh = 0, ytdCt = 0, ytdDh = 0, kindGap = false, qKey = null, qEnt = {}, ytdEnt = {};
       var flushQ = function () {
         if (qKey == null) return;
-        h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.03)"><td style="font-weight:800;font-size:10px;color:var(--gold)" class="m">\u03a3 ' + qKey + '</td><td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(qAcc) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
-        csvRows.push(['Q TOTAL ' + qKey, Math.round(qAcc * 100) / 100].concat(cols.map(function (c) { return Math.round((qEnt[c] || 0) * 100) / 100; })));
-        qAcc = 0; qEnt = {};
+        h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.03)"><td style="font-weight:800;font-size:10px;color:var(--gold)" class="m">\u03a3 ' + qKey + '</td><td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(qAcc) + '</td><td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qCt) + '</td><td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qDh) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
+        csvRows.push(['Q TOTAL ' + qKey, Math.round(qAcc * 100) / 100, Math.round(qCt * 100) / 100, Math.round(qDh * 100) / 100].concat(cols.map(function (c) { return Math.round((qEnt[c] || 0) * 100) / 100; })));
+        qAcc = 0; qCt = 0; qDh = 0; qEnt = {};
       };
       isoAll.forEach(function (iso) {
         var qk = 'Q' + qOf(iso) + ' ' + iso.slice(0, 4);
@@ -2235,20 +2238,21 @@ window.SPARK_LIVE = (function () {
         qKey = qk;
         var v = wkData[iso];
         var cellTxt = v === void 0 ? '<span title="row-level data not loaded for this week">\u00b7</span>' : v === null ? '--' : fmt(v.tot);
-        h += '<tr><td class="m" style="font-size:10px;font-weight:800;color:var(--tx)">WE ' + labelWe(iso).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:700;color:' + (v && v.tot > 0 ? 'var(--gold)' : v && v.tot < 0 ? 'var(--red)' : 'var(--mt)') + '">' + cellTxt + '</td>' +
+        var kCell = function (x) { return '<td class="r m" style="color:' + (x ? 'var(--tx)' : 'var(--mt)') + '!important">' + (v === void 0 ? '\u00b7' : (v && x != null) ? (x ? fmt(x) : '--') : '--') + '</td>'; };
+        h += '<tr><td class="m" style="font-size:10px;font-weight:800;color:var(--tx)">WE ' + labelWe(iso).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:700;color:' + (v && v.tot > 0 ? 'var(--gold)' : v && v.tot < 0 ? 'var(--red)' : 'var(--mt)') + '">' + cellTxt + '</td>' + kCell(v && v.ct) + kCell(v && v.dh) +
           cols.map(function (c) { var x = v && v.ent[c]; return '<td class="r m" style="color:' + (x ? 'var(--tx)' : 'var(--mt)') + '!important">' + (v === void 0 ? '\u00b7' : x ? fmt(x) : '--') + '</td>'; }).join('') + '</tr>';
-        if (v) { qAcc += v.tot; cols.forEach(function (c) { if (v.ent[c]) { qEnt[c] = (qEnt[c] || 0) + v.ent[c]; if (iso.slice(0, 4) === curYr) ytdEnt[c] = (ytdEnt[c] || 0) + v.ent[c]; } }); }
-        csvRows.push(['WE ' + labelWe(iso).replace(/^WE\s*/, ''), v ? Math.round(v.tot * 100) / 100 : v === void 0 ? 'n/a' : 0].concat(cols.map(function (c) { return v && v.ent[c] ? Math.round(v.ent[c] * 100) / 100 : v === void 0 ? 'n/a' : 0; })));
+        if (v) { qAcc += v.tot; if (v.ct != null) { qCt += v.ct; qDh += v.dh; if (iso.slice(0, 4) === curYr) { ytdCt += v.ct; ytdDh += v.dh; } } else kindGap = true; cols.forEach(function (c) { if (v.ent[c]) { qEnt[c] = (qEnt[c] || 0) + v.ent[c]; if (iso.slice(0, 4) === curYr) ytdEnt[c] = (ytdEnt[c] || 0) + v.ent[c]; } }); }
+        csvRows.push(['WE ' + labelWe(iso).replace(/^WE\s*/, ''), v ? Math.round(v.tot * 100) / 100 : v === void 0 ? 'n/a' : 0, v && v.ct != null ? Math.round(v.ct * 100) / 100 : 'n/a', v && v.dh != null ? Math.round(v.dh * 100) / 100 : 'n/a'].concat(cols.map(function (c) { return v && v.ent[c] ? Math.round(v.ent[c] * 100) / 100 : v === void 0 ? 'n/a' : 0; })));
       });
       flushQ();
-      h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">YTD' + (anchor ? ' (incl. anchor ' + fK(anchor) + ')' : '') + '</td><td class="r m" style="font-weight:900;color:var(--gold)">' + fmt(ytd) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(ytdEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
+      h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.05)"><td style="font-weight:800;color:var(--gold)">YTD' + (anchor ? ' (incl. anchor ' + fK(anchor) + ')' : '') + '</td><td class="r m" style="font-weight:900;color:var(--gold)">' + fmt(ytd) + '</td><td class="r m" style="font-weight:800;color:var(--gold)" title="live-derived weeks only' + (kindGap || anchor ? ' \u2014 imported-history weeks and the anchor have no contract/DH breakdown' : '') + '">' + fmt(ytdCt) + '</td><td class="r m" style="font-weight:800;color:var(--gold)" title="live-derived weeks only' + (kindGap || anchor ? ' \u2014 imported-history weeks and the anchor have no contract/DH breakdown' : '') + '">' + fmt(ytdDh) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(ytdEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
       h += '</tbody></table></div></div>';
-      csvRows.push(['YTD (incl. anchor ' + anchor + ')', Math.round(ytd * 100) / 100].concat(cols.map(function (c) { return Math.round((ytdEnt[c] || 0) * 100) / 100; })));
+      csvRows.push(['YTD (incl. anchor ' + anchor + ')', Math.round(ytd * 100) / 100, Math.round(ytdCt * 100) / 100, Math.round(ytdDh * 100) / 100].concat(cols.map(function (c) { return Math.round((ytdEnt[c] || 0) * 100) / 100; })));
       csvRows.push([]);
-      csvRows.push(['Account', 'Signed', 'Falls Off', 'In Window ' + labelWe(curIso), 'This Wk Charge', 'Prefix Match', 'Notes']);
+      csvRows.push(['Account', 'Signed', 'Falls Off', 'In Window ' + labelWe(curIso), 'Contract (Wk)', 'DH (Wk)', 'This Wk Total', 'Prefix Match', 'Notes']);
       accs.slice().sort(function (a, b) { return a.signed_date < b.signed_date ? -1 : 1; }).forEach(function (a) {
         var t = tally[a.id];
-        csvRows.push([a.client, a.signed_date, bdaFall(a.signed_date), bdaElig(a, curIso) ? 'Yes' : 'No', t ? Math.round(t.wk * 100) / 100 : 0, a.match_prefix ? 'Yes' : '', a.notes || '']);
+        csvRows.push([a.client, a.signed_date, bdaFall(a.signed_date), bdaElig(a, curIso) ? 'Yes' : 'No', t ? Math.round((t.ct || 0) * 100) / 100 : 0, t ? Math.round((t.dh || 0) * 100) / 100 : 0, t ? Math.round(t.wk * 100) / 100 : 0, a.match_prefix ? 'Yes' : '', a.notes || '']);
       });
       csvRows.push([]);
       window.__bdaCsv = window.__bdaCsv.concat(csvRows);
