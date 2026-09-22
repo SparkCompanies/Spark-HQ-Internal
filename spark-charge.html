@@ -2304,6 +2304,7 @@ window.SPARK_LIVE = (function () {
     else if (act === '5') { if (confirm('Delete ' + a.client + ' from the BDA account list?')) bdaPost('/bda-account', { op: 'delete', id: id }, 'Deleted \u00b7 ' + a.client); }
   }
   function bdaLoadAll() {
+    if (IS_ADMIN && !ensurePin()) return; // persists below are PIN-gated on the worker; without it they 403 silently
     var BD = window.__bda || {};
     var act = (BD.people || []).filter(function (p) { return p.active !== false; }).map(function (p) { return p.bda; });
     var covered = {}, legacy = {};
@@ -2346,7 +2347,7 @@ window.SPARK_LIVE = (function () {
                 .concat(rows.map(function (r) { return { bda: P.bda, week_ending: iso, entity: r.entity, amount: r.amount, kind: r.kind || null }; }));
               try { rBDA(); } catch (e) {}
             }
-          }).catch(function () {});
+          }).catch(function (e) { window.__bdaPersistErr = String(e && e.message || e); try { setStatus('BDA freeze failed \u00b7 ' + iso + ' \u00b7 ' + window.__bdaPersistErr, '#FF4466'); } catch (e2) {} });
       });
     };
     if (window.__bda === void 0) bdaFetch(go); else go();
