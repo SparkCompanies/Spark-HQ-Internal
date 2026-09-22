@@ -2111,10 +2111,11 @@ window.SPARK_LIVE = (function () {
     if (!el2.length) return null;
     var b = batches[iso], d = dhb[iso];
     if ((!b || !b.rows) && (!d || !d.drops)) return void 0;
-    var m = bdaMatcher(el2), out = { tot: 0, ct: 0, dh: 0, ent: {} };
+    var m = bdaMatcher(el2), out = { tot: 0, ct: 0, dh: 0, ent: {}, entk: {} };
     var add = function (a, entity, amt, company, kind) {
       amt = Number(amt) || 0; if (!amt) return;
       out.tot += amt; out[kind] += amt; var e = entC(entity); out.ent[e] = (out.ent[e] || 0) + amt;
+      var ek = kind + '|' + e; out.entk[ek] = (out.entk[ek] || 0) + amt;
       if (tally) { var t = tally[a.id] || (tally[a.id] = { wk: 0, ct: 0, dh: 0, comps: {} }); t.wk += amt; t[kind] += amt; t.comps[company] = 1; }
     };
     if (b && b.rows) b.rows.forEach(function (r) { var a = m(r.company); if (a) add(a, r.entity, r.charge, r.company, 'ct'); });
@@ -2144,9 +2145,12 @@ window.SPARK_LIVE = (function () {
       (BD.history || []).forEach(function (r) {
         if (r.bda !== P.bda) return;
         var iso = String(r.week_ending || '').slice(0, 10); if (!iso) return;
-        var o = hb[iso] || (hb[iso] = { tot: 0, ent: {} });
+        var o = hb[iso] || (hb[iso] = { tot: 0, ct: 0, dh: 0, ent: {} });
         var amt = Number(r.amount) || 0, e = entC(r.entity);
         o.tot += amt; o.ent[e] = (o.ent[e] || 0) + amt;
+        if (r.kind === 'ct') { if (o.ct != null) o.ct += amt; }
+        else if (r.kind === 'dh') { if (o.dh != null) o.dh += amt; }
+        else { o.ct = null; o.dh = null; }
       });
       var isoAll = isoList.slice(), _seen = {};
       isoAll.forEach(function (i) { _seen[i] = 1; });
@@ -2223,9 +2227,10 @@ window.SPARK_LIVE = (function () {
       var entTot = {}; isoAll.forEach(function (iso) { var v = wkData[iso]; if (v) Object.keys(v.ent).forEach(function (k) { entTot[k] = (entTot[k] || 0) + v.ent[k]; }); });
       var ENT6 = ['Spark Talent', 'Spark Packaging', 'Flex Workforce Solutions', 'John Joseph Partners', 'Ignite Search', 'Spark Companies'];
       var cols = ENT6.concat(Object.keys(entTot).filter(function (k) { return ENT6.indexOf(k) === -1 && Math.abs(entTot[k]) > 0.005; }).sort(function (a, b) { return Math.abs(entTot[b]) - Math.abs(entTot[a]); }));
-      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (missing && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">Load all weeks</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th><th class="r">Contract</th><th class="r">DH</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
+      var kindGap = false; isoAll.forEach(function (i2) { var v2 = wkData[i2]; if (v2 && v2.ct == null) kindGap = true; });
+      h += '<div class="cd" style="padding:0;margin-bottom:18px"><div class="cdh">Week over Week' + (missing ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 ' + missing + ' week' + (missing === 1 ? '' : 's') + ' with neither imported history nor row-level data (shown as \u00b7)</span>' : '') + (kindGap && IS_ADMIN && !__bdaLoadedAll ? ' <span style="font-size:9px;color:var(--dm);font-weight:400">\u00b7 older weeks were frozen before the contract/DH split existed</span>' : '') + ((missing || (kindGap && IS_ADMIN)) && !__bdaLoadedAll ? ' <button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.bdaLoadAll()">' + (missing ? 'Load all weeks' : 'Rebuild contract/DH splits') + '</button>' : '') + '</div><div class="scr" style="max-height:56vh"><table class="tb" style="white-space:nowrap"><thead><tr><th>Week Ending</th><th class="r">Total Sales</th><th class="r">Contract</th><th class="r">DH</th>' + cols.map(function (c) { return '<th class="r">' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
       var csvRows = [['BDA', P.bda], ['Week Ending', 'Total', 'Contract', 'DH'].concat(cols)];
-      var qAcc = 0, qCt = 0, qDh = 0, ytdCt = 0, ytdDh = 0, kindGap = false, qKey = null, qEnt = {}, ytdEnt = {};
+      var qAcc = 0, qCt = 0, qDh = 0, ytdCt = 0, ytdDh = 0, qKey = null, qEnt = {}, ytdEnt = {};
       var flushQ = function () {
         if (qKey == null) return;
         h += '<tr style="border-top:1px solid var(--bd);background:rgba(255,200,0,.03)"><td style="font-weight:800;font-size:10px;color:var(--gold)" class="m">\u03a3 ' + qKey + '</td><td class="r m" style="font-weight:800;color:var(--gold)">' + fmt(qAcc) + '</td><td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qCt) + '</td><td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qDh) + '</td>' + cols.map(function (c) { return '<td class="r m" style="font-weight:700;color:var(--gold)">' + fmt(qEnt[c] || 0) + '</td>'; }).join('') + '</tr>';
@@ -2241,7 +2246,7 @@ window.SPARK_LIVE = (function () {
         var kCell = function (x) { return '<td class="r m" style="color:' + (x ? 'var(--tx)' : 'var(--mt)') + '!important">' + (v === void 0 ? '\u00b7' : (v && x != null) ? (x ? fmt(x) : '--') : '--') + '</td>'; };
         h += '<tr><td class="m" style="font-size:10px;font-weight:800;color:var(--tx)">WE ' + labelWe(iso).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:700;color:' + (v && v.tot > 0 ? 'var(--gold)' : v && v.tot < 0 ? 'var(--red)' : 'var(--mt)') + '">' + cellTxt + '</td>' + kCell(v && v.ct) + kCell(v && v.dh) +
           cols.map(function (c) { var x = v && v.ent[c]; return '<td class="r m" style="color:' + (x ? 'var(--tx)' : 'var(--mt)') + '!important">' + (v === void 0 ? '\u00b7' : x ? fmt(x) : '--') + '</td>'; }).join('') + '</tr>';
-        if (v) { qAcc += v.tot; if (v.ct != null) { qCt += v.ct; qDh += v.dh; if (iso.slice(0, 4) === curYr) { ytdCt += v.ct; ytdDh += v.dh; } } else kindGap = true; cols.forEach(function (c) { if (v.ent[c]) { qEnt[c] = (qEnt[c] || 0) + v.ent[c]; if (iso.slice(0, 4) === curYr) ytdEnt[c] = (ytdEnt[c] || 0) + v.ent[c]; } }); }
+        if (v) { qAcc += v.tot; if (v.ct != null) { qCt += v.ct; qDh += v.dh; if (iso.slice(0, 4) === curYr) { ytdCt += v.ct; ytdDh += v.dh; } } cols.forEach(function (c) { if (v.ent[c]) { qEnt[c] = (qEnt[c] || 0) + v.ent[c]; if (iso.slice(0, 4) === curYr) ytdEnt[c] = (ytdEnt[c] || 0) + v.ent[c]; } }); }
         csvRows.push(['WE ' + labelWe(iso).replace(/^WE\s*/, ''), v ? Math.round(v.tot * 100) / 100 : v === void 0 ? 'n/a' : 0, v && v.ct != null ? Math.round(v.ct * 100) / 100 : 'n/a', v && v.dh != null ? Math.round(v.dh * 100) / 100 : 'n/a'].concat(cols.map(function (c) { return v && v.ent[c] ? Math.round(v.ent[c] * 100) / 100 : v === void 0 ? 'n/a' : 0; })));
       });
       flushQ();
@@ -2301,18 +2306,25 @@ window.SPARK_LIVE = (function () {
   function bdaLoadAll() {
     var BD = window.__bda || {};
     var act = (BD.people || []).filter(function (p) { return p.active !== false; }).map(function (p) { return p.bda; });
-    var covered = {};
-    (BD.history || []).forEach(function (r) { var iso = String(r.week_ending || '').slice(0, 10); if (iso) (covered[iso] = covered[iso] || {})[r.bda] = 1; });
-    var isoList = weeksThrough(curIso), need = [];
+    var covered = {}, legacy = {};
+    (BD.history || []).forEach(function (r) { var iso = String(r.week_ending || '').slice(0, 10); if (!iso) return; (covered[iso] = covered[iso] || {})[r.bda] = 1; if (r.kind !== 'ct' && r.kind !== 'dh') legacy[iso] = 1; });
+    var isoList = weeksThrough(curIso), need = [], redo = [];
     isoList.forEach(function (wk) {
       var c = covered[wk];
-      if (act.length && act.every(function (b) { return c && c[b]; })) return; // history covers this week for every BDA \u2014 nothing to fetch
+      var covd = act.length && act.every(function (b) { return c && c[b]; });
+      if (covd && !legacy[wk]) return; // history covers this week WITH the contract/DH split \u2014 nothing to do
+      redo.push(wk);
       if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
       if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
     });
-    if (!need.length) { __bdaLoadedAll = true; try { rBDA(); } catch (e) {} return; }
+    if (!need.length && !redo.length) { __bdaLoadedAll = true; try { rBDA(); } catch (e) {} return; }
     setStatus('Loading ' + need.length + ' week payloads for BDA history\u2026', '#FFC800');
-    Promise.all(need).then(function () { __bdaLoadedAll = true; setStatus('BDA history loaded', '#00FF88'); try { rBDA(); } catch (e) {} });
+    Promise.all(need).then(function () {
+      __bdaLoadedAll = true;
+      redo.forEach(function (wk) { try { bdaPersist(wk); } catch (e) {} }); // re-freeze with the contract/DH split
+      setStatus('BDA history loaded' + (redo.length ? ' \u00b7 rebuilding splits for ' + redo.length + ' week' + (redo.length === 1 ? '' : 's') : ''), '#00FF88');
+      try { rBDA(); } catch (e) {}
+    });
   }
   function bdaPersist(iso) {
     if (!IS_ADMIN) return;
@@ -2324,14 +2336,14 @@ window.SPARK_LIVE = (function () {
         var v = bdaWeek(iso, accs, null);
         if (v === void 0 || v === null) return; // no row data in memory, or no eligible accounts \u2014 nothing to freeze
         var rows = [];
-        Object.keys(v.ent).forEach(function (e) { var n2 = Math.round((v.ent[e] || 0) * 100) / 100; if (n2) rows.push({ entity: e, amount: n2 }); });
-        if (!rows.length) rows.push({ entity: '\u2014', amount: 0 });
+        Object.keys(v.entk || {}).forEach(function (ek) { var n2 = Math.round((v.entk[ek] || 0) * 100) / 100; if (n2) { var ix = ek.indexOf('|'); rows.push({ entity: ek.slice(ix + 1), amount: n2, kind: ek.slice(0, ix) }); } });
+        if (!rows.length) rows.push({ entity: '\u2014', amount: 0, kind: 'ct' });
         api('/bda-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bda: P.bda, week_ending: iso, rows: rows }) })
           .then(function (j) {
             if (!j || j.ok === false) return;
             if (window.__bda) {
               window.__bda.history = (window.__bda.history || []).filter(function (r) { return !(r.bda === P.bda && String(r.week_ending || '').slice(0, 10) === iso); })
-                .concat(rows.map(function (r) { return { bda: P.bda, week_ending: iso, entity: r.entity, amount: r.amount }; }));
+                .concat(rows.map(function (r) { return { bda: P.bda, week_ending: iso, entity: r.entity, amount: r.amount, kind: r.kind || null }; }));
               try { rBDA(); } catch (e) {}
             }
           }).catch(function () {});
