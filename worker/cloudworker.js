@@ -7391,7 +7391,7 @@ var worker_default = {
         const bda = String(body.bda || "").trim();
         const wk = String(body.week_ending || "");
         if (!bda || !/^\d{4}-\d{2}-\d{2}$/.test(wk)) return json({ error: "bda + week_ending (YYYY-MM-DD) required" }, 400, origin);
-        const rows = Array.isArray(body.rows) ? body.rows.map((r) => ({ bda, week_ending: wk, entity: String((r && r.entity) || "").trim(), amount: Number(r && r.amount), kind: (r && (r.kind === "ct" || r.kind === "dh")) ? r.kind : null })).filter((r) => r.entity && isFinite(r.amount)) : [];
+        const rows = Array.isArray(body.rows) ? body.rows.map((r) => ({ bda, week_ending: wk, entity: String((r && r.entity) || "").trim(), amount: Number(r && r.amount), kind: (r && (r.kind === "ct" || r.kind === "dh")) ? r.kind : "legacy" })).filter((r) => r.entity && isFinite(r.amount)) : [];
         const del = await sbService(env, "DELETE", "bda_history?bda=eq." + encodeURIComponent(bda) + "&week_ending=eq." + wk);
         if (!del.ok) return json({ ok: false, error: "history delete failed" }, 502, origin);
         if (!rows.length) return json({ ok: true, rows: 0 }, 200, origin);
