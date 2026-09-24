@@ -1886,6 +1886,20 @@ window.SPARK_LIVE = (function () {
       if (d && d.byEntity) Object.keys(d.byEntity).forEach(function (k) { de.push([k, Number(d.byEntity[k]) || 0]); });
       h += sec('Contract \u00b7 by BU', cb);
       h += sec('Direct Hire \u00b7 by BU', db);
+      var blanks = [];
+      ((b && b.rows) || []).forEach(function (r) { if (!String(r.bu || '').trim()) blanks.push(['CT', r]); });
+      ((d && d.drops) || []).forEach(function (r) { if (!String(r.bu || '').trim()) blanks.push(['DH', r]); });
+      if (blanks.length) {
+        var bt = 0;
+        var o2 = '<div class="cd" style="padding:14px;margin-bottom:12px;border:1px solid rgba(255,107,43,.35)"><div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--org,#FF6B2B)">\u26a0 Lines with NO business unit \u2014 invisible to the BU table</div>';
+        blanks.sort(function (a, z) { return Math.abs(Number(z[1].amount || z[1].charge) || 0) - Math.abs(Number(a[1].amount || a[1].charge) || 0); });
+        blanks.forEach(function (p) {
+          var r = p[1], v = Number(p[0] === 'DH' ? r.amount : r.charge) || 0; bt += v;
+          o2 += '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 2px;border-bottom:1px solid rgba(24,30,44,.35)"><span style="font-size:11px"><b>' + p[0] + '</b> \u00b7 ' + esc(r.candidate || '\u2014') + ' <span style="color:var(--dm)">' + esc(r.company || '') + ' \u00b7 ' + esc(r.entity || 'no entity') + '</span></span><span class="m" style="font-size:11px;font-weight:700;color:' + (v < 0 ? 'var(--red)' : 'var(--tx)') + '">' + fmt(v) + '</span></div>';
+        });
+        o2 += '<div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-weight:800;font-size:11px">TOTAL UNCODED</span><span class="m" style="font-weight:800">' + fmt(bt) + '</span></div></div>';
+        h += o2;
+      }
       grand = 0; // grand = contract byBU + DH byBU only; entity views shown for reference, not summed
       cb.forEach(function (p) { grand += p[1]; }); db.forEach(function (p) { grand += p[1]; });
       h += '<div class="cd" style="padding:14px;margin-bottom:12px;border:1px solid rgba(255,200,0,.25)"><div style="display:flex;justify-content:space-between"><span style="font-weight:800;font-size:12px;color:var(--gold)">ALL BU KEYS TOTAL (contract + DH)</span><span class="m" style="font-weight:800;color:var(--gold)">' + fmt(grand) + '</span></div><div style="font-size:10px;color:var(--dm);margin-top:4px">Compare to the sidebar badge and the table \u03a3 \u2014 keys above that are not displayed portfolio units explain the difference.</div></div>';
@@ -1909,7 +1923,7 @@ window.SPARK_LIVE = (function () {
     var tgt = nk2(u);
     var hit = function (r) { var b = String(r.bu || '').trim(); if (b) return nk2(b) === tgt; return nk2(r.entity) === tgt; };
     var b = batches[wk], d = dhb[wk];
-    var ct = ((b && b.rows) || []).filter(hit).slice().sort(function (a, z) { return (Number(z.charge) || 0) - (Number(a.charge) || 0); });
+    var ct = ((b && b.rows) || []).filter(hit).slice().sort(function (a, z) { var c = String(a.company || '').localeCompare(String(z.company || '')); return c || ((Number(z.charge) || 0) - (Number(a.charge) || 0)); });
     var dh = ((d && d.drops) || []).filter(hit).slice().sort(function (a, z) { return (Number(z.amount) || 0) - (Number(a.amount) || 0); });
     var ctT = ct.reduce(function (a, r) { return a + (Number(r.charge) || 0); }, 0);
     var dhT = dh.reduce(function (a, r) { return a + (Number(r.amount) || 0); }, 0);
