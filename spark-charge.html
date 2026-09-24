@@ -3271,24 +3271,30 @@ window.SPARK_LIVE = (function () {
       var q3cp = t.q3c ? (t.q3 || 0) / t.q3c * 100 : null;
       var ap = t.ai ? t.ytd / t.ai * 100 : null;
       var acp = t.ac ? t.ytd / t.ac * 100 : null;
-      var proj = wkN > 0 ? t.ytd / wkN * 52 : 0;
-      var need = t.ai && t.ai > t.ytd && wkN < 52 ? (t.ai - t.ytd) / (52 - wkN) : 0;
-      return { t: t, n: t.n, q3: t.q3 || 0, q3i: t.q3i || 0, ytd: t.ytd || 0, ai: t.ai || 0, qp: qp, q3cp: q3cp, ap: ap, acp: acp, proj: proj, need: need };
+      // Run rate: $/week at current pace (Q3 grain during Q3, FY grain otherwise)
+      var rr = q3wk > 0 ? (t.q3 || 0) / q3wk : (wkN > 0 ? t.ytd / wkN : 0);
+      // Need $/wk: to hit the CONTEST (Q3 contest during Q3, annual otherwise); 0 = already there
+      var need = null;
+      if (q3wk > 0 && q3wk < 13 && t.q3c) need = Math.max(0, (t.q3c - (t.q3 || 0)) / (13 - q3wk));
+      else if (q3wk === 0 && wkN < 52 && t.ac) need = Math.max(0, (t.ac - t.ytd) / (52 - wkN));
+      return { t: t, n: t.n, q3: t.q3 || 0, q3i: t.q3i || 0, q3c: t.q3c || 0, ytd: t.ytd || 0, ai: t.ai || 0, ac: t.ac || 0, qp: qp, q3cp: q3cp, ap: ap, acp: acp, rr: rr, need: need == null ? -1 : need };
     });
     rows = sApply(rows, 'tg', 'qp');
     var pct = function (v) { return v == null ? '<span style="color:var(--mt)">--</span>' : '<span class="m" style="font-weight:700;color:' + pC(v) + '">' + Math.round(v) + '%</span>'; };
     var h = '<div class="st">Targets &amp; Pacing &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">week ' + wkN + ' of 52' + (q3wk ? ' &middot; Q3 week ' + q3wk + ' of 13' : '') + '</span></div>';
-    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th>' + sTh('tg','n','Team Member',false,'rTG') + sTh('tg','q3','Q3 QTD Raw',true,'rTG') + sTh('tg','q3i','Q3 Igniter',true,'rTG') + sTh('tg','qp','Q3 %',true,'rTG') + sTh('tg','q3cp','Q3 Contest %',true,'rTG') + sTh('tg','ytd','YTD Raw',true,'rTG') + sTh('tg','ai','Ann Igniter',true,'rTG') + sTh('tg','ap','Ann %',true,'rTG') + sTh('tg','acp','Contest %',true,'rTG') + sTh('tg','proj','Run Rate (FY)',true,'rTG') + sTh('tg','need','Need $/wk',true,'rTG') + '</tr></thead><tbody>';
+    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th>' + sTh('tg','n','Team Member',false,'rTG') + sTh('tg','q3','Q3 QTD Charge',true,'rTG') + sTh('tg','q3i','Q3 Igniter',true,'rTG') + sTh('tg','qp','Q3 Igniter %',true,'rTG') + sTh('tg','q3c','Q3 Contest',true,'rTG') + sTh('tg','q3cp','Q3 Contest %',true,'rTG') + sTh('tg','ytd','YTD Raw',true,'rTG') + sTh('tg','ai','Yearly Igniter',true,'rTG') + sTh('tg','ap','YTD Igniter %',true,'rTG') + sTh('tg','ac','Yearly Contest',true,'rTG') + sTh('tg','acp','Yearly Contest %',true,'rTG') + sTh('tg','rr','Run Rate $/wk',true,'rTG') + sTh('tg','need','Need $/wk',true,'rTG') + '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
       var t = r.t;
       h += '<tr onclick="openPerson(\'' + esc(t.n) + '\')" style="cursor:pointer"><td>' + bdg(i) + '</td>';
       h += '<td><div style="font-weight:600;font-size:12px">' + t.n + '</div><div style="font-size:10px;color:var(--dm)">' + (t.bu || '') + '</div></td>';
       h += '<td class="r m" style="font-size:11px;font-weight:700">' + fmt(t.q3 || 0) + '</td><td class="r m" style="font-size:10px;color:var(--dm)">' + fK(t.q3i) + '</td>';
-      h += '<td class="r">' + pct(r.qp) + '</td><td class="r">' + pct(r.q3cp) + '</td>';
+      h += '<td class="r">' + pct(r.qp) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.q3c ? fK(r.q3c) : '--') + '</td><td class="r">' + pct(r.q3cp) + '</td>';
       h += '<td class="r m" style="font-size:11px;font-weight:700">' + fmt(t.ytd) + '</td><td class="r m" style="font-size:10px;color:var(--dm)">' + fK(t.ai) + '</td>';
-      h += '<td class="r">' + pct(r.ap) + '</td><td class="r">' + pct(r.acp) + '</td>';
-      h += '<td class="r m" style="font-size:10px;color:var(--tea)">' + fK(Math.round(r.proj)) + '</td>';
-      h += '<td class="r m" style="font-size:10px;color:' + (r.need > 0 ? 'var(--org)' : 'var(--grn)') + '">' + (r.need > 0 ? fK(Math.round(r.need)) : '&#10003; ahead') + '</td></tr>';
+      h += '<td class="r">' + pct(r.ap) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--dm)">' + (r.ac ? fK(r.ac) : '--') + '</td><td class="r">' + pct(r.acp) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:var(--tea)">' + fK(Math.round(r.rr)) + '</td>';
+      h += '<td class="r m" style="font-size:10px;color:' + (r.need > 0 ? 'var(--org)' : r.need === 0 ? 'var(--grn)' : 'var(--mt)') + '">' + (r.need > 0 ? fK(Math.round(r.need)) : r.need === 0 ? '&#10003; hit' : '--') + '</td></tr>';
     });
     h += '</tbody></table></div></div>';
     el.innerHTML = h;
