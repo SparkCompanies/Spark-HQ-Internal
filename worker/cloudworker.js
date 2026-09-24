@@ -649,7 +649,7 @@ var worker_default = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(we)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
       const d = new Date(we + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 5);
       const checkDate = (d.getUTCMonth() + 1) + "-" + d.getUTCDate() + "-" + d.getUTCFullYear() + " Check Date";
-      const out = { version: "preview-v38-methods-multi-po", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
+      const out = { version: "preview-v36-penske-assign", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
       let token;
       try { token = await getGraphToken(env); } catch (e) { out.tokenError = String(e.message || e); return json(out, 200, origin); }
       const H = { Authorization: "Bearer " + token, Accept: "application/json" };
@@ -804,7 +804,7 @@ var worker_default = {
       out.paslin.flagged = out.paslin.matching.filter((x) => x.status !== "matched");
       // Methods (PDF): pull the Order/PO number from the top of the sheet
       const methodsFiles = files.filter((f) => /methods/i.test(f.name));
-      out.methods = { filesFound: methodsFiles.map((f) => f.entity + "/" + f.name), po: null , pos: [] };
+      out.methods = { filesFound: methodsFiles.map((f) => f.entity + "/" + f.name), po: null };
       for (const f of methodsFiles) {
         try {
           const resp = f.dl ? await fetch(f.dl) : await fetch(G + "/items/" + f.id + "/content", { headers: H });
@@ -815,19 +815,15 @@ var worker_default = {
           const b64 = btoa(bin);
           const payload = { model: "claude-sonnet-4-6", max_tokens: 256, messages: [{ role: "user", content: [
             (/\.(jpe?g|png|gif|webp)$/i.test(f.name) ? { type: "image", source: { type: "base64", media_type: "image/" + f.name.split(".").pop().toLowerCase().replace(/^jpg$/, "jpeg"), data: b64 } } : { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } }),
-            { type: "text", text: "This is a purchase order. Reply with ONLY two values separated by a pipe character: first the purchase order number shown near the top of the document, labeled Order (for example PRE0000258), then the full name of the contractor/worker this PO is for (the person named in the line items or description). Format: PRE0000258|First Last. If no person is named anywhere, reply with just the PO number and no pipe." }
+            { type: "text", text: "This is a purchase order. Return ONLY the purchase order number shown near the top of the document, labeled Order (for example PRE0000258). Reply with just that value and nothing else." }
           ] }] };
           const air = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify(payload) });
           const ai = await air.json();
           if (!air.ok) { out.methods.error = "Claude error: " + (ai && ai.error && ai.error.message ? ai.error.message : air.status); continue; }
           const txt = (Array.isArray(ai.content) ? ai.content : []).filter((b) => b && b.type === "text").map((b) => b.text).join(" ").trim();
-          const _mp = txt.split("|").map((x) => x.trim());
-          const poM = (_mp[0] || "").match(/[A-Za-z]{2,}\d{3,}/);
-          const _filePo = poM ? poM[0].toUpperCase() : (_mp[0] ? _mp[0].split(/\s+/)[0] : null);
-          const _fileWk = _mp.length > 1 ? _mp.slice(1).join(" ").trim() : "";
-          if (_filePo) out.methods.pos.push({ file: f.entity + "/" + f.name, po: _filePo, worker: _fileWk });
-          if (_filePo && !out.methods.po) out.methods.po = _filePo;
-          out.methods.raw = (out.methods.raw ? out.methods.raw + " ; " : "") + txt;
+          const poM = txt.match(/[A-Za-z]{2,}\d{3,}/);
+          out.methods.po = poM ? poM[0].toUpperCase() : (txt ? txt.split(/\s+/)[0] : null);
+          out.methods.raw = txt;
         } catch (e) { out.methods.error = String(e.message || e); }
       }
       // Fanuc (Excel, SET RATES): read the rate sheet via Graph Excel API, dedupe by name, pull OT rate
@@ -1013,7 +1009,7 @@ var worker_default = {
           writes.push({ kind: "paslin", ok: ps.ok, status: ps.status, rows: paslinRows.length });
           if (out.methods && out.methods.po) {
             await sbService(env, "DELETE", "fin_weekly_intake?week_ending=eq." + encodeURIComponent(we) + "&kind=eq.methods_po");
-            const mp = await sbService(env, "POST", "fin_weekly_intake", { week_ending: we, kind: "methods_po", rows: (out.methods.pos && out.methods.pos.length ? out.methods.pos.map((x) => ({ po: x.po, worker: x.worker || "" })) : [{ po: out.methods.po }]) });
+            const mp = await sbService(env, "POST", "fin_weekly_intake", { week_ending: we, kind: "methods_po", rows: [{ po: out.methods.po }] });
             writes.push({ kind: "methods_po", ok: mp.ok, status: mp.status, po: out.methods.po });
           }
           if (out.fanuc && out.fanuc.intakeRowsPreview && out.fanuc.intakeRowsPreview.length) {
@@ -4146,15 +4142,6 @@ var worker_default = {
           }
           if (p.weekly_po) {
             if (!METHODS_PO) throw HOLD("weekly PO not provided for this week");
-            if (METHODS_POS.length > 1) {
-              const mBuckets = {};
-              Object.keys(workers).forEach((n) => {
-                const mRow = DROP.methods[nz(n)];
-                if (!mRow || !mRow.po) throw HOLD("multiple weekly POs this week but worker '" + n + "' is not named on any PO");
-                (mBuckets[mRow.po] = mBuckets[mRow.po] || {})[n] = workers[n];
-              });
-              return Object.keys(mBuckets).map((po) => ({ entOv: null, acctOv: null, ref: po, subset: mBuckets[po], rtOnly: false }));
-            }
             return [{ entOv: null, acctOv: null, ref: METHODS_PO, subset: workers, rtOnly: false }];
           }
           return [{ entOv: null, acctOv: null, ref: staticPO || "WE " + weekUS, subset: workers, rtOnly: false }];
@@ -4294,9 +4281,8 @@ var worker_default = {
           "Rhino Tool House": { type: "division" },
           "DFM Solutions": { type: "roster" }
         };
-        const DROP = { client_rates: {}, penske: {}, rhino: {}, dfm: {}, paslin: {}, holiday: {}, expenses: {}, client_total: {}, methods: {} };
+        const DROP = { client_rates: {}, penske: {}, rhino: {}, dfm: {}, paslin: {}, holiday: {}, expenses: {}, client_total: {} };
         let METHODS_PO = "";
-        let METHODS_POS = [];
         const _intake = await sbService(env, "GET", "fin_weekly_intake?week_ending=eq." + encodeURIComponent(weekEnding) + "&select=kind,rows");
         const intakeRows = (_intake && _intake.ok && Array.isArray(_intake.data)) ? _intake.data : [];
         (intakeRows || []).forEach((ir) => {
@@ -4329,8 +4315,6 @@ var worker_default = {
           });
           else if (ir.kind === "methods_po") {
             if (rows[0] && rows[0].po) METHODS_PO = String(rows[0].po).trim();
-            rows.forEach((r) => { if (r.po && r.worker) DROP.methods[nz(r.worker)] = { po: String(r.po).trim() }; });
-            METHODS_POS = [...new Set(rows.map((r) => String(r.po || "").trim()).filter(Boolean))];
           }
         });
         const SHIFT_PREM = {};
@@ -4506,7 +4490,7 @@ var worker_default = {
               if (Math.abs(diff) > 0.01) flags.push("recomputed vs ASYMBL differs by $" + diff);
               const ctgt = DROP.client_total[nz(g.client)];
               if (ctgt != null && ctgt === ctgt && Math.abs(m2(recalc) - m2(ctgt)) > 0.01) flags.push("client timesheet total $" + m2(ctgt) + " vs computed $" + m2(recalc) + " (off by $" + m2(recalc - ctgt) + ")");
-              ready.push({ client: g.client, entity: ent, account: a, tax, reference: grp.ref, lineOrder: order || "", invDate: weekUS, invDateISO: weekEnding, dueDate: net != null ? fmtDate(addDays(weekEnding, net)) : "", dueDateISO: net != null ? addDays(weekEnding, net) : "", employees: subNames.length, lines, subtotal: m2(recalc), asymblSubtotal: m2(asymbl), flags });
+              ready.push({ client: g.client, entity: ent, account: a, tax, reference: grp.ref, lineOrder: order || "", invDate: weekUS, dueDate: net != null ? fmtDate(addDays(weekEnding, net)) : "", dueDateISO: net != null ? addDays(weekEnding, net) : "", employees: subNames.length, lines, subtotal: m2(recalc), asymblSubtotal: m2(asymbl), flags });
             });
           } catch (e) {
             if (e && e.__hold) {
@@ -4526,7 +4510,7 @@ var worker_default = {
             DROP.fanuc_expenses.forEach((e) => { const amt = m2(Number(e.amount)); if (amt) exLines.push({ desc: e.worker + " Expenses - " + e.invoiceNo, hours: 1, rate: amt, amount: amt }); });
             if (exLines.length) {
               const exSub = m2(exLines.reduce((s, l) => s + l.amount, 0));
-              ready.push({ client: "Fanuc America Corporation", entity: fx.entity, account: "401", tax: fx.tax, reference: "Fanuc Expenses WE " + weekUS, invDateISO: weekEnding, lineOrder: "", invDate: weekUS, dueDate: fx.dueDate, dueDateISO: fx.dueDateISO || "", employees: new Set(DROP.fanuc_expenses.map((e) => e.worker)).size, lines: exLines, subtotal: exSub, asymblSubtotal: exSub, flags: ["Fanuc expenses \u2014 separate invoice"] });
+              ready.push({ client: "Fanuc America Corporation", entity: fx.entity, account: "401", tax: fx.tax, reference: "Fanuc Expenses WE " + weekUS, lineOrder: "", invDate: weekUS, dueDate: fx.dueDate, dueDateISO: fx.dueDateISO || "", employees: new Set(DROP.fanuc_expenses.map((e) => e.worker)).size, lines: exLines, subtotal: exSub, asymblSubtotal: exSub, flags: ["Fanuc expenses \u2014 separate invoice"] });
             }
           }
         }
@@ -7046,6 +7030,15 @@ var worker_default = {
         const DH_CBU_KEY = (x) => String(x || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(corporation|corp|incorporated|inc|llc|company|co)\b/g, "").replace(/\s+/g, " ").trim();
         const DH_CLIENT_BU = { "dfm solutions": "Light Industrial" };
         drops.forEach((d) => { const o = DH_CLIENT_BU[DH_CBU_KEY(d.company)]; if (o && !d.buEdited) d.bu = o; });
+        // ── Canonical BU names on the DH path ("Ignite" -> "Ignite Search" etc.) ──
+        const DH_BU_ALIAS = { "ignite": "Ignite Search", "jjp": "John Joseph Partners", "bolt": "Bolt Creative Strategies", "bolt creative": "Bolt Creative Strategies", "flex workforce solutions": "Flex Workforce", "mi metro": "MI Metro" };
+        drops.forEach((d) => { const k = String(d.bu || "").toLowerCase().replace(/\s+/g, " ").trim(); if (DH_BU_ALIAS[k] && !d.buEdited) d.bu = DH_BU_ALIAS[k]; });
+        // ── People aliases on the DH path: tracker shorthand ("Jenny N",
+        //    "Nicholas Greenfelder", "Kazeem Olaniyan") resolves to canonical
+        //    names at derivation, so ghosts can't mint on ANY surface ──
+        const DH_NAME_ALIAS = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan", "Kazeem Olanyian": "CJ Olaniyan", "Jenny N": "Jennifer Neuenfeldt" };
+        try { const nmA = await sbService(env, "GET", "charge_name_aliases?select=sf_name,display_name"); if (nmA && nmA.ok && Array.isArray(nmA.data)) nmA.data.forEach((m) => { DH_NAME_ALIAS[m.sf_name] = m.display_name; }); } catch (eA) {}
+        drops.forEach((d) => { if (d.am && DH_NAME_ALIAS[d.am]) d.am = DH_NAME_ALIAS[d.am]; if (d.rec && DH_NAME_ALIAS[d.rec]) d.rec = DH_NAME_ALIAS[d.rec]; });
         // ── geographic BU: client state → territory → BU ──
         const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
         const stateBU = {};
@@ -8041,7 +8034,7 @@ var worker_default = {
           const alias2 = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan", "Kazeem Olanyian": "CJ Olaniyan" };
           try { const ar = await sbService(env, "GET", "charge_name_aliases?select=sf_name,display_name"); if (ar && ar.ok && Array.isArray(ar.data)) ar.data.forEach((m) => { alias2[m.sf_name] = m.display_name; }); } catch (e2) {}
           const nk = (x) => String(x || "").toLowerCase().replace(/\s+/g, " ").trim();
-          const uCanon = {}, pCanon = {};
+          const uCanon = { "ignite": "Ignite Search", "jjp": "John Joseph Partners", "bolt": "Bolt Creative Strategies", "bolt creative": "Bolt Creative Strategies", "flex workforce solutions": "Flex Workforce" }, pCanon = {};
           try { const ur = await sbService(env, "GET", "charge_units?select=unit"); if (ur && ur.ok) (ur.data || []).forEach((u) => { uCanon[nk(u.unit)] = u.unit; }); } catch (e2) {}
           try { const pr = await sbService(env, "GET", "charge_people?select=person"); if (pr && pr.ok) (pr.data || []).forEach((p) => { pCanon[nk(p.person)] = p.person; }); } catch (e2) {}
           unitRows.forEach((r) => { r.unit = uCanon[nk(r.unit)] || r.unit; });
@@ -8155,6 +8148,10 @@ var worker_default = {
         //    Industrial). Keys are rrKey-normalized so dash/suffix/case variants catch;
         //    per-row editor BU patches still win because overrides apply after row build.
         const CLIENT_BU = { "dfm solutions": "Light Industrial" };
+        // BU aliases: shorthand unit names canonize at derivation, so no screen
+        // ever sees "Ignite" where "Ignite Search" is meant (same idea as recipAlias)
+        const BU_ALIAS = { "ignite": "Ignite Search", "jjp": "John Joseph Partners", "bolt": "Bolt Creative Strategies", "bolt creative": "Bolt Creative Strategies", "flex workforce solutions": "Flex Workforce", "mi metro": "MI Metro" };
+        const buFix = (x) => { if (!x) return x; const k = String(x).toLowerCase().replace(/\s+/g, " ").trim(); return BU_ALIAS[k] || x; };
         const ENT_ALIAS = {
           "flex workforce solutions": "Flex Workforce",
           "spark talent acquisition": "Spark Talent",
@@ -8172,7 +8169,7 @@ var worker_default = {
           const dvRaw = String(pl.Division__c || "").trim();
           const entity = (ENT_ALIAS[dvRaw.toLowerCase()] || dvRaw) || (map && map.entity) || null;
           const buPin = CLIENT_BU[rrKey(company)] || CLIENT_BU[rrKey(acct)] || null;
-          const bu = buPin || (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || null;
+          const bu = buFix(buPin || (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || null);
 
           // Job title: placement name is "Account… - Title" (candidate suffix when present)
           let title = String(pl.Name || "");
