@@ -1856,6 +1856,89 @@ window.SPARK_LIVE = (function () {
   
   // ── BUSINESS UNITS: weekly ranking + YTD + igniter pacing ──
   function buOpen(u) { window.lbBU = u; try { rLB(); } catch (e) {} try { go('lb'); } catch (e) {} }
+  function buGap() {
+    var wk = curIso, need = [];
+    if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
+    if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
+    var go2 = function () {
+      var b = batches[wk], d = dhb[wk];
+      var h = '<div style="margin-bottom:18px"><div style="font-size:22px;font-weight:800">\u03a3 Reconcile \u00b7 ' + labelWe(wk) + '</div>';
+      h += '<div style="font-size:11px;color:var(--dm);margin-top:4px">Every live charge key this week. Anything not among the 13 portfolio units is the gap between the badge and the table total.</div></div>';
+      var grand = 0;
+      var sec = function (title, pairs) {
+        var t = 0; pairs.forEach(function (p) { t += p[1]; });
+        grand += t;
+        var o = '<div class="cd" style="padding:14px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;margin-bottom:8px">' + title + ' <span class="pl" style="margin-left:8px">' + fmt(t) + '</span></div>';
+        if (!pairs.length) return o + '<div style="font-size:11px;color:var(--mt)">none</div></div>';
+        pairs.sort(function (a, z) { return Math.abs(z[1]) - Math.abs(a[1]); });
+        pairs.forEach(function (p) {
+          o += '<div style="display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px solid rgba(24,30,44,.35)"><span style="font-size:11px;font-weight:600">' + esc(p[0] === '' ? '\u26a0 (blank BU)' : p[0]) + '</span><span class="m" style="font-size:11px;font-weight:700;color:' + (p[1] < 0 ? 'var(--red)' : 'var(--tx)') + '">' + fmt(p[1]) + '</span></div>';
+        });
+        return o + '</div>';
+      };
+      var cb = [], ce = [];
+      if (b && b.rollups) {
+        (b.rollups.byBU || []).forEach(function (x) { cb.push([String(x.key == null ? '' : x.key), Number(x.charge) || 0]); });
+        (b.rollups.byEntity || []).forEach(function (x) { ce.push([String(x.key == null ? '' : x.key), Number(x.charge) || 0]); });
+      }
+      var db = [], de = [];
+      if (d && d.byBU) Object.keys(d.byBU).forEach(function (k) { db.push([k, Number(d.byBU[k]) || 0]); });
+      if (d && d.byEntity) Object.keys(d.byEntity).forEach(function (k) { de.push([k, Number(d.byEntity[k]) || 0]); });
+      h += sec('Contract \u00b7 by BU', cb);
+      h += sec('Direct Hire \u00b7 by BU', db);
+      grand = 0; // grand = contract byBU + DH byBU only; entity views shown for reference, not summed
+      cb.forEach(function (p) { grand += p[1]; }); db.forEach(function (p) { grand += p[1]; });
+      h += '<div class="cd" style="padding:14px;margin-bottom:12px;border:1px solid rgba(255,200,0,.25)"><div style="display:flex;justify-content:space-between"><span style="font-weight:800;font-size:12px;color:var(--gold)">ALL BU KEYS TOTAL (contract + DH)</span><span class="m" style="font-weight:800;color:var(--gold)">' + fmt(grand) + '</span></div><div style="font-size:10px;color:var(--dm);margin-top:4px">Compare to the sidebar badge and the table \u03a3 \u2014 keys above that are not displayed portfolio units explain the difference.</div></div>';
+      h += sec('Contract \u00b7 by Entity (reference view, not additive)', ce);
+      h += sec('Direct Hire \u00b7 by Entity (reference view, not additive)', de);
+      document.getElementById('drb').innerHTML = h;
+      document.getElementById('dro').classList.add('on');
+    };
+    if (need.length) Promise.all(need).then(go2); else go2();
+  }
+  function buDrawer(u) {
+    var wk = curIso, need = [];
+    if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
+    if (!dhb[wk]) need.push(api('/charge-dh?weekEnding=' + wk).then(function (d) { dhb[wk] = d; }).catch(function () {}));
+    if (need.length) { Promise.all(need).then(function () { buDrawerRender(u); }); } else buDrawerRender(u);
+  }
+  function buDrawerRender(u) {
+    var wk = curIso;
+    var CAN2 = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners', 'flex workforce solutions': 'Flex Workforce', 'flex workforce': 'Flex Workforce' };
+    var nk2 = function (x) { var k = String(x || '').trim(); return (CAN2[k.toLowerCase()] || k).toLowerCase(); };
+    var tgt = nk2(u);
+    var hit = function (r) { var b = String(r.bu || '').trim(); if (b) return nk2(b) === tgt; return nk2(r.entity) === tgt; };
+    var b = batches[wk], d = dhb[wk];
+    var ct = ((b && b.rows) || []).filter(hit).slice().sort(function (a, z) { return (Number(z.charge) || 0) - (Number(a.charge) || 0); });
+    var dh = ((d && d.drops) || []).filter(hit).slice().sort(function (a, z) { return (Number(z.amount) || 0) - (Number(a.amount) || 0); });
+    var ctT = ct.reduce(function (a, r) { return a + (Number(r.charge) || 0); }, 0);
+    var dhT = dh.reduce(function (a, r) { return a + (Number(r.amount) || 0); }, 0);
+    var vc = function (n) { return n > 0 ? 'var(--gold)' : n < 0 ? 'var(--red)' : 'var(--mt)'; };
+    var h = '<div style="margin-bottom:18px"><div style="font-size:25px;font-weight:800;letter-spacing:-.5px">' + esc(u) + '</div>';
+    h += '<div style="font-size:12px;color:var(--dm);margin-top:3px">Week detail \u00b7 ' + labelWe(wk) + '</div>';
+    h += '<div style="margin-top:10px"><button class="fb" onclick="SPARK_LIVE.buOpen(\'' + esc(u) + '\')">WoW view \u2192</button></div></div>';
+    h += '<div class="g g3" style="margin-bottom:16px">';
+    [['Contract', ctT], ['Direct Hire', dhT], ['Total', ctT + dhT]].forEach(function (k) {
+      h += '<div class="cd" style="padding:15px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">' + k[0] + '</div><div class="m" style="font-size:18px;font-weight:800;color:' + vc(k[1]) + ';margin-top:4px">' + fmt(k[1]) + '</div></div>';
+    });
+    h += '</div>';
+    var sec = function (title, rows, amtKey, tot) {
+      var o = '<div class="cd" style="padding:16px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;margin-bottom:10px">' + title + ' <span class="pl" style="margin-left:8px">' + rows.length + '</span></div>';
+      if (!rows.length) return o + '<div style="font-size:11px;color:var(--mt)">Nothing for this unit this week.</div></div>';
+      o += '<div class="scr"><table class="tb"><thead><tr><th>Candidate</th><th>Company</th><th>AM</th><th>Rec</th><th class="r">$</th></tr></thead><tbody>';
+      rows.forEach(function (r) {
+        var v = Number(r[amtKey]) || 0;
+        o += '<tr><td style="font-weight:700">' + esc(r.candidate || '\u2014') + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.company || '') + '</td><td style="font-size:10px">' + esc(r.am || '\u2014') + '</td><td style="font-size:10px">' + esc(r.rec || '\u2014') + '</td><td class="r m" style="font-weight:700;color:' + vc(v) + '">' + fmt(v) + '</td></tr>';
+      });
+      o += '<tr style="border-top:1px solid var(--bd)"><td colspan="4" style="font-weight:800;font-size:10px;color:var(--dm)">TOTAL</td><td class="r m" style="font-weight:800;color:' + vc(tot) + '">' + fmt(tot) + '</td></tr>';
+      return o + '</tbody></table></div></div>';
+    };
+    h += sec('Contract Team Members', ct, 'charge', ctT);
+    h += sec('Direct Hires', dh, 'amount', dhT);
+    document.getElementById('drb').innerHTML = h;
+    document.getElementById('dro').classList.add('on');
+  }
+
   window.rBU = function () {
     var el = document.getElementById('p-bu'); if (!el) return;
     if (!H) { el.innerHTML = '<div class="st">Business Units</div><div style="font-size:11px;color:var(--dm)">Connecting&hellip;</div>'; return; }
@@ -1964,7 +2047,7 @@ window.SPARK_LIVE = (function () {
     };
     var totWk = rows.reduce(function (s2, r) { return s2 + r.wk; }, 0);
     var h = '<style>@keyframes buFlick{0%,100%{transform:scale(1)}50%{transform:scale(1.28)}}@keyframes buGlow{0%,100%{box-shadow:0 0 5px rgba(255,107,43,.35)}50%{box-shadow:0 0 14px rgba(255,107,43,.8)}}</style>';
-    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totWk).toLocaleString() + ' raw this week</span></div>';
+    h += '<div class="st">Business Units &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">' + rows.length + ' units</span><span class="pl" style="margin-left:6px;background:rgba(255,200,0,.1);color:var(--gold)">$' + Math.round(totWk).toLocaleString() + ' raw this week</span><button class="fb" style="margin-left:8px" onclick="SPARK_LIVE.buGap()">\u03a3 reconcile</button></div>';
     var cols = [['u', 'Business Unit'], ['wk', 'Raw Charge (Wk)'], ['wow', 'WoW'], ['mo', 'Monthly Raw'], ['q', 'Quarterly Raw'], ['cum', 'Cumulative Raw'], ['goal', 'Igniter'], ['pct', '% to Ignite']];
     h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px">#</th>';
     cols.forEach(function (cd) {
@@ -1975,7 +2058,7 @@ window.SPARK_LIVE = (function () {
     });
     h += '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
-      h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer"><td>' + rk(i) + '</td>' + cell(r, false) + '</tr>';
+      h += '<tr onclick="SPARK_LIVE.buDrawer(\'' + esc(r.u) + '\')" style="cursor:pointer"><td>' + rk(i) + '</td>' + cell(r, false) + '</tr>';
     });
     if (port) h += '<tr style="border-top:2px solid var(--gold);background:rgba(255,200,0,.04)"><td style="color:var(--gold);font-weight:900;font-size:10px" class="m">\u03a3</td>' + cell(port, true) + '</tr>';
     h += '</tbody></table></div></div>';
@@ -1984,7 +2067,7 @@ window.SPARK_LIVE = (function () {
       h += '<div class="cd"><div class="scr"><table class="tb"><thead><tr><th style="width:36px"></th>';
       cols.forEach(function (cd) { var cls = (cd[0] === 'u' || cd[0] === 'pct') ? '' : ' class="r"'; var sty = cd[0] === 'pct' ? 'padding-left:26px;white-space:nowrap' : 'white-space:nowrap'; h += '<th' + cls + ' style="' + sty + '">' + cd[1] + '</th>'; });
       h += '</tr></thead><tbody>';
-      legRows.forEach(function (r) { h += '<tr onclick="SPARK_LIVE.buOpen(\'' + esc(r.u) + '\')" style="cursor:pointer"><td class="m" style="color:var(--dm)">&middot;</td>' + cell(r, false) + '</tr>'; });
+      legRows.forEach(function (r) { h += '<tr onclick="SPARK_LIVE.buDrawer(\'' + esc(r.u) + '\')" style="cursor:pointer"><td class="m" style="color:var(--dm)">&middot;</td>' + cell(r, false) + '</tr>'; });
       h += '</tbody></table></div></div>';
     }
     h += '<div style="margin-top:10px;font-size:10px;color:var(--dm)">Raw charge = contract + direct hire coded to the unit &middot; click a column header to sort &middot; Spark Portfolio Total stays pinned at the bottom (= the sum of the units above)</div>';
@@ -3178,7 +3261,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, buDrawer: buDrawer, buGap: buGap, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
