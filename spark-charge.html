@@ -1959,8 +1959,9 @@ window.SPARK_LIVE = (function () {
     if (window.innerWidth < 980) return; // no room to dock on small screens
     var p = document.createElement('div');
     p.id = 'buHcPanel';
-    p.style.cssText = 'position:fixed;top:0;bottom:0;right:calc(min(580px,94vw) + 14px);width:280px;z-index:201;background:var(--bg2);border:1px solid var(--bd);border-radius:12px 0 0 12px;overflow-y:auto;padding:20px;box-shadow:-14px 0 50px rgba(0,0,0,.5)';
-    p.innerHTML = '<div style="font-size:13px;font-weight:800;letter-spacing:-.3px">' + esc(u) + ' \u00b7 Headcount WoW</div><div style="font-size:10px;color:var(--dm);margin:4px 0 12px">contractors on the book \u00b7 distinct people with a nonzero contract line</div><div id="buHcBody" style="font-size:11px;color:var(--dm)">Loading week payloads\u2026</div>';
+    p.className = 'cd';
+    p.style.cssText = 'position:fixed;top:14px;bottom:14px;right:calc(min(580px,94vw) + 14px);width:280px;z-index:201;overflow-y:auto;padding:20px;box-shadow:-14px 0 50px rgba(0,0,0,.35);margin:0';
+    p.innerHTML = '<div style="font-size:13px;font-weight:800;letter-spacing:-.3px">' + esc(u) + ' \u00b7 Headcount WoW</div><div style="font-size:10px;color:var(--dm);margin:4px 0 12px">contractors on the book \u00b7 distinct people with a nonzero contract line</div><div id="buHcBody"></div>';
     document.body.appendChild(p);
     try {
       var dro = document.getElementById('dro');
@@ -1968,38 +1969,32 @@ window.SPARK_LIVE = (function () {
       mo.observe(dro, { attributes: true, attributeFilter: ['class'] });
     } catch (e) {}
     var isoList = weeksThrough(curIso);
-    var render = function () {
-      var hit = buMatchFn(u), prev = null, rowsH = [];
-      isoList.forEach(function (wk) {
-        var b = batches[wk];
-        if (!b || !b.rows) { rowsH.push([wk, null, null]); prev = null; return; }
+    var hit = buMatchFn(u);
+    var hcFor = function (wk) {
+      var b = batches[wk];
+      if (b && b.rows) { // live data already in memory (always true for the selected week)
         var sset = {}; b.rows.forEach(function (r) { if (hit(r) && (Number(r.charge) || 0) !== 0 && r.candidate) sset[r.candidate] = 1; });
-        var n = Object.keys(sset).length;
-        rowsH.push([wk, n, prev == null ? null : n - prev]); prev = n;
-      });
-      var o = '<table class="tb" style="width:100%"><thead><tr><th>WE</th><th class="r">HC</th><th class="r">WoW</th></tr></thead><tbody>';
-      rowsH.slice().reverse().forEach(function (pp) {
-        var d2 = pp[2];
-        o += '<tr><td class="m" style="font-size:10px;font-weight:700">' + labelWe(pp[0]).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:800">' + (pp[1] == null ? '<span title="row data unavailable for this week">\u00b7</span>' : pp[1]) + '</td><td class="r m" style="font-size:10px;color:' + (d2 > 0 ? 'var(--gold)' : d2 < 0 ? 'var(--red)' : 'var(--dm)') + '">' + (d2 == null ? '--' : d2 > 0 ? '+' + d2 : d2) + '</td></tr>';
-      });
-      o += '</tbody></table>';
-      var body = document.getElementById('buHcBody'); if (body) body.innerHTML = o;
+        return Object.keys(sset).length;
+      }
+      var lu = histUnit[wk] && histUnit[wk][u]; // frozen hc row, written at week lock
+      if (lu && lu.hc != null) return Number(lu.hc);
+      return null;
     };
-    // parallel first pass, then sequential retry of anything that failed, then render
-    var need = [];
-    isoList.forEach(function (wk) { if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {})); });
-    var retryMissing = function (done) {
-      var miss = isoList.filter(function (wk) { return !batches[wk]; });
-      var i = 0;
-      var step = function () {
-        if (i >= miss.length) return done();
-        var wk = miss[i++];
-        api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}).then(step);
-      };
-      step();
-    };
-    var fin = function () { retryMissing(render); };
-    if (need.length) Promise.all(need).then(fin); else fin();
+    var prev = null, rowsH = [], anyN = false;
+    isoList.forEach(function (wk) {
+      var n = hcFor(wk);
+      if (n != null) anyN = true;
+      rowsH.push([wk, n, n == null || prev == null ? null : n - prev]);
+      prev = n;
+    });
+    var o = '<table class="tb" style="width:100%"><thead><tr><th>WE</th><th class="r">HC</th><th class="r">WoW</th></tr></thead><tbody>';
+    rowsH.slice().reverse().forEach(function (pp) {
+      var d2 = pp[2];
+      o += '<tr><td class="m" style="font-size:10px;font-weight:700">' + labelWe(pp[0]).replace(/^WE\s*/, '') + '</td><td class="r m" style="font-weight:800">' + (pp[1] == null ? '<span title="headcount freezes at week lock \u2014 recorded from the first lock after this feature shipped">\u00b7</span>' : pp[1]) + '</td><td class="r m" style="font-size:10px;color:' + (d2 > 0 ? 'var(--gold)' : d2 < 0 ? 'var(--red)' : 'var(--dm)') + '">' + (d2 == null ? '--' : d2 > 0 ? '+' + d2 : d2) + '</td></tr>';
+    });
+    o += '</tbody></table>';
+    if (!anyN) o = '<div style="font-size:11px;color:var(--mt);margin-bottom:8px">No headcount recorded yet \u2014 it freezes with each week lock from here forward.</div>' + o;
+    var body = document.getElementById('buHcBody'); if (body) body.innerHTML = o;
   }
   function buDrawer(u) {
     var wk = curIso, need = [];
