@@ -7946,6 +7946,15 @@ var worker_default = {
         const unitRows = [];
         ((b.rollups && b.rollups.byEntity) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
         ((b.rollups && b.rollups.byBU) || []).forEach((r) => unitRows.push({ week_ending: weekEnding, unit: r.key, kind: "contract", charge: r2s(r.charge) }));
+        // ── Headcount per unit: distinct contractors with a nonzero contract line,
+        //    frozen as kind "hc" so the client reads it instantly (no re-derivation) ──
+        const hcSets = {};
+        (b.rows || []).forEach((row) => {
+          const uB = String(row.bu || "").trim() || String(row.entity || "").trim();
+          if (!uB || !row.candidate || !(Number(row.charge) || 0)) return;
+          (hcSets[uB] = hcSets[uB] || {})[row.candidate] = 1;
+        });
+        Object.keys(hcSets).forEach((uB) => unitRows.push({ week_ending: weekEnding, unit: uB, kind: "hc", charge: Object.keys(hcSets[uB]).length }));
         // Same normalization as the live client: one AM + one Recruiter per row via the
         // Contract tab's extraction; same-person pair = Full Desk only. Raw-neutral.
         const isHse = (x) => !x || /^house/i.test(String(x));
