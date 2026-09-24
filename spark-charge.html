@@ -3271,8 +3271,8 @@ window.SPARK_LIVE = (function () {
       var q3cp = t.q3c ? (t.q3 || 0) / t.q3c * 100 : null;
       var ap = t.ai ? t.ytd / t.ai * 100 : null;
       var acp = t.ac ? t.ytd / t.ac * 100 : null;
-      // Run rate: $/week at current pace (Q3 grain during Q3, FY grain otherwise)
-      var rr = q3wk > 0 ? (t.q3 || 0) / q3wk : (wkN > 0 ? t.ytd / wkN : 0);
+      // Run rate: full-year projection at current YTD pace
+      var rr = wkN > 0 ? t.ytd / wkN * 52 : 0;
       // Need $/wk: to hit the CONTEST (Q3 contest during Q3, annual otherwise); 0 = already there
       var need = null;
       if (q3wk > 0 && q3wk < 13 && t.q3c) need = Math.max(0, (t.q3c - (t.q3 || 0)) / (13 - q3wk));
@@ -3282,7 +3282,7 @@ window.SPARK_LIVE = (function () {
     rows = sApply(rows, 'tg', 'qp');
     var pct = function (v) { return v == null ? '<span style="color:var(--mt)">--</span>' : '<span class="m" style="font-weight:700;color:' + pC(v) + '">' + Math.round(v) + '%</span>'; };
     var h = '<div class="st">Targets &amp; Pacing &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">week ' + wkN + ' of 52' + (q3wk ? ' &middot; Q3 week ' + q3wk + ' of 13' : '') + '</span></div>';
-    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th>' + sTh('tg','n','Team Member',false,'rTG') + sTh('tg','q3','Q3 QTD Charge',true,'rTG') + sTh('tg','q3i','Q3 Igniter',true,'rTG') + sTh('tg','qp','Q3 Igniter %',true,'rTG') + sTh('tg','q3c','Q3 Contest',true,'rTG') + sTh('tg','q3cp','Q3 Contest %',true,'rTG') + sTh('tg','ytd','YTD Raw',true,'rTG') + sTh('tg','ai','Yearly Igniter',true,'rTG') + sTh('tg','ap','YTD Igniter %',true,'rTG') + sTh('tg','ac','Yearly Contest',true,'rTG') + sTh('tg','acp','Yearly Contest %',true,'rTG') + sTh('tg','rr','Run Rate $/wk',true,'rTG') + sTh('tg','need','Need $/wk',true,'rTG') + '</tr></thead><tbody>';
+    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th>' + sTh('tg','n','Team Member',false,'rTG') + sTh('tg','q3','Q3 QTD Charge',true,'rTG') + sTh('tg','q3i','Q3 Igniter',true,'rTG') + sTh('tg','qp','Q3 Igniter %',true,'rTG') + sTh('tg','q3c','Q3 Contest',true,'rTG') + sTh('tg','q3cp','Q3 Contest %',true,'rTG') + sTh('tg','ytd','YTD Raw',true,'rTG') + sTh('tg','ai','Yearly Igniter',true,'rTG') + sTh('tg','ap','YTD Igniter %',true,'rTG') + sTh('tg','ac','Yearly Contest',true,'rTG') + sTh('tg','acp','Yearly Contest %',true,'rTG') + sTh('tg','rr','Run Rate (FY)',true,'rTG') + sTh('tg','need','Need $/wk',true,'rTG') + '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
       var t = r.t;
       h += '<tr onclick="openPerson(\'' + esc(t.n) + '\')" style="cursor:pointer"><td>' + bdg(i) + '</td>';
