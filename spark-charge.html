@@ -1480,6 +1480,7 @@ window.SPARK_LIVE = (function () {
 
     CUR = D.weeks[D.weeks.length - 1]; PREV = D.weeks[D.weeks.length - 2] || {};
     TOTAL = wkTotal(CUR); LASTW = wkTotal(PREV);
+    try { var _lt = liveChargeTotal(curIso); if (_lt != null) TOTAL = _lt; var _lw = liveChargeTotal(prevIso(curIso)); if (_lw != null) LASTW = _lw; } catch (e) {}
     YTD = D.weeks.reduce(function (s, w) { return s + wkTotal(w); }, 0);
     Q3WKS = D.weeks.filter(function (w) { var p = w.we.split('/'); return +p[0] >= 7; });
     Q3 = Q3WKS.reduce(function (s, w) { return s + wkTotal(w); }, 0);
@@ -1895,7 +1896,7 @@ window.SPARK_LIVE = (function () {
         blanks.sort(function (a, z) { return Math.abs(Number(z[1].amount || z[1].charge) || 0) - Math.abs(Number(a[1].amount || a[1].charge) || 0); });
         blanks.forEach(function (p) {
           var r = p[1], v = Number(p[0] === 'DH' ? r.amount : r.charge) || 0; bt += v;
-          o2 += '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 2px;border-bottom:1px solid rgba(24,30,44,.35)"><span style="font-size:11px"><b>' + p[0] + '</b> \u00b7 ' + esc(r.candidate || '\u2014') + ' <span style="color:var(--dm)">' + esc(r.company || '') + ' \u00b7 ' + esc(r.entity || 'no entity') + '</span></span><span class="m" style="font-size:11px;font-weight:700;color:' + (v < 0 ? 'var(--red)' : 'var(--tx)') + '">' + fmt(v) + '</span></div>';
+          o2 += '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 2px;border-bottom:1px solid rgba(24,30,44,.35)"><span style="font-size:11px"><b>' + p[0] + '</b> \u00b7 ' + esc(r.candidate || r.employee || '\u2014') + ' <span style="color:var(--dm)">' + esc(r.company || '') + ' \u00b7 ' + esc(r.entity || 'no entity') + '</span></span><span class="m" style="font-size:11px;font-weight:700;color:' + (v < 0 ? 'var(--red)' : 'var(--tx)') + '">' + fmt(v) + '</span></div>';
         });
         o2 += '<div style="display:flex;justify-content:space-between;margin-top:6px"><span style="font-weight:800;font-size:11px">TOTAL UNCODED</span><span class="m" style="font-weight:800">' + fmt(bt) + '</span></div></div>';
         h += o2;
@@ -1910,6 +1911,46 @@ window.SPARK_LIVE = (function () {
     };
     if (need.length) Promise.all(need).then(go2); else go2();
   }
+  function buMatchFn(u) {
+    var CANx = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners', 'flex workforce solutions': 'Flex Workforce', 'flex workforce': 'Flex Workforce' };
+    var nkx = function (x) { var k = String(x || '').trim(); return (CANx[k.toLowerCase()] || k).toLowerCase(); };
+    var tgt = nkx(u);
+    return function (r) { var b = String(r.bu || '').trim(); if (b) return nkx(b) === tgt; return nkx(r.entity) === tgt; };
+  }
+  function liveChargeTotal(we) {
+    var b = batches[we], d = dhb[we];
+    if (!b || !b.rollups) return null;
+    var t = 0;
+    (b.rollups.byEntity || []).forEach(function (x) { t += Number(x.charge) || 0; });
+    if (d && d.byEntity) Object.keys(d.byEntity).forEach(function (k) { t += Number(d.byEntity[k]) || 0; });
+    return Math.round(t * 100) / 100;
+  }
+  function buHC(u) {
+    var isoList = weeksThrough(curIso), need = [];
+    isoList.forEach(function (wk) { if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {})); });
+    var go2 = function () {
+      var hit = buMatchFn(u), prev = null, rowsH = [];
+      isoList.forEach(function (wk) {
+        var b = batches[wk];
+        if (!b || !b.rows) { rowsH.push([wk, null, null]); prev = null; return; }
+        var sset = {}; b.rows.forEach(function (r) { if (hit(r) && (Number(r.charge) || 0) !== 0 && r.candidate) sset[r.candidate] = 1; });
+        var n = Object.keys(sset).length;
+        rowsH.push([wk, n, prev == null ? null : n - prev]); prev = n;
+      });
+      var h = '<div style="margin-bottom:18px"><div style="font-size:22px;font-weight:800;letter-spacing:-.5px">' + esc(u) + ' \u00b7 Headcount</div>';
+      h += '<div style="font-size:11px;color:var(--dm);margin-top:4px">Contractors on the book per week \u2014 distinct people with a nonzero contract line</div>';
+      h += '<div style="margin-top:10px"><button class="fb" onclick="SPARK_LIVE.buDrawer(\'' + esc(u) + '\')">\u2190 Week detail</button></div></div>';
+      h += '<div class="cd" style="padding:16px"><div class="scr"><table class="tb"><thead><tr><th>Week Ending</th><th class="r">Headcount</th><th class="r">WoW</th></tr></thead><tbody>';
+      rowsH.slice().reverse().forEach(function (p) {
+        var d2 = p[2];
+        h += '<tr><td class="m" style="font-size:10px;font-weight:700">' + labelWe(p[0]) + '</td><td class="r m" style="font-weight:800">' + (p[1] == null ? '<span title="no row data loaded">\u00b7</span>' : p[1]) + '</td><td class="r m" style="font-size:10px;color:' + (d2 > 0 ? 'var(--gold)' : d2 < 0 ? 'var(--red)' : 'var(--dm)') + '">' + (d2 == null ? '--' : d2 > 0 ? '\u25b2 +' + d2 : d2 < 0 ? '\u25bc ' + d2 : '--') + '</td></tr>';
+      });
+      h += '</tbody></table></div></div>';
+      document.getElementById('drb').innerHTML = h;
+      document.getElementById('dro').classList.add('on');
+    };
+    if (need.length) Promise.all(need).then(go2); else go2();
+  }
   function buDrawer(u) {
     var wk = curIso, need = [];
     if (!batches[wk]) need.push(api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function () {}));
@@ -1918,10 +1959,7 @@ window.SPARK_LIVE = (function () {
   }
   function buDrawerRender(u) {
     var wk = curIso;
-    var CAN2 = { 'ignite': 'Ignite Search', 'ignite search': 'Ignite Search', 'bolt': 'Bolt Creative Strategies', 'bolt creative': 'Bolt Creative Strategies', 'bolt creative strategies': 'Bolt Creative Strategies', 'jjp': 'John Joseph Partners', 'john joseph': 'John Joseph Partners', 'john joseph partners': 'John Joseph Partners', 'flex workforce solutions': 'Flex Workforce', 'flex workforce': 'Flex Workforce' };
-    var nk2 = function (x) { var k = String(x || '').trim(); return (CAN2[k.toLowerCase()] || k).toLowerCase(); };
-    var tgt = nk2(u);
-    var hit = function (r) { var b = String(r.bu || '').trim(); if (b) return nk2(b) === tgt; return nk2(r.entity) === tgt; };
+    var hit = buMatchFn(u);
     var b = batches[wk], d = dhb[wk];
     var ct = ((b && b.rows) || []).filter(hit).slice().sort(function (a, z) { var c = String(a.company || '').localeCompare(String(z.company || '')); return c || ((Number(z.charge) || 0) - (Number(a.charge) || 0)); });
     var dh = ((d && d.drops) || []).filter(hit).slice().sort(function (a, z) { return (Number(z.amount) || 0) - (Number(a.amount) || 0); });
@@ -1930,25 +1968,32 @@ window.SPARK_LIVE = (function () {
     var vc = function (n) { return n > 0 ? 'var(--gold)' : n < 0 ? 'var(--red)' : 'var(--mt)'; };
     var h = '<div style="margin-bottom:18px"><div style="font-size:25px;font-weight:800;letter-spacing:-.5px">' + esc(u) + '</div>';
     h += '<div style="font-size:12px;color:var(--dm);margin-top:3px">Week detail \u00b7 ' + labelWe(wk) + '</div>';
-    h += '<div style="margin-top:10px"><button class="fb" onclick="SPARK_LIVE.buOpen(\'' + esc(u) + '\')">WoW view \u2192</button></div></div>';
+    h += '<div style="margin-top:10px"><button class="fb" onclick="SPARK_LIVE.buOpen(\'' + esc(u) + '\')">WoW view \u2192</button> <button class="fb" style="margin-left:6px" onclick="SPARK_LIVE.buHC(\'' + esc(u) + '\')">Headcount \u2192</button></div></div>';
     h += '<div class="g g3" style="margin-bottom:16px">';
     [['Contract', ctT], ['Direct Hire', dhT], ['Total', ctT + dhT]].forEach(function (k) {
       h += '<div class="cd" style="padding:15px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">' + k[0] + '</div><div class="m" style="font-size:18px;font-weight:800;color:' + vc(k[1]) + ';margin-top:4px">' + fmt(k[1]) + '</div></div>';
     });
     h += '</div>';
-    var sec = function (title, rows, amtKey, tot) {
+    var uq = function (a) { var seen = {}; return a.filter(function (x) { if (!x || seen[x]) return false; seen[x] = 1; return true; }).join(', '); };
+    var mapRow = function (r, isDH) {
+      if (isDH) return { c1: r.employee || r.candidate || '\u2014', c2: r.company || '', am: r.sales_rep || '\u2014', rec: r.recruiter || '\u2014', v: Number(r.amount) || 0 };
+      var A = [], R = [];
+      (r.credits || []).forEach(function (c) { var t = String(c.type || ''), n = c.recipient || ''; if (!n) return; if (/full|sales|account/i.test(t)) A.push(n); if (/full|recruit/i.test(t)) R.push(n); });
+      return { c1: r.candidate || '\u2014', c2: r.company || '', am: uq(A) || '\u2014', rec: uq(R) || '\u2014', v: Number(r.charge) || 0 };
+    };
+    var sec = function (title, rows, isDH, tot) {
       var o = '<div class="cd" style="padding:16px;margin-bottom:14px"><div style="font-size:12px;font-weight:700;margin-bottom:10px">' + title + ' <span class="pl" style="margin-left:8px">' + rows.length + '</span></div>';
       if (!rows.length) return o + '<div style="font-size:11px;color:var(--mt)">Nothing for this unit this week.</div></div>';
       o += '<div class="scr"><table class="tb"><thead><tr><th>Candidate</th><th>Company</th><th>AM</th><th>Rec</th><th class="r">$</th></tr></thead><tbody>';
-      rows.forEach(function (r) {
-        var v = Number(r[amtKey]) || 0;
-        o += '<tr><td style="font-weight:700">' + esc(r.candidate || '\u2014') + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.company || '') + '</td><td style="font-size:10px">' + esc(r.am || '\u2014') + '</td><td style="font-size:10px">' + esc(r.rec || '\u2014') + '</td><td class="r m" style="font-weight:700;color:' + vc(v) + '">' + fmt(v) + '</td></tr>';
+      rows.forEach(function (r0) {
+        var r = mapRow(r0, isDH);
+        o += '<tr><td style="font-weight:700">' + esc(r.c1) + '</td><td style="font-size:10px;color:var(--dm)">' + esc(r.c2) + '</td><td style="font-size:10px">' + esc(r.am) + '</td><td style="font-size:10px">' + esc(r.rec) + '</td><td class="r m" style="font-weight:700;color:' + vc(r.v) + '">' + fmt(r.v) + '</td></tr>';
       });
       o += '<tr style="border-top:1px solid var(--bd)"><td colspan="4" style="font-weight:800;font-size:10px;color:var(--dm)">TOTAL</td><td class="r m" style="font-weight:800;color:' + vc(tot) + '">' + fmt(tot) + '</td></tr>';
       return o + '</tbody></table></div></div>';
     };
-    h += sec('Contract Team Members', ct, 'charge', ctT);
-    h += sec('Direct Hires', dh, 'amount', dhT);
+    h += sec('Contract Team Members', ct, false, ctT);
+    h += sec('Direct Hires', dh, true, dhT);
     document.getElementById('drb').innerHTML = h;
     document.getElementById('dro').classList.add('on');
   }
@@ -3275,7 +3320,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, buDrawer: buDrawer, buGap: buGap, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, buDrawer: buDrawer, buGap: buGap, buHC: buHC, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
