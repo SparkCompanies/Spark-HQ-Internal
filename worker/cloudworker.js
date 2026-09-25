@@ -2127,18 +2127,31 @@ var worker_default = {
         if (!connResp.ok) return json({ error: "Xero connections failed: " + JSON.stringify(conns).slice(0, 200) }, 502, origin);
         const expiresAt = new Date(Date.now() + (tok.expires_in || 1800) * 1e3).toISOString();
         const saved = [];
+        /* XERO_CALLBACK_UPSERT_FIX_v1: the old loop POSTed every tenant and ignored the
+           result. For an org that already had a row the insert collided on tenant_id and
+           failed silently, so reconnecting never refreshed an existing org's tokens - only
+           brand-new orgs were ever written. Now: PATCH the existing row by tenant_id; insert
+           only when no row exists; report per-tenant outcome; fail loudly. */
+        const failed = [];
         for (const c of conns || []) {
           if (c.tenantType && c.tenantType !== "ORGANISATION") continue;
-          await sbService(env, "POST", "xero_connections", {
-            tenant_id: c.tenantId,
+          const fields = {
             tenant_name: c.tenantName || "(unnamed)",
             refresh_token: tok.refresh_token,
             access_token: tok.access_token,
             access_expires_at: expiresAt,
             connected_by: who.email
-          });
-          saved.push({ tenant_id: c.tenantId, tenant_name: c.tenantName });
+          };
+          let mode = "updated";
+          let res = await sbService(env, "PATCH", "xero_connections?tenant_id=eq." + encodeURIComponent(c.tenantId), fields);
+          if (res.ok && (!Array.isArray(res.data) || res.data.length === 0)) {
+            mode = "inserted";
+            res = await sbService(env, "POST", "xero_connections", Object.assign({ tenant_id: c.tenantId }, fields));
+          }
+          if (res.ok) saved.push({ tenant_id: c.tenantId, tenant_name: c.tenantName, mode });
+          else failed.push({ tenant_id: c.tenantId, tenant_name: c.tenantName, status: res.status, error: typeof res.data === "string" ? res.data.slice(0, 200) : JSON.stringify(res.data).slice(0, 200) });
         }
+        if (failed.length) return json({ ok: saved.length > 0, connected: saved, failed, error: "Some orgs could not be written to xero_connections" }, failed.length === (conns || []).length ? 502 : 200, origin);
         return json({ ok: true, connected: saved }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
