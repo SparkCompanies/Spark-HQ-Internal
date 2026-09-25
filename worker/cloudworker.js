@@ -164,7 +164,7 @@ function wsClassify(name, entRules) {
   const nm = String(name || "").trim();
   const rules = (Array.isArray(entRules) ? entRules : []).concat(WS_DEFAULT_RULES);
   for (const r of rules) {
-    try { if (r && r.match && new RegExp(r.match, "i").test(nm)) return WS_REV_COLS.indexOf(r.col) !== -1 ? r.col : "other"; } catch (e) {}
+    try { if (r && r.match && new RegExp(r.match, "i").test(nm)) return r.col === "skip" ? "skip" : (WS_REV_COLS.indexOf(r.col) !== -1 ? r.col : "other"); } catch (e) {}
   }
   return "other";
 }
@@ -218,10 +218,16 @@ async function wsXeroPL(token, tenantId, from, to) {
   let data; try { data = JSON.parse(tx); } catch (e) { throw new Error("Xero returned non-JSON"); }
   const rep = (data.Reports || [])[0];
   if (!rep) throw new Error("Xero returned no report body");
-  const lines = [];
+  const lines = [], sections = [];
   (rep.Rows || []).forEach((sec) => {
     if (sec.RowType !== "Section") return;
-    if (!/^(income|revenue|other income|trading income|turnover|sales|other revenue)$/i.test(String(sec.Title || "").trim())) return;
+    const title = String(sec.Title || "").trim();
+    const names = (sec.Rows || []).filter((x) => x.RowType === "Row").map((x) => (x.Cells && x.Cells[0] && x.Cells[0].Value) || "");
+    /* income-type groups: anything mentioning income/revenue/sales/turnover that is not a cost, expense or total line
+       ("Income", "Other Income", "Other Income / (Expense)", "Trading Income", "Sales"; not "Less Cost of Sales", "Less Operating Expenses") */
+    const isIncome = /income|revenue|sales|turnover/i.test(title) && !/^(less|cost|gross|net|total|operating)\b/i.test(title) && !/expenses$/i.test(title);
+    sections.push({ title, income: isIncome, rows: names.length });
+    if (!isIncome) return;
     (sec.Rows || []).forEach((x) => {
       if (x.RowType !== "Row") return;
       const cells = x.Cells || [], nm = cells[0] && cells[0].Value;
@@ -230,19 +236,19 @@ async function wsXeroPL(token, tenantId, from, to) {
       lines.push({ section: sec.Title, account: String(nm).trim(), amount: wsRound(v) });
     });
   });
-  return { reportName: rep.ReportName, reportDate: rep.ReportDate, lines };
+  return { reportName: rep.ReportName, reportDate: rep.ReportDate, lines, sections };
 }
 
 function wsSumLines(lines, entRules) {
   const T = {}; WS_REV_COLS.forEach((k) => { T[k] = 0; });
-  const rows = lines.map((l) => { const col = wsClassify(l.account, entRules); T[col] = wsRound(T[col] + l.amount); return { account: l.account, amount: l.amount, col }; });
+  const rows = lines.map((l) => { const col = wsClassify(l.account, entRules); if (col !== "skip") T[col] = wsRound(T[col] + l.amount); return { account: l.account, amount: l.amount, col }; });
   T.total = wsRound(WS_REV_COLS.reduce((a, k) => a + T[k], 0));
   return { totals: T, rows };
 }
 
 // ---------- Salesforce: hours + headcount for the pay period, grouped by entity and unit ----------
 async function wsPullSF(c, env, we, entities) {
-  const soql = "SELECT ASYMBL_Time__Candidate_Name__c cand, ASYMBL_Time__Regular_Hours__c rt, ASYMBL_Time__Overtime_Hours__c ot, ASYMBL_Time__Double_Time_Hours__c dt, ASYMBL_Time__Total_Hours_Logged__c tot, Placement__r.Division__c, Placement__r.bpats__ATS_Job__r.Subdivision__c, Placement__r.bpats__Account__r.Name FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c = " + we + " AND ASYMBL_Time__Total_Hours_Logged__c > 0";
+  const soql = "SELECT ASYMBL_Time__Candidate_Name__c, ASYMBL_Time__Regular_Hours__c, ASYMBL_Time__Overtime_Hours__c, ASYMBL_Time__Double_Time_Hours__c, ASYMBL_Time__Total_Hours_Logged__c, Placement__r.Division__c, Placement__r.bpats__ATS_Job__r.Subdivision__c, Placement__r.bpats__Account__r.Name FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c = " + we + " AND ASYMBL_Time__Total_Hours_Logged__c > 0"; /* SOQL: no aliases on plain fields */
   const res = await c.runSalesforceQueryAll(env, soql);
   if (!res.ok) throw new Error(res.error || "Salesforce timesheet query failed");
   const alias = {};
@@ -253,11 +259,11 @@ async function wsPullSF(c, env, we, entities) {
     const pl = r.Placement__r || {};
     const dv = String(pl.Division__c || "").toLowerCase().replace(/\s+/g, " ").trim();
     const slug = alias[dv] || null;
-    const rt = Number(r.rt) || 0, ot = Number(r.ot) || 0, dt = Number(r.dt) || 0, tot = Number(r.tot) || (rt + ot + dt);
+    const rt = Number(r.ASYMBL_Time__Regular_Hours__c) || 0, ot = Number(r.ASYMBL_Time__Overtime_Hours__c) || 0, dt = Number(r.ASYMBL_Time__Double_Time_Hours__c) || 0, tot = Number(r.ASYMBL_Time__Total_Hours_Logged__c) || (rt + ot + dt);
     if (!slug) { const k = pl.Division__c || "(no division)"; unresolved[k] = wsRound((unresolved[k] || 0) + tot); continue; }
     const o = out[slug], unit = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || "(no unit)";
     o.rt += rt; o.ot += ot; o.dt += dt; o.hours += tot;
-    const cand = r.cand || "?"; o.people[cand] = true;
+    const cand = r.ASYMBL_Time__Candidate_Name__c || "?"; o.people[cand] = true;
     const u = o.units[unit] = o.units[unit] || { unit, rt: 0, ot: 0, dt: 0, hours: 0, people: {} };
     u.rt += rt; u.ot += ot; u.dt += dt; u.hours += tot; u.people[cand] = true;
   }
@@ -290,11 +296,13 @@ async function wsUpsertWeek(c, env, entity, we, patch) {
 async function wsLog(c, env, who, action, entity, we, detail) {
   try { await c.sbService(env, "POST", "ws_log", { who, action, entity: entity || null, we_date: we || null, detail: detail || null }); } catch (e) {}
 }
-async function wsBumpATH(c, env, entity, we, row) {
+async function wsBumpATH(c, env, entity, we, row, columns) {
+  const keys = (Array.isArray(columns) ? columns.map((x) => x && x.key) : []);
   const cur = await c.sbService(env, "GET", "ws_ath?entity=eq." + encodeURIComponent(entity) + "&select=*");
   const have = {}; (cur.ok && cur.data || []).forEach((a) => { have[a.metric] = a; });
   const out = [];
   for (const metric of ["assign", "dh", "total"]) {
+    if (metric !== "total" && keys.length && keys.indexOf(metric) === -1) continue;
     const v = Number(row[metric]) || 0;
     if (v > 0 && (!have[metric] || v > Number(have[metric].amount))) {
       await c.sbService(env, "POST", "ws_ath?on_conflict=entity,metric", { entity, metric, we_date: we, amount: v });
@@ -387,7 +395,7 @@ async function weeklySales(c) {
             const patch = { xero_from: win.from, xero_to: win.to, xero_rows: s.rows, xero_pulled_at: new Date().toISOString(), source: "live", updated_by: who.email };
             WS_REV_COLS.forEach((k) => { patch[k] = s.totals[k]; }); patch.total = s.totals.total;
             await wsUpsertWeek(c, env, e.slug, we, patch);
-            const ath = await wsBumpATH(c, env, e.slug, we, s.totals);
+            const ath = await wsBumpATH(c, env, e.slug, we, s.totals, e.columns);
             R.xero = { ok: true, org: org.tenant_name, window: win, totals: s.totals, lines: s.rows.length, unmapped: s.rows.filter((x) => x.col === "other").map((x) => x.account), newATH: ath, before: prev ? { total: prev.total, assign: prev.assign, dh: prev.dh } : null };
           } catch (err) { R.xero = { error: String(err.message || err), org: org.tenant_name, window: win }; }
         }
@@ -478,7 +486,7 @@ async function weeklySales(c) {
       if (!org || !tokens.byTenant[org.tenant_id]) return json({ error: org ? (tokens.errors[org.tenant_id] || "token unavailable") : "No Xero org mapped to " + e.xero_division }, 400, origin);
       const pl = await wsXeroPL(tokens.byTenant[org.tenant_id], org.tenant_id, from, to);
       const s = wsSumLines(pl.lines, e.rules);
-      return json({ ok: true, entity: slug, org: org.tenant_name, from, to, totals: s.totals, rows: s.rows }, 200, origin);
+      return json({ ok: true, entity: slug, org: org.tenant_name, from, to, totals: s.totals, rows: s.rows, sections: pl.sections }, 200, origin);
     }
 
     // ------------------------------------------------------------ entity config
