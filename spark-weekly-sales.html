@@ -143,6 +143,7 @@ const WS = {
     status("Loading week…");
     try{ this.rep = await api("/ws-report?we="+this.we); }catch(e){ status(e.message,"err"); return; }
     this.rows={}; (this.rep.weeks||[]).forEach(r=>{ (this.rows[r.entity]=this.rows[r.entity]||{})[r.we_date]=r; });
+    Object.keys(this.rep.detail||{}).forEach(k=>{ const d=this.rep.detail[k]; const r=this.rows[k]&&this.rows[k][this.we]; if(r) Object.assign(r,{key_things:d.key_things,by_unit:d.by_unit,unresolved:d.unresolved,xero_rows:d.xero_rows}); });
     status(""); this.render();
   },
   async pull(sources){
@@ -203,14 +204,14 @@ const WS = {
 
   kpis(e){
     const r=this.row(e.slug,this.we)||{}, l=this.row(e.slug,add(this.we,-7))||{}, py=this.prior(e.slug,this.we)||{};
-    const k=(label,val,fmt,delta,dfmt,extra)=>'<div class="kpi"><div class="l">'+label+'</div><div class="v">'+fmt(val)+'</div><div class="d">'+(delta==null?'':'<span class="'+cls(delta)+'">'+(delta>0?'▲ ':delta<0?'▼ ':'')+dfmt(Math.abs(delta))+'</span> vs LW')+(extra||'')+'</div></div>';
+    const k=(label,val,fmt,delta,dfmt,extra)=>'<div class="kpi"><div class="l">'+label+'</div><div class="v">'+fmt(val)+'</div><div class="d">'+(delta==null?'':'<span class="'+cls(delta)+'">'+(delta>0?'▲ ':delta<0?'▼ ':'')+dfmt(Math.abs(delta))+'</span> WoW')+(extra||'')+'</div></div>';
     const v=this.variance(r);
     return '<div class="kpis">'
-      +k("Total sales", r.total, fmt$, r.total!=null&&l.total!=null?r.total-l.total:null, fmt$, py.total!=null?' · LY '+fmt$(py.total,false):'')
+      +k("Total sales", r.total, fmt$, r.total!=null&&l.total!=null?r.total-l.total:null, fmt$, py.total!=null?' · Prior Year '+fmt$(py.total,false):'')
       +k(e.columns[0]&&e.columns[0].key==="assign"?"Assignment sales":"Direct hire", e.columns[0]&&e.columns[0].key==="assign"?r.assign:r.dh, fmt$, e.columns[0]&&e.columns[0].key==="assign"?(r.assign!=null&&l.assign!=null?r.assign-l.assign:null):(r.dh!=null&&l.dh!=null?r.dh-l.dh:null), fmt$)
       +(e.columns[0]&&e.columns[0].key==="assign"?k("Direct hire", r.dh, fmt$, r.dh!=null&&l.dh!=null?r.dh-l.dh:null, fmt$):k("Total payroll", this.payTotal(r), fmt$, null, fmt$))
-      +(e.has_hours?k("Hours", r.hours, v=>fmtN(v), r.hours!=null&&l.hours!=null?r.hours-l.hours:null, v=>fmtN(v), py.hours!=null?' · LY '+fmtN(py.hours,0):''):k("Sales − payroll", v, fmt$, null, fmt$))
-      +(e.has_hours?k("Headcount", r.headcount, fmtI, r.headcount!=null&&l.headcount!=null?r.headcount-l.headcount:null, fmtI, py.headcount!=null?' · LY '+fmtI(py.headcount):''):'')
+      +(e.has_hours?k("Hours", r.hours, v=>fmtN(v), r.hours!=null&&l.hours!=null?r.hours-l.hours:null, v=>fmtN(v), py.hours!=null?' · Prior Year '+fmtN(py.hours,0):''):k("Sales − payroll", v, fmt$, null, fmt$))
+      +(e.has_hours?k("Headcount", r.headcount, fmtI, r.headcount!=null&&l.headcount!=null?r.headcount-l.headcount:null, fmtI, py.headcount!=null?' · Prior Year '+fmtI(py.headcount):''):'')
       +(e.has_hours?k("Sales − payroll", v, fmt$, null, fmt$):'')
       +'</div>';
   },
@@ -314,7 +315,7 @@ const WS = {
       T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=Number(r.assign)||0;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(p!=null){T.pay+=p;T.payAny=true;}if(v!=null)T.varr+=v;
       const d=r.total!=null&&l.total!=null?r.total-l.total:null;
       return '<tr><td><b><a href="#" onclick="WS.setTab(\''+e.slug+'\');return false;">'+esc(e.name)+'</a></b></td><td class="r"><b>'+fmt$(r.total)+'</b></td><td class="r '+cls(d)+'">'+(d==null?'–':(d>0?'+':'')+fmt$(d))+'</td><td class="r">'+(py.total!=null?fmt$(py.total):'–')+'</td><td class="r">'+fmt$(r.assign)+'</td><td class="r">'+fmt$(r.dh)+'</td><td class="r">'+(e.has_hours?fmtN(r.hours):'')+'</td><td class="r">'+(e.has_hours?fmtI(r.headcount):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'">'+fmt$(v)+'</td><td>'+(r.key_things?'<span class="pill ok">notes</span>':'')+(r.locked?' <span class="pill bad">locked</span>':'')+(r.xero_pulled_at?'':' <span class="pill warn">no Xero pull</span>')+'</td></tr>';}).join("");
-    const tbl='<div class="tw"><table class="t"><thead><tr><th>Entity</th><th class="r">Total Sales</th><th class="r">vs LW</th><th class="r">Same wk LY</th><th class="r">Assignment</th><th class="r">Direct Hire</th><th class="r">Hours</th><th class="r">HC</th><th class="r">Total Payroll</th><th class="r">Variance</th><th></th></tr></thead><tbody>'+rows
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Entity</th><th class="r">Total Sales</th><th class="r">WoW</th><th class="r">Prior Year</th><th class="r">Assignment</th><th class="r">Direct Hire</th><th class="r">Hours</th><th class="r">HC</th><th class="r">Total Payroll</th><th class="r">Variance</th><th></th></tr></thead><tbody>'+rows
       +'<tr class="tot"><td>All entities</td><td class="r">'+fmt$(T.total)+'</td><td class="r '+cls(T.total-T.lw)+'">'+(T.total-T.lw>0?'+':'')+fmt$(T.total-T.lw)+'</td><td></td><td class="r">'+fmt$(T.assign)+'</td><td class="r">'+fmt$(T.dh)+'</td><td class="r">'+fmtN(T.hours)+'</td><td class="r">'+fmtI(T.hc)+'</td><td class="r">'+(T.payAny?fmt$(T.pay):'–')+'</td><td class="r '+cls(T.varr)+'">'+(T.payAny?fmt$(T.varr):'–')+'</td><td></td></tr></tbody></table></div>';
     const notes=ents.map(e=>{const r=this.row(e.slug,this.we);return r&&r.key_things?'<div class="card" style="margin-bottom:10px"><div class="eyebrow">'+esc(e.name)+'</div><div style="white-space:pre-wrap;margin-top:6px;line-height:1.55">'+esc(r.key_things)+'</div></div>':'';}).join("");
     app.innerHTML=this.header(null)+'<div class="card"><div class="hd"><h2>Portfolio — week ending '+mdy(this.we)+'</h2><span class="note">Click an entity for its full report</span></div>'+tbl+'</div>'
