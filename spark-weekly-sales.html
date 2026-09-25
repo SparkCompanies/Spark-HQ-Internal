@@ -150,7 +150,7 @@ const WS = {
     status("Pulling "+sources.join(" + ")+"…");
     try{
       const r = await api("/ws-pull",{ body:{ we:this.we, sources } });
-      const msgs=[]; Object.keys(r.entities||{}).forEach(k=>{ const e=r.entities[k]; if(e.xero) msgs.push(k+": Xero "+(e.xero.ok?"✓ "+fmt$(e.xero.totals.total)+(e.xero.newATH&&e.xero.newATH.length?" NEW ATH":""):(e.xero.skipped||"✗ "+e.xero.error))); if(e.sf) msgs.push(k+": SF "+(e.sf.ok?"✓ "+fmtN(e.sf.hours)+"h / "+e.sf.headcount+" HC":(e.sf.skipped||"✗ "+e.sf.error))); });
+      const msgs=[]; Object.keys(r.entities||{}).forEach(k=>{ const e=r.entities[k]; if(e.xero){ const ign=(e.xero.sections||[]).filter(x=>!x.income).map(x=>x.title); const inc=(e.xero.sections||[]).filter(x=>x.income).map(x=>x.title); msgs.push(k+": Xero "+(e.xero.ok?"✓ "+fmt$(e.xero.totals.total)+(e.xero.newATH&&e.xero.newATH.length?" NEW ATH":"")+(inc.length?"  [used: "+inc.join(", ")+"]":"")+(ign.length?"  [ignored: "+ign.join(", ")+"]":""):(e.xero.skipped||"✗ "+e.xero.error))); } if(e.sf) msgs.push(k+": SF "+(e.sf.ok?"✓ "+fmtN(e.sf.hours)+"h / "+e.sf.headcount+" HC":(e.sf.skipped||"✗ "+e.sf.error))); });
       (r.warnings||[]).forEach(w=>msgs.push("⚠ "+w));
       await this.load(); status(msgs.join("  ·  "), (r.warnings||[]).length?"err":"ok");
       alert(msgs.join("\n"));
