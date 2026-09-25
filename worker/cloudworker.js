@@ -223,9 +223,11 @@ async function wsXeroPL(token, tenantId, from, to) {
     if (sec.RowType !== "Section") return;
     const title = String(sec.Title || "").trim();
     const names = (sec.Rows || []).filter((x) => x.RowType === "Row").map((x) => (x.Cells && x.Cells[0] && x.Cells[0].Value) || "");
-    /* income-type groups: anything mentioning income/revenue/sales/turnover that is not a cost, expense or total line
-       ("Income", "Other Income", "Other Income / (Expense)", "Trading Income", "Sales"; not "Less Cost of Sales", "Less Operating Expenses") */
-    const isIncome = /income|revenue|sales|turnover/i.test(title) && !/^(less|cost|gross|net|total|operating)\b/i.test(title) && !/expenses$/i.test(title);
+    /* income-type groups only: an exact allowlist plus titles that START with "Other Income"
+       (Xero US edition names that group "Other Income / (Expense)"). Anything else - cost of sales,
+       operating expenses, custom cost groups that happen to contain the word "sales" - is ignored. */
+    const tl = title.toLowerCase();
+    const isIncome = /^(income|revenue|sales|turnover|trading income|other income|other revenue|operating income|operating revenue)$/.test(tl) || /^other income\b/.test(tl);
     sections.push({ title, income: isIncome, rows: names.length });
     if (!isIncome) return;
     (sec.Rows || []).forEach((x) => {
@@ -253,14 +255,23 @@ async function wsPullSF(c, env, we, entities) {
   if (!res.ok) throw new Error(res.error || "Salesforce timesheet query failed");
   const alias = {};
   entities.forEach((e) => { (e.sf_divisions || []).forEach((d) => { alias[String(d).toLowerCase().replace(/\s+/g, " ").trim()] = e.slug; }); alias[String(e.name).toLowerCase()] = e.slug; });
+  /* Most placements carry no Division; the Charge report and the Finance agent resolve those through
+     fin_client_map (sf_account_name -> invoicing_entity). Same table, same normalisation. */
+  const rrKey = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(corporation|corp|incorporated|inc|llc|company|co)\b/g, "").replace(/\s+/g, " ").trim();
+  const clientEnt = {};
+  try {
+    const cm = await c.sbService(env, "GET", "fin_client_map?select=sf_account_name,invoicing_entity");
+    (cm.ok && cm.data || []).forEach((m) => { const slug = alias[String(m.invoicing_entity || "").toLowerCase().replace(/\s+/g, " ").trim()]; if (m.sf_account_name && slug) { clientEnt[rrKey(m.sf_account_name)] = slug; } });
+  } catch (e) {}
   const out = {}, unresolved = {};
   entities.forEach((e) => { out[e.slug] = { rt: 0, ot: 0, dt: 0, hours: 0, people: {}, units: {} }; });
   for (const r of res.records || []) {
     const pl = r.Placement__r || {};
     const dv = String(pl.Division__c || "").toLowerCase().replace(/\s+/g, " ").trim();
-    const slug = alias[dv] || null;
+    const acctName = (pl.bpats__Account__r && pl.bpats__Account__r.Name) || "";
+    const slug = alias[dv] || clientEnt[rrKey(acctName)] || null;
     const rt = Number(r.ASYMBL_Time__Regular_Hours__c) || 0, ot = Number(r.ASYMBL_Time__Overtime_Hours__c) || 0, dt = Number(r.ASYMBL_Time__Double_Time_Hours__c) || 0, tot = Number(r.ASYMBL_Time__Total_Hours_Logged__c) || (rt + ot + dt);
-    if (!slug) { const k = pl.Division__c || "(no division)"; unresolved[k] = wsRound((unresolved[k] || 0) + tot); continue; }
+    if (!slug) { const k = (pl.Division__c ? "division \"" + pl.Division__c + "\"" : "account \"" + (acctName || "(no account)") + "\""); unresolved[k] = wsRound((unresolved[k] || 0) + tot); continue; }
     const o = out[slug], unit = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || "(no unit)";
     o.rt += rt; o.ot += ot; o.dt += dt; o.hours += tot;
     const cand = r.ASYMBL_Time__Candidate_Name__c || "?"; o.people[cand] = true;
@@ -396,7 +407,7 @@ async function weeklySales(c) {
             WS_REV_COLS.forEach((k) => { patch[k] = s.totals[k]; }); patch.total = s.totals.total;
             await wsUpsertWeek(c, env, e.slug, we, patch);
             const ath = await wsBumpATH(c, env, e.slug, we, s.totals, e.columns);
-            R.xero = { ok: true, org: org.tenant_name, window: win, totals: s.totals, lines: s.rows.length, unmapped: s.rows.filter((x) => x.col === "other").map((x) => x.account), newATH: ath, before: prev ? { total: prev.total, assign: prev.assign, dh: prev.dh } : null };
+            R.xero = { ok: true, org: org.tenant_name, window: win, totals: s.totals, lines: s.rows.length, unmapped: s.rows.filter((x) => x.col === "other").map((x) => x.account), sections: pl.sections, newATH: ath, before: prev ? { total: prev.total, assign: prev.assign, dh: prev.dh } : null };
           } catch (err) { R.xero = { error: String(err.message || err), org: org.tenant_name, window: win }; }
         }
       }
