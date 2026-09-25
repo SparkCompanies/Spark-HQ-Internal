@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spark HQ · Weekly Sales</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--ink:#1a1a2e;--paper:#FAF9F5;--paper-warm:#FAF6E8;--card:#fff;--line:#ECE9E0;--line-light:#f5f3ec;--gold:#F5C518;--gold-bright:#FFD43B;--gold-deep:#D4A017;--gold-dark:#92400e;--gold-grad:linear-gradient(135deg,#FFD43B 0%,#F5C518 45%,#D4A017 100%);--muted:#64748b;--muted-light:#94a3b8;--green:#15803d;--red:#b91c1c;--font:'Century Gothic','Questrial','Jost','Avant Garde','Futura',sans-serif}
+*{box-sizing:border-box}html,body{margin:0;padding:0;min-height:100vh}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px}
+a{color:var(--gold-dark)}
+.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:10px 22px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:var(--gold-grad);display:grid;place-items:center;color:#3a2c05;font-weight:900}
+.brand .sub{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);font-weight:700}
+.spacer{flex:1}
+.btn{font:inherit;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.12s}
+.btn:hover{border-color:var(--gold-deep)}.btn:active{transform:scale(.985)}.btn:disabled{opacity:.5;cursor:default}
+.btn.gold{background:var(--gold-grad);border-color:var(--gold-deep);color:#3a2c05}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:12px}
+select,input[type=date],input[type=text],input[type=number],textarea{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);outline:none}
+select:focus,input:focus,textarea:focus{border-color:var(--gold-deep)}
+.status{font-size:12px;color:var(--muted);min-height:16px}.status.err{color:var(--red)}.status.ok{color:var(--green)}
+.tabs{display:flex;gap:6px;padding:12px 22px 0;flex-wrap:wrap;border-bottom:1px solid var(--line);background:#fff}
+.tab{font:inherit;font-size:12.5px;font-weight:700;padding:9px 14px;border:1px solid transparent;border-bottom:0;border-radius:10px 10px 0 0;background:transparent;color:var(--muted);cursor:pointer}
+.tab:hover{color:var(--ink)}.tab.on{background:var(--paper);border-color:var(--line);color:var(--ink);box-shadow:inset 0 3px 0 var(--gold)}
+.tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:6px;background:var(--muted-light)}.tab .dot.ok{background:var(--green)}.tab .dot.bad{background:var(--red)}
+.wrap{padding:20px 22px 60px;max-width:1500px;margin:0 auto}
+.hero{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:16px}
+.eyebrow{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);font-weight:700}
+h1{font-size:24px;margin:2px 0 0;line-height:1.1}h2{font-size:15px;margin:0;letter-spacing:.06em;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 1px 2px rgba(26,26,46,.04);margin-bottom:18px}
+.card .hd{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}.card .hd .note{font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:18px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1100px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;transition:transform .16s,box-shadow .16s}.kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.08)}
+.kpi .l{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}.kpi .v{font-size:22px;font-weight:700;margin-top:4px}.kpi .d{font-size:12px;margin-top:3px;color:var(--muted)}
+.up{color:var(--green)}.dn{color:var(--red)}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+.t th{position:sticky;top:0;background:var(--paper-warm);text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.t td{padding:8px 10px;border-bottom:1px solid var(--line-light);white-space:nowrap}.t tr:last-child td{border-bottom:0}.t tr:hover td{background:var(--line-light)}
+.t td.r,.t th.r{text-align:right;font-variant-numeric:tabular-nums}.t tr.cur td{font-weight:700;background:#fffbea}.t tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+.tw{border:1px solid var(--line);border-radius:12px;overflow:auto}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.strip div{padding:10px 12px;text-align:center}.strip .l{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;background:var(--paper-warm)}.strip .v{font-size:18px;font-weight:700}
+.sum{display:grid;grid-template-columns:1fr auto;gap:6px 18px;font-size:13.5px;align-items:center}.sum .k{color:var(--ink)}.sum .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.sum .hl{background:#fff3b0;font-weight:800;padding:6px 8px;border-radius:6px}.sum .in{display:flex;align-items:center;gap:6px}.sum .in input{width:150px;text-align:right}
+.ath{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+textarea{width:100%;min-height:110px;resize:vertical;line-height:1.5}
+.chart{position:relative;height:320px}.chart.tall{height:380px}
+.pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;border-radius:6px;padding:2px 7px;border:1px solid var(--line);color:var(--muted);background:var(--paper)}
+.pill.ok{color:var(--green);border-color:#bbf7d0;background:#f0fdf4}.pill.bad{color:var(--red);border-color:#fecaca;background:#fef2f2}.pill.warn{color:var(--gold-dark);border-color:#fde68a;background:#fffbeb}
+.muted{color:var(--muted)}.small{font-size:12px}
+details summary{cursor:pointer;font-weight:700;font-size:12.5px;color:var(--muted)}
+.setup .row{display:grid;grid-template-columns:180px 1fr 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-light)}
+.gate{max-width:560px;margin:80px auto;text-align:center}
+@media print{.top,.tabs,.noprint{display:none!important}.wrap{padding:0;max-width:none}.card{break-inside:avoid;box-shadow:none}body{background:#fff}.chart{height:300px}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><div class="mark">S</div><div><div class="sub">Spark HQ</div><div>Weekly Sales</div></div></div>
+  <div class="spacer"></div>
+  <label class="small muted">Week ending</label>
+  <select id="weSel" onchange="WS.setWeek(this.value)"></select>
+  <button class="btn" onclick="WS.pull(['xero'])" title="Pull the Sun–Sat P&L for every entity from Xero">⟳ Pull Xero</button>
+  <button class="btn" onclick="WS.pull(['sf'])" title="Pull hours and headcount for the pay period from Salesforce">⟳ Pull Salesforce</button>
+  <button class="btn ghost" onclick="WS.exportEmail()" title="Copy the report as rich HTML (tables + charts) to paste into an email">✉ Copy for email</button>
+  <button class="btn ghost" onclick="window.print()">⎙ Print / PDF</button>
+  <span id="status" class="status"></span>
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="wrap" id="app"><div class="gate"><div class="eyebrow">Weekly Sales</div><h1>Loading…</h1></div></div>
+
+<script>
+const WORKER = "https://spark-hq-worker.sparkcompanies.workers.dev";
+const SB_URL = "https://rdyzvohphrmkkowdsoam.supabase.co";
+const SB_KEY = "sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5";
+const HQ_HOME = window.location.origin + "/";
+const REV = ["assign","dh","exp","other","assist","bpo","shared","consulting","bda","affiliate","mgmt","allowances","bonuses"];
+const REV_LABEL = {assign:"Assignment Sales",dh:"Direct Hire",exp:"Expenses",other:"Other Income",assist:"Sales Assist",bpo:"BPO Services",shared:"Shared Services",consulting:"Consulting Service Rev",bda:"BDA Commission Rev",affiliate:"Affiliate Rev",mgmt:"Management Services",allowances:"Allowances",bonuses:"Bonuses"};
+
+// ---------------- auth (shares the Spark HQ session) ----------------
+const AUTH = (function(){
+  let client=null, token=null;
+  async function init(){
+    const m = await import('https://esm.sh/@supabase/supabase-js@2');
+    client = m.createClient(SB_URL, SB_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false, storageKey:'spark_hq_sb_auth' } });
+    const s = await client.auth.getSession();
+    token = s && s.data && s.data.session ? s.data.session.access_token : null;
+    client.auth.onAuthStateChange((_e, sess)=>{ token = sess ? sess.access_token : null; });
+    return token;
+  }
+  return { init, get:()=>token };
+})();
+async function api(path, opts){
+  const t = AUTH.get(); if(!t) throw new Error("Not signed in — open Spark HQ, sign in, then reload this page.");
+  const o = Object.assign({ headers:{} }, opts||{});
+  o.headers = Object.assign({ Authorization:"Bearer "+t }, o.headers);
+  if (o.body && typeof o.body!=="string"){ o.headers["Content-Type"]="application/json"; o.body = JSON.stringify(o.body); o.method = o.method||"POST"; }
+  const r = await fetch(WORKER+path, o); let d=null; try{ d = await r.json(); }catch(e){}
+  if(!r.ok || (d && d.error)) throw new Error((d && d.error) || ("HTTP "+r.status));
+  return d;
+}
+
+// ---------------- helpers ----------------
+const fmt$ = (v, cents=true)=>{ if(v===null||v===undefined||v==="") return "–"; const n=Number(v)||0; const s=Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:cents?2:0,maximumFractionDigits:cents?2:0}); return n<0 ? "$("+s+")" : "$"+s; };
+const fmtN = (v,d=2)=>{ if(v===null||v===undefined) return "–"; return (Number(v)||0).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); };
+const fmtI = (v)=> v===null||v===undefined ? "–" : Math.round(Number(v)).toLocaleString("en-US");
+const D = (s)=>new Date(s+"T12:00:00Z"); const iso=(d)=>d.toISOString().slice(0,10); const add=(s,n)=>iso(new Date(D(s).getTime()+n*864e5));
+const mdy = (s)=>{ const d=D(s); return (d.getUTCMonth()+1)+"/"+d.getUTCDate()+"/"+d.getUTCFullYear(); };
+const mdy2 = (s)=>{ const d=D(s); return (d.getUTCMonth()+1)+"/"+d.getUTCDate()+"/"+String(d.getUTCFullYear()).slice(2); };
+const cls = (v)=> v>0?"up":(v<0?"dn":"");
+const esc = (s)=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function status(msg, k){ const el=document.getElementById("status"); el.textContent=msg||""; el.className="status "+(k||""); }
+function sundaysOfYear(y){ const out=[]; let d=new Date(Date.UTC(y,0,1,12)); while(d.getUTCDay()!==0) d=new Date(d.getTime()+864e5); while(d.getUTCFullYear()===y){ out.push(iso(d)); d=new Date(d.getTime()+7*864e5);} return out; }
+
+// ---------------- state ----------------
+const WS = {
+  cfg:null, we:null, rep:null, tab:"all", charts:[],
+  rows:{},            // entity -> we_date -> row
+  async boot(){
+    const t = await AUTH.init();
+    if(!t){ document.getElementById("app").innerHTML = '<div class="gate"><div class="eyebrow">Weekly Sales</div><h1>Sign in to Spark HQ first</h1><p class="muted">This page uses your HQ session. <a href="'+HQ_HOME+'">Open Spark HQ</a>, sign in, then come back and reload.</p></div>'; return; }
+    try{ this.cfg = await api("/ws-config"); }catch(e){ document.getElementById("app").innerHTML='<div class="gate"><h1>Could not load config</h1><p class="muted">'+esc(e.message)+'</p><p class="muted">If the tables do not exist yet, run <b>weekly_sales_schema.sql</b> and <b>weekly_sales_seed.sql</b> in Supabase.</p></div>'; return; }
+    const url = new URL(location.href);
+    this.we = url.searchParams.get("we") || this.cfg.latest_sunday;
+    this.tab = url.searchParams.get("tab") || "all";
+    this.buildWeekPicker();
+    await this.load();
+  },
+  buildWeekPicker(){
+    const sel=document.getElementById("weSel"); const y=D(this.we).getUTCFullYear();
+    const list = sundaysOfYear(y).concat(sundaysOfYear(y-1)).filter(s=>s<=this.cfg.latest_sunday || s===this.we).sort().reverse();
+    sel.innerHTML = list.map(s=>'<option value="'+s+'"'+(s===this.we?' selected':'')+'>WE '+mdy(s)+'</option>').join("");
+  },
+  async setWeek(we){ this.we=we; history.replaceState({},"", "?we="+we+"&tab="+this.tab); await this.load(); },
+  setTab(t){ this.tab=t; history.replaceState({},"", "?we="+this.we+"&tab="+t); this.render(); },
+  async load(){
+    status("Loading week…");
+    try{ this.rep = await api("/ws-report?we="+this.we); }catch(e){ status(e.message,"err"); return; }
+    this.rows={}; (this.rep.weeks||[]).forEach(r=>{ (this.rows[r.entity]=this.rows[r.entity]||{})[r.we_date]=r; });
+    status(""); this.render();
+  },
+  async pull(sources){
+    if(!confirm("Pull "+sources.join(" + ")+" for WE "+mdy(this.we)+" (all entities)? Locked weeks are skipped.")) return;
+    status("Pulling "+sources.join(" + ")+"…");
+    try{
+      const r = await api("/ws-pull",{ body:{ we:this.we, sources } });
+      const msgs=[]; Object.keys(r.entities||{}).forEach(k=>{ const e=r.entities[k]; if(e.xero) msgs.push(k+": Xero "+(e.xero.ok?"✓ "+fmt$(e.xero.totals.total)+(e.xero.newATH&&e.xero.newATH.length?" NEW ATH":""):(e.xero.skipped||"✗ "+e.xero.error))); if(e.sf) msgs.push(k+": SF "+(e.sf.ok?"✓ "+fmtN(e.sf.hours)+"h / "+e.sf.headcount+" HC":(e.sf.skipped||"✗ "+e.sf.error))); });
+      (r.warnings||[]).forEach(w=>msgs.push("⚠ "+w));
+      await this.load(); status(msgs.join("  ·  "), (r.warnings||[]).length?"err":"ok");
+      alert(msgs.join("\n"));
+    }catch(e){ status(e.message,"err"); }
+  },
+  ent(slug){ return (this.rep.entities||[]).find(e=>e.slug===slug); },
+  row(slug, we){ return (this.rows[slug]||{})[we]||null; },
+  prior(slug, we){ return this.row(slug, add(we,-364)); },
+  six(){ return [5,4,3,2,1,0].map(i=>add(this.we,-7*i)); },
+  hoursEnts(){ return (this.rep.entities||[]).filter(e=>e.has_hours); },
+  payTotal(r){ if(!r) return null; if(r.payroll_int==null && r.payroll_ext==null) return null; return (Number(r.payroll_int)||0)+(Number(r.payroll_ext)||0); },
+  variance(r){ const p=this.payTotal(r); if(!r||p===null) return null; return (Number(r.assign)||0)+(Number(r.exp)||0)-p; },
+  seriesFor(fn, ents){ // returns {labels, cur:[], prior:[]} over the Sundays of the report year
+    const y=D(this.we).getUTCFullYear(); const labels=sundaysOfYear(y);
+    const sum=(we)=>{ let s=null; ents.forEach(e=>{ const r=this.row(e.slug,we); const v=r?fn(r):null; if(v!==null&&v!==undefined){ s=(s||0)+Number(v);} }); return s; };
+    return { labels, cur: labels.map(l=> l<=this.we ? sum(l) : null), prior: labels.map(l=> sum(add(l,-364))) };
+  },
+
+  // ---------------- render ----------------
+  render(){
+    this.charts.forEach(c=>{ try{c.destroy();}catch(e){} }); this.charts=[];
+    const ents=this.rep.entities||[];
+    const tabs=[{k:"all",l:"All entities"}].concat(ents.map(e=>({k:e.slug,l:e.short,ok:this.cfgEnt(e.slug)&&this.cfgEnt(e.slug).xero_ok}))).concat([{k:"setup",l:"⚙ Setup"}]);
+    document.getElementById("tabs").innerHTML = tabs.map(t=>'<button class="tab'+(this.tab===t.k?' on':'')+'" onclick="WS.setTab(\''+t.k+'\')">'+esc(t.l)+(t.k!=="all"&&t.k!=="setup"?'<span class="dot '+(t.ok?'ok':'bad')+'" title="'+(t.ok?'Xero connected':'Xero not connected/mapped')+'"></span>':'')+'</button>').join("");
+    const app=document.getElementById("app");
+    if(this.tab==="setup") return this.renderSetup(app);
+    if(this.tab==="all") return this.renderAll(app);
+    const e=this.ent(this.tab); if(!e){ this.tab="all"; return this.render(); }
+    return e.report_kind==="simple" ? this.renderSimple(app,e) : this.renderFull(app,e);
+  },
+  cfgEnt(slug){ return (this.cfg.entities||[]).find(e=>e.slug===slug); },
+  header(e){
+    const w=this.rep.window; const r=e?this.row(e.slug,this.we):null;
+    const win = r&&r.xero_from ? {from:r.xero_from,to:r.xero_to,override:r.xero_override} : w;
+    return '<div class="hero"><div><div class="eyebrow">Weekly Sales · '+(e?esc(e.name):'All entities')+'</div><h1>Week ending '+mdy(this.we)+'</h1>'
+      +'<div class="small muted" style="margin-top:6px">Hours & headcount: pay period '+mdy(add(this.we,-6))+' – '+mdy(this.we)+' · Xero P&amp;L window: <b>'+mdy(win.from)+' – '+mdy(win.to)+'</b>'+(win.override?' <span class="pill warn">override</span>':(w.wrapped?' <span class="pill warn">wrapped week</span>':''))
+      +(r&&r.xero_pulled_at?' · Xero pulled '+new Date(r.xero_pulled_at).toLocaleString():'')+(r&&r.sf_pulled_at?' · SF pulled '+new Date(r.sf_pulled_at).toLocaleString():'')+(r&&r.locked?' · <span class="pill bad">LOCKED</span>':'')+'</div></div><div class="spacer"></div>'
+      +(e?'<div class="noprint"><button class="btn sm" onclick="WS.pullOne(\''+e.slug+'\')">⟳ Pull this entity</button> <button class="btn sm" onclick="WS.toggleLock(\''+e.slug+'\')">'+(r&&r.locked?'🔓 Unlock':'🔒 Lock week')+'</button></div>':'')+'</div>';
+  },
+  async pullOne(slug){ const e=this.ent(slug); const src=e.has_hours?["xero","sf"]:["xero"]; status("Pulling "+e.short+"…"); try{ const r=await api("/ws-pull",{body:{we:this.we,entities:[slug],sources:src}}); await this.load(); const x=r.entities[slug]||{}; status((x.xero?("Xero: "+(x.xero.ok?"✓ "+fmt$(x.xero.totals.total):(x.xero.skipped||x.xero.error))):"")+(x.sf?("  ·  SF: "+(x.sf.ok?"✓ "+fmtN(x.sf.hours)+" h / "+x.sf.headcount+" HC":(x.sf.skipped||x.sf.error))):"")+((r.warnings||[]).length?"  ·  ⚠ "+r.warnings.join(" | "):""), (x.xero&&x.xero.error)||(x.sf&&x.sf.error)?"err":"ok"); }catch(err){ status(err.message,"err"); } },
+  async toggleLock(slug){ const r=this.row(slug,this.we); try{ await api("/ws-save",{body:{entity:slug,we:this.we,locked:!(r&&r.locked)}}); await this.load(); }catch(e){ status(e.message,"err"); } },
+
+  keyThings(e){
+    const r=this.row(e.slug,this.we);
+    return '<div class="card"><div class="hd"><h2>Key Things</h2><span class="note">Written by hand or drafted by Claude from this week\'s numbers — edit, then save.</span><div class="spacer"></div><span class="noprint"><button class="btn sm" onclick="WS.draft(\''+e.slug+'\')">✨ Draft with AI</button> <button class="btn sm gold" onclick="WS.saveKT(\''+e.slug+'\')">Save</button></span></div>'
+      +'<textarea id="kt-'+e.slug+'" placeholder="- Total sales are up this week.&#10;- Hours rebounded after the holiday.&#10;- HC held steady.">'+esc(r&&r.key_things||'')+'</textarea></div>';
+  },
+  async draft(slug){ status("Drafting Key Things…"); try{ const r=await api("/ws-narrative",{body:{entity:slug,we:this.we}}); document.getElementById("kt-"+slug).value=r.draft; status("Draft ready — review and save.","ok"); }catch(e){ status(e.message,"err"); } },
+  async saveKT(slug){ try{ await api("/ws-save",{body:{entity:slug,we:this.we,key_things:document.getElementById("kt-"+slug).value}}); await this.load(); status("Saved.","ok"); }catch(e){ status(e.message,"err"); } },
+
+  kpis(e){
+    const r=this.row(e.slug,this.we)||{}, l=this.row(e.slug,add(this.we,-7))||{}, py=this.prior(e.slug,this.we)||{};
+    const k=(label,val,fmt,delta,dfmt,extra)=>'<div class="kpi"><div class="l">'+label+'</div><div class="v">'+fmt(val)+'</div><div class="d">'+(delta==null?'':'<span class="'+cls(delta)+'">'+(delta>0?'▲ ':delta<0?'▼ ':'')+dfmt(Math.abs(delta))+'</span> vs LW')+(extra||'')+'</div></div>';
+    const v=this.variance(r);
+    return '<div class="kpis">'
+      +k("Total sales", r.total, fmt$, r.total!=null&&l.total!=null?r.total-l.total:null, fmt$, py.total!=null?' · LY '+fmt$(py.total,false):'')
+      +k(e.columns[0]&&e.columns[0].key==="assign"?"Assignment sales":"Direct hire", e.columns[0]&&e.columns[0].key==="assign"?r.assign:r.dh, fmt$, e.columns[0]&&e.columns[0].key==="assign"?(r.assign!=null&&l.assign!=null?r.assign-l.assign:null):(r.dh!=null&&l.dh!=null?r.dh-l.dh:null), fmt$)
+      +(e.columns[0]&&e.columns[0].key==="assign"?k("Direct hire", r.dh, fmt$, r.dh!=null&&l.dh!=null?r.dh-l.dh:null, fmt$):k("Total payroll", this.payTotal(r), fmt$, null, fmt$))
+      +(e.has_hours?k("Hours", r.hours, v=>fmtN(v), r.hours!=null&&l.hours!=null?r.hours-l.hours:null, v=>fmtN(v), py.hours!=null?' · LY '+fmtN(py.hours,0):''):k("Sales − payroll", v, fmt$, null, fmt$))
+      +(e.has_hours?k("Headcount", r.headcount, fmtI, r.headcount!=null&&l.headcount!=null?r.headcount-l.headcount:null, fmtI, py.headcount!=null?' · LY '+fmtI(py.headcount):''):'')
+      +(e.has_hours?k("Sales − payroll", v, fmt$, null, fmt$):'')
+      +'</div>';
+  },
+
+  hoursSection(e){
+    const six=this.six(); const r=this.row(e.slug,this.we)||{}, l=this.row(e.slug,add(this.we,-7))||{};
+    const dl=(k)=> r[k]!=null&&l[k]!=null ? r[k]-l[k] : null;
+    const strip='<div class="strip"><div class="l">RT</div><div class="l">OT</div><div class="l">DT</div><div class="l">Total</div>'+["rt","ot","dt","hours"].map(k=>{const d=dl(k);return '<div class="v '+cls(d)+'">'+(d==null?'–':fmtN(d))+'</div>';}).join("")+'</div>';
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">RT Hours</th><th class="r">OT Hours</th><th class="r">DT Hours</th><th class="r">Total</th><th class="r">Prior Year Total</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{},p=this.prior(e.slug,w)||{};return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+fmtN(x.rt)+'</td><td class="r">'+fmtN(x.ot)+'</td><td class="r">'+fmtN(x.dt)+'</td><td class="r">'+fmtN(x.hours)+'</td><td class="r">'+fmtN(p.hours)+'</td></tr>';}).join("")+'</tbody></table></div>';
+    const units=(this.rep.detail[e.slug]&&this.rep.detail[e.slug].by_unit)||[];
+    const ut=units.length?'<details style="margin-top:12px"><summary>Hours by unit ('+units.length+')</summary><div class="tw" style="margin-top:8px"><table class="t"><thead><tr><th>Unit</th><th class="r">HC</th><th class="r">RT</th><th class="r">OT</th><th class="r">DT</th><th class="r">Total</th></tr></thead><tbody>'+units.map(u=>'<tr><td>'+esc(u.unit)+'</td><td class="r">'+fmtI(u.headcount)+'</td><td class="r">'+fmtN(u.rt)+'</td><td class="r">'+fmtN(u.ot)+'</td><td class="r">'+fmtN(u.dt)+'</td><td class="r">'+fmtN(u.hours)+'</td></tr>').join("")+'</tbody></table></div></details>':'';
+    return '<div class="card"><div class="hd"><h2>Hours</h2><span class="note">Salesforce timesheets · difference between last week and this week</span></div>'+strip+tbl+ut
+      +'<div class="grid g2" style="margin-top:16px"><div><div class="eyebrow" style="margin-bottom:6px">'+esc(e.short)+' total hours — this year vs last</div><div class="chart"><canvas id="ch-hours-'+e.slug+'"></canvas></div></div><div><div class="eyebrow" style="margin-bottom:6px">All entities\' hours — YOY</div><div class="chart"><canvas id="ch-hours-all"></canvas></div></div></div></div>';
+  },
+  hcSection(e){
+    const six=this.six(); const r=this.row(e.slug,this.we)||{}, l=this.row(e.slug,add(this.we,-7))||{};
+    const d=r.headcount!=null&&l.headcount!=null?r.headcount-l.headcount:null;
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">Total Headcount</th><th class="r">Prior Year Total</th><th class="r">YoY</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{},p=this.prior(e.slug,w)||{};const yy=x.headcount!=null&&p.headcount!=null?x.headcount-p.headcount:null;return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+fmtI(x.headcount)+'</td><td class="r">'+fmtI(p.headcount)+'</td><td class="r '+cls(yy)+'">'+(yy==null?'–':(yy>0?'+':'')+fmtI(yy))+'</td></tr>';}).join("")+'</tbody></table></div>';
+    return '<div class="card"><div class="hd"><h2>Headcount</h2><span class="note">People with hours in the pay period · HC is <b class="'+cls(d)+'">'+(d==null?'–':d===0?'FLAT':(d>0?'UP by '+d:'DOWN by '+(-d)))+'</b> this week</span></div>'+tbl
+      +'<div class="grid g2" style="margin-top:16px"><div><div class="eyebrow" style="margin-bottom:6px">'+esc(e.short)+' headcount — this year vs last</div><div class="chart"><canvas id="ch-hc-'+e.slug+'"></canvas></div></div><div><div class="eyebrow" style="margin-bottom:6px">All entities\' headcount — YOY</div><div class="chart"><canvas id="ch-hc-all"></canvas></div></div></div></div>';
+  },
+  salesSection(e){
+    const six=this.six(); const cols=e.columns||[]; const r=this.row(e.slug,this.we)||{};
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>WE Date</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Totals</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{};return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td>'+cols.map(c=>'<td class="r">'+fmt$(x[c.key])+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
+    const ath=(this.rep.ath||[]).filter(a=>a.entity===e.slug); const athL={assign:"ATH Assignment Sales",dh:"ATH Direct Hire Sales",total:"ATH Total Sales"};
+    const pay=this.payTotal(r), v=this.variance(r);
+    const sum='<div class="sum">'+cols.map(c=>'<div class="k">'+esc(c.label)+'</div><div class="v">'+fmt$(r[c.key])+'</div>').join("")
+      +'<div class="k hl">Total Sales</div><div class="v hl">'+fmt$(r.total)+'</div>'
+      +'<div class="k">Payroll – <i>Internal Cash Requirements</i></div><div class="v in noprint"><input type="text" id="pi-'+e.slug+'" value="'+(r.payroll_int==null?'':fmtN(r.payroll_int))+'" placeholder="0.00"></div>'
+      +'<div class="k">Payroll – <i>External Cash Requirements</i></div><div class="v in noprint"><input type="text" id="pe-'+e.slug+'" value="'+(r.payroll_ext==null?'':fmtN(r.payroll_ext))+'" placeholder="0.00"></div>'
+      +'<div class="k hl">Total Payroll</div><div class="v hl">'+fmt$(pay)+'</div>'
+      +'<div class="k"><b>Sales – Payroll</b></div><div class="v '+cls(v)+'"><b>'+fmt$(v)+'</b></div></div>'
+      +'<div class="noprint" style="margin-top:10px;display:flex;gap:8px;align-items:center"><button class="btn sm gold" onclick="WS.savePay(\''+e.slug+'\')">Save payroll</button><span class="small muted">'+(r.payroll_by?'entered by '+esc(r.payroll_by)+(r.payroll_at?' · '+new Date(r.payroll_at).toLocaleDateString():'')+(r.payroll_note?' · '+esc(r.payroll_note):''):'not entered yet')+'</span></div>'
+      +'<div class="ath">'+["assign","dh","total"].map(m=>{const a=ath.find(x=>x.metric===m);return a?athL[m]+': WE '+mdy2(a.we_date)+' – '+fmt$(a.amount)+'<br>':'';}).join("")+'</div>';
+    return '<div class="card"><div class="hd"><h2>Sales Breakdown</h2><span class="note">Xero P&amp;L income accounts, classified by account name</span></div><div class="grid" style="grid-template-columns:2fr 1fr">'+tbl+'<div class="card" style="margin:0;background:var(--paper)">'+sum+'</div></div>'
+      +'<div class="grid g2" style="margin-top:16px"><div><div class="eyebrow" style="margin-bottom:6px">'+esc(e.short)+' weekly sales — year over year</div><div class="chart"><canvas id="ch-sales-'+e.slug+'"></canvas></div></div><div><div class="eyebrow" style="margin-bottom:6px">All entities\' sales — YOY</div><div class="chart"><canvas id="ch-sales-all"></canvas></div></div></div></div>';
+  },
+  async savePay(slug){ const pi=document.getElementById("pi-"+slug).value, pe=document.getElementById("pe-"+slug).value; try{ await api("/ws-save",{body:{entity:slug,we:this.we,payroll_int:pi===""?null:pi,payroll_ext:pe===""?null:pe}}); await this.load(); status("Payroll saved.","ok"); }catch(e){ status(e.message,"err"); } },
+  varianceSection(e){
+    const six=this.six(); const cols=(e.columns||[]).filter(c=>c.key!=="assign"&&c.key!=="exp");
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">Assignment Sales (w/ Expenses)</th><th class="r">Total Payroll</th><th class="r">Variance</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Total Sales</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x);return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+fmt$((Number(x.assign)||0)+(Number(x.exp)||0))+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'"><b>'+fmt$(v)+'</b></td>'+cols.map(c=>'<td class="r">'+(Number(x[c.key])?fmt$(x[c.key]):'')+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
+    return '<div class="card"><div class="hd"><h2>Variance Report</h2><span class="note">Variance = Assignment Sales (with expenses) − Total Payroll</span></div>'+tbl+'</div>';
+  },
+  dhSection(e){
+    const rows=(this.rep.dh_monthly||[]).filter(d=>d.entity===e.slug); if(!rows.length) return '';
+    const years=[...new Set(rows.map(d=>d.year))].sort((a,b)=>b-a).slice(0,5); const M=["Jan.","Feb.","March","April","May","June","July","Aug.","Sep.","Oct.","Nov.","Dec."];
+    const get=(y,m)=>{const x=rows.find(d=>d.year===y&&d.month===m);return x?Number(x.amount):null;};
+    const cy=years[0], py=years[1];
+    const tot=(y)=>rows.filter(d=>d.year===y).reduce((a,d)=>a+Number(d.amount),0);
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Month</th>'+years.map(y=>'<th class="r">'+y+'</th>').join("")+'<th class="r">Diff vs '+py+'</th></tr></thead><tbody>'
+      +M.map((mn,i)=>{const c=get(cy,i+1),p=get(py,i+1);const df=c!=null&&p!=null?c-p:null;return '<tr><td>'+mn+'</td>'+years.map(y=>'<td class="r">'+(get(y,i+1)==null?'':fmt$(get(y,i+1)))+'</td>').join("")+'<td class="r '+cls(df)+'">'+(df==null?'':fmt$(df))+'</td></tr>';}).join("")
+      +'<tr class="tot"><td>TOTALS</td>'+years.map(y=>'<td class="r">'+fmt$(tot(y))+'</td>').join("")+'<td class="r '+cls(tot(cy)-M.reduce((a,_,i)=>a+(get(cy,i+1)!=null&&get(py,i+1)!=null?get(py,i+1):0),0))+'">'+fmt$(M.reduce((a,_,i)=>a+(get(cy,i+1)!=null&&get(py,i+1)!=null?get(cy,i+1)-get(py,i+1):0),0))+'</td></tr></tbody></table></div>';
+    this._dh=this._dh||{}; this._dh[e.slug]={M,cy,py,c:M.map((_,i)=>get(cy,i+1)),p:M.map((_,i)=>get(py,i+1))};
+    return '<div class="card"><div class="hd"><h2>Direct Hires</h2><span class="note">Monthly direct-hire revenue by year (calendar months from Xero)</span><div class="spacer"></div><button class="btn sm noprint" onclick="WS.refreshDH(\''+e.slug+'\')">⟳ Refresh this month from Xero</button></div><div class="grid" style="grid-template-columns:1.1fr 1fr">'+tbl+'<div><div class="chart"><canvas id="ch-dhbar-'+e.slug+'"></canvas></div><div class="chart" style="margin-top:12px"><canvas id="ch-dhline-'+e.slug+'"></canvas></div></div></div></div>';
+  },
+  async refreshDH(slug){ const d=D(this.we); const months=[[d.getUTCFullYear(),d.getUTCMonth()+1]]; const pm=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()-1,1)); months.push([pm.getUTCFullYear(),pm.getUTCMonth()+1]); status("Refreshing DH months…"); try{ for(const [y,m] of months){ await api("/ws-dh-monthly",{body:{year:y,month:m,entities:[slug]}}); } await this.load(); status("Direct-hire months refreshed.","ok"); }catch(e){ status(e.message,"err"); } },
+  xeroAudit(e){
+    const r=this.row(e.slug,this.we)||{}; const lines=(this.rep.detail[e.slug]&&this.rep.detail[e.slug].xero_rows)||[];
+    const w=r.xero_from?{from:r.xero_from,to:r.xero_to}:this.rep.window;
+    return '<div class="card noprint"><details><summary>Xero window & account audit — '+mdy(w.from)+' – '+mdy(w.to)+(r.xero_override?' (override)':'')+' · '+lines.length+' income lines</summary>'
+      +'<div style="display:flex;gap:10px;align-items:center;margin:12px 0;flex-wrap:wrap"><span class="small muted">Override the P&amp;L window for this week:</span><input type="date" id="xf-'+e.slug+'" value="'+(w.from||'')+'"><span>→</span><input type="date" id="xt-'+e.slug+'" value="'+(w.to||'')+'"><button class="btn sm" onclick="WS.saveWindow(\''+e.slug+'\',true)">Save window</button><button class="btn sm ghost" onclick="WS.saveWindow(\''+e.slug+'\',false)">Reset to rule</button><span class="small muted">Then pull Xero again for this entity.</span></div>'
+      +(lines.length?'<div class="tw"><table class="t"><thead><tr><th>Account (Xero)</th><th>Mapped to</th><th class="r">Amount</th></tr></thead><tbody>'+lines.map(l=>'<tr><td>'+esc(l.account)+'</td><td>'+(l.col==="other"?'<span class="pill warn">'+esc(REV_LABEL[l.col])+'</span>':'<span class="pill ok">'+esc(REV_LABEL[l.col]||l.col)+'</span>')+'</td><td class="r">'+fmt$(l.amount)+'</td></tr>').join("")+'</tbody></table></div><p class="small muted">Accounts mapped to <b>Other</b> that should land elsewhere can be fixed with a rule in Setup.</p>':'<p class="small muted">No pull yet for this week.</p>')+'</details></div>';
+  },
+  async saveWindow(slug,on){ try{ const b={entity:slug,we:this.we}; if(on){ b.xero_from=document.getElementById("xf-"+slug).value; b.xero_to=document.getElementById("xt-"+slug).value; } else { b.xero_from=""; b.xero_to=""; } await api("/ws-save",{body:b}); await this.load(); status("Window saved — pull Xero again for "+slug+".","ok"); }catch(e){ status(e.message,"err"); } },
+
+  renderFull(app,e){
+    app.innerHTML = this.header(e)+this.keyThings(e)+this.kpis(e)+this.hoursSection(e)+this.hcSection(e)+this.salesSection(e)+this.varianceSection(e)+this.dhSection(e)+this.xeroAudit(e);
+    this.drawEntityCharts(e); this.drawAllCharts();
+  },
+  renderSimple(app,e){
+    const six=this.six(); const cols=e.columns||[]; const r=this.row(e.slug,this.we)||{};
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">Sales (w/ Expenses)</th><th class="r">Total Payroll</th><th class="r">Variance</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Total Sales</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x);return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+(Number(x.assign)||Number(x.exp)?fmt$((Number(x.assign)||0)+(Number(x.exp)||0)):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'"><b>'+fmt$(v)+'</b></td>'+cols.map(c=>'<td class="r">'+(Number(x[c.key])?fmt$(x[c.key]):'')+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
+    const ath=(this.rep.ath||[]).filter(a=>a.entity===e.slug&&a.metric==="total")[0];
+    const pay='<div class="sum" style="max-width:520px;margin-top:14px"><div class="k">Payroll – <i>Internal</i></div><div class="v in noprint"><input type="text" id="pi-'+e.slug+'" value="'+(r.payroll_int==null?'':fmtN(r.payroll_int))+'"></div><div class="k">Payroll – <i>External</i></div><div class="v in noprint"><input type="text" id="pe-'+e.slug+'" value="'+(r.payroll_ext==null?'':fmtN(r.payroll_ext))+'"></div><div class="k hl">Total Payroll</div><div class="v hl">'+fmt$(this.payTotal(r))+'</div></div><div class="noprint" style="margin-top:10px"><button class="btn sm gold" onclick="WS.savePay(\''+e.slug+'\')">Save payroll</button> <span class="small muted">'+(r.payroll_by?'entered by '+esc(r.payroll_by):'not entered yet')+'</span></div>'
+      +'<div class="ath">'+(ath?esc(e.short)+' Total Sales ATH WE '+mdy2(ath.we_date)+' – '+fmt$(ath.amount):'')+'</div>';
+    app.innerHTML = this.header(e)+this.keyThings(e)+'<div class="card"><div class="hd"><h2>Sales breakdown</h2><span class="note">'+(Number(r.total)?'':'No sales this week. ')+'Xero P&amp;L income accounts, classified by account name</span></div>'+tbl+pay
+      +'<div style="margin-top:16px"><div class="eyebrow" style="margin-bottom:6px">'+esc(e.short)+' weekly sales — year over year</div><div class="chart"><canvas id="ch-sales-'+e.slug+'"></canvas></div></div></div>'+this.dhSection(e)+this.xeroAudit(e);
+    this.drawEntityCharts(e);
+  },
+  renderAll(app){
+    const ents=this.rep.entities||[]; const lw=add(this.we,-7);
+    let T={total:0,lw:0,assign:0,dh:0,hours:0,hc:0,pay:0,varr:0,payAny:false};
+    const rows=ents.map(e=>{const r=this.row(e.slug,this.we)||{},l=this.row(e.slug,lw)||{},py=this.prior(e.slug,this.we)||{};const p=this.payTotal(r),v=this.variance(r);
+      T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=Number(r.assign)||0;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(p!=null){T.pay+=p;T.payAny=true;}if(v!=null)T.varr+=v;
+      const d=r.total!=null&&l.total!=null?r.total-l.total:null;
+      return '<tr><td><b><a href="#" onclick="WS.setTab(\''+e.slug+'\');return false;">'+esc(e.name)+'</a></b></td><td class="r"><b>'+fmt$(r.total)+'</b></td><td class="r '+cls(d)+'">'+(d==null?'–':(d>0?'+':'')+fmt$(d))+'</td><td class="r">'+(py.total!=null?fmt$(py.total):'–')+'</td><td class="r">'+fmt$(r.assign)+'</td><td class="r">'+fmt$(r.dh)+'</td><td class="r">'+(e.has_hours?fmtN(r.hours):'')+'</td><td class="r">'+(e.has_hours?fmtI(r.headcount):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'">'+fmt$(v)+'</td><td>'+(r.key_things?'<span class="pill ok">notes</span>':'')+(r.locked?' <span class="pill bad">locked</span>':'')+(r.xero_pulled_at?'':' <span class="pill warn">no Xero pull</span>')+'</td></tr>';}).join("");
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Entity</th><th class="r">Total Sales</th><th class="r">vs LW</th><th class="r">Same wk LY</th><th class="r">Assignment</th><th class="r">Direct Hire</th><th class="r">Hours</th><th class="r">HC</th><th class="r">Total Payroll</th><th class="r">Variance</th><th></th></tr></thead><tbody>'+rows
+      +'<tr class="tot"><td>All entities</td><td class="r">'+fmt$(T.total)+'</td><td class="r '+cls(T.total-T.lw)+'">'+(T.total-T.lw>0?'+':'')+fmt$(T.total-T.lw)+'</td><td></td><td class="r">'+fmt$(T.assign)+'</td><td class="r">'+fmt$(T.dh)+'</td><td class="r">'+fmtN(T.hours)+'</td><td class="r">'+fmtI(T.hc)+'</td><td class="r">'+(T.payAny?fmt$(T.pay):'–')+'</td><td class="r '+cls(T.varr)+'">'+(T.payAny?fmt$(T.varr):'–')+'</td><td></td></tr></tbody></table></div>';
+    const notes=ents.map(e=>{const r=this.row(e.slug,this.we);return r&&r.key_things?'<div class="card" style="margin-bottom:10px"><div class="eyebrow">'+esc(e.name)+'</div><div style="white-space:pre-wrap;margin-top:6px;line-height:1.55">'+esc(r.key_things)+'</div></div>':'';}).join("");
+    app.innerHTML=this.header(null)+'<div class="card"><div class="hd"><h2>Portfolio — week ending '+mdy(this.we)+'</h2><span class="note">Click an entity for its full report</span></div>'+tbl+'</div>'
+      +(notes?'<div class="card" style="background:var(--paper)"><div class="hd"><h2>Key things across entities</h2></div>'+notes+'</div>':'')
+      +'<div class="grid g3"><div class="card"><div class="eyebrow" style="margin-bottom:6px">All entities\' sales — YOY</div><div class="chart"><canvas id="ch-sales-all"></canvas></div></div><div class="card"><div class="eyebrow" style="margin-bottom:6px">All entities\' hours — YOY</div><div class="chart"><canvas id="ch-hours-all"></canvas></div></div><div class="card"><div class="eyebrow" style="margin-bottom:6px">All entities\' headcount — YOY</div><div class="chart"><canvas id="ch-hc-all"></canvas></div></div></div>';
+    this.drawAllCharts();
+  },
+  renderSetup(app){
+    const cfg=this.cfg; const orgs=cfg.xero_orgs||[];
+    const rows=(cfg.entities||[]).map(e=>'<div class="row"><div><b>'+esc(e.name)+'</b><div class="small muted">'+esc(e.slug)+' · '+(e.has_hours?'hours+HC':'sales only')+'</div></div>'
+      +'<div><div class="small muted">Xero org (entity_division = <code>'+esc(e.xero_division||'')+'</code>)</div><select onchange="WS.mapOrg(\''+esc(e.xero_division||e.name)+'\',this.value)"><option value="">— not mapped —</option>'+orgs.map(o=>'<option value="'+esc(o.tenant_id)+'"'+(o.tenant_id===e.xero_tenant_id?' selected':'')+'>'+esc(o.tenant_name)+(o.token_ok?'':' (token ✗)')+'</option>').join("")+'</select> '+(e.xero_ok?'<span class="pill ok">OK</span>':'<span class="pill bad" title="'+esc(e.xero_error||'')+'">'+esc(e.xero_error||'not ready')+'</span>')+'</div>'
+      +'<div><div class="small muted">Salesforce Division values → this entity</div><input type="text" style="width:100%" value="'+esc((e.sf_divisions||[]).join(", "))+'" onchange="WS.saveDiv(\''+e.slug+'\',this.value)"></div></div>').join("");
+    const rules=(cfg.entities||[]).map(e=>'<div style="margin-top:10px"><b>'+esc(e.short)+'</b> <span class="small muted">rules (regex → column), checked before the defaults</span><textarea id="rules-'+e.slug+'" style="min-height:60px;font-family:monospace;font-size:12px">'+esc(JSON.stringify(e.rules||[],null,0))+'</textarea><button class="btn sm" onclick="WS.saveRules(\''+e.slug+'\')">Save rules</button></div>').join("");
+    app.innerHTML='<div class="hero"><div><div class="eyebrow">Weekly Sales</div><h1>Setup</h1></div></div>'
+      +'<div class="card setup"><div class="hd"><h2>Xero organisations</h2><span class="note">'+orgs.length+' connected · '+(cfg.xero_error?'<span class="pill bad">'+esc(cfg.xero_error)+'</span>':'')+'</span><div class="spacer"></div><button class="btn gold" onclick="WS.connectXero()">Connect / re-authorise Xero orgs</button></div>'
+      +'<p class="small muted">Connecting opens Xero. Tick <b>every</b> organisation (Talent, Flex, Ignite, JJP, Packaging, Bolt, Companies) in the same consent so one token covers them all — that is what avoids the "invalid token" problem the Finance tab had. Then map each org to its entity below.</p>'+rows+'</div>'
+      +'<div class="card"><div class="hd"><h2>Account → column rules</h2><span class="note">Default rules: Contract-* → Assignment · Direct Hire* → Direct Hire · Expense Reimb* → Expenses · Sales Assist · BPO · Shared Services · Consulting · BDA/Commission · Affiliate · Management Services · Service/Sales → Assignment (Bolt) · anything else → Other</span></div>'+rules+'</div>'
+      +'<div class="card"><div class="hd"><h2>Direct-hire months backfill</h2><span class="note">Pulls each calendar month of the year from Xero (one call per entity per month) and stores it in ws_dh_monthly.</span></div><div style="display:flex;gap:8px;align-items:center"><input type="number" id="dhYear" value="'+D(this.we).getUTCFullYear()+'" style="width:100px"><button class="btn" onclick="WS.backfillDH()">Backfill year</button><span id="dhStatus" class="small muted"></span></div></div>'
+      +'<div class="card"><div class="hd"><h2>How the Xero window works</h2></div><p class="small" style="line-height:1.6">Each WE week pulls a Sunday–Saturday P&amp;L starting on the WE date (the invoices for that pay period post the following Monday). A week belongs to the month of that Monday. When the following week belongs to the next month, the window is cut at month end; when the previous week belonged to the prior month, the window starts on the 1st. Example: WE 8/30/26 → 8/30–8/31, WE 9/6/26 → 9/1–9/12, WE 9/13/26 → 9/13–9/19. Any week can be overridden from its entity page (Xero window &amp; account audit).</p>'
+      +'<p class="small muted">Latest Salesforce pay period: '+esc(cfg.sf_latest_pay_period||'?')+' · Signed in as '+esc(cfg.user||'')+'</p></div>';
+  },
+  async connectXero(){ try{ const r=await api("/xero-authorize"); if(r&&r.authUrl) window.location.href=r.authUrl; }catch(e){ status(e.message,"err"); } },
+  async mapOrg(division, tenantId){ try{ if(tenantId) await api("/xero-map-entity",{body:{tenantId, division}}); this.cfg=await api("/ws-config"); this.render(); status("Mapping saved.","ok"); }catch(e){ status(e.message,"err"); } },
+  async saveDiv(slug, v){ try{ await api("/ws-entity",{body:{slug, sf_divisions:v.split(",").map(s=>s.trim()).filter(Boolean)}}); this.cfg=await api("/ws-config"); status("Saved.","ok"); }catch(e){ status(e.message,"err"); } },
+  async saveRules(slug){ try{ const rules=JSON.parse(document.getElementById("rules-"+slug).value||"[]"); await api("/ws-entity",{body:{slug, rules}}); this.cfg=await api("/ws-config"); status("Rules saved — pull Xero again to reclassify.","ok"); }catch(e){ status("Rules must be valid JSON: "+e.message,"err"); } },
+  async backfillDH(){ const y=parseInt(document.getElementById("dhYear").value,10); const el=document.getElementById("dhStatus"); const now=new Date(); const last=(y<now.getUTCFullYear())?12:(now.getUTCMonth()+1); for(let m=1;m<=last;m++){ el.textContent="Month "+m+"/"+last+"…"; try{ await api("/ws-dh-monthly",{body:{year:y,month:m}}); }catch(e){ el.textContent="Failed at month "+m+": "+e.message; return; } } el.textContent="Done."; },
+
+  // ---------------- charts ----------------
+  line(id, labels, series, money, tall){
+    const el=document.getElementById(id); if(!el||!window.Chart) return;
+    const yr=D(this.we).getUTCFullYear();
+    const c=new Chart(el,{type:"line",data:{labels:labels.map(l=>mdy(l)),datasets:series.map((s,i)=>({label:s.label,data:s.data,borderColor:i===0?"#D4A017":"#1a1a2e",backgroundColor:i===0?"#F5C518":"#1a1a2e",borderWidth:2,pointRadius:2,spanGaps:false,tension:.15}))},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:(t)=>t.dataset.label+": "+(money?fmt$(t.parsed.y,false):fmtN(t.parsed.y,0))}}},scales:{x:{ticks:{maxTicksLimit:12,maxRotation:0}},y:{beginAtZero:true,ticks:{callback:(v)=>money?"$"+(v/1000).toLocaleString()+"k":v.toLocaleString()}}}}});
+    this.charts.push(c);
+  },
+  drawEntityCharts(e){
+    const y=D(this.we).getUTCFullYear();
+    const S=this.seriesFor(r=>r.total,[e]); this.line("ch-sales-"+e.slug,S.labels,[{label:String(y),data:S.cur},{label:String(y-1),data:S.prior}],true);
+    if(e.has_hours){ const H=this.seriesFor(r=>r.hours,[e]); this.line("ch-hours-"+e.slug,H.labels,[{label:String(y),data:H.cur},{label:String(y-1),data:H.prior}],false);
+      const C=this.seriesFor(r=>r.headcount,[e]); this.line("ch-hc-"+e.slug,C.labels,[{label:String(y),data:C.cur},{label:String(y-1),data:C.prior}],false); }
+    const d=this._dh&&this._dh[e.slug]; if(d){
+      const b=document.getElementById("ch-dhbar-"+e.slug); if(b){ this.charts.push(new Chart(b,{type:"bar",data:{labels:d.M,datasets:[{label:String(d.cy),data:d.c,backgroundColor:"#D4A017"},{label:String(d.py),data:d.p,backgroundColor:"#1a1a2e"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"},title:{display:true,text:d.py+"-"+d.cy+" DH comparison"},tooltip:{callbacks:{label:(t)=>t.dataset.label+": "+fmt$(t.parsed.y,false)}}},scales:{y:{ticks:{callback:(v)=>"$"+(v/1000).toLocaleString()+"k"}}}}})); }
+      const l=document.getElementById("ch-dhline-"+e.slug); if(l){ this.charts.push(new Chart(l,{type:"line",data:{labels:d.M,datasets:[{label:String(d.cy),data:d.c,borderColor:"#D4A017",backgroundColor:"#F5C518",borderWidth:2,spanGaps:false},{label:String(d.py),data:d.p,borderColor:"#1a1a2e",backgroundColor:"#1a1a2e",borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"},title:{display:true,text:d.py+"-"+d.cy+" DH monthly comparison"},tooltip:{callbacks:{label:(t)=>t.dataset.label+": "+fmt$(t.parsed.y,false)}}},scales:{y:{ticks:{callback:(v)=>"$"+(v/1000).toLocaleString()+"k"}}}}})); }
+    }
+  },
+  drawAllCharts(){
+    const y=D(this.we).getUTCFullYear(); const ents=this.rep.entities||[];
+    const S=this.seriesFor(r=>r.total,ents); this.line("ch-sales-all",S.labels,[{label:String(y),data:S.cur},{label:String(y-1),data:S.prior}],true);
+    const H=this.seriesFor(r=>r.hours,this.hoursEnts()); this.line("ch-hours-all",H.labels,[{label:String(y),data:H.cur},{label:String(y-1),data:H.prior}],false);
+    const C=this.seriesFor(r=>r.headcount,this.hoursEnts()); this.line("ch-hc-all",C.labels,[{label:String(y),data:C.cur},{label:String(y-1),data:C.prior}],false);
+  },
+
+  // ---------------- export ----------------
+  async exportEmail(){
+    if(this.tab==="setup") return;
+    const root=document.getElementById("app").cloneNode(true);
+    root.querySelectorAll(".noprint,details").forEach(n=>n.remove());
+    // inputs -> text, canvases -> images
+    root.querySelectorAll("textarea").forEach(t=>{ const p=document.createElement("div"); p.style.whiteSpace="pre-wrap"; p.textContent=t.value; t.replaceWith(p); });
+    const live=document.getElementById("app").querySelectorAll("canvas"); const cl=root.querySelectorAll("canvas");
+    cl.forEach((cv,i)=>{ const img=document.createElement("img"); try{ img.src=live[i].toDataURL("image/png"); }catch(e){} img.style.maxWidth="100%"; cv.parentNode.replaceWith(img); });
+    const css="table{border-collapse:collapse;font-family:Century Gothic,Arial,sans-serif;font-size:12px}th{background:#FAF6E8;text-align:left;padding:6px 8px;border:1px solid #ECE9E0;font-size:10px;text-transform:uppercase}td{padding:5px 8px;border:1px solid #ECE9E0}td.r,th.r{text-align:right}tr.cur td{font-weight:bold;background:#fffbea}tr.tot td{font-weight:bold}h1{font-size:20px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#92400e}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#D4A017;font-weight:bold}.kpis{display:table}.kpi{display:inline-block;border:1px solid #ECE9E0;border-radius:8px;padding:8px 12px;margin:4px}.up{color:#15803d}.dn{color:#b91c1c}.card{margin:0 0 16px}.sum{display:table}.sum>div{display:table-row}.ath{color:#64748b;font-size:11px}.chart img{width:640px}.pill{font-size:10px;color:#64748b}";
+    const html='<html><head><meta charset="utf-8"><style>'+css+'</style></head><body style="font-family:Century Gothic,Arial,sans-serif;color:#1a1a2e">'+root.innerHTML+'</body></html>';
+    const text=root.innerText;
+    try{
+      await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([text],{type:"text/plain"})})]);
+      status("Report copied — paste into a new Outlook message (tables and charts included).","ok");
+    }catch(e){
+      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([html],{type:"text/html"})); a.download="Weekly Sales - "+(this.tab==="all"?"All":this.tab)+" WE "+this.we+".html"; a.click();
+      status("Clipboard blocked by the browser — downloaded the report as an HTML file instead.","ok");
+    }
+  }
+};
+WS.boot();
+</script>
+</body>
+</html>
