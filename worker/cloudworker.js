@@ -160,13 +160,25 @@ function wsLatestSunday() {
   return wsIso(wsAdd(t, -back));
 }
 
-function wsClassify(name, entRules) {
-  const nm = String(name || "").trim();
-  const rules = (Array.isArray(entRules) ? entRules : []).concat(WS_DEFAULT_RULES);
-  for (const r of rules) {
+function wsMatchRules(nm, rules) {
+  for (const r of rules || []) {
     try { if (r && r.match && new RegExp(r.match, "i").test(nm)) return r.col === "skip" ? "skip" : (WS_REV_COLS.indexOf(r.col) !== -1 ? r.col : "other"); } catch (e) {}
   }
-  return "other";
+  return null;
+}
+function wsClassify(name, entRules) {
+  const nm = String(name || "").trim();
+  return wsMatchRules(nm, Array.isArray(entRules) ? entRules : []) || wsMatchRules(nm, WS_DEFAULT_RULES) || "other";
+}
+function wsClassifyLine(line, entRules) {
+  const nm = String(line.account || "").trim();
+  const explicit = wsMatchRules(nm, Array.isArray(entRules) ? entRules : []);
+  if (explicit) return { col: explicit, why: "rule" };
+  /* Xero US layouts put Other Income and the other-expense accounts in one "Other Income and Expense"
+     group and return the expense lines as negatives. Those are not sales: count only the positive
+     (income) lines from a combined group unless an entity rule names the account explicitly. */
+  if (line.combined && Number(line.amount) < 0) return { col: "skip", why: "expense line in combined group" };
+  return { col: wsMatchRules(nm, WS_DEFAULT_RULES) || "other", why: "default" };
 }
 
 // ---------- Xero: one access token per grant, shared across every tenant of that grant ----------
@@ -228,14 +240,15 @@ async function wsXeroPL(token, tenantId, from, to) {
        operating expenses, custom cost groups that happen to contain the word "sales" - is ignored. */
     const tl = title.toLowerCase();
     const isIncome = /^(income|revenue|sales|turnover|trading income|other income|other revenue|operating income|operating revenue)$/.test(tl) || /^other income\b/.test(tl);
-    sections.push({ title, income: isIncome, rows: names.length });
+    const combined = isIncome && /expense/.test(tl);
+    sections.push({ title, income: isIncome, combined, rows: names.length });
     if (!isIncome) return;
     (sec.Rows || []).forEach((x) => {
       if (x.RowType !== "Row") return;
       const cells = x.Cells || [], nm = cells[0] && cells[0].Value;
       const v = parseFloat(String(cells[1] && cells[1].Value || "0").replace(/[$,()]/g, "")) * (/\(/.test(String(cells[1] && cells[1].Value || "")) ? -1 : 1);
       if (!nm || !isFinite(v)) return;
-      lines.push({ section: sec.Title, account: String(nm).trim(), amount: wsRound(v) });
+      lines.push({ section: title, combined, account: String(nm).trim(), amount: wsRound(v) });
     });
   });
   return { reportName: rep.ReportName, reportDate: rep.ReportDate, lines, sections };
@@ -243,7 +256,7 @@ async function wsXeroPL(token, tenantId, from, to) {
 
 function wsSumLines(lines, entRules) {
   const T = {}; WS_REV_COLS.forEach((k) => { T[k] = 0; });
-  const rows = lines.map((l) => { const col = wsClassify(l.account, entRules); if (col !== "skip") T[col] = wsRound(T[col] + l.amount); return { account: l.account, amount: l.amount, col }; });
+  const rows = lines.map((l) => { const k = wsClassifyLine(l, entRules); if (k.col !== "skip") T[k.col] = wsRound(T[k.col] + l.amount); return { account: l.account, amount: l.amount, col: k.col, section: l.section || null, why: k.why }; });
   T.total = wsRound(WS_REV_COLS.reduce((a, k) => a + T[k], 0));
   return { totals: T, rows };
 }
