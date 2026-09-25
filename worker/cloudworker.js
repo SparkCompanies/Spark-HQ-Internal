@@ -178,6 +178,10 @@ function wsClassifyLine(line, entRules) {
      group and return the expense lines as negatives. Those are not sales: count only the positive
      (income) lines from a combined group unless an entity rule names the account explicitly. */
   if (line.combined && Number(line.amount) < 0) return { col: "skip", why: "expense line in combined group" };
+  /* and of the positive lines in that group, only ones that are income by name ("Other Income",
+     "Interest Income", "... Revenue", reimbursements, rebates, commissions) - not gains, refunds,
+     credits or reversed expenses, which the weekly report does not treat as sales. */
+  if (line.combined && !/income|revenue|reimburs|rebate|commission|referral|royalt/i.test(nm)) return { col: "skip", why: "non-income line in combined group" };
   return { col: wsMatchRules(nm, WS_DEFAULT_RULES) || "other", why: "default" };
 }
 
