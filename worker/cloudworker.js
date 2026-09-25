@@ -101,6 +101,447 @@ async function pulseXero(c) {
 }
 __name(pulseXero, "pulseXero");
 
+// weekly-sales.js  — Spark HQ · Weekly Sales
+// Routes (all require a signed-in Supabase session):
+//   GET  /ws-config                       entities + Xero org mapping/health + latest SF pay period
+//   GET  /ws-report?we=YYYY-MM-DD         everything the page needs for one week (all entities)
+//   POST /ws-pull        {we, entities?, sources?:['xero','sf'], force?}   pull + upsert
+//   POST /ws-save        {entity, we, payroll_int?, payroll_ext?, payroll_note?, key_things?, xero_from?, xero_to?, locked?}
+//   POST /ws-dh-monthly  {year, month, entities?}                          monthly Direct-Hire from Xero
+//   POST /ws-narrative   {entity, we}                                       draft "Key Things" bullets
+//   POST /ws-entity      {slug, xero_division?, sf_divisions?, rules?, columns?, active?}
+//   GET  /ws-xero-accounts?entity=&from=&to=   raw classified P&L lines (audit)
+//
+// Xero window rule ("wrapped weeks"): a WE week belongs to the month of the Monday
+// after the WE Sunday (the invoicing day). The P&L window is Sun..Sat, cut at the
+// month end when the following week belongs to the next month, and starting on the
+// 1st when the previous week belonged to the prior month. e.g. WE 8/30/26 -> 8/30..8/31,
+// WE 9/6/26 -> 9/1..9/12. Any week can be overridden from the page (xero_override).
+
+var WS_REV_COLS = ["assign", "dh", "exp", "other", "assist", "bpo", "shared", "consulting", "bda", "affiliate", "mgmt", "allowances", "bonuses"];
+var WS_DEFAULT_RULES = [
+  { match: "^contract\\b", col: "assign" },
+  { match: "^assignment", col: "assign" },
+  { match: "^direct\\s*hire", col: "dh" },
+  { match: "placement\\s*fee", col: "dh" },
+  { match: "expense\\s*reimb", col: "exp" },
+  { match: "reimburs", col: "exp" },
+  { match: "sales\\s*assist", col: "assist" },
+  { match: "allowance", col: "allowances" },
+  { match: "bonus", col: "bonuses" },
+  { match: "\\bbpo\\b", col: "bpo" },
+  { match: "shared\\s*service", col: "shared" },
+  { match: "consulting", col: "consulting" },
+  { match: "bda|commission", col: "bda" },
+  { match: "affiliate", col: "affiliate" },
+  { match: "management\\s*service", col: "mgmt" },
+  { match: "^service|service\\s*/\\s*sales|^sales\\b", col: "assign" }
+];
+
+function wsIso(d) { return d.toISOString().slice(0, 10); }
+function wsD(s) { return new Date(s + "T12:00:00Z"); }
+function wsAdd(d, n) { return new Date(d.getTime() + n * 864e5); }
+function wsRound(v) { return Math.round((Number(v) || 0) * 100) / 100; }
+function wsIsSunday(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s) && wsD(s).getUTCDay() === 0; }
+
+// month key of the Monday following a WE Sunday
+function wsMonthKey(d) { const m = wsAdd(d, 1); return m.getUTCFullYear() * 12 + m.getUTCMonth(); }
+function wsWindow(we) {
+  const w = wsD(we), m = wsMonthKey(w), y = Math.floor(m / 12), mo = m % 12;
+  let from = w, to = wsAdd(w, 6), wrapped = false;
+  if (wsMonthKey(wsAdd(w, -7)) !== m) { from = new Date(Date.UTC(y, mo, 1, 12)); wrapped = true; }
+  if (wsMonthKey(wsAdd(w, 7)) !== m) { to = new Date(Date.UTC(y, mo + 1, 0, 12)); wrapped = true; }
+  return { from: wsIso(from), to: wsIso(to), wrapped, month: y + "-" + String(mo + 1).padStart(2, "0") };
+}
+function wsLatestSunday() {
+  // latest Sunday strictly before today (a week is reportable once it has ended)
+  const now = new Date(); const t = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12));
+  const back = t.getUTCDay() === 0 ? 7 : t.getUTCDay();
+  return wsIso(wsAdd(t, -back));
+}
+
+function wsClassify(name, entRules) {
+  const nm = String(name || "").trim();
+  const rules = (Array.isArray(entRules) ? entRules : []).concat(WS_DEFAULT_RULES);
+  for (const r of rules) {
+    try { if (r && r.match && new RegExp(r.match, "i").test(nm)) return WS_REV_COLS.indexOf(r.col) !== -1 ? r.col : "other"; } catch (e) {}
+  }
+  return "other";
+}
+
+// ---------- Xero: one access token per grant, shared across every tenant of that grant ----------
+// Xero refresh tokens are single-use and rotate; the old design stored the same refresh
+// token on several tenant rows and only patched one of them after a refresh, so the other
+// rows kept a consumed token ("invalid_grant"). Here we group rows by refresh_token (= one
+// consent), refresh once per grant, and PATCH every row of that grant.
+async function wsXeroTokens(c, env) {
+  const res = await c.sbService(env, "GET", "xero_connections?select=tenant_id,tenant_name,entity_division,access_token,refresh_token,access_expires_at,updated_at&order=updated_at.desc");
+  if (!res.ok) throw new Error("Cannot read xero_connections (" + res.status + ")");
+  const rows = res.data || [];
+  const grants = {};
+  rows.forEach((r) => { const k = r.refresh_token || ("norefresh:" + r.tenant_id); (grants[k] = grants[k] || []).push(r); });
+  const byTenant = {}, errors = {};
+  const fresh = (r) => !!(r.access_token && r.access_expires_at && new Date(r.access_expires_at).getTime() - Date.now() > 12e4);
+  for (const k of Object.keys(grants)) {
+    const g = grants[k];
+    let token = null;
+    const f = g.find(fresh);
+    if (f) token = f.access_token;
+    else if (g[0].refresh_token) {
+      try {
+        const tok = await c.xeroTokenExchange(env, { grant_type: "refresh_token", refresh_token: g[0].refresh_token });
+        const exp = new Date(Date.now() + (tok.expires_in || 1800) * 1e3).toISOString();
+        await c.sbService(env, "PATCH", "xero_connections?refresh_token=eq." + encodeURIComponent(g[0].refresh_token), { access_token: tok.access_token, refresh_token: tok.refresh_token || g[0].refresh_token, access_expires_at: exp });
+        token = tok.access_token;
+      } catch (e) {
+        // a parallel request may have rotated it a moment ago: re-read and use whatever is fresh now
+        const again = await c.sbService(env, "GET", "xero_connections?tenant_id=eq." + encodeURIComponent(g[0].tenant_id) + "&select=access_token,access_expires_at");
+        const r2 = again.ok && again.data && again.data[0];
+        if (r2 && fresh(r2)) token = r2.access_token;
+        else g.forEach((r) => { errors[r.tenant_id] = String(e.message || e); });
+      }
+    } else g.forEach((r) => { errors[r.tenant_id] = "no refresh token stored — reconnect this org"; });
+    if (token) g.forEach((r) => { byTenant[r.tenant_id] = token; });
+  }
+  return { rows, byTenant, errors };
+}
+
+async function wsXeroPL(token, tenantId, from, to) {
+  const r = await fetch("https://api.xero.com/api.xro/2.0/Reports/ProfitAndLoss?fromDate=" + from + "&toDate=" + to + "&standardLayout=true", {
+    headers: { "Authorization": "Bearer " + token, "Xero-Tenant-Id": tenantId, "Accept": "application/json" }
+  });
+  const tx = await r.text();
+  if (!r.ok) {
+    const scope = r.status === 401 || r.status === 403 || /insufficient_scope|unauthorized/i.test(tx);
+    throw new Error("Xero P&L " + r.status + (scope ? " — token lacks accounting.reports.profitandloss.read; reconnect the org" : "") + ": " + tx.slice(0, 160));
+  }
+  let data; try { data = JSON.parse(tx); } catch (e) { throw new Error("Xero returned non-JSON"); }
+  const rep = (data.Reports || [])[0];
+  if (!rep) throw new Error("Xero returned no report body");
+  const lines = [];
+  (rep.Rows || []).forEach((sec) => {
+    if (sec.RowType !== "Section") return;
+    if (!/^(income|revenue|other income|trading income|turnover|sales|other revenue)$/i.test(String(sec.Title || "").trim())) return;
+    (sec.Rows || []).forEach((x) => {
+      if (x.RowType !== "Row") return;
+      const cells = x.Cells || [], nm = cells[0] && cells[0].Value;
+      const v = parseFloat(String(cells[1] && cells[1].Value || "0").replace(/[$,()]/g, "")) * (/\(/.test(String(cells[1] && cells[1].Value || "")) ? -1 : 1);
+      if (!nm || !isFinite(v)) return;
+      lines.push({ section: sec.Title, account: String(nm).trim(), amount: wsRound(v) });
+    });
+  });
+  return { reportName: rep.ReportName, reportDate: rep.ReportDate, lines };
+}
+
+function wsSumLines(lines, entRules) {
+  const T = {}; WS_REV_COLS.forEach((k) => { T[k] = 0; });
+  const rows = lines.map((l) => { const col = wsClassify(l.account, entRules); T[col] = wsRound(T[col] + l.amount); return { account: l.account, amount: l.amount, col }; });
+  T.total = wsRound(WS_REV_COLS.reduce((a, k) => a + T[k], 0));
+  return { totals: T, rows };
+}
+
+// ---------- Salesforce: hours + headcount for the pay period, grouped by entity and unit ----------
+async function wsPullSF(c, env, we, entities) {
+  const soql = "SELECT ASYMBL_Time__Candidate_Name__c cand, ASYMBL_Time__Regular_Hours__c rt, ASYMBL_Time__Overtime_Hours__c ot, ASYMBL_Time__Double_Time_Hours__c dt, ASYMBL_Time__Total_Hours_Logged__c tot, Placement__r.Division__c, Placement__r.bpats__ATS_Job__r.Subdivision__c, Placement__r.bpats__Account__r.Name FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c = " + we + " AND ASYMBL_Time__Total_Hours_Logged__c > 0";
+  const res = await c.runSalesforceQueryAll(env, soql);
+  if (!res.ok) throw new Error(res.error || "Salesforce timesheet query failed");
+  const alias = {};
+  entities.forEach((e) => { (e.sf_divisions || []).forEach((d) => { alias[String(d).toLowerCase().replace(/\s+/g, " ").trim()] = e.slug; }); alias[String(e.name).toLowerCase()] = e.slug; });
+  const out = {}, unresolved = {};
+  entities.forEach((e) => { out[e.slug] = { rt: 0, ot: 0, dt: 0, hours: 0, people: {}, units: {} }; });
+  for (const r of res.records || []) {
+    const pl = r.Placement__r || {};
+    const dv = String(pl.Division__c || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const slug = alias[dv] || null;
+    const rt = Number(r.rt) || 0, ot = Number(r.ot) || 0, dt = Number(r.dt) || 0, tot = Number(r.tot) || (rt + ot + dt);
+    if (!slug) { const k = pl.Division__c || "(no division)"; unresolved[k] = wsRound((unresolved[k] || 0) + tot); continue; }
+    const o = out[slug], unit = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || "(no unit)";
+    o.rt += rt; o.ot += ot; o.dt += dt; o.hours += tot;
+    const cand = r.cand || "?"; o.people[cand] = true;
+    const u = o.units[unit] = o.units[unit] || { unit, rt: 0, ot: 0, dt: 0, hours: 0, people: {} };
+    u.rt += rt; u.ot += ot; u.dt += dt; u.hours += tot; u.people[cand] = true;
+  }
+  const result = {};
+  Object.keys(out).forEach((slug) => {
+    const o = out[slug];
+    result[slug] = {
+      rt: wsRound(o.rt), ot: wsRound(o.ot), dt: wsRound(o.dt), hours: wsRound(o.hours), headcount: Object.keys(o.people).length,
+      by_unit: Object.keys(o.units).map((k) => { const u = o.units[k]; return { unit: u.unit, rt: wsRound(u.rt), ot: wsRound(u.ot), dt: wsRound(u.dt), hours: wsRound(u.hours), headcount: Object.keys(u.people).length }; }).sort((a, b) => b.hours - a.hours)
+    };
+  });
+  return { byEntity: result, unresolved, timesheets: (res.records || []).length };
+}
+
+async function wsEntities(c, env, includeInactive) {
+  const r = await c.sbService(env, "GET", "ws_entities?select=*&order=sort" + (includeInactive ? "" : "&active=eq.true"));
+  if (!r.ok) throw new Error("ws_entities unreadable — run weekly_sales_schema.sql");
+  return r.data || [];
+}
+async function wsGetWeek(c, env, entity, we) {
+  const r = await c.sbService(env, "GET", "ws_weeks?entity=eq." + encodeURIComponent(entity) + "&we_date=eq." + we + "&select=*&limit=1");
+  return r.ok && r.data && r.data[0] ? r.data[0] : null;
+}
+async function wsUpsertWeek(c, env, entity, we, patch) {
+  const body = Object.assign({ entity, we_date: we, updated_at: new Date().toISOString() }, patch);
+  const r = await c.sbService(env, "POST", "ws_weeks?on_conflict=entity,we_date", body);
+  if (!r.ok) throw new Error("ws_weeks upsert failed: " + JSON.stringify(r.data).slice(0, 200));
+  return r.data && r.data[0];
+}
+async function wsLog(c, env, who, action, entity, we, detail) {
+  try { await c.sbService(env, "POST", "ws_log", { who, action, entity: entity || null, we_date: we || null, detail: detail || null }); } catch (e) {}
+}
+async function wsBumpATH(c, env, entity, we, row) {
+  const cur = await c.sbService(env, "GET", "ws_ath?entity=eq." + encodeURIComponent(entity) + "&select=*");
+  const have = {}; (cur.ok && cur.data || []).forEach((a) => { have[a.metric] = a; });
+  const out = [];
+  for (const metric of ["assign", "dh", "total"]) {
+    const v = Number(row[metric]) || 0;
+    if (v > 0 && (!have[metric] || v > Number(have[metric].amount))) {
+      await c.sbService(env, "POST", "ws_ath?on_conflict=entity,metric", { entity, metric, we_date: we, amount: v });
+      out.push(metric);
+    }
+  }
+  return out;
+}
+
+async function weeklySales(c) {
+  const url = c.url, env = c.env, origin = c.origin, json = c.json, request = c.request;
+  const who = await c.verifyUser(request, env);
+  if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+  const path = url.pathname;
+  let body = {};
+  if (request.method === "POST") { try { body = await request.json(); } catch (e) { body = {}; } }
+
+  try {
+    // ------------------------------------------------------------ config
+    if (path === "/ws-config") {
+      const entities = await wsEntities(c, env, true);
+      let xero = { rows: [], byTenant: {}, errors: {} };
+      let xeroError = null;
+      try { xero = await wsXeroTokens(c, env); } catch (e) { xeroError = String(e.message || e); }
+      const orgs = xero.rows.map((r) => ({ tenant_id: r.tenant_id, tenant_name: r.tenant_name, entity_division: r.entity_division, token_ok: !!xero.byTenant[r.tenant_id], error: xero.errors[r.tenant_id] || null }));
+      let sfLatest = null;
+      try {
+        const q = await c.runSalesforceQuery(env, "SELECT ASYMBL_Time__Pay_Period_End_Date__c FROM ASYMBL_Time__Timesheet__c WHERE ASYMBL_Time__Pay_Period_End_Date__c != null AND ASYMBL_Time__Pay_Period_End_Date__c <= TODAY ORDER BY ASYMBL_Time__Pay_Period_End_Date__c DESC LIMIT 1");
+        if (q.ok && q.records && q.records[0]) sfLatest = q.records[0].ASYMBL_Time__Pay_Period_End_Date__c;
+      } catch (e) {}
+      const ents = entities.map((e) => {
+        const org = orgs.find((o) => o.entity_division && e.xero_division && o.entity_division.toLowerCase() === e.xero_division.toLowerCase()) || null;
+        return Object.assign({}, e, { xero_org: org ? org.tenant_name : null, xero_tenant_id: org ? org.tenant_id : null, xero_ok: !!(org && org.token_ok), xero_error: org ? org.error : (e.xero_division ? "No Xero org mapped to \"" + e.xero_division + "\"" : "No xero_division set") });
+      });
+      return json({ ok: true, user: who.email, entities: ents, xero_orgs: orgs, xero_error: xeroError, sf_latest_pay_period: sfLatest, latest_sunday: wsLatestSunday(), window_rule: "Sun..Sat starting on the WE date, wrapped at month ends (month = month of the following Monday)" }, 200, origin);
+    }
+
+    // ------------------------------------------------------------ report bundle
+    if (path === "/ws-report") {
+      const we = (url.searchParams.get("we") || "").trim();
+      if (!wsIsSunday(we)) return json({ error: "we must be a Sunday (YYYY-MM-DD)" }, 400, origin);
+      const entities = await wsEntities(c, env, false);
+      const d = wsD(we);
+      const yr = d.getUTCFullYear();
+      const from = (yr - 1) + "-01-01", to = wsIso(wsAdd(d, 7));
+      const sel = "entity,we_date,xero_from,xero_to,xero_override," + WS_REV_COLS.join(",") + ",total,rt,ot,dt,hours,headcount,payroll_int,payroll_ext,payroll_note,payroll_by,payroll_at,locked,source,xero_pulled_at,sf_pulled_at";
+      const wk = await c.sbService(env, "GET", "ws_weeks?we_date=gte." + from + "&we_date=lte." + to + "&select=" + sel + "&order=we_date");
+      if (!wk.ok) return json({ error: "ws_weeks unreadable" }, 502, origin);
+      const six = await c.sbService(env, "GET", "ws_weeks?we_date=eq." + we + "&select=entity,by_unit,unresolved,key_things,xero_rows");
+      const detail = {}; (six.ok && six.data || []).forEach((r) => { detail[r.entity] = r; });
+      const dh = await c.sbService(env, "GET", "ws_dh_monthly?select=entity,year,month,amount,source&order=year,month");
+      const ath = await c.sbService(env, "GET", "ws_ath?select=*");
+      return json({
+        ok: true, we, window: wsWindow(we), entities,
+        weeks: wk.data || [], detail,
+        dh_monthly: dh.ok ? dh.data : [], ath: ath.ok ? ath.data : []
+      }, 200, origin);
+    }
+
+    // ------------------------------------------------------------ pull from Xero / Salesforce
+    if (path === "/ws-pull" && request.method === "POST") {
+      const we = String(body.we || "").trim();
+      if (!wsIsSunday(we)) return json({ error: "we must be a Sunday (YYYY-MM-DD)" }, 400, origin);
+      const sources = Array.isArray(body.sources) && body.sources.length ? body.sources : ["xero", "sf"];
+      const all = await wsEntities(c, env, false);
+      const want = Array.isArray(body.entities) && body.entities.length ? all.filter((e) => body.entities.indexOf(e.slug) !== -1) : all;
+      const force = !!body.force;
+      const result = { ok: true, we, window: wsWindow(we), entities: {}, warnings: [] };
+
+      // existing rows (for locks + window overrides)
+      const ex = await c.sbService(env, "GET", "ws_weeks?we_date=eq." + we + "&select=entity,locked,xero_from,xero_to,xero_override,assign,dh,exp,total,hours,headcount");
+      const existing = {}; (ex.ok && ex.data || []).forEach((r) => { existing[r.entity] = r; });
+
+      if (sources.indexOf("xero") !== -1) {
+        let tokens = null;
+        try { tokens = await wsXeroTokens(c, env); } catch (e) { result.warnings.push("Xero: " + String(e.message || e)); }
+        for (const e of want) {
+          const R = result.entities[e.slug] = result.entities[e.slug] || {};
+          const prev = existing[e.slug];
+          if (prev && prev.locked && !force) { R.xero = { skipped: "locked" }; continue; }
+          if (!tokens) { R.xero = { error: "no Xero token" }; continue; }
+          const org = tokens.rows.find((o) => o.entity_division && e.xero_division && o.entity_division.toLowerCase() === e.xero_division.toLowerCase());
+          if (!org) { R.xero = { error: "No Xero org mapped to \"" + (e.xero_division || e.name) + "\"" }; continue; }
+          const tok = tokens.byTenant[org.tenant_id];
+          if (!tok) { R.xero = { error: tokens.errors[org.tenant_id] || "token unavailable" }; continue; }
+          const win = prev && prev.xero_override && prev.xero_from && prev.xero_to ? { from: prev.xero_from, to: prev.xero_to, override: true } : wsWindow(we);
+          try {
+            const pl = await wsXeroPL(tok, org.tenant_id, win.from, win.to);
+            const s = wsSumLines(pl.lines, e.rules);
+            const patch = { xero_from: win.from, xero_to: win.to, xero_rows: s.rows, xero_pulled_at: new Date().toISOString(), source: "live", updated_by: who.email };
+            WS_REV_COLS.forEach((k) => { patch[k] = s.totals[k]; }); patch.total = s.totals.total;
+            await wsUpsertWeek(c, env, e.slug, we, patch);
+            const ath = await wsBumpATH(c, env, e.slug, we, s.totals);
+            R.xero = { ok: true, org: org.tenant_name, window: win, totals: s.totals, lines: s.rows.length, unmapped: s.rows.filter((x) => x.col === "other").map((x) => x.account), newATH: ath, before: prev ? { total: prev.total, assign: prev.assign, dh: prev.dh } : null };
+          } catch (err) { R.xero = { error: String(err.message || err), org: org.tenant_name, window: win }; }
+        }
+      }
+
+      if (sources.indexOf("sf") !== -1) {
+        const hoursEnts = want.filter((e) => e.has_hours);
+        if (hoursEnts.length) {
+          try {
+            const sf = await wsPullSF(c, env, we, all); /* resolve every entity so Companies/Bolt timesheets are not reported as unmapped */
+            for (const e of hoursEnts) {
+              const R = result.entities[e.slug] = result.entities[e.slug] || {};
+              const prev = existing[e.slug];
+              if (prev && prev.locked && !force) { R.sf = { skipped: "locked" }; continue; }
+              const v = sf.byEntity[e.slug] || { rt: 0, ot: 0, dt: 0, hours: 0, headcount: 0, by_unit: [] };
+              await wsUpsertWeek(c, env, e.slug, we, { rt: v.rt, ot: v.ot, dt: v.dt, hours: v.hours, headcount: v.headcount, by_unit: v.by_unit, unresolved: sf.unresolved, sf_pulled_at: new Date().toISOString(), source: "live", updated_by: who.email });
+              R.sf = { ok: true, rt: v.rt, ot: v.ot, dt: v.dt, hours: v.hours, headcount: v.headcount, units: v.by_unit.length, before: prev ? { hours: prev.hours, headcount: prev.headcount } : null };
+            }
+            if (Object.keys(sf.unresolved).length) result.warnings.push("Salesforce divisions not mapped to an entity: " + Object.keys(sf.unresolved).map((k) => k + " (" + sf.unresolved[k] + " h)").join(", "));
+            result.sf_timesheets = sf.timesheets;
+          } catch (err) { result.warnings.push("Salesforce: " + String(err.message || err)); }
+        }
+      }
+      await wsLog(c, env, who.email, "pull", null, we, { sources, entities: want.map((e) => e.slug), force });
+      return json(result, 200, origin);
+    }
+
+    // ------------------------------------------------------------ manual fields
+    if (path === "/ws-save" && request.method === "POST") {
+      const we = String(body.we || "").trim(), entity = String(body.entity || "").trim();
+      if (!wsIsSunday(we) || !entity) return json({ error: "entity and a Sunday we are required" }, 400, origin);
+      const patch = { updated_by: who.email };
+      const num = (v) => v === null || v === "" || v === void 0 ? null : (isFinite(Number(String(v).replace(/[$,]/g, ""))) ? wsRound(String(v).replace(/[$,]/g, "")) : NaN);
+      if ("payroll_int" in body || "payroll_ext" in body) {
+        const pi = num(body.payroll_int), pe = num(body.payroll_ext);
+        if (Number.isNaN(pi) || Number.isNaN(pe)) return json({ error: "payroll values must be numbers" }, 400, origin);
+        if ("payroll_int" in body) patch.payroll_int = pi;
+        if ("payroll_ext" in body) patch.payroll_ext = pe;
+        patch.payroll_by = who.email; patch.payroll_at = new Date().toISOString();
+        if ("payroll_note" in body) patch.payroll_note = body.payroll_note ? String(body.payroll_note).slice(0, 400) : null;
+      }
+      if ("key_things" in body) patch.key_things = body.key_things ? String(body.key_things).slice(0, 8000) : null;
+      if ("locked" in body) patch.locked = !!body.locked;
+      if ("xero_from" in body || "xero_to" in body) {
+        const f = String(body.xero_from || ""), t = String(body.xero_to || "");
+        if (f || t) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(f) || !/^\d{4}-\d{2}-\d{2}$/.test(t) || f > t) return json({ error: "xero_from/xero_to must be YYYY-MM-DD and from <= to" }, 400, origin);
+          patch.xero_from = f; patch.xero_to = t; patch.xero_override = true;
+        } else { const w = wsWindow(we); patch.xero_from = w.from; patch.xero_to = w.to; patch.xero_override = false; }
+      }
+      const row = await wsUpsertWeek(c, env, entity, we, patch);
+      await wsLog(c, env, who.email, "save", entity, we, patch);
+      return json({ ok: true, row }, 200, origin);
+    }
+
+    // ------------------------------------------------------------ monthly Direct Hire (Xero, calendar month)
+    if (path === "/ws-dh-monthly" && request.method === "POST") {
+      const year = parseInt(body.year, 10), month = parseInt(body.month, 10);
+      if (!(year > 2000 && month >= 1 && month <= 12)) return json({ error: "year and month required" }, 400, origin);
+      const all = await wsEntities(c, env, false);
+      const want = Array.isArray(body.entities) && body.entities.length ? all.filter((e) => body.entities.indexOf(e.slug) !== -1) : all;
+      const from = year + "-" + String(month).padStart(2, "0") + "-01";
+      const to = wsIso(new Date(Date.UTC(year, month, 0, 12)));
+      const tokens = await wsXeroTokens(c, env);
+      const out = { ok: true, year, month, from, to, entities: {} };
+      for (const e of want) {
+        const org = tokens.rows.find((o) => o.entity_division && e.xero_division && o.entity_division.toLowerCase() === e.xero_division.toLowerCase());
+        if (!org || !tokens.byTenant[org.tenant_id]) { out.entities[e.slug] = { error: org ? (tokens.errors[org.tenant_id] || "token unavailable") : "No Xero org mapped" }; continue; }
+        try {
+          const pl = await wsXeroPL(tokens.byTenant[org.tenant_id], org.tenant_id, from, to);
+          const s = wsSumLines(pl.lines, e.rules);
+          await c.sbService(env, "POST", "ws_dh_monthly?on_conflict=entity,year,month", { entity: e.slug, year, month, amount: s.totals.dh, source: "live", updated_at: new Date().toISOString() });
+          out.entities[e.slug] = { ok: true, dh: s.totals.dh, total: s.totals.total };
+        } catch (err) { out.entities[e.slug] = { error: String(err.message || err) }; }
+      }
+      await wsLog(c, env, who.email, "dh-monthly", null, null, { year, month });
+      return json(out, 200, origin);
+    }
+
+    // ------------------------------------------------------------ audit: raw classified P&L lines for any window
+    if (path === "/ws-xero-accounts") {
+      const slug = (url.searchParams.get("entity") || "").trim(), from = url.searchParams.get("from") || "", to = url.searchParams.get("to") || "";
+      if (!slug || !/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return json({ error: "entity, from, to required" }, 400, origin);
+      const all = await wsEntities(c, env, true); const e = all.find((x) => x.slug === slug);
+      if (!e) return json({ error: "unknown entity" }, 404, origin);
+      const tokens = await wsXeroTokens(c, env);
+      const org = tokens.rows.find((o) => o.entity_division && e.xero_division && o.entity_division.toLowerCase() === e.xero_division.toLowerCase());
+      if (!org || !tokens.byTenant[org.tenant_id]) return json({ error: org ? (tokens.errors[org.tenant_id] || "token unavailable") : "No Xero org mapped to " + e.xero_division }, 400, origin);
+      const pl = await wsXeroPL(tokens.byTenant[org.tenant_id], org.tenant_id, from, to);
+      const s = wsSumLines(pl.lines, e.rules);
+      return json({ ok: true, entity: slug, org: org.tenant_name, from, to, totals: s.totals, rows: s.rows }, 200, origin);
+    }
+
+    // ------------------------------------------------------------ entity config
+    if (path === "/ws-entity" && request.method === "POST") {
+      const slug = String(body.slug || "").trim();
+      if (!slug) return json({ error: "slug required" }, 400, origin);
+      const patch = {};
+      if ("xero_division" in body) patch.xero_division = body.xero_division ? String(body.xero_division) : null;
+      if (Array.isArray(body.sf_divisions)) patch.sf_divisions = body.sf_divisions.map(String);
+      if (Array.isArray(body.rules)) patch.rules = body.rules.filter((r) => r && r.match && r.col).map((r) => ({ match: String(r.match), col: String(r.col) }));
+      if (Array.isArray(body.columns)) patch.columns = body.columns;
+      if ("active" in body) patch.active = !!body.active;
+      const r = await c.sbService(env, "PATCH", "ws_entities?slug=eq." + encodeURIComponent(slug), patch);
+      if (!r.ok) return json({ error: "update failed: " + JSON.stringify(r.data).slice(0, 200) }, 502, origin);
+      await wsLog(c, env, who.email, "entity", slug, null, patch);
+      return json({ ok: true, entity: r.data && r.data[0] }, 200, origin);
+    }
+
+    // ------------------------------------------------------------ narrative draft (Claude)
+    if (path === "/ws-narrative" && request.method === "POST") {
+      const we = String(body.we || "").trim(), slug = String(body.entity || "").trim();
+      if (!wsIsSunday(we) || !slug) return json({ error: "entity and we required" }, 400, origin);
+      if (!env.ANTHROPIC_API_KEY) return json({ error: "ANTHROPIC_API_KEY not configured" }, 503, origin);
+      const all = await wsEntities(c, env, true); const e = all.find((x) => x.slug === slug);
+      if (!e) return json({ error: "unknown entity" }, 404, origin);
+      const from = wsIso(wsAdd(wsD(we), -42)), py = wsIso(wsAdd(wsD(we), -364));
+      const r = await c.sbService(env, "GET", "ws_weeks?entity=eq." + slug + "&or=(and(we_date.gte." + from + ",we_date.lte." + we + "),we_date.eq." + py + ")&select=we_date,assign,dh,exp,other,assist,bpo,shared,total,rt,ot,dt,hours,headcount,payroll_int,payroll_ext,source&order=we_date");
+      const rows = r.ok ? r.data || [] : [];
+      const ath = await c.sbService(env, "GET", "ws_ath?entity=eq." + slug + "&select=metric,we_date,amount");
+      const facts = { entity: e.name, week_ending: we, weeks: rows, all_time_highs: ath.ok ? ath.data : [], columns: e.columns, has_hours: e.has_hours };
+      const sys = "You write the 'Key Things' bullets at the top of Spark Companies' internal weekly sales email for one entity. Audience: executives. Style: 2-5 short, plain bullets, each one sentence, factual, no fluff, no emojis, no headings. Compare this week to last week (and to the same week last year when useful). Mention: total sales direction and the main driver (contract/assignment vs direct hire vs expenses), hours direction (RT/OT), headcount change, any new all-time high, and payroll variance (sales with expenses minus total payroll) if payroll is present. Use $ with commas and no cents. If a value is missing, do not invent it. Output only the bullets, each starting with '- '.";
+      const air = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, system: sys, messages: [{ role: "user", content: "Data (JSON, most recent week last; rows with source 'prior' are last year):\n" + JSON.stringify(facts) }] }) });
+      const ai = await air.json();
+      if (!air.ok) return json({ error: "Claude error: " + (ai && ai.error && ai.error.message ? ai.error.message : air.status) }, 502, origin);
+      const text = (Array.isArray(ai.content) ? ai.content : []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n").trim();
+      return json({ ok: true, entity: slug, we, draft: text }, 200, origin);
+    }
+
+    return json({ error: "Not found" }, 404, origin);
+  } catch (e) {
+    return json({ error: String(e.message || e) }, 502, origin);
+  }
+}
+__name(weeklySales, "weeklySales");
+
+// Cron entry point (wrangler.toml: [triggers] crons = ["0 12 * * 4"] -> Thursdays 8am ET):
+// pulls Xero + Salesforce for the latest completed week and re-pulls the week before
+// (late invoices), skipping locked weeks. Reuses the same code path as /ws-pull.
+async function weeklySalesScheduled(c) {
+  const env = c.env;
+  const we = wsLatestSunday(), prev = wsIso(wsAdd(wsD(we), -7));
+  const fake = (w) => ({
+    url: new URL("https://cron.local/ws-pull"), origin: "", env, json: (b) => b,
+    request: { method: "POST", headers: { get: () => "" }, json: async () => ({ we: w, sources: ["xero", "sf"] }) },
+    verifyUser: async () => ({ ok: true, email: "cron" }), sbService: c.sbService, xeroTokenExchange: c.xeroTokenExchange,
+    runSalesforceQueryAll: c.runSalesforceQueryAll, runSalesforceQuery: c.runSalesforceQuery
+  });
+  const a = await weeklySales(fake(we));
+  const b = await weeklySales(fake(prev));
+  return { we, prev, a, b };
+}
+__name(weeklySalesScheduled, "weeklySalesScheduled");
+
 // worker.js
 var ALLOWED_ORIGINS = [
   "https://red-dune-014d74810.7.azurestaticapps.net",
@@ -591,7 +1032,10 @@ async function xeroAccessForTenant(env, tenantId) {
     if (!oldRefresh) throw new Error("Xero org has no stored refresh token - reconnect this org.");
     const tok = await xeroTokenExchange(env, { grant_type: "refresh_token", refresh_token: oldRefresh });
     const expiresAt = new Date(Date.now() + (tok.expires_in || 1800) * 1e3).toISOString();
-    await sbService(env, "PATCH", "xero_connections?tenant_id=eq." + encodeURIComponent(tenantId), {
+    /* XERO_ROTATE_FIX_v1: one Xero consent covers every org connected in it and the refresh
+       token is single-use, so the new token pair must land on ALL rows that held the old one,
+       not just this tenant's row — otherwise the other orgs are left with a consumed token. */
+    await sbService(env, "PATCH", "xero_connections?refresh_token=eq." + encodeURIComponent(oldRefresh), {
       access_token: tok.access_token,
       refresh_token: tok.refresh_token || oldRefresh,
       access_expires_at: expiresAt
@@ -1922,12 +2366,12 @@ var worker_default = {
         if (!wk) return json({ error: "No pay-period data found" }, 404, origin);
         const SUMS = "SUM(ASYMBL_Time__Regular_Hours__c) rt, SUM(ASYMBL_Time__Overtime_Hours__c) ot, SUM(ASYMBL_Time__Double_Time_Hours__c) dt";
         const FROMW = " FROM ASYMBL_Time__Time_Entry__c WHERE ASYMBL_Time__Timesheet__r.ASYMBL_Time__Pay_Period_End_Date__c = " + wk;
-        const byPerson = await runSalesforceQuery(
+        const byPerson = await runSalesforceQueryAll( /* PULSE_SF_NO_LIMIT_v1 */
           env,
           "SELECT ASYMBL_Time__Timesheet__r.ASYMBL_Time__Candidate_Name__c cand, " + SUMS + FROMW + " GROUP BY ASYMBL_Time__Timesheet__r.ASYMBL_Time__Candidate_Name__c"
         );
         if (!byPerson.ok) return json({ error: byPerson.error, stage: "byPerson" }, 502, origin);
-        const byDivision = await runSalesforceQuery(
+        const byDivision = await runSalesforceQueryAll(
           env,
           "SELECT ASYMBL_Time__Timesheet__r.Placement__r.Division__c dvsn, " + SUMS + FROMW + " GROUP BY ASYMBL_Time__Timesheet__r.Placement__r.Division__c"
         );
@@ -1972,6 +2416,7 @@ var worker_default = {
       }
     }
     if (url.pathname === "/pulse-xero") return pulseXero({ url, request, env, origin, json, verifyUser, sbService, xeroAccessForTenant });
+    if (url.pathname.indexOf("/ws-") === 0) return weeklySales({ url, request, env, origin, json, verifyUser, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery });
     if (url.pathname === "/fin-probe") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -8739,6 +9184,10 @@ var worker_default = {
       return json(out, 200, origin);
     }
     return json({ error: "Not found" }, 404, origin);
+  },
+  // WEEKLY_SALES_CRON_v1 — wrangler.toml: [triggers] crons = ["0 12 * * 4"]
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); }));
   }
 };
 export {
