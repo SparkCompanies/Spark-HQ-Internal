@@ -166,7 +166,11 @@ const WS = {
   six(){ return [5,4,3,2,1,0].map(i=>add(this.we,-7*i)); },
   hoursEnts(){ return (this.rep.entities||[]).filter(e=>e.has_hours); },
   payTotal(r){ if(!r) return null; if(r.payroll_int==null && r.payroll_ext==null) return null; return (Number(r.payroll_int)||0)+(Number(r.payroll_ext)||0); },
-  variance(r){ const p=this.payTotal(r); if(!r||p===null) return null; return (Number(r.assign)||0)+(Number(r.exp)||0)-p; },
+  baseCols(e){ return (e&&Array.isArray(e.variance_cols)&&e.variance_cols.length)?e.variance_cols:["assign","exp"]; },
+  baseLabel(e){ const c=this.baseCols(e); if(c.join()==="assign,exp") return "Sales (w/ Expenses)"; const S={assign:"Assignment",exp:"Expenses",shared:"Shared Svcs",bda:"BDA",bpo:"BPO",dh:"Direct Hire",consulting:"Consulting",affiliate:"Affiliate",mgmt:"Mgmt Svcs",assist:"Sales Assist",other:"Other",allowances:"Allowances",bonuses:"Bonuses"}; return c.map(k=>S[k]||k).join(" + "); },
+  salesBase(r,e){ if(!r) return 0; return this.baseCols(e).reduce((a,k)=>a+(Number(r[k])||0),0); },
+  assignLike(r,e){ if(!r) return 0; return this.baseCols(e).filter(k=>k!=="exp").reduce((a,k)=>a+(Number(r[k])||0),0); },
+  variance(r,e){ const p=this.payTotal(r); if(!r||p===null) return null; return this.salesBase(r,e)-p; },
   seriesFor(fn, ents){ // returns {labels, cur:[], prior:[]} over the Sundays of the report year
     const y=D(this.we).getUTCFullYear(); const labels=sundaysOfYear(y);
     const sum=(we)=>{ let s=null; ents.forEach(e=>{ const r=this.row(e.slug,we); const v=r?fn(r):null; if(v!==null&&v!==undefined){ s=(s||0)+Number(v);} }); return s; };
@@ -208,7 +212,7 @@ const WS = {
   kpis(e){
     const r=this.row(e.slug,this.we)||{}, l=this.row(e.slug,add(this.we,-7))||{}, py=this.prior(e.slug,this.we)||{};
     const k=(label,val,fmt,delta,dfmt,extra)=>'<div class="kpi"><div class="l">'+label+'</div><div class="v">'+fmt(val)+'</div><div class="d">'+(delta==null?'':'<span class="'+cls(delta)+'">'+(delta>0?'▲ ':delta<0?'▼ ':'')+dfmt(Math.abs(delta))+'</span> WoW')+(extra||'')+'</div></div>';
-    const v=this.variance(r);
+    const v=this.variance(r,e);
     return '<div class="kpis">'
       +k("Total sales", r.total, fmt$, r.total!=null&&l.total!=null?r.total-l.total:null, fmt$, py.total!=null?' · Prior Year '+fmt$(py.total,false):'')
       +k(e.columns[0]&&e.columns[0].key==="assign"?"Assignment sales":"Direct hire", e.columns[0]&&e.columns[0].key==="assign"?r.assign:r.dh, fmt$, e.columns[0]&&e.columns[0].key==="assign"?(r.assign!=null&&l.assign!=null?r.assign-l.assign:null):(r.dh!=null&&l.dh!=null?r.dh-l.dh:null), fmt$)
@@ -243,7 +247,7 @@ const WS = {
     const tbl='<div class="tw"><table class="t"><thead><tr><th>WE Date</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Totals</th></tr></thead><tbody>'
       +six.map(w=>{const x=this.row(e.slug,w)||{};return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td>'+cols.map(c=>'<td class="r">'+fmt$(x[c.key])+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
     const ath=(this.rep.ath||[]).filter(a=>a.entity===e.slug); const athL={assign:"ATH Assignment Sales",dh:"ATH Direct Hire Sales",total:"ATH Total Sales"};
-    const pay=this.payTotal(r), v=this.variance(r);
+    const pay=this.payTotal(r), v=this.variance(r,e);
     const sum='<div class="sum">'+cols.map(c=>'<div class="k">'+esc(c.label)+'</div><div class="v">'+fmt$(r[c.key])+'</div>').join("")
       +'<div class="k hl">Total Sales</div><div class="v hl">'+fmt$(r.total)+'</div>'
       +'<div class="k">Payroll – <i>Internal Cash Requirements</i></div><div class="v in noprint"><input type="text" id="pi-'+e.slug+'" value="'+(r.payroll_int==null?'':fmtN(r.payroll_int))+'" placeholder="0.00"></div>'
@@ -257,10 +261,10 @@ const WS = {
   },
   async savePay(slug){ const pi=document.getElementById("pi-"+slug).value, pe=document.getElementById("pe-"+slug).value; try{ await api("/ws-save",{body:{entity:slug,we:this.we,payroll_int:pi===""?null:pi,payroll_ext:pe===""?null:pe}}); await this.load(); status("Payroll saved.","ok"); }catch(e){ status(e.message,"err"); } },
   varianceSection(e){
-    const six=this.six(); const cols=(e.columns||[]).filter(c=>c.key!=="assign"&&c.key!=="exp");
-    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">Assignment Sales (w/ Expenses)</th><th class="r">Total Payroll</th><th class="r">Variance</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Total Sales</th></tr></thead><tbody>'
-      +six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x);return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+fmt$((Number(x.assign)||0)+(Number(x.exp)||0))+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'"><b>'+fmt$(v)+'</b></td>'+cols.map(c=>'<td class="r">'+(Number(x[c.key])?fmt$(x[c.key]):'')+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
-    return '<div class="card"><div class="hd"><h2>Variance Report</h2><span class="note">Variance = Assignment Sales (with expenses) − Total Payroll</span></div>'+tbl+'</div>';
+    const six=this.six(); const bc=this.baseCols(e); const cols=(e.columns||[]).filter(c=>bc.indexOf(c.key)===-1);
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">'+esc(this.baseLabel(e))+'</th><th class="r">Total Payroll</th><th class="r">Variance</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Total Sales</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x,e);return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+fmt$(this.salesBase(x,e))+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'"><b>'+fmt$(v)+'</b></td>'+cols.map(c=>'<td class="r">'+(Number(x[c.key])?fmt$(x[c.key]):'')+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
+    return '<div class="card"><div class="hd"><h2>Variance Report</h2><span class="note">Variance = '+esc(this.baseLabel(e))+' − Total Payroll</span></div>'+tbl+'</div>';
   },
   dhSection(e){
     const rows=(this.rep.dh_monthly||[]).filter(d=>d.entity===e.slug); if(!rows.length) return '';
@@ -302,8 +306,8 @@ const WS = {
   },
   renderSimple(app,e){
     const six=this.six(); const cols=e.columns||[]; const r=this.row(e.slug,this.we)||{};
-    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">Sales (w/ Expenses)</th><th class="r">Total Payroll</th><th class="r">Variance</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Total Sales</th></tr></thead><tbody>'
-      +six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x);return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+(Number(x.assign)||Number(x.exp)?fmt$((Number(x.assign)||0)+(Number(x.exp)||0)):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'"><b>'+fmt$(v)+'</b></td>'+cols.map(c=>'<td class="r">'+(Number(x[c.key])?fmt$(x[c.key]):'')+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
+    const tbl='<div class="tw"><table class="t"><thead><tr><th>Date</th><th class="r">'+esc(this.baseLabel(e))+'</th><th class="r">Total Payroll</th><th class="r">Variance</th>'+cols.map(c=>'<th class="r">'+esc(c.label)+'</th>').join("")+'<th class="r">Total Sales</th></tr></thead><tbody>'
+      +six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x,e);const b=this.salesBase(x,e);return '<tr class="'+(w===this.we?'cur':'')+'"><td>'+mdy(w)+'</td><td class="r">'+(b?fmt$(b):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'"><b>'+fmt$(v)+'</b></td>'+cols.map(c=>'<td class="r">'+(Number(x[c.key])?fmt$(x[c.key]):'')+'</td>').join("")+'<td class="r"><b>'+fmt$(x.total)+'</b></td></tr>';}).join("")+'</tbody></table></div>';
     const ath=(this.rep.ath||[]).filter(a=>a.entity===e.slug&&a.metric==="total")[0];
     const pay='<div class="sum" style="max-width:520px;margin-top:14px"><div class="k">Payroll – <i>Internal</i></div><div class="v in noprint"><input type="text" id="pi-'+e.slug+'" value="'+(r.payroll_int==null?'':fmtN(r.payroll_int))+'"></div><div class="k">Payroll – <i>External</i></div><div class="v in noprint"><input type="text" id="pe-'+e.slug+'" value="'+(r.payroll_ext==null?'':fmtN(r.payroll_ext))+'"></div><div class="k hl">Total Payroll</div><div class="v hl">'+fmt$(this.payTotal(r))+'</div></div><div class="noprint" style="margin-top:10px"><button class="btn sm gold" onclick="WS.savePay(\''+e.slug+'\')">Save payroll</button> <span class="small muted">'+(r.payroll_by?'entered by '+esc(r.payroll_by):'not entered yet')+'</span></div>'
       +'<div class="ath">'+(ath?esc(e.short)+' Total Sales ATH WE '+mdy2(ath.we_date)+' – '+fmt$(ath.amount):'')+'</div>';
@@ -314,10 +318,10 @@ const WS = {
   renderAll(app){
     const ents=this.rep.entities||[]; const lw=add(this.we,-7);
     let T={total:0,lw:0,assign:0,dh:0,hours:0,hc:0,pay:0,varr:0,payAny:false};
-    const rows=ents.map(e=>{const r=this.row(e.slug,this.we)||{},l=this.row(e.slug,lw)||{},py=this.prior(e.slug,this.we)||{};const p=this.payTotal(r),v=this.variance(r);
-      T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=Number(r.assign)||0;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(p!=null){T.pay+=p;T.payAny=true;}if(v!=null)T.varr+=v;
+    const rows=ents.map(e=>{const r=this.row(e.slug,this.we)||{},l=this.row(e.slug,lw)||{},py=this.prior(e.slug,this.we)||{};const p=this.payTotal(r),v=this.variance(r,e);const al=this.assignLike(r,e);
+      T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=al;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(p!=null){T.pay+=p;T.payAny=true;}if(v!=null)T.varr+=v;
       const d=r.total!=null&&l.total!=null?r.total-l.total:null;
-      return '<tr><td><b><a href="#" onclick="WS.setTab(\''+e.slug+'\');return false;">'+esc(e.name)+'</a></b></td><td class="r"><b>'+fmt$(r.total)+'</b></td><td class="r '+cls(d)+'">'+(d==null?'–':(d>0?'+':'')+fmt$(d))+'</td><td class="r">'+(py.total!=null?fmt$(py.total):'–')+'</td><td class="r">'+fmt$(r.assign)+'</td><td class="r">'+fmt$(r.dh)+'</td><td class="r">'+(e.has_hours?fmtN(r.hours):'')+'</td><td class="r">'+(e.has_hours?fmtI(r.headcount):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'">'+fmt$(v)+'</td><td>'+(r.key_things?'<span class="pill ok">notes</span>':'')+(r.locked?' <span class="pill bad">locked</span>':'')+(r.xero_pulled_at?'':' <span class="pill warn">no Xero pull</span>')+'</td></tr>';}).join("");
+      return '<tr><td><b><a href="#" onclick="WS.setTab(\''+e.slug+'\');return false;">'+esc(e.name)+'</a></b></td><td class="r"><b>'+fmt$(r.total)+'</b></td><td class="r '+cls(d)+'">'+(d==null?'–':(d>0?'+':'')+fmt$(d))+'</td><td class="r">'+(py.total!=null?fmt$(py.total):'–')+'</td><td class="r">'+fmt$(al)+'</td><td class="r">'+fmt$(r.dh)+'</td><td class="r">'+(e.has_hours?fmtN(r.hours):'')+'</td><td class="r">'+(e.has_hours?fmtI(r.headcount):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'">'+fmt$(v)+'</td><td>'+(r.key_things?'<span class="pill ok">notes</span>':'')+(r.locked?' <span class="pill bad">locked</span>':'')+(r.xero_pulled_at?'':' <span class="pill warn">no Xero pull</span>')+'</td></tr>';}).join("");
     const tbl='<div class="tw"><table class="t"><thead><tr><th>Entity</th><th class="r">Total Sales</th><th class="r">WoW</th><th class="r">Prior Year</th><th class="r">Assignment</th><th class="r">Direct Hire</th><th class="r">Hours</th><th class="r">HC</th><th class="r">Total Payroll</th><th class="r">Variance</th><th></th></tr></thead><tbody>'+rows
       +'<tr class="tot"><td>All entities</td><td class="r">'+fmt$(T.total)+'</td><td class="r '+cls(T.total-T.lw)+'">'+(T.total-T.lw>0?'+':'')+fmt$(T.total-T.lw)+'</td><td></td><td class="r">'+fmt$(T.assign)+'</td><td class="r">'+fmt$(T.dh)+'</td><td class="r">'+fmtN(T.hours)+'</td><td class="r">'+fmtI(T.hc)+'</td><td class="r">'+(T.payAny?fmt$(T.pay):'–')+'</td><td class="r '+cls(T.varr)+'">'+(T.payAny?fmt$(T.varr):'–')+'</td><td></td></tr></tbody></table></div>';
     const notes=ents.map(e=>{const r=this.row(e.slug,this.we);return r&&r.key_things?'<div class="card" style="margin-bottom:10px"><div class="eyebrow">'+esc(e.name)+'</div><div style="white-space:pre-wrap;margin-top:6px;line-height:1.55">'+esc(r.key_things)+'</div></div>':'';}).join("");
