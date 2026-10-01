@@ -1953,6 +1953,48 @@ window.SPARK_LIVE = (function () {
     };
     if (need.length) Promise.all(need).then(go2); else go2();
   }
+  // Console helper: SPARK_LIVE.candHistory(['Name', ...], fromIso?)
+  // Weekly charge totals per CANDIDATE (contract lines), no clicking through weeks.
+  // Defaults to the agent era (2026-08-02+). Weeks fetch sequentially and cache,
+  // so a rerun is instant. Returns the rows; also logs a table and a CSV string.
+  function candHistory(names, fromIso) {
+    var want = {};
+    (names || []).forEach(function (n) { want[String(n).toLowerCase().replace(/\s+/g, ' ').trim()] = String(n).trim(); });
+    var keys = Object.keys(want);
+    if (!keys.length) { console.warn('candHistory: pass an array of candidate names'); return Promise.resolve([]); }
+    var from = fromIso || '2026-08-02';
+    var isoList = weeksThrough(curIso).filter(function (wk) { return wk >= from; });
+    var i = 0;
+    var step = function () {
+      if (i >= isoList.length) return Promise.resolve();
+      var wk = isoList[i++];
+      if (batches[wk]) return step();
+      return api('/charge-batch?weekEnding=' + wk).then(function (b) { batches[wk] = b; }).catch(function (e) { console.warn('week failed:', wk, e && e.message); }).then(step);
+    };
+    return step().then(function () {
+      var out = [];
+      isoList.forEach(function (wk) {
+        var b = batches[wk];
+        var row = { week: wk };
+        keys.forEach(function (k) { row[want[k]] = 0; });
+        row.TOTAL = 0;
+        if (b && b.rows) b.rows.forEach(function (r) {
+          var ck = String(r.candidate || '').toLowerCase().replace(/\s+/g, ' ').trim();
+          if (want[ck]) { var v = Number(r.charge) || 0; row[want[ck]] = Math.round((row[want[ck]] + v) * 100) / 100; row.TOTAL = Math.round((row.TOTAL + v) * 100) / 100; }
+        });
+        else row.note = 'week unavailable';
+        out.push(row);
+      });
+      var tot = { week: 'TOTAL', TOTAL: 0 };
+      keys.forEach(function (k) { var n2 = want[k]; tot[n2] = Math.round(out.reduce(function (a, r) { return a + (r[n2] || 0); }, 0) * 100) / 100; tot.TOTAL = Math.round((tot.TOTAL + tot[n2]) * 100) / 100; });
+      out.push(tot);
+      console.table(out);
+      var cols = ['week'].concat(keys.map(function (k) { return want[k]; })).concat(['TOTAL']);
+      var csv = cols.join(',') + '\n' + out.map(function (r) { return cols.map(function (c) { return r[c] != null ? r[c] : ''; }).join(','); }).join('\n');
+      console.log(csv);
+      return out;
+    });
+  }
   function buHcKill() { var p = document.getElementById('buHcPanel'); if (p) p.remove(); }
   function buHcPanel(u) {
     buHcKill();
@@ -3372,7 +3414,7 @@ window.SPARK_LIVE = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); });
   else setTimeout(boot, 60);
 
-  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, buDrawer: buDrawer, buGap: buGap, buHC: buHC, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
+  return { boot: boot, selectWeek: selectWeek, dhEdit: dhEdit, dhHide: dhHide, dhAdd: dhAdd, dhSave: dhSave, dhCancel: dhCancel, dhRevert: dhRevert, tmEdit: tmEdit, tmToggle: tmToggle, tmAdd: tmAdd, tmSave: tmSave, tmCancel: tmCancel, rawMenu: rawMenu, rawReset: rawReset, buOpen: buOpen, buDrawer: buDrawer, buGap: buGap, buHC: buHC, candHistory: candHistory, ctEdit: ctEdit, ctSave: ctSave, ctCancel: ctCancel, ctRevert: ctRevert, ctAddOpen: ctAddOpen, ctAddSave: ctAddSave, ctAddCancel: ctAddCancel, ctDel: ctDel, ctExport: ctExport, commExport: commExport, commUnlock: commUnlock, hcExport: hcExport, hcCopy: hcCopy, hcEmail: hcEmail, hcEditExp: hcEditExp, bdaAdd: bdaAdd, bdaAddPerson: bdaAddPerson, bdaAnchor: bdaAnchor, bdaEdit: bdaEdit, bdaLoadAll: bdaLoadAll, bdaExport: bdaExport, credFix: credFix, credSave: credSave, ctRevToggle: ctRevToggle, batches: function(){ return batches; }, history: function(){ return H; } };
 })();
 
 </script>
