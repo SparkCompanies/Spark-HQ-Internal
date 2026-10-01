@@ -121,7 +121,7 @@ __name(pulseXero, "pulseXero");
 var WS_REV_COLS = ["assign", "dh", "exp", "other", "assist", "bpo", "shared", "consulting", "bda", "affiliate", "mgmt", "allowances", "bonuses"];
 var WS_DEFAULT_RULES = [
   { match: "^contract\\b", col: "assign" },
-  { match: "^assignment", col: "assign" },
+  { match: "^assign", col: "assign" }, /* "Assignment Sales", "Assign Sales" (Packaging) */
   { match: "^direct\\s*hire", col: "dh" },
   { match: "placement\\s*fee", col: "dh" },
   { match: "expense\\s*reimb", col: "exp" },
@@ -526,6 +526,7 @@ async function weeklySales(c) {
       if (Array.isArray(body.sf_divisions)) patch.sf_divisions = body.sf_divisions.map(String);
       if (Array.isArray(body.rules)) patch.rules = body.rules.filter((r) => r && r.match && r.col).map((r) => ({ match: String(r.match), col: String(r.col) }));
       if (Array.isArray(body.columns)) patch.columns = body.columns;
+      if ("variance_cols" in body) patch.variance_cols = Array.isArray(body.variance_cols) && body.variance_cols.length ? body.variance_cols.filter((k) => WS_REV_COLS.indexOf(k) !== -1) : null;
       if ("active" in body) patch.active = !!body.active;
       const r = await c.sbService(env, "PATCH", "ws_entities?slug=eq." + encodeURIComponent(slug), patch);
       if (!r.ok) return json({ error: "update failed: " + JSON.stringify(r.data).slice(0, 200) }, 502, origin);
@@ -544,8 +545,9 @@ async function weeklySales(c) {
       const r = await c.sbService(env, "GET", "ws_weeks?entity=eq." + slug + "&or=(and(we_date.gte." + from + ",we_date.lte." + we + "),we_date.eq." + py + ")&select=we_date,assign,dh,exp,other,assist,bpo,shared,total,rt,ot,dt,hours,headcount,payroll_int,payroll_ext,source&order=we_date");
       const rows = r.ok ? r.data || [] : [];
       const ath = await c.sbService(env, "GET", "ws_ath?entity=eq." + slug + "&select=metric,we_date,amount");
-      const facts = { entity: e.name, week_ending: we, weeks: rows, all_time_highs: ath.ok ? ath.data : [], columns: e.columns, has_hours: e.has_hours };
-      const sys = "You write the 'Key Things' bullets at the top of Spark Companies' internal weekly sales email for one entity. Audience: executives. Style: 2-5 short, plain bullets, each one sentence, factual, no fluff, no emojis, no headings. Compare this week to last week (and to the same week last year when useful). Mention: total sales direction and the main driver (contract/assignment vs direct hire vs expenses), hours direction (RT/OT), headcount change, any new all-time high, and payroll variance (sales with expenses minus total payroll) if payroll is present. Use $ with commas and no cents. If a value is missing, do not invent it. Output only the bullets, each starting with '- '.";
+      const base = Array.isArray(e.variance_cols) && e.variance_cols.length ? e.variance_cols : ["assign", "exp"];
+      const facts = { entity: e.name, week_ending: we, weeks: rows, all_time_highs: ath.ok ? ath.data : [], columns: e.columns, has_hours: e.has_hours, variance_base_columns: base, variance_definition: "payroll variance = (" + base.join(" + ") + ") - (payroll_int + payroll_ext)" };
+      const sys = "You write the 'Key Things' bullets at the top of Spark Companies' internal weekly sales email for one entity. Audience: executives. Style: 2-5 short, plain bullets, each one sentence, factual, no fluff, no emojis, no headings. Compare this week to last week (and to the same week last year when useful). Mention: total sales direction and the main driver (contract/assignment vs direct hire vs expenses), hours direction (RT/OT), headcount change, any new all-time high, and payroll variance (use variance_definition from the data) if payroll is present. Use $ with commas and no cents. If a value is missing, do not invent it. Output only the bullets, each starting with '- '.";
       const air = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, system: sys, messages: [{ role: "user", content: "Data (JSON, most recent week last; rows with source 'prior' are last year):\n" + JSON.stringify(facts) }] }) });
       const ai = await air.json();
       if (!air.ok) return json({ error: "Claude error: " + (ai && ai.error && ai.error.message ? ai.error.message : air.status) }, 502, origin);
