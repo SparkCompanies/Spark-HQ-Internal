@@ -42,6 +42,8 @@ h1{font-size:24px;margin:2px 0 0;line-height:1.1}h2{font-size:15px;margin:0;lett
 .card.kt textarea{border-color:rgba(212,160,23,.45);background:#fff}
 .kpi .l{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dark);font-weight:700}.kpi .v{font-size:22px;font-weight:700;margin-top:4px}.kpi .d{font-size:12px;margin-top:3px;color:var(--muted)}
 .up{color:var(--green)}.dn{color:var(--red)}
+.hit{color:#14532d!important;font-weight:800}.miss{color:#e05252!important;font-weight:800}
+.igniter{display:flex;gap:10px;align-items:center;margin-top:10px;font-size:12.5px}.igniter .tag{font-size:10.5px;font-weight:800;letter-spacing:.08em;border-radius:6px;padding:3px 8px}.igniter .tag.hit{background:#dcfce7;color:#14532d}.igniter .tag.miss{background:#fde8e8;color:#c0392b}
 table.t{width:100%;border-collapse:collapse;font-size:13px}
 .t th{position:sticky;top:0;background:var(--paper-warm);text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 .t td{padding:8px 10px;border-bottom:1px solid var(--line-light);white-space:nowrap}.t tr:last-child td{border-bottom:0}.t tr:hover td{background:var(--line-light)}
@@ -83,6 +85,7 @@ const WORKER = "https://spark-hq-worker.sparkcompanies.workers.dev";
 const SB_URL = "https://rdyzvohphrmkkowdsoam.supabase.co";
 const SB_KEY = "sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5";
 const HQ_HOME = window.location.origin + "/";
+const IGNITER = { label: "$20M Igniter", annual: 20000000, weekly: 20000000/52 };   // weekly variance run-rate: $384,615.38
 const REV = ["assign","dh","exp","other","assist","bpo","shared","consulting","bda","affiliate","mgmt","allowances","bonuses"];
 const REV_LABEL = {assign:"Assignment Sales",dh:"Direct Hire",exp:"Expenses",other:"Other Income",assist:"Sales Assist",bpo:"BPO Services",shared:"Shared Services",consulting:"Consulting Service Rev",bda:"BDA Commission Rev",affiliate:"Affiliate Rev",mgmt:"Management Services",allowances:"Allowances",bonuses:"Bonuses"};
 
@@ -317,13 +320,14 @@ const WS = {
   },
   renderAll(app){
     const ents=this.rep.entities||[]; const lw=add(this.we,-7);
-    let T={total:0,lw:0,assign:0,dh:0,hours:0,hc:0,pay:0,varr:0,payAny:false};
+    let T={total:0,lw:0,assign:0,dh:0,hours:0,hc:0,pay:0,varr:0,payAny:false,payN:0,payDen:0};
     const rows=ents.map(e=>{const r=this.row(e.slug,this.we)||{},l=this.row(e.slug,lw)||{},py=this.prior(e.slug,this.we)||{};const p=this.payTotal(r),v=this.variance(r,e);const al=this.assignLike(r,e);
-      T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=al;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(p!=null){T.pay+=p;T.payAny=true;}if(v!=null)T.varr+=v;
+      T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=al;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(e.slug!=="bolt")T.payDen++; if(p!=null){T.pay+=p;T.payAny=true;T.payN++;}if(v!=null)T.varr+=v;
       const d=r.total!=null&&l.total!=null?r.total-l.total:null;
       return '<tr><td><b><a href="#" onclick="WS.setTab(\''+e.slug+'\');return false;">'+esc(e.name)+'</a></b></td><td class="r"><b>'+fmt$(r.total)+'</b></td><td class="r '+cls(d)+'">'+(d==null?'–':(d>0?'+':'')+fmt$(d))+'</td><td class="r">'+(py.total!=null?fmt$(py.total):'–')+'</td><td class="r">'+fmt$(al)+'</td><td class="r">'+fmt$(r.dh)+'</td><td class="r">'+(e.has_hours?fmtN(r.hours):'')+'</td><td class="r">'+(e.has_hours?fmtI(r.headcount):'')+'</td><td class="r">'+fmt$(p)+'</td><td class="r '+cls(v)+'">'+fmt$(v)+'</td><td>'+(r.key_things?'<span class="pill ok">notes</span>':'')+(r.locked?' <span class="pill bad">locked</span>':'')+(r.xero_pulled_at?'':' <span class="pill warn">no Xero pull</span>')+'</td></tr>';}).join("");
     const tbl='<div class="tw"><table class="t"><thead><tr><th>Entity</th><th class="r">Total Sales</th><th class="r">WoW</th><th class="r">Prior Year</th><th class="r">Assignment</th><th class="r">Direct Hire</th><th class="r">Hours</th><th class="r">HC</th><th class="r">Total Payroll</th><th class="r">Variance</th><th></th></tr></thead><tbody>'+rows
-      +'<tr class="tot"><td>All entities</td><td class="r">'+fmt$(T.total)+'</td><td class="r '+cls(T.total-T.lw)+'">'+(T.total-T.lw>0?'+':'')+fmt$(T.total-T.lw)+'</td><td></td><td class="r">'+fmt$(T.assign)+'</td><td class="r">'+fmt$(T.dh)+'</td><td class="r">'+fmtN(T.hours)+'</td><td class="r">'+fmtI(T.hc)+'</td><td class="r">'+(T.payAny?fmt$(T.pay):'–')+'</td><td class="r '+cls(T.varr)+'">'+(T.payAny?fmt$(T.varr):'–')+'</td><td></td></tr></tbody></table></div>';
+      +'<tr class="tot"><td>All entities</td><td class="r">'+fmt$(T.total)+'</td><td class="r '+cls(T.total-T.lw)+'">'+(T.total-T.lw>0?'+':'')+fmt$(T.total-T.lw)+'</td><td></td><td class="r">'+fmt$(T.assign)+'</td><td class="r">'+fmt$(T.dh)+'</td><td class="r">'+fmtN(T.hours)+'</td><td class="r">'+fmtI(T.hc)+'</td><td class="r">'+(T.payAny?fmt$(T.pay):'–')+'</td><td class="r '+(T.payAny?(T.varr>=IGNITER.weekly?'hit':'miss'):'')+'">'+(T.payAny?fmt$(T.varr):'–')+'</td><td></td></tr></tbody></table></div>'
+      +(T.payAny?'<div class="igniter"><span class="tag '+(T.varr>=IGNITER.weekly?'hit':'miss')+'">'+(T.varr>=IGNITER.weekly?'HIT':'MISS')+'</span><span>'+IGNITER.label+' run rate <b>'+fmt$(IGNITER.weekly)+'</b> / week · this week '+(T.varr>=IGNITER.weekly?'over by <b class="hit">'+fmt$(T.varr-IGNITER.weekly)+'</b>':'under by <b class="miss">'+fmt$(IGNITER.weekly-T.varr)+'</b>')+(T.payN<T.payDen?' · <span class="muted">payroll entered for '+T.payN+' of '+T.payDen+' entities</span>':'')+'</span></div>':'');
     const notes=ents.map(e=>{const r=this.row(e.slug,this.we);return r&&r.key_things?'<div class="card" style="margin-bottom:10px"><div class="eyebrow">'+esc(e.name)+'</div><div style="white-space:pre-wrap;margin-top:6px;line-height:1.55">'+esc(r.key_things)+'</div></div>':'';}).join("");
     app.innerHTML=this.header(null)+'<div class="card"><div class="hd"><h2>Portfolio — week ending '+mdy(this.we)+'</h2><span class="note">Click an entity for its full report</span></div>'+tbl+'</div>'
       +(notes?'<div class="card" style="background:var(--paper)"><div class="hd"><h2>Key things across entities</h2></div>'+notes+'</div>':'')
