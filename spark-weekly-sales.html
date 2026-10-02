@@ -379,23 +379,135 @@ const WS = {
     const C=this.seriesFor(r=>r.headcount,this.hoursEnts()); this.line("ch-hc-all",C.labels,[{label:String(y),data:C.cur},{label:String(y-1),data:C.prior}],false);
   },
 
-  // ---------------- export ----------------
+  // ---------------- export (email-safe: tables + inline styles, no grid/flex/classes) ----------------
+  em:{
+    F:"font-family:'Century Gothic',Arial,Helvetica,sans-serif;",
+    eyebrow(t){ return '<div style="'+this.F+'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#D4A017;font-weight:bold;margin:0">'+t+'</div>'; },
+    h1(t){ return '<div style="'+this.F+'font-size:20px;font-weight:bold;color:#1a1a2e;margin:2px 0 4px">'+t+'</div>'; },
+    sub(t){ return '<div style="'+this.F+'font-size:12px;color:#64748b;margin:0 0 14px">'+t+'</div>'; },
+    h2(t,note){ return '<div style="'+this.F+'font-size:13px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;color:#1a1a2e;margin:22px 0 6px;padding-top:12px;border-top:1px solid #ECE9E0">'+t+(note?' <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:#64748b;font-size:11px">· '+note+'</span>':'')+'</div>'; },
+    small(t){ return '<div style="'+this.F+'font-size:11px;color:#64748b;line-height:1.6;margin:8px 0">'+t+'</div>'; },
+    color(v){ return v>0?'#15803d':(v<0?'#b91c1c':'#1a1a2e'); },
+    table(headers, rows){
+      const th=(h)=>'<th style="'+this.F+'background:#FAF6E8;color:#64748b;font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:bold;padding:6px 8px;border:1px solid #ECE9E0;text-align:'+(h.r?'right':'left')+';white-space:nowrap">'+h.t+'</th>';
+      const td=(c,row)=>'<td style="'+this.F+'font-size:12px;padding:5px 8px;border:1px solid #ECE9E0;white-space:nowrap;text-align:'+(c.r?'right':'left')+';'+(row.cur?'font-weight:bold;background:#FFFBEA;':'')+(row.tot?'font-weight:bold;border-top:2px solid #D4A017;':'')+(c.b?'font-weight:bold;':'')+(c.color?'color:'+c.color+';':'')+'">'+(c.t==null?'':c.t)+'</td>';
+      return '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #D4A017;margin:4px 0 8px">'+'<tr>'+headers.map(th).join('')+'</tr>'+rows.map(r=>'<tr>'+r.cells.map(c=>td(c,r)).join('')+'</tr>').join('')+'</table>';
+    },
+    kv(rows){ // label/value pairs (summary block)
+      return '<table cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:4px 0 8px;min-width:420px">'+rows.map(r=>'<tr><td style="'+this.F+'font-size:12px;padding:4px 10px 4px 0;'+(r.hl?'background:#FFF3B0;font-weight:bold;padding-left:6px;':'')+(r.b?'font-weight:bold;':'')+'">'+r.k+'</td><td style="'+this.F+'font-size:12px;padding:4px 6px;text-align:right;'+(r.hl?'background:#FFF3B0;font-weight:bold;':'')+(r.b?'font-weight:bold;':'')+(r.color?'color:'+r.color+';':'')+'">'+r.v+'</td></tr>').join('')+'</table>';
+    },
+    kpis(items){
+      return '<table cellpadding="0" cellspacing="6" style="border-collapse:separate;margin:6px -6px 4px"><tr>'+items.map(k=>'<td style="'+this.F+'border:2px solid #D4A017;border-radius:10px;padding:10px 14px;vertical-align:top;min-width:120px"><div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#92400e;font-weight:bold">'+k.l+'</div><div style="font-size:19px;font-weight:bold;color:#1a1a2e;margin:3px 0 2px">'+k.v+'</div><div style="font-size:11px;color:#64748b">'+(k.d||'')+'</div></td>').join('')+'</tr></table>';
+    },
+    bullets(text){ const lines=String(text||'').split(/\r?\n/).map(l=>l.replace(/^\s*[-•*]\s*/,'').trim()).filter(Boolean); return lines.length?'<ul style="'+this.F+'font-size:13px;line-height:1.55;margin:4px 0 0 18px;padding:0">'+lines.map(l=>'<li style="margin:0 0 3px">'+esc(l)+'</li>').join('')+'</ul>':''; },
+    chart(id, title){ const cv=document.getElementById(id); if(!cv) return ''; let src=''; try{ src=cv.toDataURL('image/png'); }catch(e){ return ''; } return (title?'<div style="'+this.F+'font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#D4A017;font-weight:bold;margin:10px 0 4px">'+title+'</div>':'')+'<img src="'+src+'" width="640" style="display:block;width:640px;max-width:100%;border:1px solid #ECE9E0;margin:0 0 10px">'; }
+  },
+  emailHeader(e){
+    const r=e?this.row(e.slug,this.we):null; const w=this.rep.window; const win=r&&r.xero_from?{from:r.xero_from,to:r.xero_to}:w;
+    return this.em.eyebrow('Weekly Sales · '+(e?esc(e.name):'All entities'))+this.em.h1('Week ending '+mdy(this.we))
+      +this.em.sub('Hours &amp; headcount: pay period '+mdy(add(this.we,-6))+' – '+mdy(this.we)+' · Sales: Xero P&amp;L '+mdy(win.from)+' – '+mdy(win.to));
+  },
+  emailEntity(e){
+    const em=this.em, six=this.six(), r=this.row(e.slug,this.we)||{}, l=this.row(e.slug,add(this.we,-7))||{}, py=this.prior(e.slug,this.we)||{};
+    const d=(a,b)=>a!=null&&b!=null?Number(a)-Number(b):null; const arrow=(v,f)=>v==null?'':'<span style="color:'+em.color(v)+'">'+(v>0?'▲ ':v<0?'▼ ':'')+f(Math.abs(v))+'</span> WoW';
+    let h=this.emailHeader(e);
+    if(r.key_things) h+=em.h2('Key Things')+em.bullets(r.key_things);
+    const simple=e.report_kind==='simple';
+    if(!simple){
+      const v=this.variance(r,e);
+      h+=em.kpis([
+        {l:'Total sales',v:fmt$(r.total),d:arrow(d(r.total,l.total),fmt$)+(py.total!=null?' · Prior Year '+fmt$(py.total,false):'')},
+        {l:'Assignment sales',v:fmt$(r.assign),d:arrow(d(r.assign,l.assign),fmt$)},
+        {l:'Direct hire',v:fmt$(r.dh),d:arrow(d(r.dh,l.dh),fmt$)},
+        {l:'Hours',v:fmtN(r.hours),d:arrow(d(r.hours,l.hours),x=>fmtN(x))+(py.hours!=null?' · Prior Year '+fmtN(py.hours,0):'')},
+        {l:'Headcount',v:fmtI(r.headcount),d:arrow(d(r.headcount,l.headcount),fmtI)+(py.headcount!=null?' · Prior Year '+fmtI(py.headcount):'')},
+        {l:'Sales – payroll',v:fmt$(v),d:''}
+      ]);
+      // hours
+      h+=em.h2('Hours','difference between last week and this week');
+      h+=em.table([{t:'RT',r:true},{t:'OT',r:true},{t:'DT',r:true},{t:'Total',r:true}],[{cells:['rt','ot','dt','hours'].map(k=>{const x=d(r[k],l[k]);return {t:x==null?'–':fmtN(x),r:true,b:true,color:em.color(x)};})}]);
+      h+=em.table([{t:'Date'},{t:'RT Hours',r:true},{t:'OT Hours',r:true},{t:'DT Hours',r:true},{t:'Total',r:true},{t:'Prior Year Total',r:true}],
+        six.map(w=>{const x=this.row(e.slug,w)||{},p=this.prior(e.slug,w)||{};return {cur:w===this.we,cells:[{t:mdy(w)},{t:fmtN(x.rt),r:true},{t:fmtN(x.ot),r:true},{t:fmtN(x.dt),r:true},{t:fmtN(x.hours),r:true,b:true},{t:fmtN(p.hours),r:true}]};}));
+      h+=em.chart('ch-hours-'+e.slug, esc(e.short)+' total hours — this year vs last')+em.chart('ch-hours-all',"All entities' hours — YOY");
+      // headcount
+      const hd=d(r.headcount,l.headcount);
+      h+=em.h2('Headcount','HC is '+(hd==null?'–':hd===0?'flat':(hd>0?'up by '+hd:'down by '+(-hd)))+' this week');
+      h+=em.table([{t:'Date'},{t:'Total Headcount',r:true},{t:'Prior Year Total',r:true},{t:'YoY',r:true}],
+        six.map(w=>{const x=this.row(e.slug,w)||{},p=this.prior(e.slug,w)||{};const yy=d(x.headcount,p.headcount);return {cur:w===this.we,cells:[{t:mdy(w)},{t:fmtI(x.headcount),r:true,b:true},{t:fmtI(p.headcount),r:true},{t:yy==null?'–':(yy>0?'+':'')+fmtI(yy),r:true,color:em.color(yy)}]};}));
+      h+=em.chart('ch-hc-'+e.slug, esc(e.short)+' headcount — this year vs last')+em.chart('ch-hc-all',"All entities' headcount — YOY");
+    }
+    // sales breakdown
+    const cols=e.columns||[];
+    h+=em.h2('Sales Breakdown');
+    if(simple){
+      const bc=this.baseCols(e), vcols=cols.filter(c=>bc.indexOf(c.key)===-1);
+      h+=em.table([{t:'Date'},{t:this.baseLabel(e),r:true},{t:'Total Payroll',r:true},{t:'Variance',r:true}].concat(vcols.map(c=>({t:esc(c.label),r:true}))).concat([{t:'Total Sales',r:true}]),
+        six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x,e),b=this.salesBase(x,e);return {cur:w===this.we,cells:[{t:mdy(w)},{t:b?fmt$(b):'',r:true},{t:fmt$(p),r:true},{t:fmt$(v),r:true,b:true,color:em.color(v)}].concat(vcols.map(c=>({t:Number(x[c.key])?fmt$(x[c.key]):'',r:true}))).concat([{t:fmt$(x.total),r:true,b:true}])};}));
+    } else {
+      h+=em.table([{t:'WE Date'}].concat(cols.map(c=>({t:esc(c.label),r:true}))).concat([{t:'Totals',r:true}]),
+        six.map(w=>{const x=this.row(e.slug,w)||{};return {cur:w===this.we,cells:[{t:mdy(w)}].concat(cols.map(c=>({t:fmt$(x[c.key]),r:true}))).concat([{t:fmt$(x.total),r:true,b:true}])};}));
+    }
+    const pay=this.payTotal(r), v2=this.variance(r,e);
+    const kv=cols.map(c=>({k:esc(c.label),v:fmt$(r[c.key])})).concat([
+      {k:'Total Sales',v:fmt$(r.total),hl:true},
+      {k:'Payroll – <i>Internal Cash Requirements</i>',v:fmt$(r.payroll_int)},
+      {k:'Payroll – <i>External Cash Requirements</i>',v:fmt$(r.payroll_ext)},
+      {k:'Total Payroll',v:fmt$(pay),hl:true},
+      {k:'Sales – Payroll',v:fmt$(v2),b:true,color:em.color(v2)}
+    ]);
+    h+=em.kv(kv);
+    const ath=(this.rep.ath||[]).filter(a=>a.entity===e.slug); const athL={assign:'ATH Assignment Sales',dh:'ATH Direct Hire Sales',total:'ATH Total Sales'};
+    const athTxt=['assign','dh','total'].map(m=>{const a=ath.find(x=>x.metric===m);return a?athL[m]+': WE '+mdy2(a.we_date)+' – '+fmt$(a.amount):'';}).filter(Boolean).join('<br>');
+    if(athTxt) h+=em.small(athTxt);
+    h+=em.chart('ch-sales-'+e.slug, esc(e.short)+' weekly sales — year over year')+(simple?'':em.chart('ch-sales-all',"All entities' sales — YOY"));
+    // variance (full only)
+    if(!simple){
+      const bc=this.baseCols(e), vcols=cols.filter(c=>bc.indexOf(c.key)===-1);
+      h+=em.h2('Variance Report','Variance = '+esc(this.baseLabel(e))+' − Total Payroll');
+      h+=em.table([{t:'Date'},{t:esc(this.baseLabel(e)),r:true},{t:'Total Payroll',r:true},{t:'Variance',r:true}].concat(vcols.map(c=>({t:esc(c.label),r:true}))).concat([{t:'Total Sales',r:true}]),
+        six.map(w=>{const x=this.row(e.slug,w)||{};const p=this.payTotal(x),v=this.variance(x,e);return {cur:w===this.we,cells:[{t:mdy(w)},{t:fmt$(this.salesBase(x,e)),r:true},{t:fmt$(p),r:true},{t:fmt$(v),r:true,b:true,color:em.color(v)}].concat(vcols.map(c=>({t:Number(x[c.key])?fmt$(x[c.key]):'',r:true}))).concat([{t:fmt$(x.total),r:true,b:true}])};}));
+    }
+    // direct hires by month
+    const dm=this._dh&&this._dh[e.slug];
+    if(dm){
+      const rows=(this.rep.dh_monthly||[]).filter(x=>x.entity===e.slug); const years=[...new Set(rows.map(x=>x.year))].sort((a,b)=>b-a).slice(0,5);
+      const get=(y,m)=>{const x=rows.find(z=>z.year===y&&z.month===m);return x?Number(x.amount):null;}; const tot=(y)=>rows.filter(x=>x.year===y).reduce((a,x)=>a+Number(x.amount),0);
+      h+=em.h2('Direct Hires','monthly direct-hire revenue by year');
+      h+=em.table([{t:'Month'}].concat(years.map(y=>({t:String(y),r:true}))).concat([{t:'Diff vs '+dm.py,r:true}]),
+        dm.M.map((mn,i)=>{const c=get(dm.cy,i+1),p=get(dm.py,i+1);const df=c!=null&&p!=null?c-p:null;return {cells:[{t:mn}].concat(years.map(y=>({t:get(y,i+1)==null?'':fmt$(get(y,i+1)),r:true}))).concat([{t:df==null?'':fmt$(df),r:true,color:em.color(df)}])};})
+        .concat([{tot:true,cells:[{t:'TOTALS'}].concat(years.map(y=>({t:fmt$(tot(y)),r:true}))).concat([{t:fmt$(dm.M.reduce((a,_,i)=>a+(get(dm.cy,i+1)!=null&&get(dm.py,i+1)!=null?get(dm.cy,i+1)-get(dm.py,i+1):0),0)),r:true}])}]));
+      h+=em.chart('ch-dhbar-'+e.slug, dm.py+'-'+dm.cy+' DH comparison')+em.chart('ch-dhline-'+e.slug, dm.py+'-'+dm.cy+' DH monthly comparison');
+    }
+    return h;
+  },
+  emailAll(){
+    const em=this.em, ents=this.rep.entities||[], lw=add(this.we,-7);
+    let T={total:0,lw:0,assign:0,dh:0,hours:0,hc:0,pay:0,varr:0,payAny:false};
+    const rows=ents.map(e=>{const r=this.row(e.slug,this.we)||{},l=this.row(e.slug,lw)||{},py=this.prior(e.slug,this.we)||{};const p=this.payTotal(r),v=this.variance(r,e),al=this.assignLike(r,e);
+      T.total+=Number(r.total)||0;T.lw+=Number(l.total)||0;T.assign+=al;T.dh+=Number(r.dh)||0;T.hours+=Number(r.hours)||0;T.hc+=Number(r.headcount)||0;if(p!=null){T.pay+=p;T.payAny=true;}if(v!=null)T.varr+=v;
+      const d=r.total!=null&&l.total!=null?r.total-l.total:null;
+      return {cells:[{t:esc(e.name),b:true},{t:fmt$(r.total),r:true,b:true},{t:d==null?'–':(d>0?'+':'')+fmt$(d),r:true,color:em.color(d)},{t:py.total!=null?fmt$(py.total):'–',r:true},{t:fmt$(al),r:true},{t:fmt$(r.dh),r:true},{t:e.has_hours?fmtN(r.hours):'',r:true},{t:e.has_hours?fmtI(r.headcount):'',r:true},{t:fmt$(p),r:true},{t:fmt$(v),r:true,color:em.color(v)}]};});
+    const hit=T.varr>=IGNITER.weekly;
+    rows.push({tot:true,cells:[{t:'All entities'},{t:fmt$(T.total),r:true},{t:(T.total-T.lw>0?'+':'')+fmt$(T.total-T.lw),r:true,color:em.color(T.total-T.lw)},{t:''},{t:fmt$(T.assign),r:true},{t:fmt$(T.dh),r:true},{t:fmtN(T.hours),r:true},{t:fmtI(T.hc),r:true},{t:T.payAny?fmt$(T.pay):'–',r:true},{t:T.payAny?fmt$(T.varr):'–',r:true,color:T.payAny?(hit?'#14532d':'#e05252'):'#1a1a2e'}]});
+    let h=this.emailHeader(null)+em.h2('Portfolio — week ending '+mdy(this.we));
+    h+=em.table([{t:'Entity'},{t:'Total Sales',r:true},{t:'WoW',r:true},{t:'Prior Year',r:true},{t:'Assignment',r:true},{t:'Direct Hire',r:true},{t:'Hours',r:true},{t:'HC',r:true},{t:'Total Payroll',r:true},{t:'Variance',r:true}], rows);
+    if(T.payAny) h+='<div style="'+em.F+'font-size:12px;margin:4px 0 10px"><span style="font-size:10px;font-weight:bold;letter-spacing:1px;padding:3px 8px;border-radius:6px;background:'+(hit?'#dcfce7;color:#14532d':'#fde8e8;color:#c0392b')+'">'+(hit?'HIT':'MISS')+'</span> &nbsp;'+IGNITER.label+' run rate <b>'+fmt$(IGNITER.weekly)+'</b> / week · this week '+(hit?'over by <b style="color:#14532d">'+fmt$(T.varr-IGNITER.weekly)+'</b>':'under by <b style="color:#e05252">'+fmt$(IGNITER.weekly-T.varr)+'</b>')+'</div>';
+    const notes=ents.map(e=>{const r=this.row(e.slug,this.we);return r&&r.key_things?'<div style="'+em.F+'font-size:11px;font-weight:bold;color:#92400e;margin-top:10px">'+esc(e.name)+'</div>'+em.bullets(r.key_things):'';}).join('');
+    if(notes) h+=em.h2('Key things across entities')+notes;
+    h+=em.chart('ch-sales-all',"All entities' sales — YOY")+em.chart('ch-hours-all',"All entities' hours — YOY")+em.chart('ch-hc-all',"All entities' headcount — YOY");
+    return h;
+  },
   async exportEmail(){
     if(this.tab==="setup") return;
-    const root=document.getElementById("app").cloneNode(true);
-    root.querySelectorAll(".noprint,details").forEach(n=>n.remove());
-    // inputs -> text, canvases -> images
-    root.querySelectorAll("textarea").forEach(t=>{ const p=document.createElement("div"); p.style.whiteSpace="pre-wrap"; p.textContent=t.value; t.replaceWith(p); });
-    const live=document.getElementById("app").querySelectorAll("canvas"); const cl=root.querySelectorAll("canvas");
-    cl.forEach((cv,i)=>{ const img=document.createElement("img"); try{ img.src=live[i].toDataURL("image/png"); }catch(e){} img.style.maxWidth="100%"; cv.parentNode.replaceWith(img); });
-    const css="table{border-collapse:collapse;font-family:Century Gothic,Arial,sans-serif;font-size:12px}th{background:#FAF6E8;text-align:left;padding:6px 8px;border:1px solid #ECE9E0;font-size:10px;text-transform:uppercase}td{padding:5px 8px;border:1px solid #ECE9E0}td.r,th.r{text-align:right}tr.cur td{font-weight:bold;background:#fffbea}tr.tot td{font-weight:bold}h1{font-size:20px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#92400e}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#D4A017;font-weight:bold}.kpis{display:table}.kpi{display:inline-block;border:1px solid #ECE9E0;border-radius:8px;padding:8px 12px;margin:4px}.up{color:#15803d}.dn{color:#b91c1c}.card{margin:0 0 16px}.sum{display:table}.sum>div{display:table-row}.ath{color:#64748b;font-size:11px}.chart img{width:640px}.pill{font-size:10px;color:#64748b}";
-    const html='<html><head><meta charset="utf-8"><style>'+css+'</style></head><body style="font-family:Century Gothic,Arial,sans-serif;color:#1a1a2e">'+root.innerHTML+'</body></html>';
-    const text=root.innerText;
+    const e=this.tab==="all"?null:this.ent(this.tab);
+    const body=e?this.emailEntity(e):this.emailAll();
+    const html='<html><head><meta charset="utf-8"></head><body style="'+this.em.F+'color:#1a1a2e;font-size:13px;margin:0;padding:8px">'+body+'</body></html>';
+    const text=body.replace(/<img[^>]*>/g,'[chart]').replace(/<\/(div|tr|li|p|h\d|ul)>/g,'\n').replace(/<\/t[dh]>/g,'\t').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').replace(/\n{3,}/g,'\n\n').trim();
     try{
       await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([text],{type:"text/plain"})})]);
-      status("Report copied — paste into a new Outlook message (tables and charts included).","ok");
-    }catch(e){
-      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([html],{type:"text/html"})); a.download="Weekly Sales - "+(this.tab==="all"?"All":this.tab)+" WE "+this.we+".html"; a.click();
+      status("Report copied — paste into a new Outlook message.","ok");
+    }catch(err){
+      const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([html],{type:"text/html"})); a.download="Weekly Sales - "+(e?e.short:"All")+" WE "+this.we+".html"; a.click();
       status("Clipboard blocked by the browser — downloaded the report as an HTML file instead.","ok");
     }
   }
