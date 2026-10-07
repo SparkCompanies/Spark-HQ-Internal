@@ -7567,7 +7567,9 @@ var worker_default = {
         //    names at derivation, so ghosts can't mint on ANY surface ──
         const DH_NAME_ALIAS = { "House": "House Account", "Asymbl Admin": "House Account", "Nicholas Greenfelder": "Nick Greenfelder", "Kazeem Olaniyan": "CJ Olaniyan", "Kazeem Olanyian": "CJ Olaniyan", "Jenny N": "Jennifer Neuenfeldt" };
         try { const nmA = await sbService(env, "GET", "charge_name_aliases?select=sf_name,display_name"); if (nmA && nmA.ok && Array.isArray(nmA.data)) nmA.data.forEach((m) => { DH_NAME_ALIAS[m.sf_name] = m.display_name; }); } catch (eA) {}
-        drops.forEach((d) => { if (d.am && DH_NAME_ALIAS[d.am]) d.am = DH_NAME_ALIAS[d.am]; if (d.rec && DH_NAME_ALIAS[d.rec]) d.rec = DH_NAME_ALIAS[d.rec]; });
+        // (fields on drops are sales_rep / recruiter — the earlier am/rec version
+        //  of this pass matched nothing, which is how "Jenny N" kept slipping through)
+        drops.forEach((d) => { ["sales_rep", "recruiter", "am", "rec"].forEach((k) => { if (d[k] && DH_NAME_ALIAS[d[k]]) d[k] = DH_NAME_ALIAS[d[k]]; }); });
         // ── geographic BU: client state → territory → BU ──
         const terrR = await sbService(env, "GET", "terr_territories?select=name,geo");
         const stateBU = {};
