@@ -1131,7 +1131,7 @@ var worker_default = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(we)) return json({ error: "weekEnding=YYYY-MM-DD required" }, 400, origin);
       const d = new Date(we + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 5);
       const checkDate = (d.getUTCMonth() + 1) + "-" + d.getUTCDate() + "-" + d.getUTCFullYear() + " Check Date";
-      const out = { version: "preview-v39-ait-flat-ot56", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
+      const out = { version: "preview-v40-named-ts-hold", weekEnding: we, checkDateFolder: checkDate, note: "PREVIEW ONLY - reads OneDrive and extracts; writes nothing, touches no invoices" };
       let token;
       try { token = await getGraphToken(env); } catch (e) { out.tokenError = String(e.message || e); return json(out, 200, origin); }
       const H = { Authorization: "Bearer " + token, Accept: "application/json" };
@@ -4918,7 +4918,14 @@ var worker_default = {
             }
             if (prof.uses_client_timesheet) {
               const need = names.filter((n) => workers[n].ot > 0 || workers[n].dt > 0);
-              const _hasTotal = DROP.client_total[nz(g.client)] != null; const _hasRates = need.length > 0 && need.every((n) => crKey(n)); if (!_hasTotal && !_hasRates) throw HOLD("invoice must reconcile to the client timesheet \u2014 provide it");
+              const _hasTotal = DROP.client_total[nz(g.client)] != null;
+              const _crPrefix = nz(g.client) + "|";
+              const _hasAnyCr = Object.keys(DROP.client_rates).some((k) => k.indexOf(_crPrefix) === 0);
+              const _missing = need.filter((n) => !crKey(n));
+              if (!_hasTotal) {
+                if (!_hasAnyCr) throw HOLD("invoice must reconcile to the client timesheet \u2014 provide it");
+                if (_missing.length) throw HOLD("client-timesheet rates missing for: " + _missing.slice(0, 6).join(", ") + (_missing.length > 6 ? " +" + (_missing.length - 6) + " more" : ""));
+              }
             }
             if (prof.shift_premium && SHIFT_PREM[g.client] == null) throw HOLD("shift premium not configured");
             const net = prof.due_net_days != null ? prof.due_net_days : null;
