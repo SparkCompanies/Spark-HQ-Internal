@@ -214,7 +214,7 @@ body.light ::-webkit-scrollbar-track{background:#efede6}
   <div class="tp">
     <div style="display:flex;align-items:center;gap:14px"><div class="tp-t" id="tp-t">Pulse</div><span class="live"><i></i><span id="lvWe">WE 8.2.26</span></span></div>
     <div style="display:flex;gap:18px;align-items:center">
-      <div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Q3 Pace</div><div class="m" id="tp-q3" style="font-size:14px;font-weight:700"></div></div>
+      <div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Qtr Pace</div><div class="m" id="tp-q3" style="font-size:14px;font-weight:700"></div></div>
       <div style="width:1px;height:30px;background:var(--bd)"></div>
       <div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.5px;font-weight:700">Producing</div><div class="m" id="tp-pr" style="font-size:14px"></div></div>
       <div style="width:1px;height:30px;background:var(--bd)"></div>
@@ -263,10 +263,14 @@ var ENT_KEYS=['Spark Talent','John Joseph Partners','Ignite Search','Spark Compa
 function wkTotal(w){var s=0;ENT_KEYS.forEach(function(k){s+=(w[k]||0)});return s+(w['Unassigned']||0)}
 var TOTAL=wkTotal(CUR), LASTW=wkTotal(PREV);
 var YTD=D.weeks.reduce(function(s,w){return s+wkTotal(w)},0);
-// Q3 = weeks from 7/1 onward (7/5 first WE)
-var Q3WKS=D.weeks.filter(function(w){var p=w.we.split('/');return +p[0]>=7});
+// Current quarter, derived from the latest week — never hardcoded again
+function qtrOf(m){return m<=3?1:m<=6?2:m<=9?3:4}
+var CQ=qtrOf(+(D.weeks.length?D.weeks[D.weeks.length-1].we.split('/')[0]:(new Date().getMonth()+1)));
+var QL='Q'+CQ;
+var Q3WKS=D.weeks.filter(function(w){return qtrOf(+w.we.split('/')[0])===CQ});
 var Q3=Q3WKS.reduce(function(s,w){return s+wkTotal(w)},0);
-var Q3T=3450000;
+var QT_BY_QTR={1:3450000,2:3450000,3:3450000,4:3450000}; // per-quarter company target; update Q4 when set
+var Q3T=QT_BY_QTR[CQ]||3450000;
 
 // ═══ SVG CHARTS ═══
 function areaChart(id,vals,labels,opts){
@@ -475,7 +479,7 @@ function rPulse(){
   if(Math.abs(_un)>0.5)h+='<div class="m" style="margin-top:6px;font-size:10px;color:var(--org)">includes '+fmt(_un)+' coded to a blank / unmapped entity \u2014 map it via fin_client_map or the SF Division field</div>';
   h+='</div>';
   h+='<div style="display:flex;gap:26px;flex-wrap:wrap">';
-  [['YTD Raw Charge',fK(YTD),'var(--tx)'],['Q3 QTD',fK(Q3),'var(--y)'],['Q3 Target',fK(Q3T),'var(--dm)'],['Q3 Pace',Math.round(Q3/Q3T*100)+'%',pC(Q3/Q3T*100)]].forEach(function(k){
+  [['YTD Raw Charge',fK(YTD),'var(--tx)'],[QL+' QTD',fK(Q3),'var(--y)'],[QL+' Target',fK(Q3T),'var(--dm)'],[QL+' Pace',Math.round(Q3/Q3T*100)+'%',pC(Q3/Q3T*100)]].forEach(function(k){
     h+='<div style="text-align:right"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.6px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:21px;font-weight:800;color:'+k[2]+';margin-top:3px;letter-spacing:-.5px">'+k[1]+'</div></div>';
   });
   h+='</div></div>';
@@ -738,7 +742,7 @@ function heroHover(){
 
 // ═══ RANKINGS ARENA ═══
 var arM='wkRaw', arScope='people';
-var AR_METRICS=[['wkRaw','Raw (Wk)'],['moRaw','Monthly Raw'],['qRaw','Quarterly Raw'],['cumRaw','Cumulative Raw'],['wow','WoW'],['pace','Q3 Pace']];
+var AR_METRICS=[['wkRaw','Raw (Wk)'],['moRaw','Monthly Raw'],['qRaw','Quarterly Raw'],['cumRaw','Cumulative Raw'],['wow','WoW'],['pace','Qtr Pace']];
 function initials(n){var p=n.split(' ');return (p[0][0]+(p[p.length-1][0]||'')).toUpperCase()}
 function rankMove(name){
   // rank by last week vs prior week from iw
@@ -1418,7 +1422,7 @@ window.SPARK_LIVE = (function () {
         var p = pweek(w)[n]; if (!p) return;
         var rw = rawOf(p);
         cum += p.tt; if (w > RAW_ANCHOR) cumRaw += rw;
-        if (+w.split('-')[1] >= 7) { q += p.tt; qRaw += rw; }
+        if (qtrOf(+w.split('-')[1]) === qtrOf(curMonth)) { q += p.tt; qRaw += rw; }
         if (+w.split('-')[1] === curMonth) { mo += p.tt; moRaw += rw; }
       });
       var c = cw[n] || { sales: 0, fd: 0, rec: 0, tt: 0 }, l = pv[n] || { tt: 0 };
@@ -1434,7 +1438,7 @@ window.SPARK_LIVE = (function () {
         var p = pweek(w)['House Account']; if (!p) return;
         any = true; var rw = rawOf(p);
         if (w > RAW_ANCHOR) cumRaw += rw;
-        if (+w.split('-')[1] >= 7) qRaw += rw;
+        if (qtrOf(+w.split('-')[1]) === qtrOf(curMonth)) qRaw += rw;
         if (+w.split('-')[1] === curMonth) moRaw += rw;
       });
       var c = cw['House Account'], l = pv['House Account'] || {};
@@ -1460,7 +1464,8 @@ window.SPARK_LIVE = (function () {
         if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
         if (!pick.length) pick = rows;
         var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
-        return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g('q3', 'contest'), ai: g('annual', 'igniter'), q3i: g('q3', 'igniter'), ytd: cumOf[p.person] || 0, q3: q3Of[p.person] || 0 };
+        var qk = 'q' + qtrOf(+curIso.split('-')[1]);
+      return { n: p.person, bu: p.bu || p.entity, ac: g('annual', 'contest'), q3c: g(qk, 'contest'), ai: g('annual', 'igniter'), q3i: g(qk, 'igniter'), ytd: cumOf[p.person] || 0, q3: q3Of[p.person] || 0 };
       });
       D.annT = {};
       (H.unitTargets || []).forEach(function (t) { if (t.period === 'annual') D.annT[t.unit] = Number(t.amount); });
@@ -1482,7 +1487,8 @@ window.SPARK_LIVE = (function () {
     TOTAL = wkTotal(CUR); LASTW = wkTotal(PREV);
     try { var _lt = liveChargeTotal(curIso); if (_lt != null) TOTAL = _lt; var _lw = liveChargeTotal(prevIso(curIso)); if (_lw != null) LASTW = _lw; } catch (e) {}
     YTD = D.weeks.reduce(function (s, w) { return s + wkTotal(w); }, 0);
-    Q3WKS = D.weeks.filter(function (w) { var p = w.we.split('/'); return +p[0] >= 7; });
+    CQ = qtrOf(+(D.weeks.length ? D.weeks[D.weeks.length - 1].we.split('/')[0] : (new Date().getMonth() + 1))); QL = 'Q' + CQ; Q3T = QT_BY_QTR[CQ] || 3450000;
+    Q3WKS = D.weeks.filter(function (w) { return qtrOf(+w.we.split('/')[0]) === CQ; });
     Q3 = Q3WKS.reduce(function (s, w) { return s + wkTotal(w); }, 0);
     var we = document.getElementById('lvWe'); if (we) we.textContent = labelWe(curIso);
     nav(); rPulse(); rHier(); rArena(); rLB(); rBU(); rBUW(); rRaw(); rComm(); rHC(); rBDA(); rCL(); rDH(); rTG(); rTicker(); cpBuild();
@@ -1650,7 +1656,8 @@ window.SPARK_LIVE = (function () {
       if (!pick.length) pick = rows.filter(function (t) { return t.unit === p.entity; });
       if (!pick.length) pick = rows;
       var g = function (per, kind) { var f = pick.find(function (t) { return t.period === per && t.kind === kind; }); return f ? Number(f.amount) : 0; };
-      return { q3i: g('q3', 'igniter'), ai: g('annual', 'igniter'), q3c: g('q3', 'contest'), ac: g('annual', 'contest') };
+      var qk = 'q' + qtrOf(+curIso.split('-')[1]);
+      return { q3i: g(qk, 'igniter'), ai: g('annual', 'igniter'), q3c: g(qk, 'contest'), ac: g('annual', 'contest') };
     };
     var rows = (H.people || []).slice().sort(function (x, y) { return (y.active !== false) - (x.active !== false) || String(x.person).localeCompare(String(y.person)); });
     if (tmQ) { var q = tmQ.toLowerCase(); rows = rows.filter(function (p) { return (p.person + ' ' + (p.role || '') + ' ' + (p.entity || '') + ' ' + (p.bu || '')).toLowerCase().indexOf(q) !== -1; }); }
@@ -1725,7 +1732,8 @@ window.SPARK_LIVE = (function () {
     if (en !== null && st(en) !== st(p.entity)) { body.entity = st(en); any = true; }
     if (bu !== null && st(bu) !== st(p.bu)) { body.bu = st(bu); any = true; }
     var tg = {};
-    [['lvTmF_q3i', 'q3i', g('q3', 'igniter')], ['lvTmF_ai', 'ai', g('annual', 'igniter')], ['lvTmF_q3c', 'q3c', g('q3', 'contest')], ['lvTmF_ac', 'ac', g('annual', 'contest')]].forEach(function (d) {
+    var qk2 = 'q' + qtrOf(+curIso.split('-')[1]);
+    [['lvTmF_q3i', 'q3i', g(qk2, 'igniter')], ['lvTmF_ai', 'ai', g('annual', 'igniter')], ['lvTmF_q3c', 'q3c', g(qk2, 'contest')], ['lvTmF_ac', 'ac', g('annual', 'contest')]].forEach(function (d) {
       var v = gv(d[0]); if (v === null || st(v) === '') return;
       var n = Number(String(v).replace(/[$,]/g, ''));
       if (isFinite(n) && n > 0 && Math.abs(n - d[2]) > 0.4) { tg[d[1]] = n; any = true; }
@@ -3307,7 +3315,9 @@ window.SPARK_LIVE = (function () {
     if (!curIso) { el.innerHTML = ''; return; }
     var d1 = new Date(curIso + 'T12:00:00Z');
     var wkN = Math.round((d1 - new Date('2026-01-04T12:00:00Z')) / (7 * 864e5)) + 1;
-    var q3wk = (+curIso.split('-')[1] >= 7) ? Math.round((d1 - new Date('2026-07-05T12:00:00Z')) / (7 * 864e5)) + 1 : 0;
+    var QSTART = { 1: '2026-01-04', 2: '2026-04-05', 3: '2026-07-05', 4: '2026-10-04' };
+    var cq = qtrOf(+curIso.split('-')[1]);
+    var q3wk = Math.round((d1 - new Date(QSTART[cq] + 'T12:00:00Z')) / (7 * 864e5)) + 1;
     var rows = (D.mt || []).filter(function (t) { return t.q3i || t.ai || t.ac || t.q3c; }).map(function (t) {
       var qp = t.q3i ? (t.q3 || 0) / t.q3i * 100 : null;
       var q3cp = t.q3c ? (t.q3 || 0) / t.q3c * 100 : null;
@@ -3318,13 +3328,13 @@ window.SPARK_LIVE = (function () {
       // Need $/wk: to hit the CONTEST (Q3 contest during Q3, annual otherwise); 0 = already there
       var need = null;
       if (q3wk > 0 && q3wk < 13 && t.q3c) need = Math.max(0, (t.q3c - (t.q3 || 0)) / (13 - q3wk));
-      else if (q3wk === 0 && wkN < 52 && t.ac) need = Math.max(0, (t.ac - t.ytd) / (52 - wkN));
+      else if (q3wk >= 13 && t.ac && wkN < 52) need = Math.max(0, (t.ac - t.ytd) / (52 - wkN));
       return { t: t, n: t.n, q3: t.q3 || 0, q3i: t.q3i || 0, q3c: t.q3c || 0, ytd: t.ytd || 0, ai: t.ai || 0, ac: t.ac || 0, qp: qp, q3cp: q3cp, ap: ap, acp: acp, rr: rr, need: need == null ? -1 : need };
     });
     rows = sApply(rows, 'tg', 'qp');
     var pct = function (v) { return v == null ? '<span style="color:var(--mt)">--</span>' : '<span class="m" style="font-weight:700;color:' + pC(v) + '">' + Math.round(v) + '%</span>'; };
-    var h = '<div class="st">Targets &amp; Pacing &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">week ' + wkN + ' of 52' + (q3wk ? ' &middot; Q3 week ' + q3wk + ' of 13' : '') + '</span></div>';
-    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th>' + sTh('tg','n','Team Member',false,'rTG') + sTh('tg','q3','Q3 QTD Charge',true,'rTG') + sTh('tg','q3i','Q3 Igniter',true,'rTG') + sTh('tg','qp','Q3 Igniter %',true,'rTG') + sTh('tg','q3c','Q3 Contest',true,'rTG') + sTh('tg','q3cp','Q3 Contest %',true,'rTG') + sTh('tg','ytd','YTD Raw',true,'rTG') + sTh('tg','ai','Yearly Igniter',true,'rTG') + sTh('tg','ap','YTD Igniter %',true,'rTG') + sTh('tg','ac','Yearly Contest',true,'rTG') + sTh('tg','acp','Yearly Contest %',true,'rTG') + sTh('tg','rr','Run Rate (FY)',true,'rTG') + sTh('tg','need','Need $/wk',true,'rTG') + '</tr></thead><tbody>';
+    var h = '<div class="st">Targets &amp; Pacing &mdash; ' + labelWe(curIso) + '<span class="pl" style="margin-left:10px">week ' + wkN + ' of 52' + (q3wk ? ' &middot; ' + QL + ' week ' + q3wk + ' of 13' : '') + '</span></div>';
+    h += '<div class="cd"><div class="scr" style="max-height:64vh"><table class="tb"><thead><tr><th style="width:32px">#</th>' + sTh('tg','n','Team Member',false,'rTG') + sTh('tg','q3',QL+' QTD Charge',true,'rTG') + sTh('tg','q3i',QL+' Igniter',true,'rTG') + sTh('tg','qp',QL+' Igniter %',true,'rTG') + sTh('tg','q3c',QL+' Contest',true,'rTG') + sTh('tg','q3cp',QL+' Contest %',true,'rTG') + sTh('tg','ytd','YTD Raw',true,'rTG') + sTh('tg','ai','Yearly Igniter',true,'rTG') + sTh('tg','ap','YTD Igniter %',true,'rTG') + sTh('tg','ac','Yearly Contest',true,'rTG') + sTh('tg','acp','Yearly Contest %',true,'rTG') + sTh('tg','rr','Run Rate (FY)',true,'rTG') + sTh('tg','need','Need $/wk',true,'rTG') + '</tr></thead><tbody>';
     rows.forEach(function (r, i) {
       var t = r.t;
       h += '<tr onclick="openPerson(\'' + esc(t.n) + '\')" style="cursor:pointer"><td>' + bdg(i) + '</td>';
