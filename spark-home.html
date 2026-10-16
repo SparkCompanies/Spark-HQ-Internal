@@ -1881,6 +1881,24 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
 #v2Cel .v2c-tile.now .v2c-kind,#v2Cel .v2c-tile.now .v2c-meta{color:rgba(255,255,255,.65)}
 #v2Cel .v2c-tile.past{opacity:.5}
 #v2Cel .v2c-tile.past:hover{opacity:.8}
+/* hide News Center; Pulse becomes a clean shout-out wall */
+section.news{display:none !important}
+#pulse .sfbanner,#pulse .statgrid,#pulse .feeds{display:none !important}
+#pulse .composer{display:none}
+#pulse.v2s-open .composer{display:block}
+#pulse > h2{display:inline-block}
+#v2ShoutBtn{float:right;margin-top:-4px;display:inline-flex;align-items:center;gap:8px;background:#111;color:var(--gold);border:0;border-radius:10px;padding:11px 16px;font:600 14px Jost,sans-serif;cursor:pointer}
+#v2ShoutBtn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round}
+#v2Shouts{clear:both;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}
+#v2Shouts .v2s-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 2px rgba(20,18,10,.04),0 18px 36px -28px rgba(20,18,10,.3);transition:transform .15s}
+#v2Shouts .v2s-card:hover{transform:translateY(-2px)}
+#v2Shouts .v2s-top{display:flex;align-items:center;gap:12px}
+#v2Shouts .v2s-av{width:44px;height:44px;border-radius:50%;background:#111;color:var(--gold);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none}
+#v2Shouts .v2s-name{margin:0;font-size:16px;font-weight:600;color:#111}
+#v2Shouts .v2s-ago{margin:1px 0 0;font-size:12px;color:var(--muted)}
+#v2Shouts .v2s-val{align-self:flex-start;font-size:11px;font-weight:600;letter-spacing:.06em;color:#7a5d00;background:#fff6d6;border:1px solid #f3e2a6;padding:4px 10px;border-radius:99px}
+#v2Shouts .v2s-body{margin:0;font-size:14px;line-height:1.6;color:#2a2a2a;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+#v2Shouts .v2s-empty{grid-column:1/-1;background:#fff;border:1px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
 </style>
 <script id="homeV2js">
 (function(){
@@ -1978,6 +1996,32 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
  if(exq){ var exn=exq.cloneNode(true); exn.id='v2Expenses'; exn.setAttribute('role','link'); exn.setAttribute('tabindex','0'); exq.parentNode.replaceChild(exn,exq);
   var goX=function(){ window.open('https://login.xero.com/','_blank','noopener'); };
   exn.addEventListener('click',goX); exn.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goX(); } }); }
+
+ /* 1h) Shout-out wall: latest 6 real recognitions as cards; composer opens from a button; dummy test posts are skipped (display only) */
+ (function(){
+  var pulse=document.getElementById('pulse'); if(!pulse||typeof PULSE==='undefined') return;
+  var h2=pulse.querySelector(':scope > h2'); if(h2) h2.textContent='Shout-outs';
+  if(!document.getElementById('v2ShoutBtn')){
+   var btn=document.createElement('button'); btn.type='button'; btn.id='v2ShoutBtn'; btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Recognize someone';
+   btn.setAttribute('aria-expanded','false');
+   if(h2) h2.insertAdjacentElement('afterend',btn); else pulse.insertBefore(btn,pulse.firstChild);
+   btn.addEventListener('click',function(){ var o=pulse.classList.toggle('v2s-open'); btn.setAttribute('aria-expanded',o?'true':'false'); if(o){ var w=document.querySelector('#pulse .composer input, #pulse .composer textarea'); if(w) w.focus(); } });
+  }
+  var grid=document.getElementById('v2Shouts'); if(!grid){ grid=document.createElement('div'); grid.id='v2Shouts'; pulse.appendChild(grid); }
+  var esc=function(s){return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  function build(){
+   var real=(PULSE.posts||[]).filter(function(p){ var w=(pWho(p)||'').trim(), t=(pText(p)||'').trim(); return pKind(p)==='Recognize' && !(/^team member$/i.test(w) && t.length<40); }).slice(0,6);
+   var sig=real.map(function(p){return p.id;}).join(','); if(grid.getAttribute('data-sig')===sig && grid.children.length) return; grid.setAttribute('data-sig',sig);
+   grid.innerHTML = real.length ? real.map(function(p){
+    var w=pWho(p)||'Team member', ini=w.split(/\s+/).map(function(x){return x[0];}).join('').slice(0,2).toUpperCase();
+    return '<article class="v2s-card"><div class="v2s-top"><span class="v2s-av">'+esc(ini)+'</span><div><p class="v2s-name">'+esc(w)+'</p><p class="v2s-ago">'+esc(pAgo(p))+'</p></div></div>'+(pVal(p)?'<span class="v2s-val">'+esc(pVal(p))+'</span>':'')+(pText(p)?'<p class="v2s-body">'+esc(pText(p))+'</p>':'')+'</article>';
+   }).join('') : '<div class="v2s-empty">No shout-outs yet. Be the first to recognize someone.</div>';
+  }
+  build(); setTimeout(build,1500); setTimeout(build,5000);
+  var fr=document.getElementById('fRec'); if(fr&&window.MutationObserver) new MutationObserver(function(){ clearTimeout(window.__v2st); window.__v2st=setTimeout(build,150); }).observe(fr,{childList:true});
+  /* hero 'Post a shout-out' button opens the composer too */
+  var hs=document.getElementById('v2Shout'); if(hs){ hs.addEventListener('click',function(){ pulse.classList.add('v2s-open'); var b2=document.getElementById('v2ShoutBtn'); if(b2) b2.setAttribute('aria-expanded','true'); }); }
+ })();
 
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
