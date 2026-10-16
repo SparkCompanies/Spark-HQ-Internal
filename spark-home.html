@@ -1899,6 +1899,12 @@ section.news{display:none !important}
 #v2Shouts .v2s-val{align-self:flex-start;font-size:11px;font-weight:600;letter-spacing:.06em;color:#7a5d00;background:#fff6d6;border:1px solid #f3e2a6;padding:4px 10px;border-radius:99px}
 #v2Shouts .v2s-body{margin:0;font-size:14px;line-height:1.6;color:#2a2a2a;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 #v2Shouts .v2s-empty{grid-column:1/-1;background:#fff;border:1px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted)}
+/* Inc. 5000 badge */
+#v2Inc{display:flex;align-items:center;gap:14px;margin-top:26px;text-decoration:none}
+#v2Inc img{width:64px;height:64px;border-radius:50%;display:block;box-shadow:0 0 0 2px rgba(255,200,0,.35),0 12px 26px -10px rgba(0,0,0,.8)}
+#v2Inc b{display:block;color:#fff;font-size:14px;font-weight:600;letter-spacing:.02em}
+#v2Inc span{display:block;color:rgba(255,255,255,.6);font-size:12px;letter-spacing:.06em}
+#v2Footer .v2-inc-f{width:56px;height:56px;border-radius:50%;margin-top:14px;display:block}
 </style>
 <script id="homeV2js">
 (function(){
@@ -2021,6 +2027,18 @@ section.news{display:none !important}
   var fr=document.getElementById('fRec'); if(fr&&window.MutationObserver) new MutationObserver(function(){ clearTimeout(window.__v2st); window.__v2st=setTimeout(build,150); }).observe(fr,{childList:true});
   /* hero 'Post a shout-out' button opens the composer too */
   var hs=document.getElementById('v2Shout'); if(hs){ hs.addEventListener('click',function(){ pulse.classList.add('v2s-open'); var b2=document.getElementById('v2ShoutBtn'); if(b2) b2.setAttribute('aria-expanded','true'); }); }
+ })();
+
+ /* 1i) Inc. 5000 honoree badge in the hero (under the buttons) and in the footer */
+ (function(){
+  var src='https://www.sparkcompanies.com/wp-content/themes/spark-companies/assets/img/inc5000.png';
+  var hl=document.querySelector('.hero .bnr-left');
+  if(hl && !document.getElementById('v2Inc')){
+   var a=document.createElement('div'); a.id='v2Inc';
+   a.innerHTML='<img src="'+src+'" alt="Inc. 5000 honoree" width="64" height="64"><div><b>Inc. 5000 honoree</b><span>America\u2019s fastest-growing private companies</span></div>';
+   hl.appendChild(a);
+  }
+  setTimeout(function(){ var fc=document.querySelector('#v2Footer .fi > div'); if(fc && !fc.querySelector('.v2-inc-f')){ var im=document.createElement('img'); im.className='v2-inc-f'; im.src=src; im.alt='Inc. 5000 honoree'; fc.appendChild(im); } },0);
  })();
 
  /* 2) Spark Academy band */
