@@ -1775,5 +1775,145 @@ tickerFromPulse();
 .cb2rest span{font-size:10.5px;font-weight:600;color:#b3ada0;letter-spacing:.02em;}
 </style>
 <!-- HOME_CORP_v1: 3D tilt / border-beam script retired -->
+
+<!-- ===== HOME_V2_LAYER: website-style home (preview). Additive only: re-orders and restyles existing sections; all live data code above is untouched. ===== -->
+<style id="homeV2">
+/* hero: two columns again, value text left, Aaron's video right */
+.hero .banner{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) !important;gap:48px !important;align-items:center}
+.v2-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.v2-btn{display:inline-flex;align-items:center;gap:9px;font:600 14px 'Jost',sans-serif;padding:12px 20px;border-radius:10px;cursor:pointer;text-decoration:none;border:0}
+.v2-btn.gold{background:var(--gold);color:#111;box-shadow:0 10px 26px -10px rgba(255,200,0,.65)}
+.v2-btn.ghost{background:rgba(255,255,255,.05);color:#fff;border:1px solid rgba(255,255,255,.22)}
+.v2-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.v2-video{position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.12);box-shadow:0 30px 70px -30px rgba(0,0,0,.9);background:#0d0e1a}
+.v2-video{max-width:560px;justify-self:end;width:100%}
+.v2-video video{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#0d0e1a}
+.v2-video .cap{position:absolute;left:0;right:0;top:0;padding:14px 16px 26px;background:linear-gradient(180deg,rgba(0,0,0,.72),transparent);pointer-events:none;color:#fff}
+.v2-video .cap b{display:block;font-size:10px;letter-spacing:.2em;color:var(--gold);font-weight:600}
+.v2-video .cap span{font-size:17px;font-weight:600}
+.v2-video.playing .cap{display:none}
+.v2-tt{justify-self:end;width:100%;max-width:640px;border-radius:16px;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 70px -30px rgba(0,0,0,.9)}
+.v2-tt-head{display:flex;justify-content:space-between;align-items:center;background:#111;color:var(--gold);padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:.18em}
+.v2-tt-head a{color:#fff;letter-spacing:.04em;text-decoration:none;font-weight:500}
+.v2-tt .tiktok-embed{margin:0 !important;border:0 !important}
+.v2-courses .v2-video{grid-column:1/-1;max-width:none;justify-self:stretch}
+/* section rhythm */
+.main>.qa,.main>#celebWrap,.main>.news,.main>#pulse{margin-top:36px !important}
+.main>#celebWrap{margin-top:40px !important}
+/* pulse: no more empty columns; long feeds scroll */
+#pulse .feeds{grid-template-columns:repeat(auto-fit,minmax(320px,1fr)) !important}
+#pulse .feed.v2-empty{display:none !important}
+#pulse #fRec{max-height:620px;overflow:auto;padding-right:4px}
+/* new bands */
+.v2-wrap{max-width:1400px;margin:44px auto 0;padding:0 30px;width:100%;box-sizing:border-box}
+.v2-eyebrow{margin:0 0 6px;font-size:12px;letter-spacing:.22em;color:#7a5d00;font-weight:600}
+.v2-h2{margin:0 0 18px;font-size:30px;font-weight:700;letter-spacing:-.01em;color:#111}
+.v2-academy{position:relative;overflow:hidden;border-radius:16px;color:#fff;padding:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:32px;align-items:center;
+ background:radial-gradient(700px 320px at 92% 0%,rgba(74,163,255,.16),transparent 60%),radial-gradient(600px 300px at 0% 100%,rgba(255,200,0,.12),transparent 60%),linear-gradient(160deg,#141628,#0d0e1a)}
+.v2-academy p.lead{margin:0 0 20px;color:rgba(255,255,255,.75);font-size:16px;max-width:440px}
+.v2-courses{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.v2-course{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:16px;cursor:pointer;text-align:left;color:#fff;font:inherit}
+.v2-course:hover{border-color:var(--gold)}
+.v2-course b{display:block;font-size:15px;font-weight:600;margin-bottom:3px}
+.v2-course span{font-size:12px;color:rgba(255,255,255,.55)}
+.v2-values{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.v2-values li{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 2px rgba(20,18,10,.05);transition:transform .15s,border-color .15s}
+.v2-values li:hover{transform:translateY(-2px);border-color:var(--gold)}
+.v2-values .n{width:30px;height:30px;border-radius:8px;background:var(--gold);color:#111;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.v2-values .v{font-weight:600;font-size:16px;line-height:1.3;color:#111}
+.v2-values .s{font-size:14px;color:var(--muted)}
+.v2-mydaylabel{max-width:1400px;margin:52px auto 0;padding:0 30px;width:100%;box-sizing:border-box}
+footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;width:100%}
+#v2Footer .fi{max-width:1400px;margin:0 auto;padding:44px 30px 22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:30px}
+#v2Footer h4{margin:0 0 10px;font-size:12px;letter-spacing:.2em;color:var(--gold);font-weight:600}
+#v2Footer button{display:block;background:none;border:0;padding:4px 0;color:rgba(255,255,255,.7);font:14px 'Jost',sans-serif;cursor:pointer;text-align:left}
+#v2Footer button:hover{color:#fff}
+#v2Footer .fb{max-width:1400px;margin:0 auto;padding:16px 30px 24px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:rgba(255,255,255,.5)}
+@media (max-width:900px){.hero .banner{grid-template-columns:1fr !important}.v2-courses{grid-template-columns:1fr}}
+</style>
+<script id="homeV2js">
+(function(){
+ var main=document.querySelector('.main'); if(!main) return;
+ function nav(t){ if(typeof hqNav==='function') hqNav(t); }
+ function svg(d){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+d+'"/></svg>';}
+ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+ /* 1) hero: CTAs under the value + Aaron's welcome video on the right */
+ var left=document.querySelector('.hero .bnr-left'), banner=document.querySelector('.hero .banner');
+ if(left && !document.getElementById('v2Cta')){
+  var cta=document.createElement('div'); cta.className='v2-cta'; cta.id='v2Cta';
+  cta.innerHTML='<button type="button" class="v2-btn gold" id="v2Shout">'+svg('M3 11l18-7-7 18-2.5-7.5z')+'Post a shout-out</button>'+
+   '<button type="button" class="v2-btn ghost" id="v2Train">Continue training '+svg('M5 12h14M13 6l6 6-6 6')+'</button>';
+  left.appendChild(cta);
+  document.getElementById('v2Shout').onclick=function(){var p=document.getElementById('pulse'); if(p){p.scrollIntoView({behavior:'smooth'}); setTimeout(function(){var m=document.getElementById('msgIn'); if(m) m.focus();},500);}};
+  document.getElementById('v2Train').onclick=function(){nav('training');};
+ }
+ if(banner && !document.getElementById('v2Tt')){
+  /* right side of hero: our TikTok (@spark.companies), official creator embed */
+  var tt=document.createElement('div'); tt.id='v2Tt'; tt.className='v2-tt';
+  tt.innerHTML='<div class="v2-tt-head"><span>ON OUR TIKTOK</span><a href="https://www.tiktok.com/@spark.companies" target="_blank" rel="noopener">@spark.companies \u2197</a></div>'+
+   '<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@spark.companies" data-unique-id="spark.companies" data-embed-type="creator" style="max-width:780px;min-width:288px;margin:0"><section><a target="_blank" href="https://www.tiktok.com/@spark.companies">@spark.companies</a></section></blockquote>';
+  banner.appendChild(tt);
+  var ts=document.createElement('script'); ts.src='https://www.tiktok.com/embed.js'; ts.async=true; document.body.appendChild(ts);
+ }
+
+ /* 2) Spark Academy band */
+ if(!document.getElementById('v2Academy')){
+  var a=document.createElement('section'); a.id='v2Academy'; a.className='v2-wrap'; a.setAttribute('aria-labelledby','v2AcH');
+  var courses=[['The Spark Standard','12 topics · ~66 min'],['Career Paths','7 topics · ~43 min'],['Sales Bootcamp','13 topics · ~95 min'],['HR / Payroll','7 topics · ~32 min']];
+  a.innerHTML='<div class="v2-academy"><div><p class="v2-eyebrow" style="color:var(--gold)">SPARK ACADEMY</p>'+
+   '<h2 id="v2AcH" class="v2-h2" style="color:#fff">Keep growing</h2>'+
+   '<p class="lead">55 topics across The Spark Standard, Career Paths, Sales, Recruiting, HR and more. Your progress saves on its own.</p>'+
+   '<button type="button" class="v2-btn gold" data-nav="training">Pick up where you left off '+svg('M5 12h14M13 6l6 6-6 6')+'</button></div>'+
+   '<div class="v2-courses">'+courses.map(function(c){return '<button type="button" class="v2-course" data-nav="training"><b>'+c[0]+'</b><span>'+c[1]+'</span></button>';}).join('')+'</div></div>';
+  main.appendChild(a);
+ }
+
+ /* 3) Core values band (from the same CORE_VALUES the hero rotates) */
+ if(!document.getElementById('v2Values') && typeof CORE_VALUES!=='undefined'){
+  var s=document.createElement('section'); s.id='v2Values'; s.className='v2-wrap'; s.setAttribute('aria-labelledby','v2ValH');
+  s.innerHTML='<p class="v2-eyebrow">THE SPARK STANDARD</p><h2 id="v2ValH" class="v2-h2">Our eight core values</h2><ol class="v2-values">'+
+   CORE_VALUES.map(function(c,i){return '<li><span class="n">'+(i+1)+'</span><span class="v">'+esc(c.v)+'</span><span class="s">'+esc(c.s)+'</span></li>';}).join('')+'</ol>';
+  main.appendChild(s);
+ }
+
+ /* 4) "My day" label above calendar + dashboard (they stay on Home, at the bottom) */
+ if(!document.getElementById('v2MyDay')){
+  var md=document.createElement('div'); md.id='v2MyDay'; md.className='v2-mydaylabel';
+  md.innerHTML='<p class="v2-eyebrow">MY DAY</p><h2 class="v2-h2" style="margin-bottom:0">Your calendar &amp; dashboard</h2>';
+  main.appendChild(md);
+ }
+
+ /* 5) footer */
+ if(!document.getElementById('v2Footer')){
+  var f=document.createElement('footer'); f.id='v2Footer';
+  var cols=[['WORK',[['TimeKeep','tools'],['Spark Boards','boards'],['Software & Tools','tools'],['Ask Jarvis','jarvis']]],
+            ['PEOPLE',[['Directory','people'],['Career Paths','training'],['Spark Standard','standard'],['Training','training']]],
+            ['RESOURCES',[['Documents','docs'],['Benefits','docs'],['Finance','finance']]]];
+  f.innerHTML='<div class="fi"><div><div style="font-weight:700;letter-spacing:.24em;color:#fff;font-size:17px;margin-bottom:10px">SPARK<span style="color:var(--gold)">®</span></div>'+
+   '<div style="font-size:14px;line-height:1.6">901 Wilshire Dr., Suite 585<br>Troy, MI 48084</div></div>'+
+   cols.map(function(c){return '<div><h4>'+c[0]+'</h4>'+c[1].map(function(l){return '<button type="button" data-nav="'+l[1]+'">'+esc(l[0])+'</button>';}).join('')+'</div>';}).join('')+
+   '</div><div class="fb"><span>Spark HQ · for Spark team members only</span><span>Spark Companies</span></div>';
+  main.appendChild(f);
+ }
+ /* order: hero, quick actions, celebrations, news, pulse, academy, values, my day (calendar + dashboard), footer */
+ ['.hero','.qa','.kpis','#celebWrap','.news','#pulse','#v2Academy','#v2Values','#v2MyDay','#calBand','#dashPage','#v2Footer'].forEach(function(sel){
+  var el=main.querySelector(':scope > '+sel); if(el) main.appendChild(el);
+ });
+ main.addEventListener('click',function(e){var b=e.target.closest('[data-nav]'); if(b){e.preventDefault(); nav(b.getAttribute('data-nav'));}});
+
+ /* 6) Pulse: hide feed columns that have nothing in them */
+ function tidyFeeds(){
+  document.querySelectorAll('#pulse .feed').forEach(function(fd){
+   var list=fd.children[1]; if(!list) return;
+   var n=list.children.length, txt=(list.innerText||'').trim();
+   var empty = n===0 || (n===1 && (txt.length<60 || /^no |nothing|empty|be the first/i.test(txt)));
+   fd.classList.toggle('v2-empty', empty);
+  });
+ }
+ tidyFeeds(); setTimeout(tidyFeeds,1500); setTimeout(tidyFeeds,5000);
+ var fr=document.querySelector('#pulse .feeds'); if(fr && window.MutationObserver){ new MutationObserver(tidyFeeds).observe(fr,{childList:true,subtree:true}); }
+})();
+</script>
 </body>
 </html>
