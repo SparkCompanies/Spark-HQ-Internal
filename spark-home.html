@@ -1909,8 +1909,8 @@ section.news{display:none !important}
 .hero #v2Bolt{position:absolute !important;z-index:0 !important;left:50%;top:50%;height:135%;width:auto;transform:translate(-50%,-50%) rotate(-6deg);pointer-events:none;overflow:visible}
 /* bolt glow: same flicker as the SPARK watermark on sparkcompanies.com (sparkArcA / sparkArcB) */
 .hero .v2BoltGlow{position:absolute !important;z-index:0 !important;left:50%;top:50%;height:135%;width:auto;transform:translate(-50%,-50%) rotate(-6deg);pointer-events:none;overflow:visible;opacity:0;filter:drop-shadow(0 0 20px rgba(255,213,19,.9)) drop-shadow(0 0 70px rgba(255,213,19,.4))}
-.hero .v2BoltGlow.a{-webkit-mask-image:radial-gradient(40% 30% at 70% 30%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);mask-image:radial-gradient(40% 30% at 70% 30%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);animation:v2ArcA 17s linear infinite}
-.hero .v2BoltGlow.b{-webkit-mask-image:radial-gradient(38% 28% at 35% 78%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);mask-image:radial-gradient(38% 28% at 35% 78%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);animation:v2ArcB 23s linear 8s infinite}
+.hero .v2BoltGlow.a{-webkit-mask-image:radial-gradient(40% 30% at 70% 30%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);mask-image:radial-gradient(40% 30% at 70% 30%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);animation:v2ArcA 7s linear infinite}
+.hero .v2BoltGlow.b{-webkit-mask-image:radial-gradient(38% 28% at 35% 78%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);mask-image:radial-gradient(38% 28% at 35% 78%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);animation:v2ArcB 9s linear 3s infinite}
 @keyframes v2ArcA{0%,8.81%{opacity:0}8.82%,9.47%{opacity:1}9.48%,10.28%{opacity:0}10.29%,10.58%{opacity:.55}10.59%,12.93%{opacity:0}12.94%,14.47%{opacity:1}16%,100%{opacity:0}}
 @keyframes v2ArcB{0%,44.99%{opacity:0}45%,45.47%{opacity:.9}45.48%,46.08%{opacity:0}46.09%,46.3%{opacity:.5}46.31%,48.04%{opacity:0}48.05%,49.17%{opacity:1}50.3%,100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.hero .v2BoltGlow{animation:none !important;opacity:0 !important}}
