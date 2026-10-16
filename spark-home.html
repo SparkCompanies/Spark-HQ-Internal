@@ -2041,6 +2041,18 @@ section.news{display:none !important}
   setTimeout(function(){ var fc=document.querySelector('#v2Footer .fi > div'); if(fc && !fc.querySelector('.v2-inc-f')){ var im=document.createElement('img'); im.className='v2-inc-f'; im.src=src; im.alt='Inc. 5000 honoree'; fc.appendChild(im); } },0);
  })();
 
+ /* 1j) Jarvis hidden for now: drop 'Ask Jarvis' from the hero menu row and footer. Salesforce tile in Quick Actions (opens in the HQ Salesforce tab) */
+ [].slice.call(document.querySelectorAll('nav.quicknav a')).forEach(function(a){ if(/ask jarvis/i.test(a.textContent)) a.style.display='none'; });
+ setTimeout(function(){ [].slice.call(document.querySelectorAll('#v2Footer button')).forEach(function(b){ if(/jarvis/i.test(b.textContent)) b.style.display='none'; }); },0);
+ var qg2=document.querySelector('.qagrid');
+ if(qg2 && !document.getElementById('v2Salesforce')){
+  var sf=document.createElement('div'); sf.className='qab'; sf.id='v2Salesforce'; sf.setAttribute('role','link'); sf.setAttribute('tabindex','0');
+  sf.innerHTML='<svg viewBox="0 0 24 24"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 01.5 6.96V15.5A3 3 0 0114.5 18z"></path></svg>Salesforce';
+  var pbn=document.getElementById('v2PluginBoard'); qg2.insertBefore(sf, pbn ? pbn.nextSibling : qg2.firstChild);
+  var goSF=function(){ if(typeof hqNav==='function') hqNav('salesforce'); };
+  sf.addEventListener('click',goSF); sf.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goSF(); } });
+ }
+
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
   var a=document.createElement('section'); a.id='v2Academy'; a.className='v2-wrap'; a.setAttribute('aria-labelledby','v2AcH');
