@@ -1792,6 +1792,11 @@ tickerFromPulse();
 .v2-video .cap b{display:block;font-size:10px;letter-spacing:.2em;color:var(--gold);font-weight:600}
 .v2-video .cap span{font-size:17px;font-weight:600}
 .v2-video.playing .cap{display:none}
+.v2-tt{justify-self:end;width:100%;max-width:640px;border-radius:16px;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 70px -30px rgba(0,0,0,.9)}
+.v2-tt-head{display:flex;justify-content:space-between;align-items:center;background:#111;color:var(--gold);padding:10px 16px;font-size:11px;font-weight:600;letter-spacing:.18em}
+.v2-tt-head a{color:#fff;letter-spacing:.04em;text-decoration:none;font-weight:500}
+.v2-tt .tiktok-embed{margin:0 !important;border:0 !important}
+.v2-courses .v2-video{grid-column:1/-1;max-width:none;justify-self:stretch}
 /* section rhythm */
 .main>.qa,.main>#celebWrap,.main>.news,.main>#pulse{margin-top:36px !important}
 .main>#celebWrap{margin-top:40px !important}
@@ -1843,13 +1848,13 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
   document.getElementById('v2Shout').onclick=function(){var p=document.getElementById('pulse'); if(p){p.scrollIntoView({behavior:'smooth'}); setTimeout(function(){var m=document.getElementById('msgIn'); if(m) m.focus();},500);}};
   document.getElementById('v2Train').onclick=function(){nav('training');};
  }
- if(banner && !document.getElementById('v2Video')){
-  var v=document.createElement('figure'); v.id='v2Video'; v.className='v2-video'; v.style.margin='0';
-  v.innerHTML='<video src="aaron-welcome.mp4" controls preload="metadata" playsinline></video><figcaption class="cap"><b>A WELCOME FROM</b><span>Aaron Opalewski, CEO</span></figcaption>';
-  banner.appendChild(v);
-  var vid=v.querySelector('video');
-  vid.addEventListener('play',function(){v.classList.add('playing');});
-  vid.addEventListener('pause',function(){v.classList.remove('playing');});
+ if(banner && !document.getElementById('v2Tt')){
+  /* right side of hero: our TikTok (@spark.companies), official creator embed */
+  var tt=document.createElement('div'); tt.id='v2Tt'; tt.className='v2-tt';
+  tt.innerHTML='<div class="v2-tt-head"><span>ON OUR TIKTOK</span><a href="https://www.tiktok.com/@spark.companies" target="_blank" rel="noopener">@spark.companies \u2197</a></div>'+
+   '<blockquote class="tiktok-embed" cite="https://www.tiktok.com/@spark.companies" data-unique-id="spark.companies" data-embed-type="creator" style="max-width:780px;min-width:288px;margin:0"><section><a target="_blank" href="https://www.tiktok.com/@spark.companies">@spark.companies</a></section></blockquote>';
+  banner.appendChild(tt);
+  var ts=document.createElement('script'); ts.src='https://www.tiktok.com/embed.js'; ts.async=true; document.body.appendChild(ts);
  }
 
  /* 2) Spark Academy band */
@@ -1861,6 +1866,11 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
    '<p class="lead">55 topics across The Spark Standard, Career Paths, Sales, Recruiting, HR and more. Your progress saves on its own.</p>'+
    '<button type="button" class="v2-btn gold" data-nav="training">Pick up where you left off '+svg('M5 12h14M13 6l6 6-6 6')+'</button></div>'+
    '<div class="v2-courses">'+courses.map(function(c){return '<button type="button" class="v2-course" data-nav="training"><b>'+c[0]+'</b><span>'+c[1]+'</span></button>';}).join('')+'</div></div>';
+  var cg=a.querySelector('.v2-courses');
+  if(cg){ var fv=document.createElement('figure'); fv.className='v2-video'; fv.style.margin='0';
+   fv.innerHTML='<video src="aaron-welcome.mp4" controls preload="metadata" playsinline></video><figcaption class="cap"><b>START HERE \u00b7 A WELCOME FROM</b><span>Aaron Opalewski, CEO</span></figcaption>';
+   cg.insertBefore(fv, cg.firstChild);
+   var fvid=fv.querySelector('video'); fvid.addEventListener('play',function(){fv.classList.add('playing');}); fvid.addEventListener('pause',function(){fv.classList.remove('playing');}); }
   main.appendChild(a);
  }
 
