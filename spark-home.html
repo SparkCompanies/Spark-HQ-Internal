@@ -1914,6 +1914,29 @@ section.news{display:none !important}
 @keyframes v2ArcA{0%,8.81%{opacity:0}8.82%,9.47%{opacity:1}9.48%,10.28%{opacity:0}10.29%,10.58%{opacity:.55}10.59%,12.93%{opacity:0}12.94%,14.47%{opacity:1}16%,100%{opacity:0}}
 @keyframes v2ArcB{0%,44.99%{opacity:0}45%,45.47%{opacity:.9}45.48%,46.08%{opacity:0}46.09%,46.3%{opacity:.5}46.31%,48.04%{opacity:0}48.05%,49.17%{opacity:1}50.3%,100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.hero .v2BoltGlow{animation:none !important;opacity:0 !important}}
+/* ===== SPARK SYSTEM: one outline + gold-flicker language across the page ===== */
+/* 1) footer SPARK watermark (same as sparkcompanies.com) */
+footer#v2Footer{position:relative;overflow:hidden}
+footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
+#v2Footer .v2-wm{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(170px,24vw,380px);line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.07);white-space:nowrap;pointer-events:none;user-select:none;z-index:0}
+#v2Footer .v2-wm::before,#v2Footer .v2-wm::after{content:'SPARK';position:absolute;inset:0;color:transparent;-webkit-text-stroke:3px #FFD513;opacity:0;filter:drop-shadow(0 0 20px rgba(255,213,19,.9)) drop-shadow(0 0 70px rgba(255,213,19,.4))}
+#v2Footer .v2-wm::before{-webkit-mask-image:radial-gradient(21% 44% at 79% 56%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);mask-image:radial-gradient(21% 44% at 79% 56%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);animation:v2ArcA 8s linear 1s infinite}
+#v2Footer .v2-wm::after{-webkit-mask-image:radial-gradient(17% 40% at 13% 72%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);mask-image:radial-gradient(17% 40% at 13% 72%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);animation:v2ArcB 10s linear 4s infinite}
+/* 2) tiny outlined bolt in section labels; flickers gold when it scrolls into view */
+.v2-eb-bolt{display:inline-block;width:11px;height:16px;margin-right:9px;vertical-align:-3px;overflow:visible}
+.v2-eb-bolt path{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round;opacity:.75}
+.v2-eb-bolt.lit path{animation:v2EbLit 1.4s linear forwards}
+@keyframes v2EbLit{0%{stroke:currentColor;filter:none}10%,16%{stroke:#FFD513;opacity:1;filter:drop-shadow(0 0 5px rgba(255,213,19,.9))}17%,26%{stroke:currentColor;opacity:.5;filter:none}27%,34%{stroke:#FFD513;opacity:1;filter:drop-shadow(0 0 5px rgba(255,213,19,.9))}35%,48%{stroke:currentColor;opacity:.6;filter:none}49%,100%{stroke:#FFD513;opacity:1;filter:drop-shadow(0 0 4px rgba(255,213,19,.55))}}
+.bnr-eyebrow.v2-has-bolt::before{display:none !important}
+/* 3) cards: border flickers gold on hover, then settles */
+.qab,.v2c-tile,.v2s-card,.v2-values li,.v2-course{position:relative}
+.qab:hover,.v2c-tile:hover,.v2s-card:hover,.v2-values li:hover,.v2-course:hover{animation:v2Edge .9s linear forwards}
+@keyframes v2Edge{0%{box-shadow:0 0 0 1px rgba(255,213,19,0)}8%,14%{box-shadow:0 0 0 1px #FFD513,0 0 18px rgba(255,213,19,.55)}15%,24%{box-shadow:0 0 0 1px rgba(255,213,19,.15)}25%,32%{box-shadow:0 0 0 1px #FFD513,0 0 22px rgba(255,213,19,.6)}33%,44%{box-shadow:0 0 0 1px rgba(255,213,19,.2)}45%,100%{box-shadow:0 0 0 1px rgba(255,213,19,.85),0 14px 30px -18px rgba(255,200,0,.55)}}
+/* 4) today's celebration tile: occasional gold edge flicker */
+#v2Cel .v2c-tile.now{animation:v2TodayArc 7s linear infinite}
+#v2Cel .v2c-tile.now:hover{animation:v2Edge .9s linear forwards}
+@keyframes v2TodayArc{0%,62%{box-shadow:0 0 0 1px rgba(255,213,19,0),0 18px 36px -24px rgba(13,14,26,.6)}63%,65%{box-shadow:0 0 0 1.5px #FFD513,0 0 26px rgba(255,213,19,.55)}66%,69%{box-shadow:0 0 0 1px rgba(255,213,19,.15)}70%,74%{box-shadow:0 0 0 1.5px #FFD513,0 0 30px rgba(255,213,19,.6)}76%,100%{box-shadow:0 0 0 1px rgba(255,213,19,0),0 18px 36px -24px rgba(13,14,26,.6)}}
+@media (prefers-reduced-motion:reduce){#v2Footer .v2-wm::before,#v2Footer .v2-wm::after{animation:none !important;opacity:0 !important}.v2-eb-bolt.lit path,#v2Cel .v2c-tile.now,.qab:hover,.v2c-tile:hover,.v2s-card:hover,.v2-values li:hover,.v2-course:hover{animation:none !important}}
 </style>
 <script id="homeV2js">
 (function(){
@@ -2072,6 +2095,16 @@ section.news{display:none !important}
   ['a','b'].forEach(function(k){ var w=document.createElement('div');
    w.innerHTML='<svg class="v2BoltGlow '+k+'" viewBox="0 0 100 160" aria-hidden="true"><path d="M62 2 L10 92 H44 L32 158 L90 58 H54 Z" fill="none" stroke="#FFD513" stroke-width="3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
    base.insertAdjacentElement('afterend', w.firstChild); }); })();
+
+ /* 1m) SPARK system: footer watermark, bolts in section labels, hover + today glow (CSS) */
+ (function(){
+  if(!document.getElementById('v2Bebas')){ var lk=document.createElement('link'); lk.id='v2Bebas'; lk.rel='stylesheet'; lk.href='https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap'; document.head.appendChild(lk); }
+  setTimeout(function(){ var ft=document.getElementById('v2Footer'); if(ft && !ft.querySelector('.v2-wm')){ var wm=document.createElement('div'); wm.className='v2-wm'; wm.setAttribute('aria-hidden','true'); wm.textContent='SPARK'; ft.insertBefore(wm, ft.firstChild); } },0);
+  var BOLT='<svg class="v2-eb-bolt" viewBox="0 0 11 16" aria-hidden="true"><path d="M7 .8 L1 9.2 H5 L3.8 15.2 L10 6.6 H6 Z"/></svg>';
+  var io = window.IntersectionObserver ? new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ var b=e.target.querySelector('.v2-eb-bolt'); if(b){ b.classList.remove('lit'); void b.getBoundingClientRect(); b.classList.add('lit'); } io.unobserve(e.target); } }); },{threshold:.6}) : null;
+  function addBolts(){ [].slice.call(document.querySelectorAll('.v2-eyebrow, #pulse > .eyebrow, .bnr-eyebrow')).forEach(function(el){ if(el.querySelector('.v2-eb-bolt')) return; el.insertAdjacentHTML('afterbegin', BOLT); if(el.classList.contains('bnr-eyebrow')) el.classList.add('v2-has-bolt'); if(io) io.observe(el); else el.querySelector('.v2-eb-bolt').classList.add('lit'); }); }
+  setTimeout(addBolts,0); setTimeout(addBolts,1600); setTimeout(addBolts,5200);
+ })();
 
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
