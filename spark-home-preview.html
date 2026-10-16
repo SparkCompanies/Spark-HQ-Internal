@@ -1866,11 +1866,6 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
    '<p class="lead">55 topics across The Spark Standard, Career Paths, Sales, Recruiting, HR and more. Your progress saves on its own.</p>'+
    '<button type="button" class="v2-btn gold" data-nav="training">Pick up where you left off '+svg('M5 12h14M13 6l6 6-6 6')+'</button></div>'+
    '<div class="v2-courses">'+courses.map(function(c){return '<button type="button" class="v2-course" data-nav="training"><b>'+c[0]+'</b><span>'+c[1]+'</span></button>';}).join('')+'</div></div>';
-  var cg=a.querySelector('.v2-courses');
-  if(cg){ var fv=document.createElement('figure'); fv.className='v2-video'; fv.style.margin='0';
-   fv.innerHTML='<video src="aaron-welcome.mp4" controls preload="metadata" playsinline></video><figcaption class="cap"><b>START HERE \u00b7 A WELCOME FROM</b><span>Aaron Opalewski, CEO</span></figcaption>';
-   cg.insertBefore(fv, cg.firstChild);
-   var fvid=fv.querySelector('video'); fvid.addEventListener('play',function(){fv.classList.add('playing');}); fvid.addEventListener('pause',function(){fv.classList.remove('playing');}); }
   main.appendChild(a);
  }
 
