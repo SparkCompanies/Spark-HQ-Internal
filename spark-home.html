@@ -1830,6 +1830,35 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
 #v2Footer button:hover{color:#fff}
 #v2Footer .fb{max-width:1400px;margin:0 auto;padding:16px 30px 24px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:rgba(255,255,255,.5)}
 @media (max-width:900px){.hero .banner{grid-template-columns:1fr !important}.v2-courses{grid-template-columns:1fr}}
+/* celebrations: refined look (no balloons/bolts, neutral card, dark Today strip) */
+#celebWrap .cb-blns,#celebWrap .cb-bolt,#celebWrap .cb-bln{display:none !important}
+#celebWrap .cb-card{background:#fff !important;border:1px solid var(--line) !important;border-radius:16px !important;box-shadow:0 1px 2px rgba(20,18,10,.04),0 24px 48px -32px rgba(20,18,10,.28) !important;overflow:hidden;position:relative}
+#celebWrap .cb-card::before{content:'';position:absolute;left:0;right:0;top:0;height:2px !important;background:linear-gradient(90deg,transparent,var(--gold),transparent) !important}
+#celebWrap .cb-head{background:#fff !important;padding:22px 28px !important;border-bottom:1px solid #f0eee7 !important}
+#celebWrap .cb-badge{display:none !important}
+#celebWrap .cb-eyebrow{color:#8a7a52 !important;font-size:11px !important;letter-spacing:.24em !important;font-weight:600 !important}
+#celebWrap .cb-title{font-size:26px !important;font-weight:600 !important;letter-spacing:-.01em !important;color:#111 !important}
+#celebWrap .cb-month{color:#111 !important;font-weight:300 !important;font-size:26px !important;letter-spacing:-.01em}
+#celebWrap .cb-tally{color:var(--muted) !important;letter-spacing:.18em !important}
+#celebWrap .cb-today{background:linear-gradient(110deg,#141628,#0d0e1a 60%,#1a1730) !important;color:#fff !important;padding:18px 28px !important;border:0 !important;position:relative}
+#celebWrap .cb-today::after{content:'TODAY';position:absolute;right:28px;top:50%;transform:translateY(-50%);font:700 10px Jost,sans-serif;letter-spacing:.24em;color:#111;background:var(--gold);padding:5px 10px;border-radius:99px}
+#celebWrap .cb-today *{color:#fff !important;background:transparent !important}
+#celebWrap .cb-today b{font-size:18px !important;font-weight:600 !important}
+#celebWrap .cb-today .s{color:rgba(255,255,255,.65) !important}
+#celebWrap .cb-today .cb-ico{stroke:var(--gold) !important;color:var(--gold) !important}
+#celebWrap .cb-cols{background:#fff !important}
+#celebWrap .cb-col{padding:22px 28px !important;border-color:#f0eee7 !important}
+#celebWrap .cb-ct{font-size:11px !important;letter-spacing:.22em !important;color:var(--muted) !important;font-weight:600 !important;margin-bottom:6px !important}
+#celebWrap .cb-row{padding:12px 0 !important;border-top:1px solid #f3f1ec !important;gap:14px !important}
+#celebWrap .cb-row:first-of-type{border-top:0 !important}
+#celebWrap .cb-row .d{background:transparent !important;color:#8a7a52 !important;font-size:11px !important;font-weight:600 !important;letter-spacing:.12em !important;text-transform:uppercase;min-width:46px;padding:0 !important;border:0 !important;box-shadow:none !important}
+#celebWrap .cb-row.now .d{color:#111 !important}
+#celebWrap .cb-av{width:40px !important;height:40px !important;background:#f4f2ec !important;color:#3b3527 !important;border:1px solid #e9e5da !important;font-size:13px !important;font-weight:600 !important;box-shadow:none !important}
+#celebWrap .cb-row.now .cb-av{background:#111 !important;color:var(--gold) !important;border-color:#111 !important}
+#celebWrap .cb-row .n{font-size:15px !important;font-weight:600 !important;color:#111 !important}
+#celebWrap .cb-row .m,#celebWrap .cb-row .m *{color:var(--muted) !important;font-weight:400 !important}
+#celebWrap .cb-row .cb-ico{opacity:.35 !important;stroke:#3b3527 !important;color:#3b3527 !important}
+#celebWrap .cb-row.was{opacity:.45 !important}
 </style>
 <script id="homeV2js">
 (function(){
