@@ -1905,6 +1905,8 @@ section.news{display:none !important}
 #v2Inc b{display:block;color:#fff;font-size:14px;font-weight:600;letter-spacing:.02em}
 #v2Inc span{display:block;color:rgba(255,255,255,.6);font-size:12px;letter-spacing:.06em}
 #v2Footer .v2-inc-f{width:56px;height:56px;border-radius:50%;margin-top:14px;display:block}
+/* outlined lightning bolt watermark behind the hero (same treatment as the SPARK watermark on sparkcompanies.com) */
+.hero #v2Bolt{position:absolute !important;z-index:0 !important;left:50%;top:50%;height:135%;width:auto;transform:translate(-50%,-50%) rotate(-6deg);pointer-events:none;overflow:visible}
 </style>
 <script id="homeV2js">
 (function(){
@@ -2052,6 +2054,11 @@ section.news{display:none !important}
   var goSF=function(){ if(typeof hqNav==='function') hqNav('salesforce'); };
   sf.addEventListener('click',goSF); sf.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goSF(); } });
  }
+
+ /* 1k) hero watermark bolt */
+ (function(){ var h=document.querySelector('.hero'); if(!h||document.getElementById('v2Bolt')) return; var w=document.createElement('div');
+  w.innerHTML='<svg id="v2Bolt" viewBox="0 0 100 160" aria-hidden="true"><path d="M62 2 L10 92 H44 L32 158 L90 58 H54 Z" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>';
+  h.insertBefore(w.firstChild,h.firstChild); })();
 
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
