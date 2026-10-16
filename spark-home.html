@@ -2106,6 +2106,12 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   setTimeout(addBolts,0); setTimeout(addBolts,1600); setTimeout(addBolts,5200);
  })();
 
+ /* 1n) Jarvis hidden: also hide the 'Ask Jarvis' dashboard card and its add-widget option */
+ (function(){ var dp=document.getElementById('dashPage'); if(!dp) return;
+  function hideJ(){ [].slice.call(dp.querySelectorAll('.wg, .gal')).forEach(function(e){ var h=e.querySelector('.head')||e; if(/ask jarvis|jarvis/i.test(h.textContent)) e.style.display='none'; }); }
+  hideJ(); setTimeout(hideJ,1500); setTimeout(hideJ,5000);
+  if(window.MutationObserver) new MutationObserver(function(){ clearTimeout(window.__v2hj); window.__v2hj=setTimeout(hideJ,100); }).observe(dp,{childList:true,subtree:true}); })();
+
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
   var a=document.createElement('section'); a.id='v2Academy'; a.className='v2-wrap'; a.setAttribute('aria-labelledby','v2AcH');
