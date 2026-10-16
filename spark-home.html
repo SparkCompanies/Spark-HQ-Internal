@@ -1972,6 +1972,13 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
   var goGS=function(){ window.open('https://www.greenshadesonline.com/SSO/admin/default.aspx?url=https%3a%2f%2fwww.greenshadesonline.com%2fGOESAdmin%2fSpaV2Wide.aspx&qs=%3fapp%3dcore%26pageTitle%3dHome#/core/admin','_blank','noopener'); };
   tnew.addEventListener('click',goGS); tnew.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goGS(); } }); }
 
+ /* 1g) Quick Actions: drop Payroll + Benefits; Expenses opens Xero */
+ [].slice.call(document.querySelectorAll('.qab')).forEach(function(b){ var t=b.textContent.trim(); if(t==='Payroll'||t==='Benefits'){ b.parentNode.removeChild(b); } });
+ var exq=[].slice.call(document.querySelectorAll('.qab')).filter(function(b){return b.textContent.trim()==='Expenses';})[0];
+ if(exq){ var exn=exq.cloneNode(true); exn.id='v2Expenses'; exn.setAttribute('role','link'); exn.setAttribute('tabindex','0'); exq.parentNode.replaceChild(exn,exq);
+  var goX=function(){ window.open('https://login.xero.com/','_blank','noopener'); };
+  exn.addEventListener('click',goX); exn.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goX(); } }); }
+
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
   var a=document.createElement('section'); a.id='v2Academy'; a.className='v2-wrap'; a.setAttribute('aria-labelledby','v2AcH');
