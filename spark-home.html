@@ -1865,6 +1865,17 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
   var goCharge=function(){ window.open('spark-charge.html','_blank','noopener'); };
   ch.addEventListener('click',goCharge); ch.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goCharge(); } }); }
 
+ /* 1c) Quick Actions: PluginBoard tile (opens in a new tab), placed before More Apps */
+ var qgrid=document.querySelector('.qagrid');
+ if(qgrid && !document.getElementById('v2PluginBoard')){
+  var more=[].slice.call(qgrid.querySelectorAll('.qab')).filter(function(b){return b.textContent.trim()==='More Apps';})[0];
+  var pb=document.createElement('div'); pb.className='qab'; pb.id='v2PluginBoard'; pb.setAttribute('role','link'); pb.setAttribute('tabindex','0');
+  pb.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><path d="M17.5 14v7M14 17.5h7"></path></svg>PluginBoard';
+  qgrid.insertBefore(pb, more||null);
+  var goPB=function(){ window.open('https://spark-li-fulfillment.fkundtz.workers.dev/','_blank','noopener'); };
+  pb.addEventListener('click',goPB); pb.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goPB(); } });
+ }
+
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
   var a=document.createElement('section'); a.id='v2Academy'; a.className='v2-wrap'; a.setAttribute('aria-labelledby','v2AcH');
