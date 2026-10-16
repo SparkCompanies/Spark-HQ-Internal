@@ -1859,6 +1859,28 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
 #celebWrap .cb-row .m,#celebWrap .cb-row .m *{color:var(--muted) !important;font-weight:400 !important}
 #celebWrap .cb-row .cb-ico{opacity:.35 !important;stroke:#3b3527 !important;color:#3b3527 !important}
 #celebWrap .cb-row.was{opacity:.45 !important}
+/* celebrations as person tiles */
+#celebWrap{padding:0 30px !important;box-sizing:border-box}
+#celebWrap.v2c-on .cb-card{display:none !important}
+#v2Cel .v2c-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 0 18px;flex-wrap:wrap}
+#v2Cel .v2c-count{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600}
+#v2Cel .v2c-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+#v2Cel .v2c-tile{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 2px rgba(20,18,10,.04),0 18px 36px -28px rgba(20,18,10,.3);transition:transform .15s,box-shadow .15s}
+#v2Cel .v2c-tile:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(20,18,10,.05),0 24px 44px -26px rgba(20,18,10,.35)}
+#v2Cel .v2c-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#v2Cel .v2c-av{width:52px;height:52px;border-radius:50%;background:#f4f2ec;border:1px solid #e9e5da;color:#3b3527;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center}
+#v2Cel .v2c-when{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8a7a52}
+#v2Cel .v2c-kind{margin:0;display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+#v2Cel .v2c-kind svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#v2Cel .v2c-name{margin:2px 0 0;font-size:18px;font-weight:600;color:#111;letter-spacing:-.005em}
+#v2Cel .v2c-meta{margin:0;font-size:13px;color:var(--muted)}
+#v2Cel .v2c-tile.now{background:linear-gradient(150deg,#1a1c33,#0d0e1a 70%);border-color:#0d0e1a;color:#fff}
+#v2Cel .v2c-tile.now .v2c-av{background:var(--gold);border-color:var(--gold);color:#111}
+#v2Cel .v2c-tile.now .v2c-when{background:var(--gold);color:#111;padding:4px 9px;border-radius:99px}
+#v2Cel .v2c-tile.now .v2c-name{color:#fff}
+#v2Cel .v2c-tile.now .v2c-kind,#v2Cel .v2c-tile.now .v2c-meta{color:rgba(255,255,255,.65)}
+#v2Cel .v2c-tile.past{opacity:.5}
+#v2Cel .v2c-tile.past:hover{opacity:.8}
 </style>
 <script id="homeV2js">
 (function(){
@@ -1916,6 +1938,39 @@ footer#v2Footer{background:#0d0e1a;color:rgba(255,255,255,.7);margin-top:56px;wi
   var hl=document.querySelector('.hero .bnr-left'); if(hl){ hl.insertBefore(gf, hl.firstChild); } else { qa.insertBefore(gf, qa.firstChild); }
   gf.addEventListener('submit',function(e){ e.preventDefault(); var q=gf.querySelector('input').value.trim(); if(!q) return; window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank','noopener'); });
  }
+
+ /* 1e) Celebrations as person tiles (today first, then upcoming, past faded); reads the live rows */
+ (function(){
+  var wrap=document.getElementById('celebWrap'); if(!wrap) return;
+  function build(){
+   var rows=[].slice.call(wrap.querySelectorAll('.cb-row')); if(!rows.length) return;
+   var sig=rows.map(function(r){return r.textContent;}).join('|'); if(wrap.getAttribute('data-v2sig')===sig) return; wrap.setAttribute('data-v2sig',sig);
+   var items=rows.map(function(r){
+    var t=function(s){var e=r.querySelector(s);return e?e.textContent.trim():'';};
+    return {kind:r.classList.contains('b')?'b':'a', when:t('.d'), ini:t('.cb-av'), name:t('.n'), meta:t('.m'), now:r.classList.contains('now')||/today/i.test(t('.d')), past:r.classList.contains('was')};
+   });
+   items.sort(function(x,y){ var rk=function(i){return i.now?0:(i.past?2:1);}; return rk(x)-rk(y) || (parseInt(x.when)||0)-(parseInt(y.when)||0); });
+   var ico={b:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M5 21v-8h14v8M12 13V9M12 6.5c.8-.9.8-1.9 0-2.5-.8.6-.8 1.6 0 2.5z"/></svg>', a:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5"/></svg>'};
+   var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+   var month=((wrap.querySelector('.cb-month')||{}).textContent||'').trim();
+   var g=document.getElementById('v2Cel'); if(!g){ g=document.createElement('div'); g.id='v2Cel'; wrap.appendChild(g); }
+   g.innerHTML='<div class="v2c-head"><div><p class="v2-eyebrow">CELEBRATING THIS MONTH</p><h2 class="v2-h2" style="margin:0">'+esc(month||'This month')+' at Spark</h2></div><span class="v2c-count">'+items.length+' to celebrate</span></div>'+
+    '<div class="v2c-grid">'+items.map(function(i){
+     var label=i.kind==='b'?'Birthday':'Work anniversary';
+     var when=i.now?'Today':i.when.replace(/^(\d+)(st|nd|rd|th)$/i,function(m,n){return month.slice(0,3)+' '+n;});
+     return '<article class="v2c-tile'+(i.now?' now':'')+(i.past?' past':'')+'"><div class="v2c-top"><span class="v2c-av">'+esc(i.ini)+'</span><span class="v2c-when">'+esc(when)+'</span></div>'+
+      '<p class="v2c-kind">'+ico[i.kind]+label+'</p><h3 class="v2c-name">'+esc(i.name)+'</h3><p class="v2c-meta">'+esc(i.meta)+'</p></article>';
+    }).join('')+'</div>';
+   wrap.classList.add('v2c-on');
+  }
+  build(); setTimeout(build,1500); setTimeout(build,5000);
+  if(window.MutationObserver) new MutationObserver(function(){ clearTimeout(window.__v2ct); window.__v2ct=setTimeout(build,200); }).observe(wrap,{childList:true,subtree:true,characterData:true});
+ })();
+ /* 1f) Time Off tile opens Greenshades */
+ var toff=[].slice.call(document.querySelectorAll('.qab')).filter(function(b){return b.textContent.trim()==='Time Off';})[0];
+ if(toff){ var tnew=toff.cloneNode(true); tnew.id='v2TimeOff'; tnew.setAttribute('role','link'); tnew.setAttribute('tabindex','0'); toff.parentNode.replaceChild(tnew,toff);
+  var goGS=function(){ window.open('https://www.greenshadesonline.com/SSO/admin/default.aspx?url=https%3a%2f%2fwww.greenshadesonline.com%2fGOESAdmin%2fSpaV2Wide.aspx&qs=%3fapp%3dcore%26pageTitle%3dHome#/core/admin','_blank','noopener'); };
+  tnew.addEventListener('click',goGS); tnew.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goGS(); } }); }
 
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
