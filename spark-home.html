@@ -1940,14 +1940,14 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 @keyframes v2TodayArc{0%,62%{box-shadow:0 0 0 1px rgba(255,213,19,0),0 18px 36px -24px rgba(13,14,26,.6)}63%,65%{box-shadow:0 0 0 1.5px #FFD513,0 0 26px rgba(255,213,19,.55)}66%,69%{box-shadow:0 0 0 1px rgba(255,213,19,.15)}70%,74%{box-shadow:0 0 0 1.5px #FFD513,0 0 30px rgba(255,213,19,.6)}76%,100%{box-shadow:0 0 0 1px rgba(255,213,19,0),0 18px 36px -24px rgba(13,14,26,.6)}}
 @media (prefers-reduced-motion:reduce){#v2Footer .v2-wm::before,#v2Footer .v2-wm::after{animation:none !important;opacity:0 !important}.v2-eb-bolt.lit path,#v2Cel .v2c-tile.now,.qab:hover,.v2c-tile:hover,.v2s-card:hover,.v2-values li:hover,.v2-course:hover{animation:none !important}}
 /* 1p) Social icons: top-right of hero, under the date badge */
-.v2-topcol{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.v2-topcol{display:flex;flex-direction:column;align-items:flex-end;gap:12px;padding-right:30px}/* lines up with the TikTok card edge below */
 .v2-social{display:flex;align-items:center;gap:8px}
 .v2-social .lbl{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-right:4px}
 .v2-social a{position:relative;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);transition:transform .18s,background .18s,border-color .18s,box-shadow .18s}
 .v2-social a i{font-size:15px;line-height:1;color:rgba(255,255,255,.85);transition:color .18s}
 .v2-social a:hover,.v2-social a:focus-visible{transform:translateY(-2px);background:rgba(255,200,0,.14);border-color:#FFD513;box-shadow:0 0 18px -2px rgba(255,213,19,.55);outline:none}
 .v2-social a:hover i,.v2-social a:focus-visible i{color:#FFD513}
-@media (max-width:760px){.v2-topcol{align-items:flex-start}.v2-social .lbl{display:none}}
+@media (max-width:760px){.v2-topcol{align-items:flex-start;padding-right:0}.v2-social .lbl{display:none}}
 /* 1q) Footer: portfolio logo strip + copyright */
 #v2Footer .v2-port{position:relative;max-width:1400px;margin:0 auto;padding:22px 30px 26px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:26px;flex-wrap:wrap}
 #v2Footer .v2-port .lbl{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-right:6px;white-space:nowrap}
