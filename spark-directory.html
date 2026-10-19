@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spark Directory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#FFC800;--gold2:#FFD513;--ink:#111111;--night:#0d0e1a;--cream:#faf9f6;--line:#e7e4dc;--muted:#6b6a64;--card:#ffffff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--cream);color:var(--ink);font-family:Jost,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+a{color:inherit}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;color:#fff;padding:34px 40px 26px;
+  background:radial-gradient(900px 520px at 12% 0%,rgba(255,200,0,.16),transparent 60%),linear-gradient(160deg,#141628,#0d0e1a 46%,#0a0b14)}
+.hero .wm{position:absolute;right:-10px;bottom:-34px;font-family:'Bebas Neue',sans-serif;font-size:220px;line-height:1;letter-spacing:4px;color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.07);pointer-events:none;user-select:none}
+.hero-top{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.eyebrow svg{width:11px;height:16px;fill:none;stroke:var(--gold2);stroke-width:2;filter:drop-shadow(0 0 4px rgba(255,213,19,.6))}
+h1{margin:8px 0 4px;font-size:40px;font-weight:600;letter-spacing:-.01em}
+.sub{color:rgba(255,255,255,.62);font-size:14px}
+.sub b{color:#fff;font-weight:600}
+.toggle{display:flex;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:4px}
+.toggle button{display:flex;align-items:center;gap:7px;border:0;background:transparent;color:rgba(255,255,255,.7);font-size:13px;font-weight:500;padding:8px 16px;border-radius:999px;cursor:pointer}
+.toggle button.on{background:var(--gold);color:var(--ink)}
+.toggle button:not(.on):hover{color:#fff}
+.searchrow{position:relative;margin-top:22px;max-width:720px}
+.searchrow svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:rgba(255,255,255,.5)}
+#q{width:100%;height:52px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;font:inherit;font-size:16px;padding:0 60px 0 48px;outline:none;transition:border-color .2s,background .2s}
+#q::placeholder{color:rgba(255,255,255,.45)}
+#q:focus{border-color:var(--gold);background:rgba(255,255,255,.09)}
+.kbd{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:11px;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:2px 7px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:rgba(255,255,255,.8);font-size:13px;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .15s}
+.chip:hover{border-color:rgba(255,255,255,.3);color:#fff}
+.chip .dot{width:8px;height:8px;border-radius:50%}
+.chip .n{font-size:11px;color:rgba(255,255,255,.45)}
+.chip.on{background:#fff;color:var(--ink);border-color:#fff}
+.chip.on .n{color:var(--muted)}
+
+/* ---------- grid ---------- */
+main{padding:26px 40px 60px}
+.bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;color:var(--muted);font-size:13px}
+.bar select{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 14px;cursor:pointer;display:flex;flex-direction:column;gap:12px;transition:transform .18s,box-shadow .18s,border-color .18s;outline:none}
+.card:hover,.card:focus-visible{transform:translateY(-2px);box-shadow:0 14px 34px -18px rgba(13,14,26,.35);border-color:#d9d4c6}
+.card:focus-visible{border-color:var(--gold)}
+.card::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:0 3px 3px 0;background:var(--c);opacity:.85}
+.who{display:flex;gap:12px;align-items:center;min-width:0}
+.av{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 55%,transparent)}
+.nm{font-weight:600;font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt{color:var(--muted);font-size:13px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #f0ede5;padding-top:10px}
+.tag{font-size:11.5px;font-weight:500;color:var(--ink);display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag .dot{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
+.acts{display:flex;gap:4px;flex:none}
+.ib{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:all .15s;text-decoration:none}
+.ib:hover{background:#f6f3ea;color:var(--ink);border-color:var(--line)}
+.ib svg{width:15px;height:15px}
+.letter{grid-column:1/-1;font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:#c9c3b3;margin:10px 0 -4px;display:flex;align-items:center;gap:12px}
+.letter::after{content:"";flex:1;height:1px;background:var(--line)}
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+.sk{height:132px;border-radius:16px;background:linear-gradient(90deg,#f1eee6 25%,#f8f6f0 50%,#f1eee6 75%);background-size:200% 100%;animation:sh 1.3s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* ---------- panel ---------- */
+.scrim{position:fixed;inset:0;background:rgba(13,14,26,.38);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:#fff;z-index:21;transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;box-shadow:-20px 0 50px -20px rgba(0,0,0,.35)}
+.panel.on{transform:none}
+.ph{position:relative;padding:28px 26px 22px;color:#fff;background:radial-gradient(500px 260px at 0% 0%,rgba(255,200,0,.18),transparent 60%),linear-gradient(160deg,#141628,#0d0e1a)}
+.ph .x{position:absolute;right:14px;top:14px;color:rgba(255,255,255,.7)}
+.ph .x:hover{background:rgba(255,255,255,.1);color:#fff;border-color:transparent}
+.ph .av{width:68px;height:68px;font-size:22px;background:color-mix(in srgb,var(--c) 20%,#141628);box-shadow:inset 0 0 0 2px var(--c),0 0 24px -4px var(--c)}
+.ph .nm{font-size:22px;white-space:normal;margin-top:14px}
+.ph .tt{color:rgba(255,255,255,.7);min-height:0;-webkit-line-clamp:3;margin-top:3px;font-size:14px}
+.ph .tag{color:#fff;margin-top:10px}
+.pacts{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff}
+.btn:hover{background:rgba(255,255,255,.12)}
+.btn.gold{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.btn.gold:hover{background:var(--gold2)}
+.pb{padding:22px 26px 30px;overflow:auto;flex:1}
+.sec{margin-bottom:22px}
+.sl{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:0 -10px;border-radius:10px;cursor:pointer}
+.row:hover{background:#f7f5ef}
+.row .av{width:34px;height:34px;font-size:12px}
+.row .nm{font-size:14px}
+.row .tt{min-height:0;-webkit-line-clamp:1;font-size:12.5px}
+.mail{font-size:14px;word-break:break-all;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+.mail:hover{border-color:var(--gold)}
+.grps{display:flex;flex-wrap:wrap;gap:6px}
+.grps span{font-size:12px;background:#f6f3ea;border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.muted{color:var(--muted);font-size:13px}
+.orgbtn{width:100%;justify-content:center;margin-top:4px;background:var(--night);border-color:var(--night)}
+.orgbtn:hover{background:#1c1e33}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--night);color:#fff;font-size:13px;padding:10px 16px;border-radius:10px;opacity:0;transition:all .2s;z-index:40;display:flex;align-items:center;gap:8px}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast svg{color:var(--gold)}
+
+.preview{background:var(--gold);color:var(--ink);font-size:12.5px;font-weight:500;text-align:center;padding:7px 12px}
+
+@media (max-width:700px){
+  .hero{padding:24px 16px 20px} main{padding:20px 16px 50px}
+  h1{font-size:30px} .hero .wm{font-size:130px}
+  .grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="preview" id="previewBar" hidden>Preview: new Directory. The live Org Chart is unchanged until this goes live.</div>
+
+<section class="hero">
+  <div class="wm">PEOPLE</div>
+  <div class="hero-top">
+    <div>
+      <div class="eyebrow"><svg viewBox="0 0 100 160"><path d="M62 2 L10 92 H44 L32 158 L90 58 H54 Z"/></svg>Spark Companies</div>
+      <h1>Directory</h1>
+      <div class="sub" id="sub">Loading people from Microsoft 365…</div>
+    </div>
+    <div class="toggle" role="tablist">
+      <button class="on" id="tGrid" role="tab" aria-selected="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>People</button>
+      <button id="tOrg" role="tab" aria-selected="false"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>Org chart</button>
+    </div>
+  </div>
+  <div class="searchrow">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Search by name, title, team or email" autocomplete="off" aria-label="Search the directory">
+    <span class="kbd">/</span>
+  </div>
+  <div class="chips" id="chips"></div>
+</section>
+
+<main>
+  <div class="bar"><span id="count"></span>
+    <label>Sort&nbsp;<select id="sort"><option value="first">First name</option><option value="last">Last name</option><option value="team">Team</option></select></label>
+  </div>
+  <div class="grid" id="grid">
+    <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
+  </div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" aria-hidden="true"></aside>
+<div class="toast" id="toast"><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span></span></div>
+
+<script>
+(function(){
+  var WORKER='https://spark-hq-worker.sparkcompanies.workers.dev';
+  var SB_KEY='spark_hq_sb_auth';
+  var inShell = window.parent && window.parent!==window;
+  var DEPT_COLORS={'companies':'#E0A800','business development':'#2F7FD8','enterprise':'#22A06B','finance':'#D6457C','hr':'#C77700','ignite':'#0EA5B7','jjp':'#E8622C','lit':'#9B5DE5','operations':'#5B6CF0','packaging':'#7A8B2E','flex':'#2A9D8F','bolt':'#B5651D'};
+  var FALLBACK=['#2F7FD8','#22A06B','#9B5DE5','#0EA5B7','#E8622C','#D6457C','#5B6CF0','#7A8B2E'];
+  var assigned={};
+  function colorFor(d){var k=(d||'Other').toLowerCase().trim(); if(DEPT_COLORS[k])return DEPT_COLORS[k]; if(!assigned[k])assigned[k]=FALLBACK[Object.keys(assigned).length%FALLBACK.length]; return assigned[k];}
+
+  var PEOPLE=[],BY_ID={},REPORTS={},state={q:'',dept:'',sort:'first'};
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function initials(n){var p=String(n||'').trim().split(/\s+/);return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase()}
+  function lastName(n){var p=String(n||'').trim().split(/\s+/);return p[p.length-1]||''}
+  var IC={
+    mail:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+    chat:'<svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></svg>',
+    copy:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>',
+    x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    org:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>'
+  };
+  function teams(e){return 'https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(e)}
+
+  function getToken(){
+    try{ if(inShell && window.parent.SPARK_SB && window.parent.SPARK_SB.getToken) return window.parent.SPARK_SB.getToken(); }catch(e){}
+    try{ var raw=localStorage.getItem(SB_KEY); if(raw){var o=JSON.parse(raw); var t=o.access_token||(o.currentSession&&o.currentSession.access_token)||(o.session&&o.session.access_token); if(t) return Promise.resolve(t);} }catch(e){}
+    return Promise.resolve(null);
+  }
+
+  function load(){
+    getToken().then(function(tok){
+      if(!tok) throw new Error('signin');
+      return fetch(WORKER+'/directory',{headers:{Authorization:'Bearer '+tok}}).then(function(r){
+        return r.json().then(function(j){ if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); return j; });
+      });
+    }).then(function(d){
+      PEOPLE=(d.people||[]).map(function(p){p.c=colorFor(p.department);p.hay=(p.name+' '+p.title+' '+p.department+' '+p.email).toLowerCase();return p;});
+      PEOPLE.forEach(function(p){BY_ID[p.id]=p;});
+      PEOPLE.forEach(function(p){ if(p.managerId&&BY_ID[p.managerId]) (REPORTS[p.managerId]=REPORTS[p.managerId]||[]).push(p); });
+      var teamsN=Object.keys(PEOPLE.reduce(function(a,p){if(p.department)a[p.department]=1;return a;},{})).length;
+      $('sub').innerHTML='<b>'+PEOPLE.length+'</b> people across <b>'+teamsN+'</b> teams · synced from Microsoft 365';
+      chips(); render();
+      var m=location.hash.match(/p=([^&]+)/); if(m&&BY_ID[decodeURIComponent(m[1])]) open(decodeURIComponent(m[1]));
+    }).catch(function(e){
+      var msg=String(e.message||e);
+      $('sub').textContent='Could not load the directory';
+      var body = msg==='signin' ? '<b>Sign in to HQ first</b>Open Spark HQ, sign in with Microsoft, then come back.'
+        : /not an admin/i.test(msg) ? '<b>Directory access is limited right now</b>Your account can’t load the directory yet. Ask Ops to turn it on for everyone.'
+        : '<b>Something went wrong</b>'+esc(msg);
+      $('grid').innerHTML='<div class="empty">'+body+'</div>';
+    });
+  }
+
+  function chips(){
+    var counts={}; PEOPLE.forEach(function(p){var d=p.department||'Other';counts[d]=(counts[d]||0)+1;});
+    var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]||a.localeCompare(b)});
+    var h='<button class="chip'+(state.dept?'':' on')+'" data-d="">All <span class="n">'+PEOPLE.length+'</span></button>';
+    keys.forEach(function(k){h+='<button class="chip'+(state.dept===k?' on':'')+'" data-d="'+esc(k)+'"><span class="dot" style="background:'+colorFor(k==='Other'?'':k)+'"></span>'+esc(k)+' <span class="n">'+counts[k]+'</span></button>';});
+    $('chips').innerHTML=h;
+  }
+
+  function filtered(){
+    var terms=state.q.toLowerCase().split(/\s+/).filter(Boolean);
+    var list=PEOPLE.filter(function(p){
+      if(state.dept && (p.department||'Other')!==state.dept) return false;
+      return terms.every(function(t){return p.hay.indexOf(t)>=0});
+    });
+    list.sort(function(a,b){
+      if(state.sort==='last') return lastName(a.name).localeCompare(lastName(b.name))||a.name.localeCompare(b.name);
+      if(state.sort==='team') return (a.department||'~').localeCompare(b.department||'~')||a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
+    });
+    return list;
+  }
+
+  function card(p){
+    return '<div class="card" tabindex="0" data-id="'+esc(p.id)+'" style="--c:'+p.c+'">'+
+      '<div class="who"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
+      '<div class="tt">'+esc(p.title||'—')+'</div>'+
+      '<div class="foot"><span class="tag"><span class="dot"></span>'+esc(p.department||'Spark')+'</span>'+
+      '<span class="acts">'+
+        '<a class="ib" href="mailto:'+esc(p.email)+'" title="Email '+esc(p.name)+'" aria-label="Email" data-stop>'+IC.mail+'</a>'+
+        '<a class="ib" href="'+teams(p.email)+'" target="_blank" rel="noopener" title="Chat in Teams" aria-label="Teams chat" data-stop>'+IC.chat+'</a>'+
+        '<button class="ib" data-copy="'+esc(p.email)+'" title="Copy email" aria-label="Copy email" data-stop>'+IC.copy+'</button>'+
+      '</span></div></div>';
+  }
+
+  function render(){
+    var list=filtered();
+    $('count').textContent= list.length===PEOPLE.length ? 'Everyone' : list.length+' of '+PEOPLE.length+' people';
+    if(!list.length){ $('grid').innerHTML='<div class="empty"><b>No one matches that</b>Try a first name, a title like “recruiter”, or clear the team filter.</div>'; return; }
+    var h='',last=null, letters = !state.q && state.sort!=='team';
+    list.forEach(function(p){
+      if(letters){var L=(state.sort==='last'?lastName(p.name):p.name).charAt(0).toUpperCase(); if(L!==last){h+='<div class="letter">'+esc(L)+'</div>';last=L;}}
+      else if(state.sort==='team' && !state.q){var T=p.department||'Other'; if(T!==last){h+='<div class="letter">'+esc(T)+'</div>';last=T;}}
+      h+=card(p);
+    });
+    $('grid').innerHTML=h;
+  }
+
+  function personRow(p){
+    return '<div class="row" data-id="'+esc(p.id)+'" style="--c:'+p.c+'"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div></div></div>';
+  }
+
+  function open(id){
+    var p=BY_ID[id]; if(!p) return;
+    var mgr=p.managerId&&BY_ID[p.managerId], reps=(REPORTS[p.id]||[]).slice().sort(function(a,b){return a.name.localeCompare(b.name)});
+    $('panel').style.setProperty('--c',p.c);
+    $('panel').innerHTML=
+      '<div class="ph"><button class="ib x" id="px" aria-label="Close">'+IC.x+'</button>'+
+        '<div class="av">'+esc(initials(p.name))+'</div><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div>'+
+        '<div class="tag"><span class="dot"></span>'+esc(p.department||'Spark')+'</div>'+
+        '<div class="pacts"><a class="btn gold" href="mailto:'+esc(p.email)+'">'+IC.mail+'Email</a><a class="btn" href="'+teams(p.email)+'" target="_blank" rel="noopener">'+IC.chat+'Teams</a><button class="btn" data-copy="'+esc(p.email)+'">'+IC.copy+'Copy</button></div></div>'+
+      '<div class="pb">'+
+        '<div class="sec"><div class="sl">Email</div><a class="mail" href="mailto:'+esc(p.email)+'">'+esc(p.email)+'</a></div>'+
+        '<div class="sec"><div class="sl">Reports to</div>'+(mgr?personRow(mgr):'<div class="muted">No manager listed in Microsoft 365</div>')+'</div>'+
+        (reps.length?'<div class="sec"><div class="sl">Direct reports · '+reps.length+'</div>'+reps.map(personRow).join('')+'</div>':'')+
+        '<div class="sec"><div class="sl">Teams &amp; distribution lists</div><div class="grps" id="pg"><span class="muted" style="background:none;border:0;padding:0">Loading…</span></div></div>'+
+        '<button class="btn orgbtn" id="porg">'+IC.org+'Show in org chart</button>'+
+      '</div>';
+    $('panel').classList.add('on'); $('panel').setAttribute('aria-hidden','false'); $('scrim').classList.add('on');
+    try{history.replaceState(null,'','#p='+encodeURIComponent(id));}catch(e){}
+    $('px').focus();
+    if(p._groups) groups(p._groups); else getToken().then(function(tok){
+      return fetch(WORKER+'/groups?id='+encodeURIComponent(p.id),{headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json()});
+    }).then(function(j){p._groups=(j&&j.groups)||[]; if($('pg')&&BY_ID[id]===p) groups(p._groups);}).catch(function(){ if($('pg')) $('pg').innerHTML='<span class="muted" style="background:none;border:0;padding:0">Couldn’t load groups</span>'; });
+    $('porg').onclick=function(){ toOrg(p); };
+  }
+  function groups(g){ $('pg').innerHTML = g.length ? g.map(function(x){return '<span>'+esc(x.name)+'</span>'}).join('') : '<span class="muted" style="background:none;border:0;padding:0">None</span>'; }
+  function close(){ $('panel').classList.remove('on'); $('panel').setAttribute('aria-hidden','true'); $('scrim').classList.remove('on'); try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} }
+
+  function toOrg(p){
+    if(inShell){ try{ window.parent.postMessage({type:'spark-dir-org',id:p?p.id:null,name:p?p.name:''},'*'); return; }catch(e){} }
+    location.href='/?tab=people';
+  }
+
+  var tt; function toast(t){ var el=$('toast'); el.querySelector('span').textContent=t; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){el.classList.remove('on')},1600); }
+  function copy(t){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('Email copied')},function(){ var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Email copied')}catch(e){}a.remove(); }); }
+
+  document.addEventListener('click',function(e){
+    var c=e.target.closest('[data-copy]'); if(c){ e.preventDefault(); e.stopPropagation(); copy(c.getAttribute('data-copy')); return; }
+    if(e.target.closest('[data-stop]')) return;
+    var ch=e.target.closest('.chip'); if(ch){ state.dept=ch.getAttribute('data-d'); chips(); render(); return; }
+    var r=e.target.closest('.card,.row'); if(r){ open(r.getAttribute('data-id')); return; }
+    if(e.target.closest('#px')||e.target===$('scrim')) close();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ if($('panel').classList.contains('on')) close(); else if(document.activeElement===$('q')){ $('q').value=''; state.q=''; render(); } }
+    if(e.key==='/' && document.activeElement!==$('q')){ e.preventDefault(); $('q').focus(); }
+    if(e.key==='Enter' && e.target.classList && e.target.classList.contains('card')) open(e.target.getAttribute('data-id'));
+  });
+  var deb; $('q').addEventListener('input',function(){ clearTimeout(deb); deb=setTimeout(function(){ state.q=$('q').value.trim(); render(); },90); });
+  $('sort').addEventListener('change',function(){ state.sort=this.value; render(); });
+  $('tOrg').addEventListener('click',function(){ toOrg(null); });
+
+  if(!inShell) $('previewBar').hidden=false;
+  load();
+})();
+</script>
+</body>
+</html>
