@@ -209,17 +209,17 @@ main{padding:26px 40px 60px}
   }
 
   function chips(){
-    var counts={}; PEOPLE.forEach(function(p){var d=p.department||'Other';counts[d]=(counts[d]||0)+1;});
+    var counts={}; PEOPLE.forEach(function(p){var d=p.department||'No team listed';counts[d]=(counts[d]||0)+1;});
     var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]||a.localeCompare(b)});
     var h='<button class="chip'+(state.dept?'':' on')+'" data-d="">All <span class="n">'+PEOPLE.length+'</span></button>';
-    keys.forEach(function(k){h+='<button class="chip'+(state.dept===k?' on':'')+'" data-d="'+esc(k)+'"><span class="dot" style="background:'+colorFor(k==='Other'?'':k)+'"></span>'+esc(k)+' <span class="n">'+counts[k]+'</span></button>';});
+    keys.forEach(function(k){h+='<button class="chip'+(state.dept===k?' on':'')+'" data-d="'+esc(k)+'"><span class="dot" style="background:'+colorFor(k==='No team listed'?'':k)+'"></span>'+esc(k)+' <span class="n">'+counts[k]+'</span></button>';});
     $('chips').innerHTML=h;
   }
 
   function filtered(){
     var terms=state.q.toLowerCase().split(/\s+/).filter(Boolean);
     var list=PEOPLE.filter(function(p){
-      if(state.dept && (p.department||'Other')!==state.dept) return false;
+      if(state.dept && (p.department||'No team listed')!==state.dept) return false;
       return terms.every(function(t){return p.hay.indexOf(t)>=0});
     });
     list.sort(function(a,b){
@@ -234,7 +234,7 @@ main{padding:26px 40px 60px}
     return '<div class="card" tabindex="0" data-id="'+esc(p.id)+'" style="--c:'+p.c+'">'+
       '<div class="who"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
       '<div class="tt">'+esc(p.title||'—')+'</div>'+
-      '<div class="foot"><span class="tag"><span class="dot"></span>'+esc(p.department||'Spark')+'</span>'+
+      '<div class="foot"><span class="tag"><span class="dot"></span>'+esc(p.department||'No team listed')+'</span>'+
       '<span class="acts">'+
         '<a class="ib" href="mailto:'+esc(p.email)+'" title="Email '+esc(p.name)+'" aria-label="Email" data-stop>'+IC.mail+'</a>'+
         '<a class="ib" href="'+teams(p.email)+'" target="_blank" rel="noopener" title="Chat in Teams" aria-label="Teams chat" data-stop>'+IC.chat+'</a>'+
@@ -249,7 +249,7 @@ main{padding:26px 40px 60px}
     var h='',last=null, letters = !state.q && state.sort!=='team';
     list.forEach(function(p){
       if(letters){var L=(state.sort==='last'?lastName(p.name):p.name).charAt(0).toUpperCase(); if(L!==last){h+='<div class="letter">'+esc(L)+'</div>';last=L;}}
-      else if(state.sort==='team' && !state.q){var T=p.department||'Other'; if(T!==last){h+='<div class="letter">'+esc(T)+'</div>';last=T;}}
+      else if(state.sort==='team' && !state.q){var T=p.department||'No team listed'; if(T!==last){h+='<div class="letter">'+esc(T)+'</div>';last=T;}}
       h+=card(p);
     });
     $('grid').innerHTML=h;
@@ -266,7 +266,7 @@ main{padding:26px 40px 60px}
     $('panel').innerHTML=
       '<div class="ph"><button class="ib x" id="px" aria-label="Close">'+IC.x+'</button>'+
         '<div class="av">'+esc(initials(p.name))+'</div><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div>'+
-        '<div class="tag"><span class="dot"></span>'+esc(p.department||'Spark')+'</div>'+
+        '<div class="tag"><span class="dot"></span>'+esc(p.department||'No team listed')+'</div>'+
         '<div class="pacts"><a class="btn gold" href="mailto:'+esc(p.email)+'">'+IC.mail+'Email</a><a class="btn" href="'+teams(p.email)+'" target="_blank" rel="noopener">'+IC.chat+'Teams</a><button class="btn" data-copy="'+esc(p.email)+'">'+IC.copy+'Copy</button></div></div>'+
       '<div class="pb">'+
         '<div class="sec"><div class="sl">Email</div><a class="mail" href="mailto:'+esc(p.email)+'">'+esc(p.email)+'</a></div>'+
