@@ -19,6 +19,13 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .hero{position:relative;overflow:hidden;color:#fff;padding:34px 40px 26px;
   background:radial-gradient(900px 520px at 12% 0%,rgba(255,200,0,.16),transparent 60%),linear-gradient(160deg,#141628,#0d0e1a 46%,#0a0b14)}
 .hero .wm{position:absolute;right:-10px;bottom:-34px;font-family:'Bebas Neue',sans-serif;font-size:220px;line-height:1;letter-spacing:4px;color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.07);pointer-events:none;user-select:none}
+/* gold arc flicker on the PEOPLE lettering, same recipe as the SPARK watermark on Home */
+.hero .wm::before,.hero .wm::after{content:'PEOPLE';position:absolute;inset:0;color:transparent;-webkit-text-stroke:3px #FFD513;opacity:0;filter:drop-shadow(0 0 20px rgba(255,213,19,.9)) drop-shadow(0 0 70px rgba(255,213,19,.4))}
+.hero .wm::before{-webkit-mask-image:radial-gradient(21% 44% at 76% 56%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);mask-image:radial-gradient(21% 44% at 76% 56%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);animation:pArcA 8s linear 1s infinite}
+.hero .wm::after{-webkit-mask-image:radial-gradient(17% 40% at 16% 70%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);mask-image:radial-gradient(17% 40% at 16% 70%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);animation:pArcB 10s linear 4s infinite}
+@keyframes pArcA{0%,8.81%{opacity:0}8.82%,9.47%{opacity:1}9.48%,10.28%{opacity:0}10.29%,10.58%{opacity:.55}10.59%,12.93%{opacity:0}12.94%,14.47%{opacity:1}16%,100%{opacity:0}}
+@keyframes pArcB{0%,44.99%{opacity:0}45%,45.47%{opacity:.9}45.48%,46.08%{opacity:0}46.09%,46.3%{opacity:.5}46.31%,48.04%{opacity:0}48.05%,49.17%{opacity:1}50.3%,100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.hero .wm::before,.hero .wm::after{animation:none !important;opacity:0 !important}}
 .hero-top{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .eyebrow{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
 .eyebrow svg{width:11px;height:16px;fill:none;stroke:var(--gold2);stroke-width:2;filter:drop-shadow(0 0 4px rgba(255,213,19,.6))}
@@ -233,7 +240,7 @@ li.col .tog svg{transform:rotate(-90deg)}
 </style>
 </head>
 <body>
-<div class="preview" id="previewBar" hidden>Preview: new Directory. The live Org Chart is unchanged until this goes live.</div>
+<div class="preview" id="previewBar" hidden>Spark Directory · open this inside Spark HQ for the full experience</div>
 
 <section class="hero">
   <div class="wm">PEOPLE</div>
