@@ -1956,6 +1956,8 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 #v2Footer .v2-port a:hover,#v2Footer .v2-port a:focus-visible{transform:translateY(-3px);border-color:#FFD513;box-shadow:0 0 0 1px #FFD513,0 0 22px -2px rgba(255,213,19,.6),0 14px 28px -14px rgba(0,0,0,.9);outline:none}
 #v2Footer .fb .v2-copy b{color:rgba(255,255,255,.85);font-weight:600}
 #v2Footer .fb .v2-copy sup{color:var(--gold);font-size:9px;vertical-align:top;position:relative;top:1px}
+/* legacy 4-column feeds (Recognition/News/Milestones/Polls) are retired; the shout-outs wall replaces them */
+.feeds{display:none !important}
 /* 1r) Charge leaders podium */
 .v2-top-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .v2-podium{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:14px;align-items:end}
@@ -2206,32 +2208,35 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   topSec.innerHTML='<div class="v2-top-head"><div><p class="v2-eyebrow">CHARGE LEADERS</p><h2 class="v2-h2" id="v2TopH">This week\u2019s top 3</h2></div><button type="button" class="v2-btn ghost" id="v2TopAll">Full rankings '+svg('M5 12h14M13 6l6 6-6 6')+'</button></div>'+
    '<div class="v2-podium" id="v2Podium"><div class="v2-top-note">Pulling live numbers from the Charge Report\u2026</div></div>';
   main.appendChild(topSec);
+  try{ var cached=JSON.parse(localStorage.getItem('v2TopCache')||'null'); if(cached&&cached.html&&Date.now()-cached.ts<8*86400000){ document.getElementById('v2Podium').innerHTML=cached.html; document.getElementById('v2TopH').textContent=cached.h||'Top 3'; } }catch(e){}
   document.getElementById('v2TopAll').onclick=function(){ window.open('spark-charge.html#arena','_blank','noopener'); };
-  var fr=document.createElement('iframe'); fr.src='spark-charge.html'; fr.setAttribute('aria-hidden','true'); fr.tabIndex=-1; fr.style.cssText='position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none;left:-9999px';
+  (function(){
+  var chFr=document.createElement('iframe'); chFr.src='spark-charge.html'; chFr.setAttribute('aria-hidden','true'); chFr.tabIndex=-1; chFr.style.cssText='position:absolute;width:0;height:0;border:0;opacity:0;pointer-events:none;left:-9999px';
   var fmtK=function(v){ v=Math.round(v||0); return (v<0?'-':'')+'$'+Math.abs(v).toLocaleString(); };
   var ini=function(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); };
   var weNice=function(lbl){ var m=/WE (\d+)\.(\d+)\.(\d+)/.exec(lbl||''); if(!m) return ''; var d=new Date(2000+ +m[3], +m[1]-1, +m[2]); return 'Week ending '+d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); };
   var tries=0;
   var poll=function(){
-   var cw=fr.contentWindow, D=null, lbl='';
+   var cw=chFr.contentWindow, D=null, lbl='';
    try{ D=cw&&cw.D; lbl=cw&&cw.__weLabel; }catch(e){}
    if(!(D&&D.people&&D.people.length&&lbl)){ if(++tries<160) return setTimeout(poll,500); document.getElementById('v2Podium').innerHTML='<div class="v2-top-note">Couldn\u2019t reach the Charge Report right now. <a href="spark-charge.html" target="_blank" rel="noopener">Open it directly</a>.</div>'; return; }
    var hidden=function(n){ try{ return cw.rankHidden&&cw.rankHidden(n); }catch(e){ return false; } };
    var mv=function(n){ try{ return cw.rankMove?cw.rankMove(n):null; }catch(e){ return null; } };
    var people=D.people.filter(function(p){ return !p.house && !/house account/i.test(p.n) && !hidden(p.n); });
-   var metric='wkRaw', metricLbl='Raw charge this week';
-   if(!people.some(function(p){ return (p.wkRaw||0)>0; })){ metric='moRaw'; metricLbl='Raw charge this month (week just started)'; }
+   var metric='wkRaw', metricLbl='Raw charge \u00b7 most recent finalized week';
    var top=people.slice().sort(function(a,b){ return (b[metric]||0)-(a[metric]||0); }).slice(0,3);
-   document.getElementById('v2TopH').textContent=(metric==='wkRaw'?'This week\u2019s top 3':'This month\u2019s top 3');
+   var hTxt='Top 3 \u00b7 '+(weNice(lbl)||lbl); document.getElementById('v2TopH').textContent=hTxt;
    var order=[1,0,2], places=['1st','2nd','3rd'], cls=['gold','silver','bronze'];
    document.getElementById('v2Podium').innerHTML=order.map(function(i){
     var p=top[i]; if(!p) return '';
     var d=mv(p.n), move=d==null?'':(d>0?'<span class="mv up">\u25B2 '+d+' this week</span>':d<0?'<span class="mv dn">\u25BC '+Math.abs(d)+' this week</span>':'<span class="mv held">\u2014 held</span>');
     return '<div class="v2-pod '+cls[i]+'" role="button" tabindex="0" data-n="'+esc(p.n)+'"><span class="pl">'+(i===0?'Champion':places[i])+'</span><span class="av">'+esc(ini(p.n))+'</span><span class="nm">'+esc(p.n)+'</span><span class="rl">'+esc([p.rl,p.en].filter(Boolean).join(' \u00b7 '))+'</span><span class="amt">'+fmtK(p[metric])+'</span>'+move+'</div>';
-   }).join('')+'<div class="v2-top-foot">'+esc(metricLbl)+' \u00b7 '+esc(weNice(lbl)||lbl)+' \u00b7 live from the Charge Report</div>';
+   }).join('')+'<div class="v2-top-foot">'+esc(metricLbl)+' \u00b7 live from the Charge Report</div>';
+   try{ localStorage.setItem('v2TopCache', JSON.stringify({ts:Date.now(), h:hTxt, html:document.getElementById('v2Podium').innerHTML})); }catch(e){}
    [].forEach.call(document.querySelectorAll('.v2-pod'),function(el){ var go=function(){ window.open('spark-charge.html#arena','_blank','noopener'); }; el.addEventListener('click',go); el.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } }); });
   };
-  setTimeout(function(){ document.body.appendChild(fr); setTimeout(poll,1500); },1200);
+  setTimeout(function(){ document.body.appendChild(chFr); setTimeout(poll,1500); },1200);
+  })();
  }
 
  /* 1s) Quick Actions: Team Member Handbook (PDF hosted in HQ) + footer link */
