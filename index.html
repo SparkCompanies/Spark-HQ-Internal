@@ -6333,6 +6333,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 .celeb-empty{font-size:12px;color:var(--muted-light);padding:2px 0 4px}
 </style>
 <style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><script>/* M365_BELL_v1 config: Entra app registration (SPA) client ID for "Spark HQ". Leave empty until the app exists. */window.HQ_GRAPH_CLIENT_ID = '6562a89e-5889-4a86-9aba-ed29eef1fc03';</script>
+<style id="m365Bell">/* M365_BELL_v1: bell sits at the left of the top bar, so the dropdown opens to the right */.notif-dropdown{left:0 !important;right:auto !important}</style>
 <style id="hideJarvis">/* HIDE_JARVIS_v1: Jarvis hidden for now (remove this block to bring it back) */.nav-item.nav-jarvis,#jn-sphere,#topSearch{display:none !important}</style>
 </head>
 <body>
@@ -9614,7 +9615,18 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     }
     function ensureMsal(){
       if (window.msal) return Promise.resolve();
-      return new Promise(function(res, rej){ var s = document.createElement('script'); s.src = 'https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      var SRCS = ['https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js', 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js'];
+      return new Promise(function(res, rej){
+        var i = 0, done = false;
+        var timer = setTimeout(function(){ if (!done) { done = true; rej(new Error('msal load timeout')); } }, 12000);
+        (function next(){
+          if (i >= SRCS.length) { done = true; clearTimeout(timer); rej(new Error('msal load failed')); return; }
+          var s = document.createElement('script'); s.src = SRCS[i++];
+          s.onload = function(){ if (!done) { done = true; clearTimeout(timer); res(); } };
+          s.onerror = function(){ s.remove(); next(); };
+          document.head.appendChild(s);
+        })();
+      });
     }
     function getMsal(){
       if (msal) return msal;
