@@ -6332,7 +6332,8 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 .celeb-ico{flex:0 0 auto;width:16px;height:16px}
 .celeb-empty{font-size:12px;color:var(--muted-light);padding:2px 0 4px}
 </style>
-<style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><style id="hideJarvis">/* HIDE_JARVIS_v1: Jarvis hidden for now (remove this block to bring it back) */.nav-item.nav-jarvis,#jn-sphere,#topSearch{display:none !important}</style>
+<style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><script>/* M365_BELL_v1 config: Entra app registration (SPA) client ID for "Spark HQ". Leave empty until the app exists. */window.HQ_GRAPH_CLIENT_ID = '';</script>
+<style id="hideJarvis">/* HIDE_JARVIS_v1: Jarvis hidden for now (remove this block to bring it back) */.nav-item.nav-jarvis,#jn-sphere,#topSearch{display:none !important}</style>
 </head>
 <body>
 <div class="cursor-dot" aria-hidden="true"></div>
@@ -8215,6 +8216,9 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="people-admin">
             <span>People & roles</span><span class="badge-mini" id="peopleCountBadge"></span>
           </button>
+          <button class="admin-subnav-item" data-admin-tab="signin-log">
+            <span>Sign-in log</span>
+          </button>
           <button class="admin-subnav-item" data-admin-tab="circuit-admin">
             <span>Circuit content</span>
           </button>
@@ -8223,6 +8227,34 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         <!-- Content area -->
         <!-- HQ_ADMIN_TRIM_v1: Content&SOPs / Security / Billing stub buttons removed -->
         <div class="admin-content">
+
+          <!-- ADMIN_SIGNIN_PANE_v1 -->
+          <div class="admin-pane" data-admin-pane="signin-log" style="display:none;">
+            <div class="admin-hero">
+              <div class="eyebrow">Security &middot; Access</div>
+              <h2>Sign-in log. <span style="color:var(--muted-light);">Who signed in to HQ, when, and from where.</span></h2>
+              <div class="dek">Every Microsoft sign-in, restored session and sign-out is recorded with a timestamp, device and approximate location. Admins only.</div>
+            </div>
+            <div class="admin-section">
+              <div class="admin-section-head">
+                <h3>Recent activity</h3>
+                <div class="actions">
+                  <input type="search" id="slFilter" placeholder="Filter by name or email" style="font:inherit;font-size:12.5px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;min-width:220px;" oninput="slRender()" />
+                  <button class="btn-secondary" onclick="slLoad()">Refresh</button>
+                  <button class="btn-secondary" onclick="slExport()">Export CSV</button>
+                </div>
+              </div>
+              <div id="slStatus" style="font-size:12px;color:var(--muted-light);margin:0 0 10px;">Loading&hellip;</div>
+              <div style="overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;">
+                <table id="slTable" style="width:100%;border-collapse:collapse;font-size:12.5px;">
+                  <thead><tr style="text-align:left;background:var(--paper);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">
+                    <th style="padding:10px 14px;">When</th><th style="padding:10px 14px;">Who</th><th style="padding:10px 14px;">Event</th><th style="padding:10px 14px;">Device</th><th style="padding:10px 14px;">Location</th><th style="padding:10px 14px;">IP</th>
+                  </tr></thead>
+                  <tbody id="slBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
           <!-- CIRCUIT_ADMIN_v1 PANE -->
           <div class="admin-pane" data-admin-pane="circuit-admin" style="display:none;">
@@ -9538,6 +9570,109 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     if (dd && !dd.contains(e.target) && !btn.contains(e.target)) dd.classList.remove('open');
   });
 
+  // ==================== M365_BELL_v1 — unread email + Teams chats from Microsoft 365 ====================
+  // Each person grants HQ delegated access to their own mailbox and chats (Mail.Read, Chat.Read). Nothing is read server-side.
+  (function(){
+    var CLIENT_ID = window.HQ_GRAPH_CLIENT_ID || '';            // set in <head>: window.HQ_GRAPH_CLIENT_ID = '...'
+    var TENANT = 'e806542a-6df6-46ee-84c7-2c03e625e391';
+    var SCOPES = ['User.Read', 'Mail.Read', 'Chat.Read'];
+    var msal = null, account = null, state = 'idle', data = null, timer = null, email = '';
+    var list = document.getElementById('notifList'), badge = document.getElementById('notifBadge');
+    var head = document.querySelector('.notif-head .ttl'), clearBtn = document.querySelector('.notif-head .clear');
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var ICO_MAIL = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
+    var ICO_CHAT = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></svg>';
+    var ICO_MS = '<svg viewBox="0 0 21 21" width="14" height="14"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>';
+    function ago(iso){ var s = (Date.now() - new Date(iso).getTime()) / 1000; if (s < 60) return 'now'; if (s < 3600) return Math.floor(s/60) + 'm'; if (s < 86400) return Math.floor(s/3600) + 'h'; return Math.floor(s/86400) + 'd'; }
+    function setBadge(n){ if (!badge) return; if (!n) badge.style.display = 'none'; else { badge.style.display = 'flex'; badge.textContent = n > 99 ? '99+' : n; } }
+    function item(cls, ico, title, meta, time, href){
+      return '<a class="notif-item ' + cls + ' unread" href="' + esc(href || '#') + '" target="_blank" rel="noopener" style="position:relative;text-decoration:none;color:inherit;">' +
+        '<div class="ico-wrap">' + ico + '</div><div class="body"><div class="title">' + esc(title) + '</div><div class="meta">' + esc(meta) + '</div></div><div class="time">' + esc(time) + '</div></a>';
+    }
+    function section(label, n){ return '<div style="padding:10px 18px 4px;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-light);display:flex;justify-content:space-between;"><span>' + label + '</span><span>' + n + ' unread</span></div>'; }
+    function render(){
+      if (!list) return;
+      if (!CLIENT_ID) { list.innerHTML = '<div class="notif-empty">Microsoft 365 notifications aren\u2019t connected yet.</div>'; setBadge(0); return; }
+      if (state === 'needs-consent') {
+        list.innerHTML = '<div class="notif-empty" style="padding:26px 20px;"><div style="margin-bottom:12px;">See your unread email and Teams chats here.</div><button id="m365Connect" style="font:inherit;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;">' + ICO_MS + 'Connect Microsoft 365</button></div>';
+        setBadge(0); var b = document.getElementById('m365Connect'); if (b) b.onclick = function(){ connect(true); }; return;
+      }
+      if (state === 'error') { list.innerHTML = '<div class="notif-empty">Couldn\u2019t reach Microsoft 365. <a href="#" id="m365Retry" style="color:var(--ink);">Try again</a></div>'; var r = document.getElementById('m365Retry'); if (r) r.onclick = function(e){ e.preventDefault(); refresh(); }; return; }
+      if (!data) { list.innerHTML = '<div class="notif-empty">Checking Microsoft 365\u2026</div>'; return; }
+      var total = data.mailCount + data.chats.length; setBadge(total);
+      if (!total) { list.innerHTML = '<div class="notif-empty">You\u2019re all caught up.</div>'; return; }
+      var h = '';
+      if (data.mailCount) { h += section('Email', data.mailCount); h += data.mail.map(function(m){ return item('mail', ICO_MAIL, m.subject || '(no subject)', (m.from && m.from.emailAddress && (m.from.emailAddress.name || m.from.emailAddress.address)) || '', ago(m.receivedDateTime), m.webLink); }).join('');
+        if (data.mailCount > data.mail.length) h += '<a class="notif-item system" href="https://outlook.office.com/mail/inbox" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;grid-template-columns:1fr;"><div class="meta" style="text-align:center;">Open Outlook for ' + (data.mailCount - data.mail.length) + ' more</div></a>'; }
+      if (data.chats.length) { h += section('Teams', data.chats.length); h += data.chats.map(function(c){ var p = c.lastMessagePreview || {}; var who = (p.from && p.from.user && p.from.user.displayName) || c.topic || 'Teams chat'; var body = (p.body && p.body.content || '').replace(/<[^>]+>/g, '').trim(); return item('recog', ICO_CHAT, who, body.slice(0, 90) || 'New message', ago(p.createdDateTime || c.lastUpdatedDateTime), c.webUrl || 'https://teams.microsoft.com'); }).join(''); }
+      list.innerHTML = h;
+    }
+    function graph(path, tok){ return fetch('https://graph.microsoft.com/v1.0' + path, { headers: { 'Authorization': 'Bearer ' + tok } }).then(function(r){ if (!r.ok) throw new Error('graph ' + r.status); return r.json(); }); }
+    function load(){
+      if (!window.msal) return Promise.reject(new Error('msal missing'));
+      return Promise.resolve();
+    }
+    function ensureMsal(){
+      if (window.msal) return Promise.resolve();
+      return new Promise(function(res, rej){ var s = document.createElement('script'); s.src = 'https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    }
+    function getMsal(){
+      if (msal) return msal;
+      msal = new window.msal.PublicClientApplication({ auth: { clientId: CLIENT_ID, authority: 'https://login.microsoftonline.com/' + TENANT, redirectUri: window.location.origin + '/' }, cache: { cacheLocation: 'localStorage' } });
+      return msal;
+    }
+    function token(interactive){
+      var m = getMsal();
+      var accts = m.getAllAccounts(); account = accts.filter(function(a){ return !email || (a.username || '').toLowerCase() === email; })[0] || accts[0] || null;
+      var req = { scopes: SCOPES, account: account, loginHint: email || undefined };
+      var p = account ? m.acquireTokenSilent(req) : m.ssoSilent(req);
+      return p.then(function(r){ account = r.account; return r.accessToken; }).catch(function(err){
+        if (!interactive) throw err;
+        return m.loginPopup({ scopes: SCOPES, loginHint: email || undefined, prompt: accts.length ? undefined : 'select_account' }).then(function(r){ account = r.account; return r.accessToken; });
+      });
+    }
+    function refresh(interactive){
+      if (!CLIENT_ID || !email) { render(); return; }
+      state = 'loading'; render();
+      ensureMsal().then(function(){ return token(!!interactive); }).then(function(tok){
+        return Promise.all([
+          graph('/me/mailFolders/inbox?$select=unreadItemCount', tok),
+          graph('/me/messages?$filter=isRead%20eq%20false&$orderby=receivedDateTime%20desc&$top=6&$select=subject,from,receivedDateTime,webLink', tok),
+          graph('/me/chats?$expand=lastMessagePreview&$top=50', tok).catch(function(){ return { value: [] }; })
+        ]).then(function(r){
+          var chats = (r[2].value || []).filter(function(c){
+            var p = c.lastMessagePreview; if (!p || !p.createdDateTime) return false;
+            var fromMe = p.from && p.from.user && account && p.from.user.id && account.localAccountId && p.from.user.id === account.localAccountId;
+            if (fromMe) return false;
+            var read = c.viewpoint && c.viewpoint.lastMessageReadDateTime;
+            return !read || new Date(read) < new Date(p.createdDateTime);
+          }).sort(function(a, b){ return new Date(b.lastMessagePreview.createdDateTime) - new Date(a.lastMessagePreview.createdDateTime); }).slice(0, 8);
+          data = { mailCount: r[0].unreadItemCount || 0, mail: r[1].value || [], chats: chats };
+          state = 'ok'; render();
+        });
+      }).catch(function(err){
+        var name = err && (err.errorCode || err.name || '');
+        if (/interaction_required|login_required|consent_required|no_account|monitor_window_timeout|InteractionRequired/i.test(name + ' ' + (err && err.message))) { state = 'needs-consent'; }
+        else { state = 'error'; console.warn('[M365 bell]', err); }
+        render();
+      });
+    }
+    function connect(interactive){ refresh(interactive); }
+    window.m365BellRefresh = function(){ refresh(false); };
+    if (head) head.textContent = 'Microsoft 365';
+    if (clearBtn) { clearBtn.textContent = 'Refresh'; clearBtn.onclick = function(){ refresh(false); }; }
+    var origToggle = window.toggleNotif;
+    window.toggleNotif = function(e){ origToggle(e); if (document.getElementById('notifDropdown').classList.contains('open') && state !== 'loading') refresh(false); };
+    function start(u){
+      email = (u && u.email || '').toLowerCase();
+      clearInterval(timer);
+      if (!email) { data = null; state = 'idle'; setBadge(0); return; }
+      refresh(false);
+      timer = setInterval(function(){ if (document.visibilityState === 'visible' && state !== 'loading') refresh(false); }, 120000);
+    }
+    if (window.SPARK_SB && window.SPARK_SB.onChange) window.SPARK_SB.onChange(start); else render();
+  })();
+
   // ==================== V2 — BURDEN CALCULATOR ====================
   window.calcBurden = function() {
     const payEl = document.getElementById('bcPay');
@@ -9604,6 +9739,44 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     document.querySelectorAll('.admin-pane').forEach(p => p.style.display = (p.dataset.adminPane === tab) ? '' : 'none');
     if (tab === 'home-branding') { try { hbRenderPhotos(); } catch(e){} }
     if (tab === 'people-admin') { try { window.rpLoad(); } catch(e){} try { window.reLoad(); } catch(e){} }
+    if (tab === 'signin-log') { try { window.slLoad(); } catch(e){} }
+  };
+  /* ADMIN_SIGNIN_PANE_v1 */
+  var SL_ROWS = [];
+  window.slLoad = function() {
+    var st = document.getElementById('slStatus'); if (st) st.textContent = 'Loading\u2026';
+    if (!window.SPARK_SB) return;
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch('https://spark-hq-worker.sparkcompanies.workers.dev/signin-log?limit=500', { headers: { 'Authorization': 'Bearer ' + tok } }).then(function(r){ return r.json(); });
+    }).then(function(j){
+      if (!j || !j.ok) throw new Error((j && j.error) || 'Could not load');
+      SL_ROWS = j.rows || []; window.slRender();
+    }).catch(function(e){ if (st) st.textContent = 'Could not load the sign-in log: ' + (e.message || e); });
+  };
+  window.slRender = function() {
+    var q = ((document.getElementById('slFilter') || {}).value || '').toLowerCase().trim();
+    var rows = SL_ROWS.filter(function(r){ return !q || (r.email || '').toLowerCase().indexOf(q) >= 0; });
+    var st = document.getElementById('slStatus');
+    if (st) st.textContent = rows.length ? rows.length + ' entr' + (rows.length === 1 ? 'y' : 'ies') + (q ? ' matching \u201c' + q + '\u201d' : '') + ' \u00b7 newest first' : 'No sign-ins recorded yet.';
+    var EV = { signed_in: ['Signed in', '#15803d', '#ecfdf5'], session_restored: ['Returned', '#6b6a64', '#f4f2ec'], signed_out: ['Signed out', '#b45309', '#fff7ed'] };
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    document.getElementById('slBody').innerHTML = rows.map(function(r){
+      var d = new Date(r.ts), ev = EV[r.event] || [r.event, '#6b6a64', '#f4f2ec'];
+      var when = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      var loc = [r.city, r.region].filter(Boolean).join(', ') || (r.country || '\u2014');
+      return '<tr style="border-top:1px solid var(--line-light);">' +
+        '<td style="padding:10px 14px;white-space:nowrap;color:var(--ink);">' + esc(when) + '</td>' +
+        '<td style="padding:10px 14px;">' + esc(r.email) + '</td>' +
+        '<td style="padding:10px 14px;"><span style="font-size:11px;font-weight:600;color:' + ev[1] + ';background:' + ev[2] + ';padding:3px 9px;border-radius:999px;">' + esc(ev[0]) + '</span></td>' +
+        '<td style="padding:10px 14px;text-transform:capitalize;">' + esc(r.device || '') + '</td>' +
+        '<td style="padding:10px 14px;">' + esc(loc) + '</td>' +
+        '<td style="padding:10px 14px;color:var(--muted);font-variant-numeric:tabular-nums;">' + esc(r.ip || '') + '</td></tr>';
+    }).join('');
+  };
+  window.slExport = function() {
+    var cols = ['ts','email','event','device','city','region','country','ip','user_agent'];
+    var csv = cols.join(',') + '\n' + SL_ROWS.map(function(r){ return cols.map(function(c){ return '"' + String(r[c] == null ? '' : r[c]).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'spark-hq-signin-log.csv'; a.click();
   };
   document.querySelectorAll('.admin-subnav-item').forEach(b => {
     b.addEventListener('click', () => switchAdminTab(b.dataset.adminTab));
@@ -9747,7 +9920,9 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           client.auth.onAuthStateChange(function(_e, session) {
             user = session ? session.user : null;
             emit();
+            if (_e === 'SIGNED_IN' && session) slLog('signed_in', session.access_token);
           });
+          if (user && res.data.session) slLog('session_restored', res.data.session.access_token);
           emit();
           return client;
         })
@@ -9782,8 +9957,27 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         });
       });
     }
+    /* SIGNIN_LOG_v1: record sign-ins with timestamps (worker writes spark_hq_signin_log). One entry per browser session. */
+    function slLog(ev, tok) {
+      try {
+        if (!tok) return;
+        var key = 'hq_sl_' + (user && user.id || 'x');
+        if (ev !== 'signed_out' && sessionStorage.getItem(key)) return;
+        if (ev !== 'signed_out') sessionStorage.setItem(key, ev);
+        fetch('https://spark-hq-worker.sparkcompanies.workers.dev/signin-log', { method: 'POST', keepalive: true,
+          headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ event: ev }) }).catch(function(){});
+      } catch(e) {}
+    }
     function signOut() {
-      return init().then(function(c){ return c ? c.auth.signOut() : null; });
+      return init().then(function(c){
+        if (!c) return null;
+        return c.auth.getSession().then(function(r){
+          var t = r && r.data && r.data.session && r.data.session.access_token;
+          if (t) slLog('signed_out', t);
+          try { Object.keys(sessionStorage).forEach(function(k){ if (k.indexOf('hq_sl_') === 0) sessionStorage.removeItem(k); }); } catch(e) {}
+          return c.auth.signOut();
+        });
+      });
     }
 
     // ---- shared content (app_content table: key -> jsonb value) ----
@@ -13254,7 +13448,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
@@ -13389,7 +13583,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['team-progress','Team progress'], ['circuit-admin','Circuit content'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
-    ['people-admin','People & roles'], ['content','Content'], ['security','Security & access'],
+    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
     ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
   ];
