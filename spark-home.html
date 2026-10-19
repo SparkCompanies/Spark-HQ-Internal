@@ -1942,9 +1942,9 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 .v2-social{display:flex;align-items:center;gap:8px}
 .v2-social .lbl{font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-right:4px}
 .v2-social a{position:relative;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);transition:transform .18s,background .18s,border-color .18s,box-shadow .18s}
-.v2-social a img{width:15px;height:15px;display:block;opacity:.85;transition:opacity .18s,filter .18s}
+.v2-social a i{font-size:15px;line-height:1;color:rgba(255,255,255,.85);transition:color .18s}
 .v2-social a:hover,.v2-social a:focus-visible{transform:translateY(-2px);background:rgba(255,200,0,.14);border-color:#FFD513;box-shadow:0 0 18px -2px rgba(255,213,19,.55);outline:none}
-.v2-social a:hover img,.v2-social a:focus-visible img{opacity:1;filter:brightness(0) saturate(100%) invert(80%) sepia(60%) saturate(1200%) hue-rotate(5deg) brightness(104%)}
+.v2-social a:hover i,.v2-social a:focus-visible i{color:#FFD513}
 @media (max-width:760px){.v2-topcol{align-items:flex-start}.v2-social .lbl{display:none}}
 </style>
 <script id="homeV2js">
@@ -2139,14 +2139,15 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   var col=document.createElement('div'); col.className='v2-topcol';
   nb.parentNode.insertBefore(col, nb); col.appendChild(nb);
   var SOC=[
-   ['LinkedIn','https://www.linkedin.com/company/sparkcompanies/','linkedin'],
-   ['Facebook','https://www.facebook.com/SparkTalentAcquisition/','facebook'],
-   ['Instagram','https://www.instagram.com/sparkcompanies/','instagram'],
-   ['TikTok','https://www.tiktok.com/@spark.companies','tiktok']
+   ['LinkedIn','https://www.linkedin.com/company/sparkcompanies/','fa-linkedin-in'],
+   ['Facebook','https://www.facebook.com/SparkTalentAcquisition/','fa-facebook-f'],
+   ['Instagram','https://www.instagram.com/sparkcompanies/','fa-instagram'],
+   ['TikTok','https://www.tiktok.com/@spark.companies','fa-tiktok']
   ];
+  if(!document.getElementById('v2FA')){ var fl=document.createElement('link'); fl.id='v2FA'; fl.rel='stylesheet'; fl.href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'; document.head.appendChild(fl); }
   var so=document.createElement('div'); so.className='v2-social'; so.id='v2Social';
   so.innerHTML='<span class="lbl">Follow Spark</span>'+SOC.map(function(x){
-   return '<a href="'+x[1]+'" target="_blank" rel="noopener" title="Spark Companies on '+x[0]+'" aria-label="'+x[0]+'"><img src="https://cdn.simpleicons.org/'+x[2]+'/ffffff" alt="" width="15" height="15" loading="lazy"></a>';
+   return '<a href="'+x[1]+'" target="_blank" rel="noopener" title="Spark Companies on '+x[0]+'" aria-label="'+x[0]+'"><i class="fa-brands '+x[2]+'" aria-hidden="true"></i></a>';
   }).join('');
   col.appendChild(so);
  }
