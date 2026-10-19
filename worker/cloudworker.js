@@ -1933,8 +1933,9 @@ var worker_default = {
             if (em) byEmail[em] = { id: u.id, name: u.displayName || ((u.givenName || "") + " " + (u.surname || "")).trim(), title: u.jobTitle || "", email: em, mobile: u.mobilePhone || "", phone: (u.businessPhones && u.businessPhones[0]) || "", department: u.department || "", company: u.companyName || "" };
           });
         } catch (e) {}
-        const pick = (em) => { em = (em || "").toLowerCase(); return em ? (byEmail[em] || { name: em.split("@")[0], title: "", email: em }) : null; };
-        const out = rows.map((x) => ({ id: x.id, slug: x.slug, topic: x.topic, blurb: x.blurb || "", icon: x.icon || "help", how: x.how || "", note: x.note || "", sort: x.sort, owner: pick(x.owner_email), backup: pick(x.backup_email), owner_email: x.owner_email || "", backup_email: x.backup_email || "" }));
+        // a label marks a shared inbox / distro / outside vendor: shown by name, email only (no Teams chat or phone)
+        const pick = (em, label) => { em = (em || "").toLowerCase(); if (!em) return null; const p = byEmail[em]; if (p && !label) return Object.assign({ kind: "person" }, p); return { kind: "mailbox", name: label || (p && p.name) || em.split("@")[0], title: p ? (p.title || "") : "Shared inbox", email: em }; };
+        const out = rows.map((x) => ({ id: x.id, slug: x.slug, topic: x.topic, blurb: x.blurb || "", icon: x.icon || "help", how: x.how || "", note: x.note || "", sort: x.sort, owner: pick(x.owner_email, x.owner_label), backup: pick(x.backup_email, x.backup_label), owner_email: x.owner_email || "", backup_email: x.backup_email || "", owner_label: x.owner_label || "", backup_label: x.backup_label || "" }));
         return json({ ok: true, rows: out }, 200, origin);
       }
       const gate = await verifyAdmin(request, env);
@@ -1957,6 +1958,7 @@ var worker_default = {
           topic: clean(body.topic, 80), blurb: clean(body.blurb, 160), icon: clean(body.icon, 24) || "help",
           owner_email: clean(body.owner_email, 120).toLowerCase(), backup_email: clean(body.backup_email, 120).toLowerCase(),
           note: clean(body.note, 200), how: clean(body.how, 40),
+          owner_label: clean(body.owner_label, 80), backup_label: clean(body.backup_label, 80),
           sort: Math.max(0, Math.min(999, parseInt(body.sort, 10) || 100)), updated_at: new Date().toISOString()
         };
         if (body.id) row.id = parseInt(body.id, 10);
