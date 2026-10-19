@@ -9682,7 +9682,12 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
       refresh(false);
       timer = setInterval(function(){ if (document.visibilityState === 'visible' && state !== 'loading') refresh(false); }, 120000);
     }
-    if (window.SPARK_SB && window.SPARK_SB.onChange) window.SPARK_SB.onChange(start); else render();
+    // SPARK_SB is defined further down the file, so wait for it instead of assuming it exists yet.
+    (function hook(n){
+      if (window.SPARK_SB && window.SPARK_SB.onChange) { window.SPARK_SB.onChange(start); return; }
+      if (n > 150) { render(); return; }
+      setTimeout(function(){ hook(n + 1); }, 200);
+    })(0);
   })();
 
   // ==================== V2 — BURDEN CALCULATOR ====================
