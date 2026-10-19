@@ -1830,8 +1830,9 @@ var worker_default = {
       return json({ ok: true, service: "spark-hq-worker" }, 200, origin);
     }
     if (url.pathname === "/directory") {
+      // DIRECTORY_FOR_ALL_v1 (approved by Allie 10/19): any signed-in Spark user can read names/titles/emails; editing stays admin-only (canEdit).
       const gate = await verifyAdmin(request, env);
-      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      if (!gate.ok && gate.reason !== "Not an admin") return json({ error: gate.reason || "Unauthorized" }, 401, origin);
       try {
         const token = await getGraphToken(env);
         const users = await fetchDirectory(token);
@@ -1983,7 +1984,7 @@ var worker_default = {
     }
     if (url.pathname === "/groups") {
       const gate = await verifyAdmin(request, env);
-      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      if (!gate.ok && gate.reason !== "Not an admin") return json({ error: gate.reason || "Unauthorized" }, 401, origin);
       const uid = url.searchParams.get("id");
       if (!uid) return json({ error: "Missing id" }, 400, origin);
       try {
