@@ -1980,7 +1980,18 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 @media (max-width:760px){.v2-podium{grid-template-columns:1fr}.v2-pod.gold{order:-1}}
 /* 1t) Who do I ask? (HELP_ROUTES_v1) */
 #v2Help .v2-top-head{margin-bottom:14px}
-.v2-help-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.v2-help-rail{position:relative}
+.v2-help-grid{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:6px 2px 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch;mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 56px),transparent);-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 56px),transparent)}
+.v2-help-grid::-webkit-scrollbar{display:none}
+.v2-help-grid>.v2-hc{flex:0 0 278px;scroll-snap-align:start}
+.v2-help-nav{display:flex;gap:6px}
+.v2-help-nav button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;color:#111;cursor:pointer;display:grid;place-items:center;transition:border-color .15s,background .15s,transform .12s}
+.v2-help-nav button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.v2-help-nav button:hover{border-color:var(--gold);background:#fffbe6}
+.v2-help-nav button:active{transform:scale(.94)}
+.v2-help-dots{display:flex;gap:5px;justify-content:center;margin-top:2px}
+.v2-help-dots i{width:6px;height:6px;border-radius:50%;background:#ddd9ce;transition:background .2s,width .2s}
+.v2-help-dots i.on{background:var(--gold);width:18px;border-radius:3px}
 .v2-hc{position:relative;background:linear-gradient(180deg,#ffffff,#fdfcf8);border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(20,18,10,.05),0 10px 24px -16px rgba(20,18,10,.18);transition:transform .18s,box-shadow .18s,border-color .18s}
 .v2-hc:hover{transform:translateY(-3px);border-color:rgba(255,200,0,.7);box-shadow:0 18px 40px -22px rgba(13,14,26,.35)}
 .v2-hc .ic{width:38px;height:38px;border-radius:11px;background:#fff6cc;color:#7a5d00;display:grid;place-items:center;flex:none}
@@ -1995,6 +2006,8 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 .v2-hc .acts a{display:inline-flex;align-items:center;gap:6px;font:600 12px 'Jost',sans-serif;padding:7px 11px;border-radius:9px;text-decoration:none;color:#111;background:#f4f2ec;border:1px solid transparent;transition:background .15s,border-color .15s}
 .v2-hc .acts a:hover{background:#fff;border-color:rgba(255,200,0,.7)}
 .v2-hc .acts a.tm{background:var(--gold)}
+.v2-hc .av.mb{background:#fff6cc;color:#7a5d00}
+.v2-hc .av.mb svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .v2-hc .acts a svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .v2-hc .bk{font-size:11.5px;color:var(--muted)}
 .v2-hc .bk b{color:#3b3527;font-weight:600}
@@ -2278,8 +2291,8 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
  /* 1t) Who do I ask? — need-based routing, read from the worker (/help-routes); admins edit it in Admin → Who to ask */
  if(!document.getElementById('v2Help')){
   var hlpSec=document.createElement('section'); hlpSec.id='v2Help'; hlpSec.className='v2-wrap'; hlpSec.setAttribute('aria-labelledby','v2HelpH');
-  hlpSec.innerHTML='<div class="v2-top-head"><div><p class="v2-eyebrow">WHO DO I ASK?</p><h2 class="v2-h2" id="v2HelpH">Need something? Start here.</h2></div><button type="button" class="v2-btn ghost" id="v2HelpDir">Full directory '+svg('M5 12h14M13 6l6 6-6 6')+'</button></div>'+
-   '<div class="v2-help-grid" id="v2HelpGrid"><div class="v2-help-note">Loading who handles what…</div></div><div class="v2-help-foot">Pick the thing you need, not the department. Message the owner in Teams or email them; the backup covers when they are out.</div>';
+  hlpSec.innerHTML='<div class="v2-top-head"><div><p class="v2-eyebrow">WHO DO I ASK?</p><h2 class="v2-h2" id="v2HelpH">Need something? Start here.</h2></div><div style="display:flex;gap:10px;align-items:center"><div class="v2-help-nav"><button type="button" id="v2HelpPrev" aria-label="Previous">'+svg('M15 6l-6 6 6 6')+'</button><button type="button" id="v2HelpNext" aria-label="Next">'+svg('M9 6l6 6-6 6')+'</button></div><button type="button" class="v2-btn ghost" id="v2HelpDir">Full directory '+svg('M5 12h14M13 6l6 6-6 6')+'</button></div></div>'+
+   '<div class="v2-help-rail"><div class="v2-help-grid" id="v2HelpGrid"><div class="v2-help-note">Loading who handles what…</div></div><div class="v2-help-dots" id="v2HelpDots"></div></div><div class="v2-help-foot">Pick the thing you need, not the department. Message the owner in Teams or email them; the backup covers when they are out. Swipe or use the arrows to see more.</div>';
   main.appendChild(hlpSec);
   document.getElementById('v2HelpDir').onclick=function(){ try{ if(window.parent&&window.parent!==window&&typeof window.parent.dirShow==='function'){ window.parent.dirShow(); return; } }catch(e){} window.open('spark-directory.html','_blank','noopener'); };
   (function(){
@@ -2299,15 +2312,32 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
    var ini=function(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); };
    var first=function(n){ return String(n||'').trim().split(/\s+/)[0]||''; };
    var card=function(r){
-    var o=r.owner||{}, b=r.backup;
+    var o=r.owner||{}, b=r.backup, mb=o.kind==='mailbox';
     var teams='https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(o.email||'');
+    var av=mb?'<span class="av mb">'+svg('M3 6h18v12H3zM3 7l9 6 9-6')+'</span>':'<span class="av">'+esc(ini(o.name))+'</span>';
+    var acts=mb?'<a class="tm" href="mailto:'+esc(o.email)+'">'+svg('M3 6h18v12H3zM3 7l9 6 9-6')+'Email '+esc(o.name)+'</a>':
+      '<a class="tm" href="'+teams+'" target="_blank" rel="noopener">'+svg('M4 5h16v11H8l-4 4z')+'Message '+esc(first(o.name))+'</a><a href="mailto:'+esc(o.email)+'">'+svg('M3 6h18v12H3zM3 7l9 6 9-6')+'Email</a>'+(o.mobile||o.phone?'<a href="tel:'+esc((o.mobile||o.phone).replace(/[^+\d]/g,''))+'">'+svg('M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2')+'Call</a>':'');
     return '<div class="v2-hc'+(r.how==='private'?' priv':'')+'" data-slug="'+esc(r.slug||'')+'"><div class="ic">'+ico(r.icon)+'</div><div class="tp">'+esc(r.topic)+'</div>'+(r.blurb?'<div class="bl">'+esc(r.blurb)+'</div>':'')+
-     (o.email?'<div class="who"><span class="av">'+esc(ini(o.name))+'</span><div style="min-width:0"><div class="nm">'+esc(o.name)+'</div><div class="rl">'+esc(o.title||'')+'</div></div></div>'+
-     '<div class="acts"><a class="tm" href="'+teams+'" target="_blank" rel="noopener">'+svg('M4 5h16v11H8l-4 4z')+'Message '+esc(first(o.name))+'</a><a href="mailto:'+esc(o.email)+'">'+svg('M3 6h18v12H3zM3 7l9 6 9-6')+'Email</a>'+(o.mobile||o.phone?'<a href="tel:'+esc((o.mobile||o.phone).replace(/[^+\d]/g,''))+'">'+svg('M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2')+'Call</a>':'')+'</div>':'<div class="bk">No owner set yet</div>')+
+     (o.email?'<div class="who">'+av+'<div style="min-width:0"><div class="nm">'+esc(o.name)+'</div><div class="rl">'+esc(o.title||'')+'</div></div></div>'+
+     '<div class="acts">'+acts+'</div>':'<div class="bk">No owner set yet</div>')+
      (b&&b.email?'<div class="bk">Out? Ask <b>'+esc(b.name)+'</b>'+(r.note?' · '+esc(r.note):'')+'</div>':(r.note?'<div class="bk">'+esc(r.note)+'</div>':''))+'</div>';
    };
    var grid=document.getElementById('v2HelpGrid');
-   var paint=function(rows){ grid.innerHTML=rows.length?rows.map(card).join(''):'<div class="v2-help-note">Nothing set up yet. Admins: add topics under Admin → Who to ask.</div>'; };
+   var dots=document.getElementById('v2HelpDots');
+   var step=function(){ var c=grid.querySelector('.v2-hc'); return c?c.offsetWidth+14:300; };
+   var pages=function(){ return Math.max(1,Math.ceil((grid.scrollWidth-grid.clientWidth)/step())+1); };
+   var paintDots=function(){ var n=pages(), cur=Math.round(grid.scrollLeft/step()); var s=''; for(var i=0;i<n;i++) s+='<i'+(i===Math.min(cur,n-1)?' class="on"':'')+'></i>'; dots.innerHTML=n>1?s:''; };
+   var go=function(dir){ var max=grid.scrollWidth-grid.clientWidth; var nx=grid.scrollLeft+dir*step()*2; if(dir>0&&grid.scrollLeft>=max-4) nx=0; if(dir<0&&grid.scrollLeft<=4) nx=max; grid.scrollTo({left:Math.max(0,Math.min(max,nx)),behavior:'smooth'}); };
+   document.getElementById('v2HelpPrev').onclick=function(){ go(-1); hold(); };
+   document.getElementById('v2HelpNext').onclick=function(){ go(1); hold(); };
+   grid.addEventListener('scroll',function(){ clearTimeout(grid._dt); grid._dt=setTimeout(paintDots,80); },{passive:true});
+   /* gentle auto-advance, pauses while you hover or touch it, and when the tab is hidden */
+   var auto=null, held=false; var hold=function(){ held=true; clearTimeout(grid._hold); grid._hold=setTimeout(function(){ held=false; },12000); };
+   var tick=function(){ if(document.hidden||held||grid.matches(':hover')||!grid.querySelector('.v2-hc')) return; var max=grid.scrollWidth-grid.clientWidth; if(max<10) return; go(1); };
+   var startAuto=function(){ if(auto) return; auto=setInterval(tick,5500); };
+   grid.addEventListener('touchstart',hold,{passive:true}); grid.addEventListener('wheel',hold,{passive:true}); grid.addEventListener('focusin',hold);
+   window.addEventListener('resize',function(){ clearTimeout(grid._rz); grid._rz=setTimeout(paintDots,120); });
+   var paint=function(rows){ grid.innerHTML=rows.length?rows.map(card).join(''):'<div class="v2-help-note">Nothing set up yet. Admins: add topics under Admin → Who to ask.</div>'; requestAnimationFrame(function(){ paintDots(); if(rows.length) startAuto(); }); };
    try{ var c=JSON.parse(localStorage.getItem('v2HelpCache')||'null'); if(c&&c.rows&&c.rows.length) paint(c.rows); }catch(e){}
    var tokHR=function(){ try{ if(window.parent&&window.parent!==window&&window.parent.SPARK_SB&&window.parent.SPARK_SB.getToken){ var t=window.parent.SPARK_SB.getToken(); if(t&&t.then) return t; return Promise.resolve(t); } }catch(e){} try{ var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}'); return Promise.resolve(a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||''); }catch(e){ return Promise.resolve(''); } };
    var W=(typeof WORKER_URL==='string'&&WORKER_URL)||'https://spark-hq-worker.sparkcompanies.workers.dev';

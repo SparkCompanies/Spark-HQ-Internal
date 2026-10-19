@@ -6358,6 +6358,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 #hqHelpOver .v2-hc .tp{font-weight:700;font-size:14.5px;color:#111;line-height:1.25}
 #hqHelpOver .v2-hc .bl{font-size:12px;color:#6b6a64;line-height:1.4}
 #hqHelpOver .v2-hc .who{grid-column:2;display:flex;align-items:center;gap:9px;margin-top:8px}
+#hqHelpOver .v2-hc .av svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #hqHelpOver .v2-hc .av{width:30px;height:30px;border-radius:50%;background:#0d0e1a;color:#FFD513;display:grid;place-items:center;font-weight:700;font-size:11px;flex:none}
 #hqHelpOver .v2-hc .nm{font-weight:600;font-size:13px;color:#111;line-height:1.2}
 #hqHelpOver .v2-hc .rl{font-size:11px;color:#6b6a64}
@@ -6381,11 +6382,14 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   var ini=function(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); };
   var first=function(n){ return String(n||'').trim().split(/\s+/)[0]||''; };
   window.hqHelpCard=function(r){
-    var o=r.owner||{}, b=r.backup;
+    var o=r.owner||{}, b=r.backup, mb=o.kind==='mailbox';
     var teams='https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(o.email||'');
+    var av=mb?'<span class="av" style="background:#fff6cc;color:#7a5d00">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'</span>':'<span class="av">'+esc(ini(o.name))+'</span>';
+    var acts=mb?'<a class="tm" href="mailto:'+esc(o.email)+'">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'Email '+esc(o.name)+'</a>':
+      '<a class="tm" href="'+teams+'" target="_blank" rel="noopener">'+sv('M4 5h16v11H8l-4 4z')+'Message '+esc(first(o.name))+'</a><a href="mailto:'+esc(o.email)+'">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'Email</a>'+(o.mobile||o.phone?'<a href="tel:'+esc(String(o.mobile||o.phone).replace(/[^+\d]/g,''))+'">'+sv('M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2')+'Call</a>':'');
     return '<div class="v2-hc'+(r.how==='private'?' priv':'')+'"><div class="ic">'+sv(HI[r.icon]||HI.help)+'</div><div class="tp">'+esc(r.topic)+'</div><div class="bl">'+esc(r.blurb||'')+'</div>'+
-      (o.email?'<div class="who"><span class="av">'+esc(ini(o.name))+'</span><div style="min-width:0"><div class="nm">'+esc(o.name)+'</div><div class="rl">'+esc(o.title||'')+'</div></div></div>'+
-      '<div class="acts"><a class="tm" href="'+teams+'" target="_blank" rel="noopener">'+sv('M4 5h16v11H8l-4 4z')+'Message '+esc(first(o.name))+'</a><a href="mailto:'+esc(o.email)+'">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'Email</a>'+(o.mobile||o.phone?'<a href="tel:'+esc(String(o.mobile||o.phone).replace(/[^+\d]/g,''))+'">'+sv('M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2')+'Call</a>':'')+'</div>':'<div class="bk">No owner set yet</div>')+
+      (o.email?'<div class="who">'+av+'<div style="min-width:0"><div class="nm">'+esc(o.name)+'</div><div class="rl">'+esc(o.title||'')+'</div></div></div>'+
+      '<div class="acts">'+acts+'</div>':'<div class="bk">No owner set yet</div>')+
       (b&&b.email?'<div class="bk">Out? Ask <b>'+esc(b.name)+'</b>'+(r.note?' · '+esc(r.note):'')+'</div>':(r.note?'<div class="bk">'+esc(r.note)+'</div>':''))+'</div>';
   };
   window.hqHelpFetch=function(){
@@ -8344,7 +8348,9 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
                   <label style="font-size:12px;color:var(--muted);">Need (headline)<input id="hr_topic" placeholder="My laptop, email or password" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
                   <label style="font-size:12px;color:var(--muted);">One-line detail<input id="hr_blurb" placeholder="Microsoft 365, Teams, logins, new devices" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
                   <label style="font-size:12px;color:var(--muted);">Owner email<input id="hr_owner" type="email" placeholder="name@sparkcompanies.com" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">Owner label <span style="font-weight:400">(only for a shared inbox, distro or vendor)</span><input id="hr_owner_label" placeholder="e.g. Spark Payroll Department" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
                   <label style="font-size:12px;color:var(--muted);">Backup email<input id="hr_backup" type="email" placeholder="optional" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">Backup label <span style="font-weight:400">(same idea, optional)</span><input id="hr_backup_label" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
                   <label style="font-size:12px;color:var(--muted);">Icon<select id="hr_icon" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;"><option value="laptop">Laptop / IT</option><option value="payroll">Payroll</option><option value="benefits">Benefits</option><option value="onboarding">Onboarding</option><option value="expense">Expenses / invoices</option><option value="salesforce">Salesforce / cloud</option><option value="legal">Legal / compliance</option><option value="office">Office</option><option value="hr">HR / private</option><option value="help">General</option></select></label>
                   <label style="font-size:12px;color:var(--muted);">Handled<select id="hr_how" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;"><option value="">Normally</option><option value="private">Privately (gold card)</option></select></label>
                   <label style="font-size:12px;color:var(--muted);">Order<input id="hr_sort" type="number" min="0" max="999" value="100" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
@@ -9900,7 +9906,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
     var st = document.getElementById('hrStatus');
     if (st) st.textContent = HR_ROWS.length ? HR_ROWS.length + ' topic' + (HR_ROWS.length === 1 ? '' : 's') + ' · shown in this order on Home' : 'No topics yet. Add the first one.';
-    var who = function(p, em){ return p && p.email ? esc(p.name) + '<div style="font-size:11px;color:var(--muted);">' + esc(p.title || p.email) + '</div>' : (em ? '<span style="color:#b42318;">' + esc(em) + ' (not in directory)</span>' : '<span style="color:var(--muted);">—</span>'); };
+    var who = function(p, em){ return p && p.email ? esc(p.name) + (p.kind === 'mailbox' ? ' <span style="font-size:10px;font-weight:700;letter-spacing:.06em;color:#7a5d00;background:#fff6cc;padding:1px 6px;border-radius:999px;">INBOX</span>' : '') + '<div style="font-size:11px;color:var(--muted);">' + esc(p.kind === 'mailbox' ? p.email : (p.title || p.email)) + '</div>' : (em ? '<span style="color:#b42318;">' + esc(em) + ' (not in directory)</span>' : '<span style="color:var(--muted);">—</span>'); };
     document.getElementById('hrBody').innerHTML = HR_ROWS.map(function(r, i){
       return '<tr style="border-top:1px solid var(--line-light);">' +
         '<td style="padding:10px 14px;color:var(--muted);font-variant-numeric:tabular-nums;">' + esc(r.sort) + '</td>' +
@@ -9914,7 +9920,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   window.hrEdit = function(i) {
     var r = (i == null) ? { sort: (HR_ROWS.length + 1) * 10, icon: 'help', how: '' } : HR_ROWS[i];
     var v = function(id, val){ var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
-    v('hr_id', r.id || ''); v('hr_topic', r.topic); v('hr_blurb', r.blurb); v('hr_owner', r.owner_email || (r.owner && r.owner.email)); v('hr_backup', r.backup_email || (r.backup && r.backup.email)); v('hr_icon', r.icon || 'help'); v('hr_how', r.how || ''); v('hr_sort', r.sort == null ? 100 : r.sort); v('hr_note', r.note);
+    v('hr_id', r.id || ''); v('hr_topic', r.topic); v('hr_blurb', r.blurb); v('hr_owner', r.owner_email || (r.owner && r.owner.email)); v('hr_backup', r.backup_email || (r.backup && r.backup.email)); v('hr_owner_label', r.owner_label); v('hr_backup_label', r.backup_label); v('hr_icon', r.icon || 'help'); v('hr_how', r.how || ''); v('hr_sort', r.sort == null ? 100 : r.sort); v('hr_note', r.note);
     document.getElementById('hrFormTitle').textContent = i == null ? 'Add a topic' : 'Edit “' + (r.topic || '') + '”';
     document.getElementById('hrFormMsg').textContent = '';
     var f = document.getElementById('hrForm'); f.style.display = ''; f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -9923,7 +9929,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   window.hrSave = function() {
     var g = function(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; };
     var msg = document.getElementById('hrFormMsg');
-    var body = { id: g('hr_id') || undefined, topic: g('hr_topic'), blurb: g('hr_blurb'), owner_email: g('hr_owner'), backup_email: g('hr_backup'), icon: g('hr_icon'), how: g('hr_how'), sort: g('hr_sort'), note: g('hr_note') };
+    var body = { id: g('hr_id') || undefined, topic: g('hr_topic'), blurb: g('hr_blurb'), owner_email: g('hr_owner'), backup_email: g('hr_backup'), owner_label: g('hr_owner_label'), backup_label: g('hr_backup_label'), icon: g('hr_icon'), how: g('hr_how'), sort: g('hr_sort'), note: g('hr_note') };
     if (!body.topic) { msg.textContent = 'Give it a headline first.'; return; }
     if (!body.id) body.slug = body.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
     msg.textContent = 'Saving…';
