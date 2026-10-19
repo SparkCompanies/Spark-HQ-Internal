@@ -2284,7 +2284,7 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
             ['PEOPLE',[['Directory','people'],['Career Paths','training'],['Spark Standard','standard'],['Training','training']]],
             ['RESOURCES',[['Documents','docs'],['Benefits','docs'],['Finance','finance']]]];
   f.innerHTML='<div class="fi"><div><div style="font-weight:700;letter-spacing:.24em;color:#fff;font-size:17px;margin-bottom:10px">SPARK<span style="color:var(--gold)">®</span></div>'+
-   '<div style="font-size:14px;line-height:1.6">901 Wilshire Dr., Suite 585<br>Troy, MI 48084</div></div>'+
+   '<div style="font-size:13.5px;line-height:1.55;display:grid;gap:10px"><div><div style="font-size:10.5px;letter-spacing:.18em;color:var(--gold);font-weight:600;margin-bottom:2px">MICHIGAN · HQ</div>901 Wilshire Dr., Suite 585<br>Troy, MI 48084</div><div><div style="font-size:10.5px;letter-spacing:.18em;color:var(--gold);font-weight:600;margin-bottom:2px">TENNESSEE</div>5000 Meridian Blvd, Suite 130<br>Franklin, TN 37067</div></div></div>'+
    cols.map(function(c){return '<div><h4>'+c[0]+'</h4>'+c[1].map(function(l){return '<button type="button" data-nav="'+l[1]+'">'+esc(l[0])+'</button>';}).join('')+'</div>';}).join('')+
    '</div><div class="fb"><span>Spark HQ · for Spark team members only</span><span>Spark Companies</span></div>';
   main.appendChild(f);
