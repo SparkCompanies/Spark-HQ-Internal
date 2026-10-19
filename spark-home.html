@@ -2245,10 +2245,10 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   var hb=document.createElement('div'); hb.className='qab'; hb.id='v2Handbook'; hb.setAttribute('role','link'); hb.setAttribute('tabindex','0');
   hb.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 016.5 2H20v17H6.5A2.5 2.5 0 004 21.5z"></path><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M9 7h7M9 10.5h7"></path></svg>Handbook';
   var anc3=document.getElementById('v2Expenses'); if(anc3&&anc3.parentNode===qg3) qg3.insertBefore(hb, anc3.nextSibling); else qg3.appendChild(hb);
-  var goHB=function(){ window.open('spark-handbook.pdf','_blank','noopener'); };
+  var goHB=function(){ window.open('https://sparktalent-my.sharepoint.com/:b:/g/personal/aspegel_sparkcompanies_com/IQBFzTVAe_HCSZwc8XUmxfdWATJCMiV6wfmUYtjOfT-8nSo?e=0QN11g','_blank','noopener'); };
   hb.addEventListener('click',goHB); hb.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goHB(); } });
  }
- setTimeout(function(){ var cols=document.querySelectorAll('#v2Footer .fi > div'); for(var i=0;i<cols.length;i++){ var h4=cols[i].querySelector('h4'); if(h4&&/RESOURCES/i.test(h4.textContent)&&!cols[i].querySelector('[data-hb]')){ var b=document.createElement('button'); b.type='button'; b.setAttribute('data-hb','1'); b.textContent='Team Member Handbook'; b.onclick=function(){ window.open('spark-handbook.pdf','_blank','noopener'); }; cols[i].insertBefore(b, cols[i].querySelector('button')); } } },0);
+ setTimeout(function(){ var cols=document.querySelectorAll('#v2Footer .fi > div'); for(var i=0;i<cols.length;i++){ var h4=cols[i].querySelector('h4'); if(h4&&/RESOURCES/i.test(h4.textContent)&&!cols[i].querySelector('[data-hb]')){ var b=document.createElement('button'); b.type='button'; b.setAttribute('data-hb','1'); b.textContent='Team Member Handbook'; b.onclick=function(){ window.open('https://sparktalent-my.sharepoint.com/:b:/g/personal/aspegel_sparkcompanies_com/IQBFzTVAe_HCSZwc8XUmxfdWATJCMiV6wfmUYtjOfT-8nSo?e=0QN11g','_blank','noopener'); }; cols[i].insertBefore(b, cols[i].querySelector('button')); } } },0);
 
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
