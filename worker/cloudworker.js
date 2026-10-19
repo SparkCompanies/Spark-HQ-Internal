@@ -1848,6 +1848,10 @@ var worker_default = {
           _upn: (u.userPrincipalName || "").toLowerCase(),
           active: u.accountEnabled !== false
         })).filter((p) => p.email && p.active).filter((p) => {
+          // DIRECTORY_DOMAINS_v1: only Spark entity mailboxes appear in the directory (no guests, vendors or service accounts)
+          const SPARK_DOMAINS = ["sparkcompanies.com", "sparktalentinc.com", "ignitesearch.com", "flexworkforceco.com", "johnjosephpartners.com"];
+          return SPARK_DOMAINS.indexOf(p.email.split("@")[1]) !== -1;
+        }).filter((p) => {
           const local = p.email.split("@")[0];
           const EXCLUDE_NAMES = [
             "judy security",
