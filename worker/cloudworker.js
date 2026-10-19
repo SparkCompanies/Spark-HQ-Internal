@@ -1914,6 +1914,61 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/help-routes") {
+      // HELP_ROUTES_v1 ("Who do I ask?"): need-based routing shown on Home + the header pill. Any signed-in user reads; admins edit.
+      // Table: spark_hq_help_routes (id bigserial pk, slug text unique, topic text, blurb text, icon text, owner_email text, backup_email text, note text, how text, sort int default 100, updated_at timestamptz default now())
+      if (request.method === "GET") {
+        const who = await verifyUser(request, env);
+        if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+        const r = await sbService(env, "GET", "spark_hq_help_routes?select=*&order=sort.asc,topic.asc");
+        if (!r.ok) return json({ error: "Could not read help routes", detail: r.data }, 502, origin);
+        const rows = Array.isArray(r.data) ? r.data : [];
+        // decorate owner / backup from the live directory so names, titles and phones never go stale
+        let byEmail = {};
+        try {
+          const token = await getGraphToken(env);
+          const users = await fetchDirectory(token);
+          users.forEach((u) => {
+            const em = (u.mail || u.userPrincipalName || "").toLowerCase();
+            if (em) byEmail[em] = { id: u.id, name: u.displayName || ((u.givenName || "") + " " + (u.surname || "")).trim(), title: u.jobTitle || "", email: em, mobile: u.mobilePhone || "", phone: (u.businessPhones && u.businessPhones[0]) || "", department: u.department || "", company: u.companyName || "" };
+          });
+        } catch (e) {}
+        const pick = (em) => { em = (em || "").toLowerCase(); return em ? (byEmail[em] || { name: em.split("@")[0], title: "", email: em }) : null; };
+        const out = rows.map((x) => ({ id: x.id, slug: x.slug, topic: x.topic, blurb: x.blurb || "", icon: x.icon || "help", how: x.how || "", note: x.note || "", sort: x.sort, owner: pick(x.owner_email), backup: pick(x.backup_email), owner_email: x.owner_email || "", backup_email: x.backup_email || "" }));
+        return json({ ok: true, rows: out }, 200, origin);
+      }
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      if (request.method === "DELETE") {
+        const id = parseInt(url.searchParams.get("id") || "0", 10);
+        if (!id) return json({ error: "id required" }, 400, origin);
+        const r = await sbService(env, "DELETE", "spark_hq_help_routes?id=eq." + id);
+        if (!r.ok) return json({ error: "Could not delete", detail: r.data }, 502, origin);
+        await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "help_route_delete", target: String(id), detail: "{}" }).catch(function(){});
+        return json({ ok: true }, 200, origin);
+      }
+      if (request.method === "POST") {
+        let body;
+        try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        const clean = (s, n) => String(s == null ? "" : s).trim().slice(0, n);
+        const emailOk = (s) => !s || /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(s);
+        const row = {
+          slug: clean(body.slug, 60).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") || ("topic-" + Date.now()),
+          topic: clean(body.topic, 80), blurb: clean(body.blurb, 160), icon: clean(body.icon, 24) || "help",
+          owner_email: clean(body.owner_email, 120).toLowerCase(), backup_email: clean(body.backup_email, 120).toLowerCase(),
+          note: clean(body.note, 200), how: clean(body.how, 40),
+          sort: Math.max(0, Math.min(999, parseInt(body.sort, 10) || 100)), updated_at: new Date().toISOString()
+        };
+        if (body.id) row.id = parseInt(body.id, 10);
+        if (!row.topic) return json({ error: "Topic is required" }, 400, origin);
+        if (!emailOk(row.owner_email) || !emailOk(row.backup_email)) return json({ error: "Owner / backup must be email addresses" }, 400, origin);
+        const r = await sbService(env, "POST", "spark_hq_help_routes?on_conflict=" + (row.id ? "id" : "slug"), row);
+        if (!r.ok) return json({ error: "Could not save", detail: r.data }, 502, origin);
+        await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "help_route_save", target: row.slug, detail: JSON.stringify(row) }).catch(function(){});
+        return json({ ok: true, row: Array.isArray(r.data) ? r.data[0] : r.data }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
     if (url.pathname === "/signin-log") {
       // SIGNIN_LOG_v1: the HQ shell posts here on every sign-in / sign-out; admins read the log back.
       // Table: spark_hq_signin_log (id bigserial, ts timestamptz default now(), email text, event text, ip text, city text, region text, country text, user_agent text, device text, origin text)
