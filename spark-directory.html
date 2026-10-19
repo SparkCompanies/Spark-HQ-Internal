@@ -184,6 +184,9 @@ body.org #orgView{display:block}
 .ocard:hover{transform:translateY(-2px);box-shadow:0 26px 50px -24px rgba(0,0,0,1),0 0 0 1px rgba(255,213,19,.4)}
 .ocard.hit{box-shadow:0 0 0 2px #FFD513,0 0 30px rgba(255,213,19,.55)}
 .ocard.me{box-shadow:0 0 0 2px var(--gold),0 22px 44px -24px rgba(0,0,0,.95)}
+.ocard.loose{background:rgba(255,255,255,.08);color:#fff;border:1px dashed rgba(255,255,255,.3);box-shadow:none;cursor:default}
+.ocard.loose .tt{color:rgba(255,255,255,.6)}.ocard.loose .ol{color:rgba(255,255,255,.55)}.ocard.loose .av{color:#fff;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3)}
+.ocard.loose:hover{transform:none}
 .tree.dim .ocard:not(.hit){opacity:.28}
 .ocard .who{gap:10px}
 .ocard .av{width:36px;height:36px;font-size:12px}
@@ -531,13 +534,22 @@ li.col .tog svg{transform:rotate(-90deg)}
   }
   function orgNode(p,depth){
     var kids=(REPORTS[p.id]||[]).slice().sort(function(a,b){ return countBelow(b.id)-countBelow(a.id)||a.name.localeCompare(b.name); });
-    var isOpen = ORG.open.hasOwnProperty(p.id) ? ORG.open[p.id] : depth<2;
+    var isOpen = ORG.open.hasOwnProperty(p.id) ? ORG.open[p.id] : depth<1;
     return '<li data-id="'+esc(p.id)+'"'+(kids.length&&!isOpen?' class="col"':'')+'>'+orgCard(p)+(kids.length?'<ul>'+kids.map(function(k){return orgNode(k,depth+1)}).join('')+'</ul>':'')+'</li>';
   }
   function orgBuild(){
     var roots=PEOPLE.filter(function(p){ return !p.managerId||!BY_ID[p.managerId]; }).sort(function(a,b){ return countBelow(b.id)-countBelow(a.id)||a.name.localeCompare(b.name); });
     if(!roots.length){ oTree.innerHTML=''; return; }
-    oTree.innerHTML=roots.map(function(r){ return orgNode(r,0); }).join('');
+    /* everyone without a manager (other than the top of the org) sits in one folded group so they don't widen the tree */
+    var main=roots[0], loose=roots.slice(1);
+    var h=orgNode(main,0);
+    if(loose.length){
+      var isOpen=ORG.open.hasOwnProperty('__loose')?ORG.open['__loose']:false;
+      h+='<li data-id="__loose"'+(isOpen?'':' class="col"')+'><button type="button" class="ocard loose" data-id="__loose" style="--c:#9a978c" title="These people have no manager set in Microsoft 365">'+
+        '<div class="who"><div class="av">?</div><div style="min-width:0"><div class="nm">No manager listed</div></div></div><div class="tt">Set their manager to place them in the tree</div><div class="ol"><i></i>'+loose.length+' people</div>'+
+        '<span class="tog" data-tog="__loose">'+loose.length+CHEV+'</span></button><ul>'+loose.map(function(r){ return orgNode(r,1); }).join('')+'</ul></li>';
+    }
+    oTree.innerHTML=h;
     var seen={}, lg='';
     PEOPLE.forEach(function(p){ var k=p.department||'No team listed'; if(!seen[k]){ seen[k]=1; lg+='<span><i style="background:'+colorFor(p.department)+'"></i>'+esc(k)+'</span>'; } });
     $('oLegend').innerHTML=lg;
@@ -552,7 +564,7 @@ li.col .tog svg{transform:rotate(-90deg)}
   function orgApply(){ oWorld.style.transform='translate('+ORG.x+'px,'+ORG.y+'px) scale('+ORG.s+')'; }
   function orgFit(){
     var sw=oStage.clientWidth, sh=oStage.clientHeight, tw=oTree.scrollWidth, th=oTree.scrollHeight; if(!tw||!th) return;
-    var s=Math.min((sw-60)/tw,(sh-120)/th,1); ORG.s=Math.max(s,.2); ORG.x=(sw-tw*ORG.s)/2; ORG.y=70; orgApply();
+    var s=Math.min((sw-60)/tw,(sh-120)/th,1); ORG.s=Math.max(s,.45); ORG.x=(sw-tw*ORG.s)/2; ORG.y=70; orgApply();
   }
   function orgCenter(id,scale){
     var el=oTree.querySelector('.ocard[data-id="'+id+'"]'); if(!el) return;
@@ -584,11 +596,11 @@ li.col .tog svg{transform:rotate(-90deg)}
   })();
   oTree.addEventListener('click',function(e){
     var tg=e.target.closest('[data-tog]'); if(tg){ e.stopPropagation(); var li=oTree.querySelector('li[data-id="'+tg.getAttribute('data-tog')+'"]'); if(li){ li.classList.toggle('col'); ORG.open[tg.getAttribute('data-tog')]=!li.classList.contains('col'); } return; }
-    var c=e.target.closest('.ocard'); if(c) open(c.getAttribute('data-id'));
+    var c=e.target.closest('.ocard'); if(c&&c.getAttribute('data-id')!=='__loose') open(c.getAttribute('data-id'));
   });
   $('oIn').onclick=function(){ orgZoom(1.2); }; $('oOut').onclick=function(){ orgZoom(0.83); }; $('oFit').onclick=orgFit;
   $('oExpand').onclick=function(){ PEOPLE.forEach(function(p){ ORG.open[p.id]=true; }); orgBuild(); requestAnimationFrame(orgFit); };
-  $('oCollapse').onclick=function(){ ORG.open={}; PEOPLE.forEach(function(p){ if(p.managerId&&BY_ID[p.managerId]) ORG.open[p.id]=false; }); orgBuild(); requestAnimationFrame(orgFit); };
+  $('oCollapse').onclick=function(){ ORG.open={__loose:false}; PEOPLE.forEach(function(p){ if(p.managerId&&BY_ID[p.managerId]) ORG.open[p.id]=false; }); orgBuild(); requestAnimationFrame(orgFit); };
   var odeb; $('oq').addEventListener('input',function(){ clearTimeout(odeb); var v=this.value; odeb=setTimeout(function(){ ORG.q=v; orgApplyQ(); },120); });
   window.addEventListener('resize',function(){ if(document.body.classList.contains('org')) orgFit(); });
   $('tGrid').addEventListener('click',function(){ setMode(false); });
