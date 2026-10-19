@@ -1978,6 +1978,51 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 .v2-top-note a{color:#111}
 .v2-top-foot{grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);margin-top:4px}
 @media (max-width:760px){.v2-podium{grid-template-columns:1fr}.v2-pod.gold{order:-1}}
+
+/* DEPTH_v1: lighting, layered shadows and a dark stage for the podium */
+#v2Top{position:relative;isolation:isolate;margin-top:40px;padding:34px 34px 30px;border-radius:24px;color:#fff;overflow:hidden;
+  background:radial-gradient(900px 420px at 50% -10%,#2a2d4a 0%,#14152a 45%,#0b0c17 100%);
+  box-shadow:0 40px 80px -40px rgba(13,14,26,.75),inset 0 1px 0 rgba(255,255,255,.06)}
+#v2Top::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(420px 260px at 50% 38%,rgba(255,200,0,.28),transparent 70%),
+             radial-gradient(260px 160px at 18% 70%,rgba(255,255,255,.05),transparent 70%),
+             radial-gradient(260px 160px at 82% 70%,rgba(255,255,255,.05),transparent 70%)}
+#v2Top::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:44px 44px;
+  mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent);-webkit-mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent)}
+#v2Top .v2-eyebrow{color:var(--gold);text-shadow:0 0 18px rgba(255,200,0,.45)}
+#v2Top .v2-h2{color:#fff}
+#v2Top .v2-btn.ghost{background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.22)}
+#v2Top .v2-btn.ghost:hover{border-color:var(--gold);background:rgba(255,200,0,.12)}
+#v2Top .v2-podium{padding-top:14px}
+.v2-pod{border:1px solid rgba(255,255,255,.75);background:linear-gradient(180deg,#ffffff 0%,#f7f5ee 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 24px 50px -24px rgba(0,0,0,.85),0 8px 18px -10px rgba(0,0,0,.6)}
+.v2-pod::after{content:"";position:absolute;left:12%;right:12%;bottom:-18px;height:18px;border-radius:50%;background:radial-gradient(50% 100% at 50% 0,rgba(0,0,0,.45),transparent 70%);filter:blur(4px);z-index:-1}
+.v2-pod:hover,.v2-pod:focus-visible{transform:translateY(-5px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 34px 60px -26px rgba(0,0,0,.9),0 0 0 1px rgba(255,213,19,.35)}
+.v2-pod .av{box-shadow:inset 0 -6px 10px rgba(0,0,0,.14),inset 0 2px 3px rgba(255,255,255,.7),0 6px 14px -6px rgba(0,0,0,.5)}
+.v2-pod.gold{background:linear-gradient(180deg,#fffdf1 0%,#fff6cc 100%);border-color:rgba(255,213,19,.9);
+  box-shadow:0 1px 0 rgba(255,255,255,1) inset,0 0 0 1px rgba(255,200,0,.5),0 0 60px -10px rgba(255,200,0,.55),0 36px 70px -30px rgba(0,0,0,.9)}
+.v2-pod.gold::before{content:"";position:absolute;inset:-1px;border-radius:17px;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(255,200,0,.2) 40%,rgba(255,200,0,.9));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.v2-pod.gold .av{background:radial-gradient(circle at 35% 30%,#fff2a8,#FFC800 55%,#d9a600);box-shadow:0 0 0 5px rgba(255,200,0,.22),0 0 30px rgba(255,200,0,.6),inset 0 -6px 10px rgba(0,0,0,.14)}
+.v2-pod.gold .amt{background:linear-gradient(180deg,#8a6a10,#B8912E 50%,#6f5200);-webkit-background-clip:text;background-clip:text;color:transparent}
+.v2-pod.silver .av{background:radial-gradient(circle at 35% 30%,#ffffff,#d9d9d9 55%,#9e9e9e)}
+.v2-pod.bronze .av{background:radial-gradient(circle at 35% 30%,#f3cfae,#c98a5a 55%,#8f5630)}
+.v2-pod .mv{box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+#v2Top .v2-top-foot{color:rgba(255,255,255,.55)}
+#v2Top .v2-top-note{color:rgba(255,255,255,.7)}#v2Top .v2-top-note a{color:#fff}
+/* who-do-I-ask cards: light from top-left, key + ambient shadow, glossy icon chip */
+.v2-hc{border:1px solid rgba(255,255,255,.9);background:linear-gradient(165deg,#ffffff 0%,#fbfaf5 60%,#f5f2e9 100%);
+  box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(20,18,10,.06),0 12px 28px -18px rgba(20,18,10,.35),0 30px 50px -40px rgba(20,18,10,.35)}
+.v2-hc::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(20,18,10,.06)}
+.v2-hc:hover{box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(20,18,10,.06),0 22px 44px -20px rgba(20,18,10,.45),0 0 0 1px rgba(255,200,0,.55)}
+.v2-hc .ic{background:radial-gradient(circle at 30% 25%,#fffdf0,#ffe98a 55%,#f3c400);color:#5e4700;box-shadow:inset 0 -4px 8px rgba(0,0,0,.08),inset 0 1px 2px rgba(255,255,255,.9),0 6px 14px -6px rgba(255,200,0,.6)}
+.v2-hc .av{box-shadow:inset 0 -5px 8px rgba(0,0,0,.35),inset 0 1px 1px rgba(255,255,255,.15),0 6px 12px -6px rgba(0,0,0,.6)}
+.v2-hc .acts a{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(20,18,10,.08)}
+.v2-hc .acts a.tm{background:linear-gradient(180deg,#ffd84d,#FFC800);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 6px 14px -8px rgba(255,200,0,.9)}
+.v2-hc .acts a.tm:hover{background:linear-gradient(180deg,#ffe066,#ffcf1a)}
+.v2-hc.priv{background:linear-gradient(165deg,#fffef6 0%,#fff8dc 100%);box-shadow:inset 0 1px 0 #fff,0 12px 28px -18px rgba(184,145,46,.45),0 0 0 1px rgba(255,200,0,.35)}
+.v2-help-nav button{box-shadow:inset 0 1px 0 #fff,0 2px 6px -2px rgba(20,18,10,.25)}
+@media (max-width:760px){#v2Top{padding:26px 18px 24px;border-radius:18px}}
 /* 1t) Who do I ask? (HELP_ROUTES_v1) */
 #v2Help .v2-btn.ghost,#v2Top .v2-btn.ghost{color:#111;background:#fff;border:1px solid var(--line)}
 #v2Help .v2-btn.ghost:hover,#v2Top .v2-btn.ghost:hover{border-color:var(--gold);background:#fffbe6}
@@ -2391,7 +2436,7 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   main.appendChild(f);
  }
  /* order: hero, quick actions, celebrations, news, pulse, academy, values, my day (calendar + dashboard), footer */
- ['.hero','.qa','#v2Help','#v2Top','.kpis','#celebWrap','.news','#pulse','#v2Academy','#v2Values','#v2MyDay','#calBand','#dashPage','#v2Footer'].forEach(function(sel){
+ ['.hero','.qa','#v2Top','#v2Help','.kpis','#celebWrap','.news','#pulse','#v2Academy','#v2Values','#v2MyDay','#calBand','#dashPage','#v2Footer'].forEach(function(sel){
   var el=main.querySelector(':scope > '+sel); if(el) main.appendChild(el);
  });
  main.addEventListener('click',function(e){var b=e.target.closest('[data-nav]'); if(b){e.preventDefault(); nav(b.getAttribute('data-nav'));}});
