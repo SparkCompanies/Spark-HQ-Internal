@@ -63,6 +63,12 @@ main{padding:26px 40px 60px}
 .card:focus-visible{border-color:var(--gold)}
 .card::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:0 3px 3px 0;background:var(--c);opacity:.85}
 .who{display:flex;gap:12px;align-items:center;min-width:0}
+
+/* PHOTOS_v1: M365 profile photos drop into the initials circles when someone has one */
+.av{position:relative;overflow:hidden}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.ph .av::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 2px var(--c);pointer-events:none}
+@media print{.av img{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .av{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 55%,transparent)}
 .nm{font-weight:600;font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt{color:var(--muted);font-size:13px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
@@ -332,6 +338,18 @@ li.col .tog svg{transform:rotate(-90deg)}
     return Promise.resolve(null);
   }
 
+  /* PHOTOS_v1: hydrate any avatar that carries an email; memoised per address, 204 = no photo (initials stay) */
+  (function(){
+    var memo={};
+    function photo(em){ em=String(em||'').toLowerCase().trim(); if(!em) return Promise.resolve(null); if(memo[em]) return memo[em];
+      memo[em]=getToken().then(function(tok){ if(!tok) return null; return fetch(WORKER+'/photo?email='+encodeURIComponent(em),{headers:{Authorization:'Bearer '+tok}}).then(function(r){ if(r.status!==200) return null; return r.blob().then(function(b){ return b.size>100?URL.createObjectURL(b):null; }); }); }).catch(function(){ return null; });
+      return memo[em]; }
+    function hydrate(root){ var els=(root||document).querySelectorAll('.av[data-pe]'); for(var i=0;i<els.length;i++){ (function(a){ if(a.getAttribute('data-ph')) return; a.setAttribute('data-ph','1'); photo(a.getAttribute('data-pe')).then(function(u){ if(u&&!a.querySelector('img')){ var im=new Image(); im.alt=''; im.src=u; a.appendChild(im); } }); })(els[i]); } }
+    window.__dirPhotos=hydrate;
+    var pending=false; new MutationObserver(function(){ if(pending) return; pending=true; requestAnimationFrame(function(){ pending=false; hydrate(document); }); }).observe(document.body,{childList:true,subtree:true});
+    hydrate(document);
+  })();
+
   function load(){
     getToken().then(function(tok){
       if(!tok) throw new Error('signin');
@@ -385,7 +403,7 @@ li.col .tog svg{transform:rotate(-90deg)}
 
   function card(p){
     return '<div class="card" tabindex="0" data-id="'+esc(p.id)+'" style="--c:'+p.c+'">'+
-      '<div class="who"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
+      '<div class="who"><div class="av" data-pe="'+esc(p.email||'')+'">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
       '<div class="tt">'+esc(p.title||'—')+'</div><span class="pmail">'+esc(p.email)+'</span>'+
       (p.mobile||p.phone?'<div class="phn">'+IC.phone+'<a href="tel:'+esc((p.mobile||p.phone).replace(/[^+\d]/g,''))+'" data-stop>'+esc(p.mobile||p.phone)+'</a></div>':'')+
       '<div class="foot"><span class="tag"><span class="dot"></span>'+esc(orgLine(p))+'</span>'+
@@ -410,7 +428,7 @@ li.col .tog svg{transform:rotate(-90deg)}
   }
 
   function personRow(p){
-    return '<div class="row" data-id="'+esc(p.id)+'" style="--c:'+p.c+'"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div></div></div>';
+    return '<div class="row" data-id="'+esc(p.id)+'" style="--c:'+p.c+'"><div class="av" data-pe="'+esc(p.email||'')+'">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div></div></div>';
   }
 
   function open(id){
@@ -419,7 +437,7 @@ li.col .tog svg{transform:rotate(-90deg)}
     $('panel').style.setProperty('--c',p.c);
     $('panel').innerHTML=
       '<div class="ph"><button class="ib x" id="px" aria-label="Close">'+IC.x+'</button>'+
-        '<div class="av">'+esc(initials(p.name))+'</div><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div>'+
+        '<div class="av" data-pe="'+esc(p.email||'')+'">'+esc(initials(p.name))+'</div><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div>'+
         '<div class="tag"><span class="dot"></span>'+esc(orgLine(p))+'</div>'+
         '<div class="pacts"><a class="btn gold" href="mailto:'+esc(p.email)+'">'+IC.mail+'Email</a><a class="btn" href="'+teams(p.email)+'" target="_blank" rel="noopener">'+IC.chat+'Teams</a><button class="btn" data-copy="'+esc(p.email)+'">'+IC.copy+'Copy</button>'+(CAN_EDIT?'<button class="btn" id="pedit">'+IC.edit+'Edit</button>':'')+'</div></div>'+
       '<div class="pb">'+
@@ -533,7 +551,7 @@ li.col .tog svg{transform:rotate(-90deg)}
   function orgCard(p){
     var kids=(REPORTS[p.id]||[]).length;
     return '<button type="button" class="ocard" data-id="'+esc(p.id)+'" style="--c:'+p.c+'">'+
-      '<div class="who"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
+      '<div class="who"><div class="av" data-pe="'+esc(p.email||'')+'">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
       '<div class="tt">'+esc(p.title||'\u2014')+'</div>'+
       '<div class="ol"><i></i>'+esc(orgLine(p))+'</div>'+
       (kids?'<span class="tog" data-tog="'+esc(p.id)+'" title="Show or hide this team">'+countBelow(p.id)+CHEV+'</span>':'')+
