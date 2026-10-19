@@ -1914,6 +1914,23 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/photo") {
+      // PHOTO_PROXY_v1: M365 profile photo for a Spark address (any signed-in user). 204 when the person has none.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const em = (url.searchParams.get("email") || "").toLowerCase().trim();
+      if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(em)) return json({ error: "email required" }, 400, origin);
+      const size = ["48x48", "64x64", "96x96", "120x120", "240x240"].indexOf(url.searchParams.get("size") || "") >= 0 ? url.searchParams.get("size") : "96x96";
+      try {
+        const token = await getGraphToken(env);
+        const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(em) + "/photos/" + size + "/$value", { headers: { "Authorization": "Bearer " + token } });
+        if (!r.ok) return new Response(null, { status: 204, headers: { ...corsHeaders(origin), "Cache-Control": "private, max-age=3600" } });
+        const buf = await r.arrayBuffer();
+        return new Response(buf, { status: 200, headers: { ...corsHeaders(origin), "Content-Type": r.headers.get("Content-Type") || "image/jpeg", "Cache-Control": "private, max-age=86400" } });
+      } catch (e) {
+        return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      }
+    }
     if (url.pathname === "/help-routes") {
       // HELP_ROUTES_v1 ("Who do I ask?"): need-based routing shown on Home + the header pill. Any signed-in user reads; admins edit.
       // Table: spark_hq_help_routes (id bigserial pk, slug text unique, topic text, blurb text, icon text, owner_email text, backup_email text, note text, how text, sort int default 100, updated_at timestamptz default now())
