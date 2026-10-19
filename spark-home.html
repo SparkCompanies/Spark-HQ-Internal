@@ -2112,6 +2112,18 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   hideJ(); setTimeout(hideJ,1500); setTimeout(hideJ,5000);
   if(window.MutationObserver) new MutationObserver(function(){ clearTimeout(window.__v2hj); window.__v2hj=setTimeout(hideJ,100); }).observe(dp,{childList:true,subtree:true}); })();
 
+ /* 1o) Quick Actions: Spark Commissions (SparkV7) tile, after Salesforce */
+ var qg2=document.querySelector('.qagrid');
+ if(qg2 && !document.getElementById('v2Commissions')){
+  var cm=document.createElement('div'); cm.className='qab'; cm.id='v2Commissions'; cm.setAttribute('role','link'); cm.setAttribute('tabindex','0');
+  cm.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 2v20"></path><path d="M17 6.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5S9.2 10 12 10s5 1.6 5 3.5S14.8 17 12 17s-5-1.6-5-3.5"></path></svg>Commissions';
+  var anc=document.getElementById('v2Salesforce')||document.getElementById('v2PluginBoard')||document.getElementById('v2Charge');
+  if(anc && anc.parentNode===qg2){ qg2.insertBefore(cm, anc.nextSibling); } else { qg2.appendChild(cm); }
+  var goCM=function(){ window.open('https://nice-beach-07b54f71e.4.azurestaticapps.net/','_blank','noopener'); };
+  cm.addEventListener('click',goCM);
+  cm.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goCM(); } });
+ }
+
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
   var a=document.createElement('section'); a.id='v2Academy'; a.className='v2-wrap'; a.setAttribute('aria-labelledby','v2AcH');
