@@ -1001,7 +1001,7 @@ async function getGraphToken(env) {
 }
 __name(getGraphToken, "getGraphToken");
 async function fetchDirectory(token) {
-  const select = "id,displayName,givenName,surname,mail,userPrincipalName,jobTitle,department,accountEnabled";
+  const select = "id,displayName,givenName,surname,mail,userPrincipalName,jobTitle,department,companyName,accountEnabled";
   let url = "https://graph.microsoft.com/v1.0/users?$select=" + select + "&$expand=manager($select=id)&$top=999";
   const out = [];
   for (let i = 0; i < 20 && url; i++) {
@@ -1842,6 +1842,7 @@ var worker_default = {
           email: (u.mail || u.userPrincipalName || "").toLowerCase(),
           title: u.jobTitle || "",
           department: u.department || "",
+          company: u.companyName || "",
           managerId: u.manager && u.manager.id || null,
           // signals used only to filter out shared/room/equipment mailboxes (dropped before sending)
           _hasName: !!(u.givenName && u.surname),
@@ -1953,6 +1954,7 @@ var worker_default = {
       const patch = {};
       if (typeof body.title === "string") patch.jobTitle = body.title.trim().slice(0, 128);
       if (typeof body.department === "string") patch.department = body.department.trim().slice(0, 64);
+      if (typeof body.company === "string") patch.companyName = body.company.trim().slice(0, 64);
       const hasMgr = Object.prototype.hasOwnProperty.call(body, "managerId");
       const managerId = hasMgr ? (body.managerId ? String(body.managerId).trim() : null) : undefined;
       if (hasMgr && managerId && !/^[0-9a-f-]{36}$/i.test(managerId)) return json({ error: "Invalid manager id" }, 400, origin);
