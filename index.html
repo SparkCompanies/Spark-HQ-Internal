@@ -6381,7 +6381,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="training"><span class="ico">▤</span>Training</button>
       <button class="nav-item" data-tab="standard"><span class="ico">★</span>Spark Standard</button>
       <button class="nav-item" data-tab="careers"><span class="ico">◈</span>Career Paths</button>
-      <button class="nav-item" data-tab="people"><span class="ico">◍</span>Org Chart</button>
+      <button class="nav-item" data-tab="people"><span class="ico">◍</span>Directory</button>
       <button class="nav-item" data-tab="tools"><span class="ico">⊕</span>Software & Tools</button>
       
       <button class="nav-item nav-leadership" data-tab="leadership"><span class="ico">⛨</span>Leadership</button>
@@ -7925,12 +7925,15 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
             <div class="org-tagline">Live from Microsoft 365 · reporting lines, titles &amp; groups stay in sync with your directory</div>
           </div>
           <div class="org-controls">
+            <button class="org-btn" id="orgBackDir" onclick="dirShow()" title="Back to the people directory">&larr; Directory</button>
             <input type="search" id="orgSearch" class="org-search" placeholder="Find someone…" oninput="orgHighlight()" />
             <button class="org-btn" onclick="orgZoom(1.15)">+</button>
             <button class="org-btn" onclick="orgZoom(0.87)">−</button>
             <button class="org-btn" onclick="orgResetView()">Reset</button>
           </div>
         </div>
+        <!-- DIRECTORY_TAB_v1: new people directory (spark-directory.html) sits over the org chart; "Org chart" in the directory flips to the tree -->
+        <iframe id="dirFrame" data-src="spark-directory.html" title="Spark Directory" style="position:absolute;inset:0;width:100%;height:100%;border:0;z-index:7;background:#faf9f6;"></iframe>
         <div class="org-status" id="orgStatus">Loading the directory…</div>
         <div class="org-stage" id="orgStage">
           <div class="org-world" id="orgWorld"></div>
@@ -10215,8 +10218,29 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   // (roles panel now lives in admin -> people-admin; loaded via switchAdminTab hook)
   // load the 3D org chart whenever the People tab is opened
   document.querySelectorAll('.nav-item[data-tab="people"]').forEach(function(btn){
-    btn.addEventListener('click', function(){ setTimeout(window.orgLoad, 80); });
+    btn.addEventListener('click', function(){ window.dirShow(); });
   });
+  /* DIRECTORY_TAB_v1 */
+  window.dirShow = function() {
+    var f = document.getElementById('dirFrame'); if (!f) return;
+    if (!f.getAttribute('src')) f.setAttribute('src', f.getAttribute('data-src'));
+    f.style.display = '';
+  };
+  window.dirShowOrg = function(name) {
+    var f = document.getElementById('dirFrame'); if (f) f.style.display = 'none';
+    try { window.orgLoad(); } catch(e) {}
+    var q = document.getElementById('orgSearch');
+    if (q) { q.value = name || ''; }
+    var tries = 0; (function wait(){
+      var N = (typeof ORG_NODES !== 'undefined' && ORG_NODES) || {}; if (Object.keys(N).length) { try { orgResetView(); orgHighlight(); } catch(e) {} if (name) { var hit = Object.keys(N).map(function(id){ return N[id]; }).filter(function(el){ return el.classList.contains('match'); })[0]; if (hit && hit.scrollIntoView) { try { hit.scrollIntoView({ block: 'center', inline: 'center' }); } catch(e) {} } } return; }
+      if (++tries < 60) setTimeout(wait, 150);
+    })();
+  };
+  window.addEventListener('message', function(e) {
+    var d = e.data || {};
+    if (d.type === 'spark-dir-org') { try { window.dirShowOrg(d.name || ''); } catch(err) {} }
+  });
+  window.addEventListener('hashchange', function(){ if (location.hash === '#people' || location.hash === '#directory') { var b = document.querySelector('.nav-item[data-tab="people"]'); if (b) b.click(); } });
 
 
   // ==================== V15 — NEON ORG CHART ENGINE ====================
