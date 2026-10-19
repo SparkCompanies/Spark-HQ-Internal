@@ -1946,6 +1946,14 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 .v2-social a:hover,.v2-social a:focus-visible{transform:translateY(-2px);background:rgba(255,200,0,.14);border-color:#FFD513;box-shadow:0 0 18px -2px rgba(255,213,19,.55);outline:none}
 .v2-social a:hover i,.v2-social a:focus-visible i{color:#FFD513}
 @media (max-width:760px){.v2-topcol{align-items:flex-start}.v2-social .lbl{display:none}}
+/* 1q) Footer: portfolio logo strip + copyright */
+#v2Footer .v2-port{position:relative;max-width:1400px;margin:0 auto;padding:22px 30px 26px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+#v2Footer .v2-port .lbl{font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-right:6px;white-space:nowrap}
+#v2Footer .v2-port a{display:flex;align-items:center;height:34px;opacity:.72;transition:opacity .18s,filter .18s,transform .18s}
+#v2Footer .v2-port a img{height:30px;width:auto;max-width:170px;display:block;filter:brightness(0) invert(1)}
+#v2Footer .v2-port a:hover,#v2Footer .v2-port a:focus-visible{opacity:1;transform:translateY(-2px);filter:drop-shadow(0 0 10px rgba(255,213,19,.55));outline:none}
+#v2Footer .fb .v2-copy b{color:rgba(255,255,255,.85);font-weight:600}
+#v2Footer .fb .v2-copy sup{color:var(--gold);font-size:9px;vertical-align:top;position:relative;top:1px}
 </style>
 <script id="homeV2js">
 (function(){
@@ -2151,6 +2159,23 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   }).join('');
   col.appendChild(so);
  }
+
+ /* 1q) Footer: portfolio logo strip (same files sparkcompanies.com uses) and the proper copyright line */
+ setTimeout(function(){
+  var ft=document.getElementById('v2Footer'); if(!ft || ft.querySelector('.v2-port')) return;
+  var fb=ft.querySelector('.fb');
+  var PORT=[
+   ['Spark Talent Acquisition','https://www.sparktalentinc.com/','https://www.sparkcompanies.com/wp-content/uploads/2023/09/crop_sparktalent.webp'],
+   ['Flex Workforce Solutions','https://www.flexworkforceco.com/','https://www.sparkcompanies.com/wp-content/uploads/2023/12/flexworkforceco-2.webp'],
+   ['Spark Packaging','https://sparkpackaginginc.com/','https://www.sparkcompanies.com/wp-content/uploads/2023/09/crop_sparkpackaging.webp'],
+   ['Ignite Search','https://www.ignitesearch.com/','https://www.sparkcompanies.com/wp-content/uploads/2023/09/crop_ignitesearch.webp'],
+   ['John Joseph Partners','https://johnjosephpartners.com/','https://www.sparkcompanies.com/wp-content/uploads/2023/09/crop_jjp.webp']
+  ];
+  var strip=document.createElement('div'); strip.className='v2-port';
+  strip.innerHTML='<span class="lbl">Our portfolio</span>'+PORT.map(function(x){ return '<a href="'+x[1]+'" target="_blank" rel="noopener" title="'+x[0]+'"><img src="'+x[2]+'" alt="'+x[0]+'" loading="lazy"></a>'; }).join('');
+  if(fb) ft.insertBefore(strip, fb); else ft.appendChild(strip);
+  if(fb){ var sp=fb.querySelectorAll('span'); var last=sp[sp.length-1]; if(last){ last.className='v2-copy'; last.innerHTML='\u00a9 '+new Date().getFullYear()+' <b>Spark Companies<sup>\u00ae</sup></b>. All rights reserved.'; } }
+ },0);
 
  /* 2) Spark Academy band */
  if(!document.getElementById('v2Academy')){
