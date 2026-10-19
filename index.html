@@ -6333,6 +6333,82 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 .celeb-empty{font-size:12px;color:var(--muted-light);padding:2px 0 4px}
 </style>
 <style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><script>/* M365_BELL_v1 config: Entra app registration (SPA) client ID for "Spark HQ". Leave empty until the app exists. */window.HQ_GRAPH_CLIENT_ID = '6562a89e-5889-4a86-9aba-ed29eef1fc03';</script>
+
+<style id="helpRoutes">/* HELP_ROUTES_v1: "Need help?" pill in the top bar + slide-over, and the admin editor */
+.help-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 12.5px 'Jost',sans-serif;padding:7px 12px 7px 10px;border-radius:999px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;white-space:nowrap}
+.help-pill svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:#B8912E}
+.help-pill:hover{border-color:#FFC800;box-shadow:0 0 0 3px rgba(255,200,0,.18)}
+@media (max-width:640px){.help-pill span{display:none}.help-pill{padding:7px 9px}}
+#hqHelpOver{position:fixed;inset:0;z-index:9000;display:none}
+#hqHelpOver.on{display:block}
+#hqHelpOver .bd{position:absolute;inset:0;background:rgba(13,14,26,.45);backdrop-filter:blur(2px)}
+#hqHelpOver .pn{position:absolute;top:0;right:0;bottom:0;width:min(560px,100%);background:#faf9f6;box-shadow:-30px 0 60px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.8,.2,1)}
+#hqHelpOver.on .pn{transform:none}
+#hqHelpOver .hd{background:#0d0e1a;color:#fff;padding:22px 24px 18px;position:relative;overflow:hidden}
+#hqHelpOver .hd::after{content:"";position:absolute;right:-40px;top:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,0,.28),transparent 65%);pointer-events:none}
+#hqHelpOver .hd .ey{font-size:11px;letter-spacing:.24em;color:#FFC800;font-weight:600;margin:0 0 6px}
+#hqHelpOver .hd h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+#hqHelpOver .hd p{margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.7)}
+#hqHelpOver .x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;cursor:pointer;display:grid;place-items:center;font-size:18px;line-height:1;z-index:1}
+#hqHelpOver .x:hover{border-color:#FFC800;color:#FFC800}
+#hqHelpOver .ls{flex:1;overflow:auto;padding:18px 20px 28px;display:grid;gap:12px;align-content:start}
+#hqHelpOver .v2-hc{background:#fff;border:1px solid #e7e4dc;border-radius:14px;padding:14px 16px 12px;display:grid;grid-template-columns:38px 1fr;gap:4px 12px}
+#hqHelpOver .v2-hc .ic{width:38px;height:38px;border-radius:11px;background:#fff6cc;color:#7a5d00;display:grid;place-items:center;grid-row:1/3}
+#hqHelpOver .v2-hc .ic svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#hqHelpOver .v2-hc .tp{font-weight:700;font-size:14.5px;color:#111;line-height:1.25}
+#hqHelpOver .v2-hc .bl{font-size:12px;color:#6b6a64;line-height:1.4}
+#hqHelpOver .v2-hc .who{grid-column:2;display:flex;align-items:center;gap:9px;margin-top:8px}
+#hqHelpOver .v2-hc .av{width:30px;height:30px;border-radius:50%;background:#0d0e1a;color:#FFD513;display:grid;place-items:center;font-weight:700;font-size:11px;flex:none}
+#hqHelpOver .v2-hc .nm{font-weight:600;font-size:13px;color:#111;line-height:1.2}
+#hqHelpOver .v2-hc .rl{font-size:11px;color:#6b6a64}
+#hqHelpOver .v2-hc .acts{grid-column:2;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#hqHelpOver .v2-hc .acts a{display:inline-flex;align-items:center;gap:6px;font:600 12px 'Jost',sans-serif;padding:6px 10px;border-radius:8px;text-decoration:none;color:#111;background:#f4f2ec;border:1px solid transparent}
+#hqHelpOver .v2-hc .acts a:hover{background:#fff;border-color:rgba(255,200,0,.7)}
+#hqHelpOver .v2-hc .acts a.tm{background:#FFC800}
+#hqHelpOver .v2-hc .acts a svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#hqHelpOver .v2-hc .bk{grid-column:2;font-size:11.5px;color:#6b6a64;margin-top:6px}
+#hqHelpOver .v2-hc .bk b{color:#3b3527;font-weight:600}
+#hqHelpOver .v2-hc.priv{background:linear-gradient(180deg,#fffdf3,#fff8dc);border-color:rgba(255,200,0,.5)}
+#hqHelpOver .v2-hc.priv .ic{background:#FFC800;color:#111}
+#hqHelpOver .nt{color:#6b6a64;font-size:13.5px;padding:24px;text-align:center}
+</style>
+<script>/* HELP_ROUTES_v1: shared renderer for the slide-over; the Admin editor lives further down */
+(function(){
+  var W='https://spark-hq-worker.sparkcompanies.workers.dev';
+  var HI={laptop:'M3 5h18v11H3zM2 19h20M9 16v3M15 16v3',payroll:'M3 7h18v10H3zM12 9.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5M6 12h.01M18 12h.01',benefits:'M12 21s-7-4.4-9-9.2C1.6 8 4 5 7 5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3 0 5.4 3 4 6.8C19 16.6 12 21 12 21z',onboarding:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M19 8v6M22 11h-6',expense:'M6 2h9l5 5v15H6zM14 2v6h6M9 13h6M9 17h6M12 11v8',salesforce:'M7 17a4 4 0 110-8 5 5 0 019.6-1.5A4 4 0 1117 17z',legal:'M12 3v18M5 7h14M5 7l-3 7a3 3 0 006 0zM19 7l-3 7a3 3 0 006 0zM8 21h8',office:'M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 10h.01M15 10h.01M9 13h.01M15 13h.01',hr:'M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6zM9.5 12l2 2 3.5-4',help:'M12 22a10 10 0 100-20 10 10 0 000 20M9.5 9.5a2.5 2.5 0 015 0c0 1.6-2.5 2-2.5 3.5M12 17h.01'};
+  var esc=function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var sv=function(d){ return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+d+'"/></svg>'; };
+  var ini=function(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); };
+  var first=function(n){ return String(n||'').trim().split(/\s+/)[0]||''; };
+  window.hqHelpCard=function(r){
+    var o=r.owner||{}, b=r.backup;
+    var teams='https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(o.email||'');
+    return '<div class="v2-hc'+(r.how==='private'?' priv':'')+'"><div class="ic">'+sv(HI[r.icon]||HI.help)+'</div><div class="tp">'+esc(r.topic)+'</div><div class="bl">'+esc(r.blurb||'')+'</div>'+
+      (o.email?'<div class="who"><span class="av">'+esc(ini(o.name))+'</span><div style="min-width:0"><div class="nm">'+esc(o.name)+'</div><div class="rl">'+esc(o.title||'')+'</div></div></div>'+
+      '<div class="acts"><a class="tm" href="'+teams+'" target="_blank" rel="noopener">'+sv('M4 5h16v11H8l-4 4z')+'Message '+esc(first(o.name))+'</a><a href="mailto:'+esc(o.email)+'">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'Email</a>'+(o.mobile||o.phone?'<a href="tel:'+esc(String(o.mobile||o.phone).replace(/[^+\d]/g,''))+'">'+sv('M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2')+'Call</a>':'')+'</div>':'<div class="bk">No owner set yet</div>')+
+      (b&&b.email?'<div class="bk">Out? Ask <b>'+esc(b.name)+'</b>'+(r.note?' · '+esc(r.note):'')+'</div>':(r.note?'<div class="bk">'+esc(r.note)+'</div>':''))+'</div>';
+  };
+  window.hqHelpFetch=function(){
+    var get=function(t){ return fetch(W+'/help-routes',{headers:t?{Authorization:'Bearer '+t}:{}}).then(function(r){ return r.json(); }); };
+    var p=(window.SPARK_SB&&window.SPARK_SB.getToken)?Promise.resolve(window.SPARK_SB.getToken()):Promise.resolve('');
+    return p.then(get).then(function(j){ if(!(j&&j.ok)) throw new Error((j&&j.error)||'Could not load'); try{ localStorage.setItem('v2HelpCache',JSON.stringify({ts:Date.now(),rows:j.rows})); }catch(e){} return j.rows||[]; });
+  };
+  function ensure(){
+    if(document.getElementById('hqHelpOver')) return;
+    var o=document.createElement('div'); o.id='hqHelpOver'; o.setAttribute('role','dialog'); o.setAttribute('aria-modal','true'); o.setAttribute('aria-labelledby','hqHelpH');
+    o.innerHTML='<div class="bd" onclick="hqHelpClose()"></div><div class="pn"><div class="hd"><button type="button" class="x" onclick="hqHelpClose()" aria-label="Close">&times;</button><p class="ey">WHO DO I ASK?</p><h2 id="hqHelpH">Need something? Start here.</h2><p>Pick what you need. Message the owner in Teams, or email or call them.</p></div><div class="ls" id="hqHelpList"><div class="nt">Loading…</div></div></div>';
+    document.body.appendChild(o);
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&o.classList.contains('on')) hqHelpClose(); });
+  }
+  window.hqHelpOpen=function(){
+    ensure(); var o=document.getElementById('hqHelpOver'), ls=document.getElementById('hqHelpList');
+    o.classList.add('on'); document.body.style.overflow='hidden';
+    try{ var c=JSON.parse(localStorage.getItem('v2HelpCache')||'null'); if(c&&c.rows&&c.rows.length) ls.innerHTML=c.rows.map(hqHelpCard).join(''); }catch(e){}
+    hqHelpFetch().then(function(rows){ ls.innerHTML=rows.length?rows.map(hqHelpCard).join(''):'<div class="nt">Nothing set up yet.</div>'; }).catch(function(e){ if(!ls.querySelector('.v2-hc')) ls.innerHTML='<div class="nt">Couldn’t load the list: '+esc(e.message||e)+'</div>'; });
+  };
+  window.hqHelpClose=function(){ var o=document.getElementById('hqHelpOver'); if(o) o.classList.remove('on'); document.body.style.overflow=''; };
+})();
+</script>
 <style id="m365Bell">/* M365_BELL_v1: bell sits at the left of the top bar, so the dropdown opens to the right */.notif-dropdown{left:0 !important;right:auto !important}</style>
 <style id="hideJarvis">/* HIDE_JARVIS_v1: Jarvis hidden for now (remove this block to bring it back) */.nav-item.nav-jarvis,#jn-sphere,#topSearch{display:none !important}</style>
 </head>
@@ -6415,6 +6491,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
         </div>
       </div>
       <div class="right">
+        <button type="button" class="help-pill" id="helpPill" onclick="hqHelpOpen()" aria-haspopup="dialog" title="Who do I ask?"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M4.9 4.9l4.6 4.6M14.5 14.5l4.6 4.6M19.1 4.9l-4.6 4.6M9.5 14.5l-4.6 4.6"/></svg><span>Need help?</span></button>
         <div class="notif-wrap">
           <button class="notif-btn" onclick="toggleNotif(event)" aria-label="Notifications">
             <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7v4.586l-1.707 1.707A1 1 0 0 0 4 17h16a1 1 0 0 0 .707-1.707L19 13.586V9a7 7 0 0 0-7-7zm0 19a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z"/></svg>
@@ -8224,6 +8301,9 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="signin-log">
             <span>Sign-in log</span>
           </button>
+          <button class="admin-subnav-item" data-admin-tab="help-routes">
+            <span>Who to ask</span>
+          </button>
           <button class="admin-subnav-item" data-admin-tab="circuit-admin">
             <span>Circuit content</span>
           </button>
@@ -8233,6 +8313,51 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         <!-- HQ_ADMIN_TRIM_v1: Content&SOPs / Security / Billing stub buttons removed -->
         <div class="admin-content">
 
+          <!-- HELP_ROUTES_v1 -->
+          <div class="admin-pane" data-admin-pane="help-routes" style="display:none;">
+            <div class="admin-hero">
+              <div class="eyebrow">People &middot; Routing</div>
+              <h2>Who to ask. <span style="color:var(--muted-light);">What shows on Home under &ldquo;Who do I ask?&rdquo; and behind the Need help? button.</span></h2>
+              <div class="dek">One row per need. Owner and backup are Microsoft 365 email addresses; names, titles and phone numbers are pulled live from the directory so this never goes stale.</div>
+            </div>
+            <div class="admin-section">
+              <div class="admin-section-head">
+                <h3>Topics</h3>
+                <div class="actions">
+                  <button class="btn-secondary" onclick="hrLoad()">Refresh</button>
+                  <button class="btn-primary" onclick="hrEdit(null)">Add a topic</button>
+                </div>
+              </div>
+              <div id="hrStatus" style="font-size:12px;color:var(--muted-light);margin:0 0 10px;">Loading&hellip;</div>
+              <div style="overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;">
+                <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+                  <thead><tr style="text-align:left;background:var(--paper);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">
+                    <th style="padding:10px 14px;">Order</th><th style="padding:10px 14px;">Need</th><th style="padding:10px 14px;">Owner</th><th style="padding:10px 14px;">Backup</th><th style="padding:10px 14px;">Icon</th><th style="padding:10px 14px;"></th>
+                  </tr></thead>
+                  <tbody id="hrBody"></tbody>
+                </table>
+              </div>
+              <div id="hrForm" style="display:none;margin-top:16px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;">
+                <h3 id="hrFormTitle" style="margin:0 0 12px;font-size:15px;">Add a topic</h3>
+                <input type="hidden" id="hr_id" />
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px;">
+                  <label style="font-size:12px;color:var(--muted);">Need (headline)<input id="hr_topic" placeholder="My laptop, email or password" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">One-line detail<input id="hr_blurb" placeholder="Microsoft 365, Teams, logins, new devices" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">Owner email<input id="hr_owner" type="email" placeholder="name@sparkcompanies.com" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">Backup email<input id="hr_backup" type="email" placeholder="optional" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">Icon<select id="hr_icon" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;"><option value="laptop">Laptop / IT</option><option value="payroll">Payroll</option><option value="benefits">Benefits</option><option value="onboarding">Onboarding</option><option value="expense">Expenses / invoices</option><option value="salesforce">Salesforce / cloud</option><option value="legal">Legal / compliance</option><option value="office">Office</option><option value="hr">HR / private</option><option value="help">General</option></select></label>
+                  <label style="font-size:12px;color:var(--muted);">Handled<select id="hr_how" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;"><option value="">Normally</option><option value="private">Privately (gold card)</option></select></label>
+                  <label style="font-size:12px;color:var(--muted);">Order<input id="hr_sort" type="number" min="0" max="999" value="100" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);grid-column:1/-1;">Note shown under the card<input id="hr_note" placeholder="optional, e.g. Payroll questions by Wednesday noon for Friday pay" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
+                  <button class="btn-primary" onclick="hrSave()">Save</button>
+                  <button class="btn-secondary" onclick="document.getElementById('hrForm').style.display='none'">Cancel</button>
+                  <span id="hrFormMsg" style="font-size:12px;color:var(--muted-light);"></span>
+                </div>
+              </div>
+            </div>
+          </div>
           <!-- ADMIN_SIGNIN_PANE_v1 -->
           <div class="admin-pane" data-admin-pane="signin-log" style="display:none;">
             <div class="admin-hero">
@@ -9761,6 +9886,61 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     if (tab === 'home-branding') { try { hbRenderPhotos(); } catch(e){} }
     if (tab === 'people-admin') { try { window.rpLoad(); } catch(e){} try { window.reLoad(); } catch(e){} }
     if (tab === 'signin-log') { try { window.slLoad(); } catch(e){} }
+    if (tab === 'help-routes') { try { window.hrLoad(); } catch(e){} }
+  };
+  /* HELP_ROUTES_v1: Admin → Who to ask */
+  var HR_ROWS = [];
+  window.hrLoad = function() {
+    var st = document.getElementById('hrStatus'); if (st) st.textContent = 'Loading…';
+    if (!window.hqHelpFetch) return;
+    window.hqHelpFetch().then(function(rows){ HR_ROWS = rows; window.hrRender(); })
+      .catch(function(e){ if (st) st.textContent = 'Could not load: ' + (e.message || e); });
+  };
+  window.hrRender = function() {
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var st = document.getElementById('hrStatus');
+    if (st) st.textContent = HR_ROWS.length ? HR_ROWS.length + ' topic' + (HR_ROWS.length === 1 ? '' : 's') + ' · shown in this order on Home' : 'No topics yet. Add the first one.';
+    var who = function(p, em){ return p && p.email ? esc(p.name) + '<div style="font-size:11px;color:var(--muted);">' + esc(p.title || p.email) + '</div>' : (em ? '<span style="color:#b42318;">' + esc(em) + ' (not in directory)</span>' : '<span style="color:var(--muted);">—</span>'); };
+    document.getElementById('hrBody').innerHTML = HR_ROWS.map(function(r, i){
+      return '<tr style="border-top:1px solid var(--line-light);">' +
+        '<td style="padding:10px 14px;color:var(--muted);font-variant-numeric:tabular-nums;">' + esc(r.sort) + '</td>' +
+        '<td style="padding:10px 14px;"><b>' + esc(r.topic) + '</b>' + (r.how === 'private' ? ' <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#7a5d00;background:#fff6cc;padding:2px 7px;border-radius:999px;">PRIVATE</span>' : '') + '<div style="font-size:11.5px;color:var(--muted);">' + esc(r.blurb || '') + '</div></td>' +
+        '<td style="padding:10px 14px;">' + who(r.owner, r.owner_email) + '</td>' +
+        '<td style="padding:10px 14px;">' + who(r.backup, r.backup_email) + '</td>' +
+        '<td style="padding:10px 14px;color:var(--muted);">' + esc(r.icon) + '</td>' +
+        '<td style="padding:10px 14px;white-space:nowrap;text-align:right;"><button class="btn-secondary" onclick="hrEdit(' + i + ')">Edit</button> <button class="btn-secondary" style="color:#b42318;" onclick="hrDelete(' + i + ')">Remove</button></td></tr>';
+    }).join('');
+  };
+  window.hrEdit = function(i) {
+    var r = (i == null) ? { sort: (HR_ROWS.length + 1) * 10, icon: 'help', how: '' } : HR_ROWS[i];
+    var v = function(id, val){ var el = document.getElementById(id); if (el) el.value = val == null ? '' : val; };
+    v('hr_id', r.id || ''); v('hr_topic', r.topic); v('hr_blurb', r.blurb); v('hr_owner', r.owner_email || (r.owner && r.owner.email)); v('hr_backup', r.backup_email || (r.backup && r.backup.email)); v('hr_icon', r.icon || 'help'); v('hr_how', r.how || ''); v('hr_sort', r.sort == null ? 100 : r.sort); v('hr_note', r.note);
+    document.getElementById('hrFormTitle').textContent = i == null ? 'Add a topic' : 'Edit “' + (r.topic || '') + '”';
+    document.getElementById('hrFormMsg').textContent = '';
+    var f = document.getElementById('hrForm'); f.style.display = ''; f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('hr_topic').focus();
+  };
+  window.hrSave = function() {
+    var g = function(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    var msg = document.getElementById('hrFormMsg');
+    var body = { id: g('hr_id') || undefined, topic: g('hr_topic'), blurb: g('hr_blurb'), owner_email: g('hr_owner'), backup_email: g('hr_backup'), icon: g('hr_icon'), how: g('hr_how'), sort: g('hr_sort'), note: g('hr_note') };
+    if (!body.topic) { msg.textContent = 'Give it a headline first.'; return; }
+    if (!body.id) body.slug = body.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    msg.textContent = 'Saving…';
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch('https://spark-hq-worker.sparkcompanies.workers.dev/help-routes', { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function(r){ return r.json(); });
+    }).then(function(j){
+      if (!j || !j.ok) throw new Error((j && (j.error + (j.detail ? ' — ' + (typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail)).slice(0, 160) : ''))) || 'Save failed');
+      msg.textContent = 'Saved.'; document.getElementById('hrForm').style.display = 'none'; window.hrLoad();
+    }).catch(function(e){ msg.textContent = 'Could not save: ' + (e.message || e); });
+  };
+  window.hrDelete = function(i) {
+    var r = HR_ROWS[i]; if (!r || !confirm('Remove “' + r.topic + '” from Who do I ask?')) return;
+    var st = document.getElementById('hrStatus'); if (st) st.textContent = 'Removing…';
+    window.SPARK_SB.getToken().then(function(tok){
+      return fetch('https://spark-hq-worker.sparkcompanies.workers.dev/help-routes?id=' + encodeURIComponent(r.id), { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + tok } }).then(function(x){ return x.json(); });
+    }).then(function(j){ if (!j || !j.ok) throw new Error((j && j.error) || 'Delete failed'); window.hrLoad(); })
+      .catch(function(e){ if (st) st.textContent = 'Could not remove: ' + (e.message || e); });
   };
   /* ADMIN_SIGNIN_PANE_v1 */
   var SL_ROWS = [];
@@ -13490,7 +13670,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
@@ -13625,7 +13805,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['team-progress','Team progress'], ['circuit-admin','Circuit content'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
-    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['content','Content'], ['security','Security & access'],
+    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
     ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
   ];
