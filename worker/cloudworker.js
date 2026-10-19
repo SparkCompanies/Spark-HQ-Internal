@@ -1869,10 +1869,12 @@ var worker_default = {
             "bolt accounting",
             "spark packaging payroll",
             "spark packaging accounting",
-            "spark payroll department"
+            "spark payroll department",
+            "training"
           ];
           const normName = (p.name || "").replace(/\s+/g, " ").trim().toLowerCase();
           if (EXCLUDE_NAMES.indexOf(normName) !== -1) return false;
+          if (/hiring event|job fair|open house/.test(normName)) return false;
           if (/\b(conference|training|meeting|board)\s+room$/.test(normName)) return false;
           if (/\broom$/.test(normName) && /\b(conf|conference|training|meeting|huddle)\b/.test(normName)) return false;
           const SHARED_EXACT = [
