@@ -103,6 +103,24 @@ main{padding:26px 40px 60px}
 .orgbtn{width:100%;justify-content:center;margin-top:4px;background:var(--night);border-color:var(--night)}
 .orgbtn:hover{background:#1c1e33}
 
+/* ---------- admin edit ---------- */
+.edit{display:none;background:#faf9f6;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:22px}
+.panel.editing .edit{display:block}
+.panel.editing .view-only{display:none}
+.edit .sl{margin-top:12px}
+.edit .sl:first-child{margin-top:0}
+.edit input,.edit select{width:100%;font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+.edit input:focus,.edit select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,200,0,.18)}
+.edit .ebtns{display:flex;gap:8px;margin-top:14px}
+.edit .ebtns .btn{flex:1;justify-content:center}
+.btn.dark{background:var(--night);color:#fff;border-color:var(--night)}
+.btn.dark:hover{background:#1c1e33}
+.btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:#f6f3ea}
+.btn[disabled]{opacity:.55;cursor:default}
+.enote{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.4}
+.eerr{font-size:12.5px;color:#b42318;background:#fef3f2;border:1px solid #fecdca;border-radius:8px;padding:8px 10px;margin-top:10px;display:none}
+
 .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--night);color:#fff;font-size:13px;padding:10px 16px;border-radius:10px;opacity:0;transition:all .2s;z-index:40;display:flex;align-items:center;gap:8px}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .toast svg{color:var(--gold)}
@@ -164,7 +182,8 @@ main{padding:26px 40px 60px}
   var assigned={};
   function colorFor(d){var k=(d||'Other').toLowerCase().trim(); if(DEPT_COLORS[k])return DEPT_COLORS[k]; if(!assigned[k])assigned[k]=FALLBACK[Object.keys(assigned).length%FALLBACK.length]; return assigned[k];}
 
-  var PEOPLE=[],BY_ID={},REPORTS={},state={q:'',dept:'',sort:'first'};
+  var PEOPLE=[],BY_ID={},REPORTS={},CAN_EDIT=false,state={q:'',dept:'',sort:'first'};
+  function rebuildReports(){ REPORTS={}; PEOPLE.forEach(function(p){ if(p.managerId&&BY_ID[p.managerId]) (REPORTS[p.managerId]=REPORTS[p.managerId]||[]).push(p); }); }
   var $=function(id){return document.getElementById(id)};
   function esc(s){return String(s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function initials(n){var p=String(n||'').trim().split(/\s+/);return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase()}
@@ -174,7 +193,8 @@ main{padding:26px 40px 60px}
     chat:'<svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 01-11.6 7.1L4 20l1-4.6A8 8 0 1121 12z"/></svg>',
     copy:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>',
     x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-    org:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>'
+    org:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>',
+    edit:'<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>'
   };
   function teams(e){return 'https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(e)}
 
@@ -193,7 +213,7 @@ main{padding:26px 40px 60px}
     }).then(function(d){
       PEOPLE=(d.people||[]).map(function(p){p.c=colorFor(p.department);p.hay=(p.name+' '+p.title+' '+p.department+' '+p.email).toLowerCase();return p;});
       PEOPLE.forEach(function(p){BY_ID[p.id]=p;});
-      PEOPLE.forEach(function(p){ if(p.managerId&&BY_ID[p.managerId]) (REPORTS[p.managerId]=REPORTS[p.managerId]||[]).push(p); });
+      rebuildReports(); CAN_EDIT=!!d.canEdit;
       var teamsN=Object.keys(PEOPLE.reduce(function(a,p){if(p.department)a[p.department]=1;return a;},{})).length;
       $('sub').innerHTML='<b>'+PEOPLE.length+'</b> people across <b>'+teamsN+'</b> teams · synced from Microsoft 365';
       chips(); render();
@@ -267,10 +287,11 @@ main{padding:26px 40px 60px}
       '<div class="ph"><button class="ib x" id="px" aria-label="Close">'+IC.x+'</button>'+
         '<div class="av">'+esc(initials(p.name))+'</div><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div>'+
         '<div class="tag"><span class="dot"></span>'+esc(p.department||'No team listed')+'</div>'+
-        '<div class="pacts"><a class="btn gold" href="mailto:'+esc(p.email)+'">'+IC.mail+'Email</a><a class="btn" href="'+teams(p.email)+'" target="_blank" rel="noopener">'+IC.chat+'Teams</a><button class="btn" data-copy="'+esc(p.email)+'">'+IC.copy+'Copy</button></div></div>'+
+        '<div class="pacts"><a class="btn gold" href="mailto:'+esc(p.email)+'">'+IC.mail+'Email</a><a class="btn" href="'+teams(p.email)+'" target="_blank" rel="noopener">'+IC.chat+'Teams</a><button class="btn" data-copy="'+esc(p.email)+'">'+IC.copy+'Copy</button>'+(CAN_EDIT?'<button class="btn" id="pedit">'+IC.edit+'Edit</button>':'')+'</div></div>'+
       '<div class="pb">'+
+        (CAN_EDIT?editForm(p):'')+
         '<div class="sec"><div class="sl">Email</div><a class="mail" href="mailto:'+esc(p.email)+'">'+esc(p.email)+'</a></div>'+
-        '<div class="sec"><div class="sl">Reports to</div>'+(mgr?personRow(mgr):'<div class="muted">No manager listed in Microsoft 365</div>')+'</div>'+
+        '<div class="sec view-only"><div class="sl">Reports to</div>'+(mgr?personRow(mgr):'<div class="muted">No manager listed in Microsoft 365</div>')+'</div>'+
         (reps.length?'<div class="sec"><div class="sl">Direct reports · '+reps.length+'</div>'+reps.map(personRow).join('')+'</div>':'')+
         '<div class="sec"><div class="sl">Teams &amp; distribution lists</div><div class="grps" id="pg"><span class="muted" style="background:none;border:0;padding:0">Loading…</span></div></div>'+
         '<button class="btn orgbtn" id="porg">'+IC.org+'Show in org chart</button>'+
@@ -282,6 +303,52 @@ main{padding:26px 40px 60px}
       return fetch(WORKER+'/groups?id='+encodeURIComponent(p.id),{headers:{Authorization:'Bearer '+tok}}).then(function(r){return r.json()});
     }).then(function(j){p._groups=(j&&j.groups)||[]; if($('pg')&&BY_ID[id]===p) groups(p._groups);}).catch(function(){ if($('pg')) $('pg').innerHTML='<span class="muted" style="background:none;border:0;padding:0">Couldn’t load groups</span>'; });
     $('porg').onclick=function(){ toOrg(p); };
+    if(CAN_EDIT) wireEdit(p);
+  }
+
+  /* ---------- admin edit: title / team / manager, written back to Microsoft 365 via the worker ---------- */
+  function descendants(id){ var out={}; (function walk(x){ (REPORTS[x]||[]).forEach(function(c){ if(!out[c.id]){out[c.id]=1; walk(c.id);} }); })(id); return out; }
+  function editForm(p){
+    var below=descendants(p.id);
+    var opts='<option value="">No manager</option>'+PEOPLE.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).filter(function(x){return x.id!==p.id&&!below[x.id]}).map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===p.managerId?' selected':'')+'>'+esc(x.name)+(x.title?' \u2014 '+esc(x.title):'')+'</option>'}).join('');
+    var depts=Object.keys(PEOPLE.reduce(function(a,x){if(x.department)a[x.department]=1;return a;},{})).sort();
+    return '<form class="edit" id="pform" autocomplete="off">'+
+      '<div class="sl">Job title</div><input id="e_title" value="'+esc(p.title||'')+'" placeholder="e.g. Sr. Recruiter" maxlength="128">'+
+      '<div class="sl">Team / department</div><input id="e_dept" list="e_depts" value="'+esc(p.department||'')+'" placeholder="e.g. Spark Talent" maxlength="64"><datalist id="e_depts">'+depts.map(function(d){return '<option value="'+esc(d)+'">'}).join('')+'</datalist>'+
+      '<div class="sl">Reports to</div><select id="e_mgr">'+opts+'</select>'+
+      '<div class="eerr" id="e_err"></div>'+
+      '<div class="ebtns"><button type="submit" class="btn dark" id="e_save">Save to Microsoft 365</button><button type="button" class="btn ghost" id="e_cancel">Cancel</button></div>'+
+      '<div class="enote">Changes write straight to this person\u2019s Microsoft 365 profile and show up in Outlook, Teams and the org chart within a few minutes.</div>'+
+    '</form>';
+  }
+  function wireEdit(p){
+    var panel=$('panel'), form=$('pform'), eb=$('pedit'); if(!form||!eb) return;
+    eb.onclick=function(){ panel.classList.toggle('editing'); if(panel.classList.contains('editing')) $('e_title').focus(); };
+    $('e_cancel').onclick=function(){ panel.classList.remove('editing'); };
+    form.onsubmit=function(ev){
+      ev.preventDefault();
+      var title=$('e_title').value.trim(), dept=$('e_dept').value.trim(), mgr=$('e_mgr').value||null;
+      var body={id:p.id};
+      if(title!==(p.title||'')) body.title=title;
+      if(dept!==(p.department||'')) body.department=dept;
+      if(mgr!==(p.managerId||null)) body.managerId=mgr;
+      if(Object.keys(body).length===1){ panel.classList.remove('editing'); return; }
+      var save=$('e_save'), err=$('e_err'); save.disabled=true; save.textContent='Saving\u2026'; err.style.display='none';
+      getToken().then(function(tok){
+        return fetch(WORKER+'/directory/update',{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||('HTTP '+r.status)); return j; })});
+      }).then(function(){
+        if('title' in body) p.title=body.title;
+        if('department' in body){ p.department=body.department; p.c=colorFor(p.department); }
+        if('managerId' in body) p.managerId=body.managerId;
+        p.hay=(p.name+' '+p.title+' '+p.department+' '+p.email).toLowerCase();
+        rebuildReports(); chips(); render();
+        panel.classList.remove('editing'); open(p.id); toast('Saved to Microsoft 365');
+      }).catch(function(e){
+        var m=String(e.message||e);
+        if(/403|Authorization_RequestDenied|Insufficient privileges/i.test(m)) m='Microsoft 365 refused the change. The worker\u2019s app needs the User.ReadWrite.All permission with admin consent.';
+        err.textContent=m; err.style.display='block'; save.disabled=false; save.textContent='Save to Microsoft 365';
+      });
+    };
   }
   function groups(g){ $('pg').innerHTML = g.length ? g.map(function(x){return '<span>'+esc(x.name)+'</span>'}).join('') : '<span class="muted" style="background:none;border:0;padding:0">None</span>'; }
   function close(){ $('panel').classList.remove('on'); $('panel').setAttribute('aria-hidden','true'); $('scrim').classList.remove('on'); try{history.replaceState(null,'',location.pathname+location.search);}catch(e){} }
