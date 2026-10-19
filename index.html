@@ -6384,7 +6384,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   window.hqHelpCard=function(r){
     var o=r.owner||{}, b=r.backup, mb=o.kind==='mailbox';
     var teams='https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(o.email||'');
-    var av=mb?'<span class="av" style="background:#fff6cc;color:#7a5d00">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'</span>':'<span class="av">'+esc(ini(o.name))+'</span>';
+    var av=mb?'<span class="av" style="background:#fff6cc;color:#7a5d00">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'</span>':'<span class="av" data-pe="'+esc(o.email)+'" style="overflow:hidden;position:relative">'+esc(ini(o.name))+'</span>';
     var acts=mb?'<a class="tm" href="mailto:'+esc(o.email)+'">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'Email '+esc(o.name)+'</a>':
       '<a class="tm" href="'+teams+'" target="_blank" rel="noopener">'+sv('M4 5h16v11H8l-4 4z')+'Message '+esc(first(o.name))+'</a><a href="mailto:'+esc(o.email)+'">'+sv('M3 6h18v12H3zM3 7l9 6 9-6')+'Email</a>'+(o.mobile||o.phone?'<a href="tel:'+esc(String(o.mobile||o.phone).replace(/[^+\d]/g,''))+'">'+sv('M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2')+'Call</a>':'');
     return '<div class="v2-hc'+(r.how==='private'?' priv':'')+'"><div class="ic">'+sv(HI[r.icon]||HI.help)+'</div><div class="tp">'+esc(r.topic)+'</div><div class="bl">'+esc(r.blurb||'')+'</div>'+
@@ -6392,6 +6392,10 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       '<div class="acts">'+acts+'</div>':'<div class="bk">No owner set yet</div>')+
       (b&&b.email?'<div class="bk">Out? Ask <b>'+esc(b.name)+'</b>'+(r.note?' · '+esc(r.note):'')+'</div>':(r.note?'<div class="bk">'+esc(r.note)+'</div>':''))+'</div>';
   };
+  var memo={};
+  window.hqPhoto=function(email){ email=String(email||'').toLowerCase().trim(); if(!email) return Promise.resolve(null); if(memo[email]) return memo[email];
+    memo[email]=Promise.resolve(window.SPARK_SB&&window.SPARK_SB.getToken?window.SPARK_SB.getToken():'').then(function(t){ if(!t) return null; return fetch(W+'/photo?email='+encodeURIComponent(email),{headers:{Authorization:'Bearer '+t}}).then(function(r){ if(r.status!==200) return null; return r.blob().then(function(b){ return b.size>100?URL.createObjectURL(b):null; }); }); }).catch(function(){ return null; }); return memo[email]; };
+  window.hqHelpHydrate=function(root){ [].forEach.call((root||document).querySelectorAll('#hqHelpOver .av[data-pe]'),function(a){ window.hqPhoto(a.getAttribute('data-pe')).then(function(u){ if(u&&!a.querySelector('img')){ var im=new Image(); im.alt=''; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%'; im.src=u; a.appendChild(im); } }); }); };
   window.hqHelpFetch=function(){
     var get=function(t){ return fetch(W+'/help-routes',{headers:t?{Authorization:'Bearer '+t}:{}}).then(function(r){ return r.json(); }); };
     var p=(window.SPARK_SB&&window.SPARK_SB.getToken)?Promise.resolve(window.SPARK_SB.getToken()):Promise.resolve('');
@@ -6408,7 +6412,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     ensure(); var o=document.getElementById('hqHelpOver'), ls=document.getElementById('hqHelpList');
     o.classList.add('on'); document.body.style.overflow='hidden';
     try{ var c=JSON.parse(localStorage.getItem('v2HelpCache')||'null'); if(c&&c.rows&&c.rows.length) ls.innerHTML=c.rows.map(hqHelpCard).join(''); }catch(e){}
-    hqHelpFetch().then(function(rows){ ls.innerHTML=rows.length?rows.map(hqHelpCard).join(''):'<div class="nt">Nothing set up yet.</div>'; }).catch(function(e){ if(!ls.querySelector('.v2-hc')) ls.innerHTML='<div class="nt">Couldn’t load the list: '+esc(e.message||e)+'</div>'; });
+    hqHelpFetch().then(function(rows){ ls.innerHTML=rows.length?rows.map(hqHelpCard).join(''):'<div class="nt">Nothing set up yet.</div>'; hqHelpHydrate(ls); }).catch(function(e){ if(!ls.querySelector('.v2-hc')) ls.innerHTML='<div class="nt">Couldn’t load the list: '+esc(e.message||e)+'</div>'; });
   };
   window.hqHelpClose=function(){ var o=document.getElementById('hqHelpOver'); if(o) o.classList.remove('on'); document.body.style.overflow=''; };
 })();
