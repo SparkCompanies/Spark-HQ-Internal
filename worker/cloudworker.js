@@ -1899,7 +1899,84 @@ var worker_default = {
           delete p._upn;
           return p;
         }).sort((a, b) => a.name.localeCompare(b.name));
-        return json({ count: people.length, people }, 200, origin);
+        return json({ count: people.length, people, role: gate.role, canEdit: gate.role === "admin" || gate.role === "superadmin" }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
+    if (url.pathname === "/signin-log") {
+      // SIGNIN_LOG_v1: the HQ shell posts here on every sign-in / sign-out; admins read the log back.
+      // Table: spark_hq_signin_log (id bigserial, ts timestamptz default now(), email text, event text, ip text, city text, region text, country text, user_agent text, device text, origin text)
+      if (request.method === "POST") {
+        const who = await verifyUser(request, env);
+        if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        const ua = request.headers.get("User-Agent") || "";
+        const cf = request.cf || {};
+        const device = /iPhone|iPad|Android|Mobile/i.test(ua) ? "mobile" : "desktop";
+        const row = {
+          email: who.email,
+          event: ["signed_in", "signed_out", "session_restored"].indexOf(body.event) >= 0 ? body.event : "signed_in",
+          ip: request.headers.get("CF-Connecting-IP") || "",
+          city: cf.city || "", region: cf.region || "", country: cf.country || "",
+          user_agent: ua.slice(0, 300), device, origin: origin || ""
+        };
+        const r = await sbService(env, "POST", "spark_hq_signin_log", row);
+        if (!r.ok) return json({ error: "Could not write sign-in log", detail: r.data }, 502, origin);
+        return json({ ok: true }, 200, origin);
+      }
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      const lim = Math.min(parseInt(url.searchParams.get("limit") || "300", 10) || 300, 2000);
+      const em = (url.searchParams.get("email") || "").toLowerCase().replace(/[^a-z0-9@._+-]/g, "");
+      const q = "spark_hq_signin_log?select=id,ts,email,event,ip,city,region,country,device,user_agent&order=ts.desc&limit=" + lim + (em ? "&email=eq." + encodeURIComponent(em) : "");
+      const r = await sbService(env, "GET", q);
+      if (!r.ok) return json({ error: "Could not read sign-in log", detail: r.data }, 502, origin);
+      return json({ ok: true, rows: r.data }, 200, origin);
+    }
+    if (url.pathname === "/directory/update") {
+      // DIRECTORY_WRITEBACK_v1: HQ admins edit title / department / manager; changes are written to Microsoft 365 via Graph.
+      // Needs the User.ReadWrite.All application permission (admin-consented) on the worker's Entra app.
+      if (request.method !== "POST") return json({ error: "POST required" }, 405, origin);
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      let body;
+      try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+      const id = String(body && body.id || "").trim();
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Missing or invalid user id" }, 400, origin);
+      const patch = {};
+      if (typeof body.title === "string") patch.jobTitle = body.title.trim().slice(0, 128);
+      if (typeof body.department === "string") patch.department = body.department.trim().slice(0, 64);
+      const hasMgr = Object.prototype.hasOwnProperty.call(body, "managerId");
+      const managerId = hasMgr ? (body.managerId ? String(body.managerId).trim() : null) : undefined;
+      if (hasMgr && managerId && !/^[0-9a-f-]{36}$/i.test(managerId)) return json({ error: "Invalid manager id" }, 400, origin);
+      if (hasMgr && managerId === id) return json({ error: "Someone can't report to themselves" }, 400, origin);
+      if (!Object.keys(patch).length && !hasMgr) return json({ error: "Nothing to update" }, 400, origin);
+      try {
+        const token = await getGraphToken(env);
+        const H = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+        const G = "https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(id);
+        const changed = [];
+        if (Object.keys(patch).length) {
+          const r = await fetch(G, { method: "PATCH", headers: H, body: JSON.stringify(patch) });
+          if (!r.ok) { const t = await r.text(); return json({ error: "Graph update failed: " + r.status + " " + t.slice(0, 300) }, 502, origin); }
+          changed.push.apply(changed, Object.keys(patch));
+        }
+        if (hasMgr) {
+          let r;
+          if (managerId) {
+            r = await fetch(G + "/manager/$ref", { method: "PUT", headers: H, body: JSON.stringify({ "@odata.id": "https://graph.microsoft.com/v1.0/users/" + managerId }) });
+          } else {
+            r = await fetch(G + "/manager/$ref", { method: "DELETE", headers: H });
+          }
+          if (!r.ok && r.status !== 404) { const t = await r.text(); return json({ error: "Graph manager update failed: " + r.status + " " + t.slice(0, 300), changed }, 502, origin); }
+          changed.push("manager");
+        }
+        try {
+          await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "directory.update", target: id, detail: JSON.stringify({ patch, managerId: hasMgr ? managerId : undefined }) });
+        } catch (e) { /* audit table optional */ }
+        return json({ ok: true, changed, by: gate.email }, 200, origin);
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
