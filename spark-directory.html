@@ -42,6 +42,9 @@ h1{margin:8px 0 4px;font-size:40px;font-weight:600;letter-spacing:-.01em}
 .chip .n{font-size:11px;color:rgba(255,255,255,.45)}
 .chip.on{background:#fff;color:var(--ink);border-color:#fff}
 .chip.on .n{color:var(--muted)}
+.chip.co{border-color:rgba(255,200,0,.35);color:#fff}
+.chip.co svg{stroke:var(--gold)}
+.chipsep{width:1px;height:22px;background:rgba(255,255,255,.14);margin:0 4px}
 
 /* ---------- grid ---------- */
 main{padding:26px 40px 60px}
@@ -56,6 +59,10 @@ main{padding:26px 40px 60px}
 .av{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 55%,transparent)}
 .nm{font-weight:600;font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt{color:var(--muted);font-size:13px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.phn{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);margin-top:-4px}
+.phn svg{width:13px;height:13px}
+.phn a{color:var(--ink);text-decoration:none}
+.phn a:hover{border-bottom:1px solid var(--gold)}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid #f0ede5;padding-top:10px}
 .tag{font-size:11.5px;font-weight:500;color:var(--ink);display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tag .dot{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
@@ -97,6 +104,7 @@ main{padding:26px 40px 60px}
 .row .tt{min-height:0;-webkit-line-clamp:1;font-size:12.5px}
 .mail{font-size:14px;word-break:break-all;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
 .mail:hover{border-color:var(--gold)}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 0}
 .grps{display:flex;flex-wrap:wrap;gap:6px}
 .grps span{font-size:12px;background:#f6f3ea;border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .muted{color:var(--muted);font-size:13px}
@@ -111,6 +119,8 @@ main{padding:26px 40px 60px}
 .edit .sl:first-child{margin-top:0}
 .edit input,.edit select{width:100%;font:inherit;font-size:14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
 .edit input:focus,.edit select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,200,0,.18)}
+.edit .e2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.edit .e2 .sl{margin-top:12px}
 .edit .ebtns{display:flex;gap:8px;margin-top:14px}
 .edit .ebtns .btn{flex:1;justify-content:center}
 .btn.dark{background:var(--night);color:#fff;border-color:var(--night)}
@@ -157,6 +167,7 @@ main{padding:26px 40px 60px}
   .tag{font-size:10px;color:#555}
   .tag .dot{display:none}
   .card .pmail{display:block;font-size:10.5px;color:#333;word-break:break-all}
+  .phn{font-size:10.5px;color:#333}
   .letter{font-size:16px;color:#111;margin:8px 0 0}
 }
 .card .pmail{display:none}
@@ -181,7 +192,7 @@ main{padding:26px 40px 60px}
   </div>
   <div class="searchrow">
     <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-    <input id="q" type="search" placeholder="Search by name, title, team or email" autocomplete="off" aria-label="Search the directory">
+    <input id="q" type="search" placeholder="Search by name, title, company, team, phone or email" autocomplete="off" aria-label="Search the directory">
     <span class="kbd">/</span>
   </div>
   <div class="chips" id="chips"></div>
@@ -190,7 +201,7 @@ main{padding:26px 40px 60px}
 <main>
   <div class="print-head"><h1>Spark Companies Directory</h1><div class="m" id="printMeta"></div></div>
   <div class="bar"><span id="count"></span>
-    <label>Sort&nbsp;<select id="sort"><option value="first">First name</option><option value="last">Last name</option><option value="team">Team</option></select></label>
+    <label>Sort&nbsp;<select id="sort"><option value="first">First name</option><option value="last">Last name</option><option value="team">Company &amp; team</option></select></label>
   </div>
   <div class="grid" id="grid">
     <div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div>
@@ -223,9 +234,13 @@ main{padding:26px 40px 60px}
     copy:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>',
     x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
     org:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>',
-    edit:'<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>'
+    edit:'<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>',
+    co:'<svg class="i" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M3 21h18M5 21V5l7-3 7 3v16M9 9h2M13 9h2M9 13h2M13 13h2M9 17h2M13 17h2"/></svg>',
+    phone:'<svg class="i" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>'
   };
   function teams(e){return 'https://teams.microsoft.com/l/chat/0/0?users='+encodeURIComponent(e)}
+  /* "Spark Talent · MI Metro" — company from M365 Company name, team from Department */
+  function orgLine(p){ var a=[]; if(p.company) a.push(p.company); if(p.department) a.push(p.department); return a.length? a.join(' \u00b7 ') : 'No team listed'; }
 
   function getToken(){
     try{ if(inShell && window.parent.SPARK_SB && window.parent.SPARK_SB.getToken) return window.parent.SPARK_SB.getToken(); }catch(e){}
@@ -240,7 +255,7 @@ main{padding:26px 40px 60px}
         return r.json().then(function(j){ if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); return j; });
       });
     }).then(function(d){
-      PEOPLE=(d.people||[]).map(function(p){p.c=colorFor(p.department);p.hay=(p.name+' '+p.title+' '+p.department+' '+p.email).toLowerCase();return p;});
+      PEOPLE=(d.people||[]).map(function(p){p.c=colorFor(p.department);p.hay=(p.name+' '+p.title+' '+p.department+' '+(p.company||'')+' '+p.email+' '+(p.mobile||'')+' '+(p.phone||'')).toLowerCase();return p;});
       PEOPLE.forEach(function(p){BY_ID[p.id]=p;});
       rebuildReports(); CAN_EDIT=!!d.canEdit;
       var teamsN=Object.keys(PEOPLE.reduce(function(a,p){if(p.department)a[p.department]=1;return a;},{})).length;
@@ -258,22 +273,26 @@ main{padding:26px 40px 60px}
   }
 
   function chips(){
-    var counts={}; PEOPLE.forEach(function(p){var d=p.department||'No team listed';counts[d]=(counts[d]||0)+1;});
-    var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]||a.localeCompare(b)});
+    var cc={}, tc={};
+    PEOPLE.forEach(function(p){ if(p.company) cc[p.company]=(cc[p.company]||0)+1; var d=p.department||'No team listed'; tc[d]=(tc[d]||0)+1; });
+    var ck=Object.keys(cc).sort(function(a,b){return cc[b]-cc[a]||a.localeCompare(b)});
+    var tk=Object.keys(tc).sort(function(a,b){return tc[b]-tc[a]||a.localeCompare(b)});
     var h='<button class="chip'+(state.dept?'':' on')+'" data-d="">All <span class="n">'+PEOPLE.length+'</span></button>';
-    keys.forEach(function(k){h+='<button class="chip'+(state.dept===k?' on':'')+'" data-d="'+esc(k)+'"><span class="dot" style="background:'+colorFor(k==='No team listed'?'':k)+'"></span>'+esc(k)+' <span class="n">'+counts[k]+'</span></button>';});
+    ck.forEach(function(k){h+='<button class="chip co'+(state.dept==='co:'+k?' on':'')+'" data-d="co:'+esc(k)+'">'+IC.co+esc(k)+' <span class="n">'+cc[k]+'</span></button>';});
+    if(ck.length) h+='<span class="chipsep"></span>';
+    tk.forEach(function(k){h+='<button class="chip'+(state.dept===k?' on':'')+'" data-d="'+esc(k)+'"><span class="dot" style="background:'+colorFor(k==='No team listed'?'':k)+'"></span>'+esc(k)+' <span class="n">'+tc[k]+'</span></button>';});
     $('chips').innerHTML=h;
   }
 
   function filtered(){
     var terms=state.q.toLowerCase().split(/\s+/).filter(Boolean);
     var list=PEOPLE.filter(function(p){
-      if(state.dept && (p.department||'No team listed')!==state.dept) return false;
+      if(state.dept){ if(state.dept.indexOf('co:')===0){ if((p.company||'')!==state.dept.slice(3)) return false; } else if((p.department||'No team listed')!==state.dept) return false; }
       return terms.every(function(t){return p.hay.indexOf(t)>=0});
     });
     list.sort(function(a,b){
       if(state.sort==='last') return lastName(a.name).localeCompare(lastName(b.name))||a.name.localeCompare(b.name);
-      if(state.sort==='team') return (a.department||'~').localeCompare(b.department||'~')||a.name.localeCompare(b.name);
+      if(state.sort==='team') return ((a.company||'~')+' '+(a.department||'~')).localeCompare((b.company||'~')+' '+(b.department||'~'))||a.name.localeCompare(b.name);
       return a.name.localeCompare(b.name);
     });
     return list;
@@ -283,7 +302,8 @@ main{padding:26px 40px 60px}
     return '<div class="card" tabindex="0" data-id="'+esc(p.id)+'" style="--c:'+p.c+'">'+
       '<div class="who"><div class="av">'+esc(initials(p.name))+'</div><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div></div></div>'+
       '<div class="tt">'+esc(p.title||'—')+'</div><span class="pmail">'+esc(p.email)+'</span>'+
-      '<div class="foot"><span class="tag"><span class="dot"></span>'+esc(p.department||'No team listed')+'</span>'+
+      (p.mobile||p.phone?'<div class="phn">'+IC.phone+'<a href="tel:'+esc((p.mobile||p.phone).replace(/[^+\d]/g,''))+'" data-stop>'+esc(p.mobile||p.phone)+'</a></div>':'')+
+      '<div class="foot"><span class="tag"><span class="dot"></span>'+esc(orgLine(p))+'</span>'+
       '<span class="acts">'+
         '<a class="ib" href="mailto:'+esc(p.email)+'" title="Email '+esc(p.name)+'" aria-label="Email" data-stop>'+IC.mail+'</a>'+
         '<a class="ib" href="'+teams(p.email)+'" target="_blank" rel="noopener" title="Chat in Teams" aria-label="Teams chat" data-stop>'+IC.chat+'</a>'+
@@ -298,7 +318,7 @@ main{padding:26px 40px 60px}
     var h='',last=null, letters = !state.q && state.sort!=='team';
     list.forEach(function(p){
       if(letters){var L=(state.sort==='last'?lastName(p.name):p.name).charAt(0).toUpperCase(); if(L!==last){h+='<div class="letter">'+esc(L)+'</div>';last=L;}}
-      else if(state.sort==='team' && !state.q){var T=p.department||'No team listed'; if(T!==last){h+='<div class="letter">'+esc(T)+'</div>';last=T;}}
+      else if(state.sort==='team' && !state.q){var T=orgLine(p); if(T!==last){h+='<div class="letter">'+esc(T)+'</div>';last=T;}}
       h+=card(p);
     });
     $('grid').innerHTML=h;
@@ -315,11 +335,12 @@ main{padding:26px 40px 60px}
     $('panel').innerHTML=
       '<div class="ph"><button class="ib x" id="px" aria-label="Close">'+IC.x+'</button>'+
         '<div class="av">'+esc(initials(p.name))+'</div><div class="nm">'+esc(p.name)+'</div><div class="tt">'+esc(p.title||'')+'</div>'+
-        '<div class="tag"><span class="dot"></span>'+esc(p.department||'No team listed')+'</div>'+
+        '<div class="tag"><span class="dot"></span>'+esc(orgLine(p))+'</div>'+
         '<div class="pacts"><a class="btn gold" href="mailto:'+esc(p.email)+'">'+IC.mail+'Email</a><a class="btn" href="'+teams(p.email)+'" target="_blank" rel="noopener">'+IC.chat+'Teams</a><button class="btn" data-copy="'+esc(p.email)+'">'+IC.copy+'Copy</button>'+(CAN_EDIT?'<button class="btn" id="pedit">'+IC.edit+'Edit</button>':'')+'</div></div>'+
       '<div class="pb">'+
         (CAN_EDIT?editForm(p):'')+
         '<div class="sec"><div class="sl">Email</div><a class="mail" href="mailto:'+esc(p.email)+'">'+esc(p.email)+'</a></div>'+
+        ((p.mobile||p.phone)?'<div class="sec view-only"><div class="sl">Phone</div>'+(p.mobile?'<div class="prow"><span class="muted">Mobile</span><a class="mail" href="tel:'+esc(p.mobile.replace(/[^+\d]/g,''))+'">'+esc(p.mobile)+'</a></div>':'')+(p.phone?'<div class="prow"><span class="muted">Office</span><a class="mail" href="tel:'+esc(p.phone.replace(/[^+\d]/g,''))+'">'+esc(p.phone)+'</a></div>':'')+'</div>':'')+
         '<div class="sec view-only"><div class="sl">Reports to</div>'+(mgr?personRow(mgr):'<div class="muted">No manager listed in Microsoft 365</div>')+'</div>'+
         (reps.length?'<div class="sec"><div class="sl">Direct reports · '+reps.length+'</div>'+reps.map(personRow).join('')+'</div>':'')+
         '<div class="sec"><div class="sl">Teams &amp; distribution lists</div><div class="grps" id="pg"><span class="muted" style="background:none;border:0;padding:0">Loading…</span></div></div>'+
@@ -341,9 +362,12 @@ main{padding:26px 40px 60px}
     var below=descendants(p.id);
     var opts='<option value="">No manager</option>'+PEOPLE.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).filter(function(x){return x.id!==p.id&&!below[x.id]}).map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===p.managerId?' selected':'')+'>'+esc(x.name)+(x.title?' \u2014 '+esc(x.title):'')+'</option>'}).join('');
     var depts=Object.keys(PEOPLE.reduce(function(a,x){if(x.department)a[x.department]=1;return a;},{})).sort();
+    var cos=Object.keys(PEOPLE.reduce(function(a,x){if(x.company)a[x.company]=1;return a;},{})).sort();
     return '<form class="edit" id="pform" autocomplete="off">'+
       '<div class="sl">Job title</div><input id="e_title" value="'+esc(p.title||'')+'" placeholder="e.g. Sr. Recruiter" maxlength="128">'+
-      '<div class="sl">Team / department</div><input id="e_dept" list="e_depts" value="'+esc(p.department||'')+'" placeholder="e.g. Spark Talent" maxlength="64"><datalist id="e_depts">'+depts.map(function(d){return '<option value="'+esc(d)+'">'}).join('')+'</datalist>'+
+      '<div class="sl">Company</div><input id="e_co" list="e_cos" value="'+esc(p.company||'')+'" placeholder="e.g. Spark Talent" maxlength="64"><datalist id="e_cos">'+cos.map(function(d){return '<option value="'+esc(d)+'">'}).join('')+'</datalist>'+
+      '<div class="sl">Team</div><input id="e_dept" list="e_depts" value="'+esc(p.department||'')+'" placeholder="e.g. MI Metro" maxlength="64"><datalist id="e_depts">'+depts.map(function(d){return '<option value="'+esc(d)+'">'}).join('')+'</datalist>'+
+      '<div class="e2"><div><div class="sl">Mobile</div><input id="e_mob" type="tel" value="'+esc(p.mobile||'')+'" placeholder="(248) 555-0100" maxlength="40"></div><div><div class="sl">Office</div><input id="e_ph" type="tel" value="'+esc(p.phone||'')+'" placeholder="(248) 555-0100" maxlength="40"></div></div>'+
       '<div class="sl">Reports to</div><select id="e_mgr">'+opts+'</select>'+
       '<div class="eerr" id="e_err"></div>'+
       '<div class="ebtns"><button type="submit" class="btn dark" id="e_save">Save to Microsoft 365</button><button type="button" class="btn ghost" id="e_cancel">Cancel</button></div>'+
@@ -356,10 +380,13 @@ main{padding:26px 40px 60px}
     $('e_cancel').onclick=function(){ panel.classList.remove('editing'); };
     form.onsubmit=function(ev){
       ev.preventDefault();
-      var title=$('e_title').value.trim(), dept=$('e_dept').value.trim(), mgr=$('e_mgr').value||null;
+      var title=$('e_title').value.trim(), dept=$('e_dept').value.trim(), co=$('e_co').value.trim(), mob=$('e_mob').value.trim(), ph=$('e_ph').value.trim(), mgr=$('e_mgr').value||null;
       var body={id:p.id};
       if(title!==(p.title||'')) body.title=title;
       if(dept!==(p.department||'')) body.department=dept;
+      if(co!==(p.company||'')) body.company=co;
+      if(mob!==(p.mobile||'')) body.mobile=mob;
+      if(ph!==(p.phone||'')) body.phone=ph;
       if(mgr!==(p.managerId||null)) body.managerId=mgr;
       if(Object.keys(body).length===1){ panel.classList.remove('editing'); return; }
       var save=$('e_save'), err=$('e_err'); save.disabled=true; save.textContent='Saving\u2026'; err.style.display='none';
@@ -368,8 +395,11 @@ main{padding:26px 40px 60px}
       }).then(function(){
         if('title' in body) p.title=body.title;
         if('department' in body){ p.department=body.department; p.c=colorFor(p.department); }
+        if('company' in body) p.company=body.company;
+        if('mobile' in body) p.mobile=body.mobile;
+        if('phone' in body) p.phone=body.phone;
         if('managerId' in body) p.managerId=body.managerId;
-        p.hay=(p.name+' '+p.title+' '+p.department+' '+p.email).toLowerCase();
+        p.hay=(p.name+' '+p.title+' '+p.department+' '+(p.company||'')+' '+p.email+' '+(p.mobile||'')+' '+(p.phone||'')).toLowerCase();
         rebuildReports(); chips(); render();
         panel.classList.remove('editing'); open(p.id); toast('Saved to Microsoft 365');
       }).catch(function(e){
