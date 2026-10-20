@@ -8312,6 +8312,9 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="help-routes">
             <span>Who to ask</span>
           </button>
+          <button class="admin-subnav-item" data-admin-tab="traffic">
+            <span>Where people go</span>
+          </button>
           <button class="admin-subnav-item" data-admin-tab="circuit-admin">
             <span>Circuit content</span>
           </button>
@@ -8321,6 +8324,43 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         <!-- HQ_ADMIN_TRIM_v1: Content&SOPs / Security / Billing stub buttons removed -->
         <div class="admin-content">
 
+          <!-- TRACK_v1 -->
+          <div class="admin-pane" data-admin-pane="traffic" style="display:none;">
+            <div class="admin-hero">
+              <div class="eyebrow">Usage &middot; Traffic</div>
+              <h2>Where people go. <span style="color:var(--muted-light);">Which tabs, Quick Actions and help cards actually get used.</span></h2>
+              <div class="dek">Every tab change and tile click is recorded with who and when. Use it to retire what nobody opens and promote what everyone hunts for.</div>
+            </div>
+            <div class="admin-section">
+              <div class="admin-section-head">
+                <h3 id="tfTitle">Last 30 days</h3>
+                <div class="actions">
+                  <div id="tfRange" style="display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:12px;">
+                    <button type="button" data-d="7" onclick="tfLoad(7)" style="font:inherit;padding:7px 12px;border:0;cursor:pointer;background:#fff;color:var(--ink);">7 days</button>
+                    <button type="button" data-d="30" onclick="tfLoad(30)" style="font:inherit;padding:7px 12px;border:0;cursor:pointer;background:var(--ink);color:var(--gold);">30 days</button>
+                    <button type="button" data-d="90" onclick="tfLoad(90)" style="font:inherit;padding:7px 12px;border:0;cursor:pointer;background:#fff;color:var(--ink);">90 days</button>
+                  </div>
+                  <button class="btn-secondary" onclick="tfLoad()">Refresh</button>
+                </div>
+              </div>
+              <div id="tfStatus" style="font-size:12px;color:var(--muted-light);margin:0 0 14px;">Loading&hellip;</div>
+              <div id="tfKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;"></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
+                <div style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;"><h4 style="margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);">Tabs</h4><div id="tfTabs"></div></div>
+                <div style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;"><h4 style="margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);">Quick Actions &amp; tiles</h4><div id="tfActions"></div></div>
+                <div style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;"><h4 style="margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);">Who do I ask? cards</h4><div id="tfHelp"></div></div>
+                <div style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;"><h4 style="margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);">Activity by day</h4><div id="tfDays"></div></div>
+              </div>
+              <div style="margin-top:18px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;">
+                <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+                  <thead><tr style="text-align:left;background:var(--paper);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">
+                    <th style="padding:10px 14px;">Person</th><th style="padding:10px 14px;text-align:right;">Visits</th><th style="padding:10px 14px;">Goes to most</th><th style="padding:10px 14px;">Last active</th>
+                  </tr></thead>
+                  <tbody id="tfPeople"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
           <!-- HELP_ROUTES_v1 -->
           <div class="admin-pane" data-admin-pane="help-routes" style="display:none;">
             <div class="admin-hero">
@@ -9909,7 +9949,68 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     if (tab === 'people-admin') { try { window.rpLoad(); } catch(e){} try { window.reLoad(); } catch(e){} }
     if (tab === 'signin-log') { try { window.slLoad(); } catch(e){} }
     if (tab === 'help-routes') { try { window.hrLoad(); } catch(e){} }
+    if (tab === 'traffic') { try { window.tfLoad(); } catch(e){} }
   };
+  /* TRACK_v1: collect tab changes + tile clicks, batch to the worker; admin pane "Where people go" */
+  (function(){
+    var W = 'https://spark-hq-worker.sparkcompanies.workers.dev', Q = [], timer = null, lastTab = null, lastAdmin = null;
+    var LABELS = {};
+    document.querySelectorAll('.nav-item[data-tab]').forEach(function(b){ LABELS[b.dataset.tab] = (b.textContent || '').trim(); });
+    function flush(){ timer = null; if (!Q.length || !window.SPARK_SB || !window.SPARK_SB.getToken) return; var batch = Q.splice(0, 50);
+      Promise.resolve(window.SPARK_SB.getToken()).then(function(t){ if (!t) { return; } return fetch(W + '/track', { method: 'POST', keepalive: true, headers: { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ events: batch }) }); }).catch(function(){}); }
+    window.hqTrack = function(type, target, label){ if (!target) return; Q.push({ type: type, target: target, label: label || '', ts: new Date().toISOString() }); if (!timer) timer = setTimeout(flush, 8000); };
+    document.addEventListener('visibilitychange', function(){ if (document.hidden) flush(); });
+    window.addEventListener('pagehide', flush);
+    function activeTab(){ var b = document.querySelector('.nav-item.active[data-tab]'); return b ? b.dataset.tab : null; }
+    function activeAdmin(){ var b = document.querySelector('.admin-subnav-item.active[data-admin-tab]'); return b ? b.dataset.adminTab : null; }
+    var obs = new MutationObserver(function(){ var t = activeTab(); if (t && t !== lastTab) { lastTab = t; window.hqTrack('tab', 'tab:' + t, LABELS[t] || t); } var a = activeAdmin(); if (t === 'admin' && a && a !== lastAdmin) { lastAdmin = a; var ab = document.querySelector('.admin-subnav-item[data-admin-tab="' + a + '"]'); window.hqTrack('tab', 'admin:' + a, 'Admin · ' + ((ab && ab.textContent) || a).trim()); } });
+    obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    setTimeout(function(){ lastTab = activeTab(); if (lastTab) window.hqTrack('tab', 'tab:' + lastTab, LABELS[lastTab] || lastTab); }, 1500);
+    window.addEventListener('message', function(e){ var d = e && e.data; if (d && d.type === 'spark-track' && d.ev) window.hqTrack(d.ev.type, d.ev.target, d.ev.label); });
+    document.addEventListener('click', function(e){ var p = e.target.closest('#helpPill'); if (p) window.hqTrack('action', 'help-pill', 'Need help? pill'); var hc = e.target.closest('#hqHelpOver .v2-hc'); if (hc) { var a = e.target.closest('a'); window.hqTrack('help', 'help:' + ((hc.querySelector('.tp') || {}).textContent || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40), ((hc.querySelector('.tp') || {}).textContent || '') + ' · ' + (a ? (/teams/.test(a.href) ? 'teams' : /^mailto:/.test(a.href) ? 'email' : 'call') : 'open')); } }, true);
+
+    /* ---- admin pane ---- */
+    var TF_DAYS = 30, TF_ROWS = [];
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    window.tfLoad = function(days){
+      if (days) TF_DAYS = days;
+      document.querySelectorAll('#tfRange button').forEach(function(b){ var on = +b.dataset.d === TF_DAYS; b.style.background = on ? 'var(--ink)' : '#fff'; b.style.color = on ? 'var(--gold)' : 'var(--ink)'; });
+      document.getElementById('tfTitle').textContent = 'Last ' + TF_DAYS + ' days';
+      var st = document.getElementById('tfStatus'); st.textContent = 'Loading\u2026';
+      Promise.resolve(window.SPARK_SB.getToken()).then(function(t){ return fetch(W + '/track?days=' + TF_DAYS, { headers: { 'Authorization': 'Bearer ' + t } }).then(function(r){ return r.json(); }); })
+        .then(function(j){ if (!j || !j.ok) throw new Error((j && j.error) || 'Could not load'); TF_ROWS = j.rows || []; tfRender(); })
+        .catch(function(e){ st.textContent = 'Could not load: ' + (e.message || e); });
+    };
+    function bars(counts, uniq, el, max){
+      var keys = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; }).slice(0, max || 12);
+      if (!keys.length) { el.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:6px 0;">Nothing recorded yet.</div>'; return; }
+      var top = counts[keys[0]] || 1;
+      el.innerHTML = keys.map(function(k){ var n = counts[k], u = uniq[k] ? Object.keys(uniq[k]).length : 0; return '<div style="display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin:0 0 9px;"><div style="font-size:13px;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(k) + '</div><div style="font-size:12px;color:var(--muted);white-space:nowrap;"><b style="color:var(--ink);">' + n + '</b> \u00b7 ' + u + ' people</div><div style="grid-column:1/-1;height:8px;border-radius:4px;background:#f1efe8;overflow:hidden;"><div style="width:' + Math.max(2, Math.round(n / top * 100)) + '%;height:100%;border-radius:4px;background:linear-gradient(90deg,#FFC800,#FFD513);box-shadow:0 0 10px rgba(255,200,0,.6);"></div></div></div>'; }).join('');
+    }
+    function tfRender(){
+      var rows = TF_ROWS, tabs = {}, tabsU = {}, acts = {}, actsU = {}, help = {}, helpU = {}, days = {}, people = {}, allPeople = {};
+      rows.forEach(function(r){
+        var lbl = (r.label || r.target || '').split(' \u00b7 ')[0] || r.target, em = (r.email || '').toLowerCase(); allPeople[em] = 1;
+        var bucket = r.type === 'help' ? [help, helpU] : (r.type === 'action' ? [acts, actsU] : [tabs, tabsU]);
+        bucket[0][lbl] = (bucket[0][lbl] || 0) + 1; (bucket[1][lbl] = bucket[1][lbl] || {})[em] = 1;
+        var d = new Date(r.ts); var dk = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); days[dk] = (days[dk] || 0) + 1;
+        var p = people[em] || (people[em] = { n: 0, last: 0, where: {} }); p.n++; p.last = Math.max(p.last, d.getTime()); p.where[lbl] = (p.where[lbl] || 0) + 1;
+      });
+      var np = Object.keys(allPeople).length;
+      document.getElementById('tfStatus').textContent = rows.length ? rows.length.toLocaleString() + ' visits from ' + np + ' people' : 'Nothing recorded yet \u2014 counts start now that tracking is live.';
+      var kpi = function(label, val, sub){ return '<div style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">' + label + '</div><div style="font-family:Jost,sans-serif;font-weight:700;font-size:26px;color:var(--ink);margin-top:4px;">' + val + '</div>' + (sub ? '<div style="font-size:11.5px;color:var(--muted);">' + sub + '</div>' : '') + '</div>'; };
+      var topTab = Object.keys(tabs).sort(function(a, b){ return tabs[b] - tabs[a]; })[0] || '\u2014';
+      var topAct = Object.keys(acts).sort(function(a, b){ return acts[b] - acts[a]; })[0] || '\u2014';
+      var perDay = rows.length ? Math.round(rows.length / Math.max(1, Object.keys(days).length)) : 0;
+      document.getElementById('tfKpis').innerHTML = kpi('Visits', rows.length.toLocaleString(), perDay + ' per active day') + kpi('People', np, 'signed in and clicked something') + kpi('Top tab', esc(topTab), (tabs[topTab] || 0) + ' visits') + kpi('Top tile', esc(topAct), (acts[topAct] || 0) + ' clicks');
+      bars(tabs, tabsU, document.getElementById('tfTabs'), 14); bars(acts, actsU, document.getElementById('tfActions'), 12); bars(help, helpU, document.getElementById('tfHelp'), 12);
+      var dk = Object.keys(days); var dmax = Math.max.apply(null, dk.map(function(k){ return days[k]; }).concat([1]));
+      document.getElementById('tfDays').innerHTML = dk.length ? '<div style="display:flex;align-items:flex-end;gap:3px;height:90px;">' + dk.reverse().map(function(k){ return '<div title="' + esc(k) + ': ' + days[k] + '" style="flex:1;min-width:3px;height:' + Math.max(3, Math.round(days[k] / dmax * 86)) + 'px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#FFD513,#FFC800);box-shadow:0 0 8px rgba(255,200,0,.45);"></div>'; }).join('') + '</div><div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:6px;"><span>' + esc(dk[0]) + '</span><span>' + esc(dk[dk.length - 1]) + '</span></div>' : '<div style="font-size:12.5px;color:var(--muted);">Nothing recorded yet.</div>';
+      var pl = Object.keys(people).sort(function(a, b){ return people[b].n - people[a].n; });
+      document.getElementById('tfPeople').innerHTML = pl.map(function(em){ var p = people[em]; var top3 = Object.keys(p.where).sort(function(a, b){ return p.where[b] - p.where[a]; }).slice(0, 3).map(function(k){ return esc(k) + ' <span style="color:var(--muted);">(' + p.where[k] + ')</span>'; }).join(' \u00b7 '); var d = new Date(p.last);
+        return '<tr style="border-top:1px solid var(--line-light);"><td style="padding:10px 14px;font-weight:600;color:var(--ink);">' + esc(em) + '</td><td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;">' + p.n + '</td><td style="padding:10px 14px;">' + top3 + '</td><td style="padding:10px 14px;white-space:nowrap;color:var(--muted);">' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) + '</td></tr>'; }).join('');
+    }
+  })();
   /* HELP_ROUTES_v1: Admin → Who to ask */
   var HR_ROWS = [];
   window.hrLoad = function() {
@@ -13739,7 +13840,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */, 'traffic' /* TRACK_v1 */],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
@@ -13874,7 +13975,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['team-progress','Team progress'], ['circuit-admin','Circuit content'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
-    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['content','Content'], ['security','Security & access'],
+    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['traffic','Where people go'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
     ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
   ];

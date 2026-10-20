@@ -2446,6 +2446,17 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   })();
  }
 
+ /* 1w) TRACK_v1: tell the shell which Quick Action / help card people use (shell batches it to the worker) */
+ (function(){
+  var send=function(type,target,label){ try{ if(window.parent&&window.parent!==window) window.parent.postMessage({type:'spark-track',ev:{type:type,target:target,label:label,ts:new Date().toISOString()}},'*'); }catch(e){} };
+  document.addEventListener('click',function(e){
+   var qa=e.target.closest('.qab'); if(qa){ var t=(qa.textContent||'').trim().replace(/\s+/g,' ').slice(0,60); if(t) send('action','qa:'+t.toLowerCase().replace(/[^a-z0-9]+/g,'-'),t); return; }
+   var hc=e.target.closest('.v2-hc'); if(hc){ var a=e.target.closest('a'); var how=a?(/teams/.test(a.href)?'teams':/^mailto:/.test(a.href)?'email':/^tel:/.test(a.href)?'call':'open'):'open'; send('help','help:'+(hc.getAttribute('data-slug')||'?'),(hc.querySelector('.tp')||{}).textContent+' · '+how); return; }
+   var pod=e.target.closest('.v2-pod'); if(pod){ send('action','charge:podium','Charge Leaders podium'); return; }
+   var hb=e.target.closest('#v2Handbook,[data-hb]'); if(hb){ send('action','handbook','Team Member Handbook'); return; }
+  },true);
+ })();
+
  /* 1t) Who do I ask? — need-based routing, read from the worker (/help-routes); admins edit it in Admin → Who to ask */
  if(!document.getElementById('v2Help')){
   var hlpSec=document.createElement('section'); hlpSec.id='v2Help'; hlpSec.className='v2-wrap'; hlpSec.setAttribute('aria-labelledby','v2HelpH');
