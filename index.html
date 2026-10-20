@@ -6350,7 +6350,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   document.addEventListener('hq-install-ready',sync); document.addEventListener('DOMContentLoaded',sync); setTimeout(sync,2000);
   window.hqInstallClick=function(){ if(window.hqInstall&&window.hqInstall()) return; if(isIOS){ alert('To add Spark HQ to your home screen: tap the Share button in Safari, then "Add to Home Screen".'); } else { alert('Use your browser menu and choose "Install Spark HQ" or "Add to Home screen".'); } };
 })();</script>
-<style id="favBar">/* FAVBAR_v1: Quick Actions ride the top bar like a browser bookmarks bar; the Home tile grid hides while the bar is showing */
+<style id="favBarCss">/* FAVBAR_v1: Quick Actions ride the top bar like a browser bookmarks bar; the Home tile grid hides while the bar is showing */
 .favbar{display:none;align-items:center;gap:2px;min-width:0;flex:1;overflow:hidden;margin-right:12px}
 @media (min-width:1000px){.favbar.ready{display:flex}}
 .favbar .fb-lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-light);font-weight:700;margin-right:10px;white-space:nowrap}
