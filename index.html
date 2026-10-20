@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head><!-- DOCS_TAB_REMOVE_v1 -->
+<!-- PWA_v1: installable Spark HQ -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0d0e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spark HQ">
+<link rel="apple-touch-icon" href="/icons/hq-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/hq-192.png">
+<script>/* PWA_v1 */(function(){ if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }); } var deferred=null; window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; window.__hqInstallReady=true; document.dispatchEvent(new CustomEvent('hq-install-ready')); }); window.hqInstall=function(){ if(deferred){ deferred.prompt(); deferred.userChoice.then(function(){ deferred=null; window.__hqInstallReady=false; document.dispatchEvent(new CustomEvent('hq-install-ready')); }); return true; } return false; }; window.addEventListener('appinstalled',function(){ try{ window.hqTrack&&window.hqTrack('action','pwa-installed','Installed the HQ app'); }catch(e){} }); })();</script>
 <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6334,6 +6343,13 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 </style>
 <style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><script>/* M365_BELL_v1 config: Entra app registration (SPA) client ID for "Spark HQ". Leave empty until the app exists. */window.HQ_GRAPH_CLIENT_ID = '6562a89e-5889-4a86-9aba-ed29eef1fc03';</script>
 
+<script>/* PWA_v1: install entry in the account menu; iOS gets instructions since Safari has no prompt */
+(function(){
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream, standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  function sync(){ var b=document.getElementById('umInstall'); if(!b) return; b.style.display=(!standalone&&(window.__hqInstallReady||isIOS))?'':'none'; }
+  document.addEventListener('hq-install-ready',sync); document.addEventListener('DOMContentLoaded',sync); setTimeout(sync,2000);
+  window.hqInstallClick=function(){ if(window.hqInstall&&window.hqInstall()) return; if(isIOS){ alert('To add Spark HQ to your home screen: tap the Share button in Safari, then "Add to Home Screen".'); } else { alert('Use your browser menu and choose "Install Spark HQ" or "Add to Home screen".'); } };
+})();</script>
 <style id="adminLayout">
 /* ADMIN_LAYOUT_v1: sticky, grouped sub-nav with a filter; overview tiles */
 .admin-subnav{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding-top:14px}
@@ -6558,6 +6574,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
                 <div class="um-email" id="umEmail"></div>
               </div>
             </div>
+            <button class="um-action" id="umInstall" onclick="hqInstallClick()" style="display:none;">Install the HQ app</button>
             <button class="um-action" id="umSignOut" onclick="userSignOut()">Log out</button>
             <button class="um-action um-signin" id="umSignIn" onclick="sbOpenAuth();closeUserMenu();">Sign in</button>
           </div>
@@ -10084,7 +10101,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     window.ovLoad = function(){
       var tok = Promise.resolve(window.SPARK_SB && window.SPARK_SB.getToken ? window.SPARK_SB.getToken() : '');
       var get = function(p){ return tok.then(function(t){ return fetch(W + p, { headers: { 'Authorization': 'Bearer ' + t } }).then(function(r){ return r.json(); }); }).catch(function(){ return {}; }); };
-      Promise.all([get('/signin-log?limit=2000'), get('/track?days=7'), get('/directory'), get('/audit?limit=12'), get('/help-routes')]).then(function(res){
+      Promise.all([get('/signin-log?limit=2000'), get('/track?days=7'), get('/directory'), get('/audit?limit=12'), get('/help-routes'), get('/whos-out')]).then(function(res){
         var sl = res[0].rows || [], tr = res[1].rows || [], people = res[2].people || [], audit = res[3].rows || [], routes = res[4].rows || [];
         var now = Date.now(), d1 = now - 864e5, d7 = now - 7 * 864e5, d30 = now - 30 * 864e5;
         var seen = {}, today = {}, week = {};
@@ -10100,7 +10117,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           tile('Gone quiet', quiet, quiet ? 'not seen in 30+ days' : 'everyone who has signed in was here this month', quiet ? 'warn' : 'good', 'signin-log') +
           tile('Visits, 7 days', vis.toLocaleString(), (topTab ? 'top tab <b>' + esc(topTab) + '</b> &middot; ' : '') + Object.keys(visPeople).length + ' people', '', 'traffic') +
           tile('Directory gaps', gaps, '<b>' + noMgr.length + '</b> no manager &middot; <b>' + noCo.length + '</b> no company &middot; <b>' + noTitle.length + '</b> no title', gaps ? (noMgr.length ? 'bad' : 'warn') : 'good', 'people-admin') +
-          tile('Who to ask', routes.length, noOwner ? '<b>' + noOwner + '</b> without an owner' : 'every topic has an owner', noOwner ? 'warn' : 'good', 'help-routes');
+          tile('Who to ask', routes.length, noOwner ? '<b>' + noOwner + '</b> without an owner' : 'every topic has an owner', noOwner ? 'warn' : 'good', 'help-routes') +
+          (res[5] && res[5].code === 'needs_permission' ? tile('Who\u2019s out', '\u2014', 'Not connected: grant <b>MailboxSettings.Read</b> (Application) + admin consent on the Spark HQ Internal app in Entra', 'warn', '') : (res[5] && res[5].ok ? tile('Out of office now', (res[5].out || []).length, (res[5].out || []).slice(0, 3).map(function(p){ return esc(p.name.split(' ')[0]); }).join(', ') || 'nobody has an auto-reply on', '', '') : ''));
         document.getElementById('ovSub').textContent = gaps || quiet || noOwner ? 'A few things could use a look.' : 'Nothing is waiting on you.';
         badge('people-admin', gaps, noMgr.length ? 'bad' : 'warn'); badge('signin-log', quiet, 'warn'); badge('help-routes', noOwner, 'warn');
         var fmt = function(ts){ var d = new Date(ts); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); };

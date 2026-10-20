@@ -1,0 +1,22 @@
+{
+  "name": "Spark HQ",
+  "short_name": "Spark HQ",
+  "description": "Spark Companies team hub: directory, who to ask, charge leaders, handbook, training.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0e1a",
+  "theme_color": "#0d0e1a",
+  "lang": "en-US",
+  "icons": [
+    { "src": "/icons/hq-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/hq-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/hq-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Directory", "url": "/spark-directory.html", "icons": [{ "src": "/icons/hq-192.png", "sizes": "192x192" }] },
+    { "name": "Charge Report", "url": "/spark-charge.html", "icons": [{ "src": "/icons/hq-192.png", "sizes": "192x192" }] }
+  ]
+}

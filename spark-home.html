@@ -2076,6 +2076,28 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 #v2Wx .err{padding:14px 18px;font-size:13px;color:rgba(255,255,255,.65)}
 @media (max-width:900px){#v2Wx .days .day:nth-child(n+5){display:none}}
 @media (max-width:640px){#v2Wx{flex-direction:column}#v2Wx .days{border-left:0;border-top:1px solid rgba(255,255,255,.1)}#v2Wx .days .day:nth-child(n+5){display:flex}}
+
+/* WHOS_OUT_v1: top-right corner card fed by Outlook automatic replies */
+#v2Out{width:340px;max-width:100%;border-radius:16px;color:#fff;overflow:hidden;position:relative;text-align:left;
+  background:linear-gradient(165deg,rgba(255,255,255,.10),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 24px 50px -28px rgba(0,0,0,.9)}
+#v2Out::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(240px 120px at 90% 0%,rgba(255,200,0,.18),transparent 70%)}
+#v2Out .hd{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 9px;border-bottom:1px solid rgba(255,255,255,.08);position:relative}
+#v2Out .hd b{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:#FFD513;font-weight:600;display:flex;align-items:center;gap:7px}
+#v2Out .hd b svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#v2Out .hd span{font-size:11px;color:rgba(255,255,255,.5)}
+#v2Out .ls{position:relative;max-height:168px;overflow:auto;scrollbar-width:thin}
+#v2Out .p{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid rgba(255,255,255,.05)}
+#v2Out .p:first-child{border-top:0}
+#v2Out .av{width:32px;height:32px;border-radius:50%;background:#1b1d33;color:#FFD513;display:grid;place-items:center;font-weight:700;font-size:11px;flex:none;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1.5px rgba(255,213,19,.45)}
+#v2Out .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#v2Out .nm{font-weight:600;font-size:13px;line-height:1.2;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v2Out .un{font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v2Out .un i{font-style:normal;color:#FFD513}
+#v2Out .nt{padding:14px;font-size:12.5px;color:rgba(255,255,255,.65);line-height:1.4}
+#v2Out .nt b{color:#fff;font-weight:600}
+#v2Out .p[title]{cursor:help}
+@media (max-width:760px){#v2Out{width:100%}}
 /* 1t) Who do I ask? (HELP_ROUTES_v1) */
 #v2Help .v2-btn.ghost,#v2Top .v2-btn.ghost{color:#111;background:#fff;border:1px solid var(--line)}
 #v2Help .v2-btn.ghost:hover,#v2Top .v2-btn.ghost:hover{border-color:var(--gold);background:#fffbe6}
@@ -2455,6 +2477,32 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
    var pod=e.target.closest('.v2-pod'); if(pod){ send('action','charge:podium','Charge Leaders podium'); return; }
    var hb=e.target.closest('#v2Handbook,[data-hb]'); if(hb){ send('action','handbook','Team Member Handbook'); return; }
   },true);
+ })();
+
+ /* 1x) WHOS_OUT_v1: who has an Outlook out-of-office reply on right now (top-right corner, under the social icons) */
+ (function(){
+  var col=document.querySelector('.v2-topcol'); if(!col || document.getElementById('v2Out')) return;
+  var W=(typeof WORKER_URL==='string'&&WORKER_URL)||'https://spark-hq-worker.sparkcompanies.workers.dev';
+  var box=document.createElement('div'); box.id='v2Out'; box.setAttribute('aria-label','Who is out of office');
+  box.innerHTML='<div class="hd"><b>'+svg('M3 7h18v12H3zM3 7l9 6 9-6')+'Out of office</b><span id="v2OutN">checking…</span></div><div class="ls" id="v2OutList"><div class="nt">Reading Outlook auto-replies…</div></div>';
+  col.appendChild(box);
+  var ini=function(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); };
+  var until=function(iso){ if(!iso) return 'until further notice'; var d=new Date(iso), now=new Date(); var days=Math.round((d.setHours(0,0,0,0)-now.setHours(0,0,0,0))/864e5); var dd=new Date(iso); var t=dd.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); if(days<=0) return 'back today'+(dd.getHours()?' · '+t:''); if(days===1) return 'back tomorrow'; if(days<7) return 'back '+dd.toLocaleDateString(undefined,{weekday:'long'}); return 'back '+dd.toLocaleDateString(undefined,{month:'short',day:'numeric'}); };
+  var tokP=function(){ try{ if(window.parent&&window.parent!==window&&window.parent.SPARK_SB&&window.parent.SPARK_SB.getToken) return Promise.resolve(window.parent.SPARK_SB.getToken()); }catch(e){} try{ var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}'); return Promise.resolve(a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||''); }catch(e){ return Promise.resolve(''); } };
+  var paint=function(j){
+   var ls=document.getElementById('v2OutList'), n=document.getElementById('v2OutN');
+   var out=j.out||[]; n.textContent=out.length?out.length+' out':'everyone\u2019s in';
+   if(!out.length){ ls.innerHTML='<div class="nt"><b>Nobody has an out-of-office on.</b> Set one in Outlook and you\u2019ll show up here automatically.</div>'; return; }
+   ls.innerHTML=out.map(function(p){ return '<div class="p" title="'+esc(p.message||'')+'"><span class="av" data-pe="'+esc(p.email)+'">'+esc(ini(p.name))+'</span><div style="min-width:0"><div class="nm">'+esc(p.name)+'</div><div class="un">'+esc(p.title||p.department||'')+(p.title||p.department?' · ':'')+'<i>'+esc(until(p.until))+'</i></div></div></div>'; }).join('');
+   if(window.__hqPhoto){ [].forEach.call(ls.querySelectorAll('.av[data-pe]'),function(a){ window.__hqPhoto(a.getAttribute('data-pe')).then(function(u){ if(u&&!a.querySelector('img')){ var im=new Image(); im.alt=''; im.src=u; a.appendChild(im); } }); }); }
+  };
+  try{ var c=JSON.parse(localStorage.getItem('v2OutCache')||'null'); if(c&&Date.now()-c.ts<6e5) paint(c.j); }catch(e){}
+  var load=function(){ tokP().then(function(t){ return fetch(W+'/whos-out',{headers:t?{Authorization:'Bearer '+t}:{}}); }).then(function(r){ return r.json().then(function(j){ return {s:r.status,j:j}; }); }).then(function(x){
+   if(x.s===200&&x.j&&x.j.ok){ paint(x.j); try{ localStorage.setItem('v2OutCache',JSON.stringify({ts:Date.now(),j:x.j})); }catch(e){} return; }
+   if(x.j&&x.j.code==='needs_permission'){ document.getElementById('v2OutN').textContent='not connected'; document.getElementById('v2OutList').innerHTML='<div class="nt"><b>Almost there.</b> Microsoft 365 needs to allow HQ to read auto-replies (MailboxSettings.Read on the Spark HQ Internal app). Admins: see Admin \u2192 Overview.</div>'; return; }
+   throw new Error(x.j&&x.j.error||'bad');
+  }).catch(function(){ if(!document.querySelector('#v2OutList .p')){ document.getElementById('v2OutN').textContent=''; document.getElementById('v2OutList').innerHTML='<div class="nt">Couldn\u2019t reach Outlook right now.</div>'; } }); };
+  load(); setInterval(load, 10*60*1000);
  })();
 
  /* 1t) Who do I ask? — need-based routing, read from the worker (/help-routes); admins edit it in Admin → Who to ask */
