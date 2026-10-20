@@ -6350,6 +6350,19 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   document.addEventListener('hq-install-ready',sync); document.addEventListener('DOMContentLoaded',sync); setTimeout(sync,2000);
   window.hqInstallClick=function(){ if(window.hqInstall&&window.hqInstall()) return; if(isIOS){ alert('To add Spark HQ to your home screen: tap the Share button in Safari, then "Add to Home Screen".'); } else { alert('Use your browser menu and choose "Install Spark HQ" or "Add to Home screen".'); } };
 })();</script>
+<style id="favBar">/* FAVBAR_v1: Quick Actions ride the top bar like a browser bookmarks bar; the Home tile grid hides while the bar is showing */
+.favbar{display:none;align-items:center;gap:2px;min-width:0;flex:1;overflow:hidden;margin-right:12px}
+@media (min-width:1000px){.favbar.ready{display:flex}}
+.favbar .fb-lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-light);font-weight:700;margin-right:10px;white-space:nowrap}
+.favbar .fb-item{display:inline-flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--ink);font:500 12.5px 'Jost',sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .12s}
+.favbar .fb-item:hover{background:#fffbe6;border-color:rgba(255,200,0,.6)}
+.favbar .fb-item:active{transform:scale(.97)}
+.favbar .fb-item .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:linear-gradient(145deg,#fff3c2,#ffe27a);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 5px -2px rgba(255,200,0,.7);flex:none}
+.favbar .fb-item .ic svg{width:14px;height:14px;stroke:#7a5c00;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.favbar .fb-sep{width:1px;height:18px;background:var(--line);margin:0 6px}
+.favbar .fb-more{color:var(--muted)}
+.topbar{padding-top:9px;padding-bottom:9px}
+</style>
 <style id="adminLayout">
 /* ADMIN_LAYOUT_v1: sticky, grouped sub-nav with a filter; overview tiles */
 .admin-subnav{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding-top:14px}
@@ -6545,6 +6558,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
           </div>
         </div>
       </div>
+      <nav class="favbar" id="favBar" aria-label="Quick actions"></nav>
       <div class="right">
         <button type="button" class="help-pill" id="helpPill" onclick="hqHelpOpen()" aria-haspopup="dialog" title="Who do I ask?"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M4.9 4.9l4.6 4.6M14.5 14.5l4.6 4.6M19.1 4.9l-4.6 4.6M9.5 14.5l-4.6 4.6"/></svg><span>Need help?</span></button>
         <div class="notif-wrap">
@@ -10146,6 +10160,24 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     setTimeout(tick, 800);
     /* if the avatar text gets re-rendered later (sign-in refresh), keep the photo */
     new MutationObserver(function(){ var el = document.getElementById('userAvatar'); if (el && el.getAttribute('data-photo') && el.style.color !== 'transparent') el.style.color = 'transparent'; }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  })();
+  /* FAVBAR_v1: mirror the Home page's Quick Action tiles into the top bar (same handlers, one source of truth) */
+  (function(){
+    var bar = document.getElementById('favBar'); if (!bar) return;
+    var tries = 0, built = false;
+    function hideHomeGrid(doc){ if (!doc.getElementById('qaMoved')) { var s = doc.createElement('style'); s.id = 'qaMoved'; s.textContent = '@media (min-width:730px){.qa{display:none !important}}'; /* iframe is ~265px narrower than the window */ doc.head.appendChild(s); } }
+    function build(){
+      if (built) return; var f = document.getElementById('sparkHomeFrame'); var doc = f && f.contentDocument; var tiles = doc && doc.querySelectorAll('.qab');
+      if (!tiles || !tiles.length || tiles.length < 4) { if (tries++ < 60) setTimeout(build, 700); return; }
+      built = true;
+      var html = '<span class="fb-lbl">Quick actions</span>';
+      [].forEach.call(tiles, function(t){ var svg = t.querySelector('svg'); var label = (t.textContent || '').trim().replace(/\s+/g, ' '); if (!label) return; html += '<button type="button" class="fb-item' + (/more apps/i.test(label) ? ' fb-more' : '') + '" data-label="' + label.replace(/"/g, '&quot;') + '"><span class="ic">' + (svg ? svg.outerHTML : '') + '</span>' + label + '</button>'; });
+      bar.innerHTML = html; bar.classList.add('ready');
+      bar.addEventListener('click', function(e){ var b = e.target.closest('.fb-item'); if (!b) return; var f2 = document.getElementById('sparkHomeFrame'); var d2 = f2 && f2.contentDocument; var lbl = b.dataset.label; var t = d2 && [].filter.call(d2.querySelectorAll('.qab'), function(q){ return (q.textContent || '').trim().replace(/\s+/g, ' ') === lbl; })[0]; if (t) { t.click(); } try { window.hqTrack && window.hqTrack('action', 'qa:' + lbl.toLowerCase().replace(/[^a-z0-9]+/g, '-'), lbl + ' (top bar)'); } catch (e2) {} });
+      hideHomeGrid(doc);
+      f.addEventListener('load', function(){ built = false; tries = 0; setTimeout(build, 500); });
+    }
+    setTimeout(build, 1500);
   })();
   /* HELP_ROUTES_v1: Admin → Who to ask */
   var HR_ROWS = [];
