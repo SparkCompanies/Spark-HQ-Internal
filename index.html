@@ -6357,8 +6357,17 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 .favbar .fb-item{display:inline-flex;align-items:center;gap:7px;padding:6px 10px 6px 7px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--ink);font:500 12.5px 'Jost',sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .12s}
 .favbar .fb-item:hover{background:#fffbe6;border-color:rgba(255,200,0,.6)}
 .favbar .fb-item:active{transform:scale(.97)}
-.favbar .fb-item .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:linear-gradient(145deg,#fff3c2,#ffe27a);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 5px -2px rgba(255,200,0,.7);flex:none}
-.favbar .fb-item .ic svg{width:14px;height:14px;stroke:#7a5c00;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.favbar .fb-item .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:linear-gradient(145deg,#2a2d4a,#0d0e1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 6px -2px rgba(13,14,26,.7);flex:none;transition:box-shadow .15s}
+.favbar .fb-item .ic svg{width:14px;height:14px;stroke:#FFC800;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.favbar .fb-item:hover .ic{box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px rgba(255,200,0,.5),0 0 12px -2px rgba(255,200,0,.6)}
+.favbar .fb-item.hid{display:none}
+.favbar .fb-ovf{position:relative}
+.favbar .fb-ovf>button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:grid;place-items:center;font:inherit}
+.favbar .fb-ovf>button svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.favbar .fb-ovf>button:hover{border-color:var(--gold);background:#fffbe6}
+.favbar .fb-ovf .pnl{position:absolute;top:calc(100% + 8px);right:0;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 20px 48px rgba(0,0,0,.14);padding:6px;z-index:400;display:none}
+.favbar .fb-ovf.open .pnl{display:block}
+.favbar .fb-ovf .pnl .fb-item{display:flex;width:100%;text-align:left}
 .favbar .fb-sep{width:1px;height:18px;background:var(--line);margin:0 6px}
 .favbar .fb-more{color:var(--muted)}
 .topbar{padding-top:9px;padding-bottom:9px}
@@ -10175,6 +10184,20 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
       bar.innerHTML = html; bar.classList.add('ready');
       bar.addEventListener('click', function(e){ var b = e.target.closest('.fb-item'); if (!b) return; var f2 = document.getElementById('sparkHomeFrame'); var d2 = f2 && f2.contentDocument; var lbl = b.dataset.label; var t = d2 && [].filter.call(d2.querySelectorAll('.qab'), function(q){ return (q.textContent || '').trim().replace(/\s+/g, ' ') === lbl; })[0]; if (t) { t.click(); } try { window.hqTrack && window.hqTrack('action', 'qa:' + lbl.toLowerCase().replace(/[^a-z0-9]+/g, '-'), lbl + ' (top bar)'); } catch (e2) {} });
       hideHomeGrid(doc);
+      /* overflow: items that don't fit collapse behind a » button, like a browser bookmarks bar */
+      var ovf = document.createElement('div'); ovf.className = 'fb-ovf'; ovf.innerHTML = '<button type="button" aria-label="More quick actions" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"/></svg></button><div class="pnl"></div>'; bar.appendChild(ovf);
+      var pnl = ovf.querySelector('.pnl');
+      ovf.querySelector('button').addEventListener('click', function(e){ e.stopPropagation(); ovf.classList.toggle('open'); });
+      document.addEventListener('click', function(){ ovf.classList.remove('open'); });
+      pnl.addEventListener('click', function(e){ if (e.target.closest('.fb-item')) ovf.classList.remove('open'); /* the bar's own click handler runs the action by label */ });
+      function fit(){
+        var items = [].slice.call(bar.querySelectorAll(':scope > .fb-item')); items.forEach(function(i){ i.classList.remove('hid'); }); ovf.style.display = 'none';
+        var avail = bar.clientWidth - 8, used = bar.querySelector('.fb-lbl').offsetWidth + 10, hidden = [];
+        items.forEach(function(i){ used += i.offsetWidth + 2; });
+        if (used > avail) { ovf.style.display = ''; avail -= 40; used = bar.querySelector('.fb-lbl').offsetWidth + 10; items.forEach(function(i){ used += i.offsetWidth + 2; if (used > avail) { i.classList.add('hid'); hidden.push(i); } }); }
+        pnl.innerHTML = hidden.map(function(i){ return '<button type="button" class="fb-item" data-label="' + i.dataset.label.replace(/"/g, '&quot;') + '">' + i.innerHTML + '</button>'; }).join('');
+      }
+      requestAnimationFrame(fit); window.addEventListener('resize', function(){ clearTimeout(bar._rz); bar._rz = setTimeout(fit, 120); });
       f.addEventListener('load', function(){ built = false; tries = 0; setTimeout(build, 500); });
     }
     setTimeout(build, 1500);
