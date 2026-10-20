@@ -6334,6 +6334,37 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 </style>
 <style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><script>/* M365_BELL_v1 config: Entra app registration (SPA) client ID for "Spark HQ". Leave empty until the app exists. */window.HQ_GRAPH_CLIENT_ID = '6562a89e-5889-4a86-9aba-ed29eef1fc03';</script>
 
+<style id="adminLayout">
+/* ADMIN_LAYOUT_v1: sticky, grouped sub-nav with a filter; overview tiles */
+.admin-subnav{position:sticky;top:56px;align-self:start;max-height:calc(100vh - 56px);overflow:auto;padding-top:14px}
+.admin-subnav .asn-filter{display:block;width:calc(100% - 28px);margin:0 14px 10px;font:inherit;font-size:12px;padding:8px 10px 8px 30px;border:1px solid var(--line);border-radius:9px;background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a978f' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.5-3.5'/></svg>") 9px 50%/14px no-repeat;outline:none}
+.admin-subnav .asn-filter:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,200,0,.18)}
+.admin-subnav-item.asn-hide{display:none !important}
+.admin-section-label.asn-hide{display:none !important}
+.admin-subnav-item .badge-mini.warn{background:#fff7ed;color:#b45309}
+.admin-subnav-item .badge-mini.bad{background:#fef2f2;color:#b42318}
+.admin-subnav-item.active .badge-mini.warn,.admin-subnav-item.active .badge-mini.bad{background:var(--gold);color:var(--ink)}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:18px}
+.ov-tile{position:relative;border:1px solid var(--line);border-radius:14px;background:linear-gradient(165deg,#fff,#fbfaf5);padding:16px 18px 14px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(20,18,10,.05),0 12px 28px -18px rgba(20,18,10,.3);transition:transform .15s,box-shadow .15s,border-color .15s}
+.ov-tile:hover{transform:translateY(-2px);border-color:rgba(255,200,0,.7);box-shadow:inset 0 1px 0 #fff,0 18px 36px -18px rgba(20,18,10,.4)}
+.ov-tile .k{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ov-tile .v{font-family:'Jost',sans-serif;font-weight:700;font-size:30px;letter-spacing:-.02em;margin-top:4px;line-height:1}
+.ov-tile .s{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.35}
+.ov-tile .s b{color:var(--ink);font-weight:600}
+.ov-tile.warn .v{color:#b45309}.ov-tile.bad .v{color:#b42318}.ov-tile.good .v{color:#15803d}
+.ov-tile .go{position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;background:#f4f2ec;display:grid;place-items:center;color:var(--muted)}
+.ov-tile .go svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ov-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.ov-card{border:1px solid var(--line);border-radius:14px;background:#fff;padding:16px 18px}
+.ov-card h4{margin:0 0 12px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.ov-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line-light);font-size:12.5px}
+.ov-row:first-of-type{border-top:0;padding-top:0}
+.ov-row .t{color:var(--muted);white-space:nowrap;font-size:11.5px;min-width:88px}
+.ov-row b{font-weight:600;color:var(--ink)}
+.ov-links{display:flex;flex-wrap:wrap;gap:8px}
+.ov-links button{font:600 12px 'Jost',sans-serif;padding:8px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.ov-links button:hover{border-color:var(--gold);background:#fffbe6}
+</style>
 <style id="helpRoutes">/* HELP_ROUTES_v1: "Need help?" pill in the top bar + slide-over, and the admin editor */
 .help-pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 12.5px 'Jost',sans-serif;padding:7px 12px 7px 10px;border-radius:999px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;white-space:nowrap}
 .help-pill svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:#B8912E}
@@ -9950,6 +9981,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     if (tab === 'signin-log') { try { window.slLoad(); } catch(e){} }
     if (tab === 'help-routes') { try { window.hrLoad(); } catch(e){} }
     if (tab === 'traffic') { try { window.tfLoad(); } catch(e){} }
+    if (tab === 'overview') { try { window.ovLoad(); } catch(e){} }
   };
   /* TRACK_v1: collect tab changes + tile clicks, batch to the worker; admin pane "Where people go" */
   (function(){
@@ -10010,6 +10042,76 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
       document.getElementById('tfPeople').innerHTML = pl.map(function(em){ var p = people[em]; var top3 = Object.keys(p.where).sort(function(a, b){ return p.where[b] - p.where[a]; }).slice(0, 3).map(function(k){ return esc(k) + ' <span style="color:var(--muted);">(' + p.where[k] + ')</span>'; }).join(' \u00b7 '); var d = new Date(p.last);
         return '<tr style="border-top:1px solid var(--line-light);"><td style="padding:10px 14px;font-weight:600;color:var(--ink);">' + esc(em) + '</td><td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;">' + p.n + '</td><td style="padding:10px 14px;">' + top3 + '</td><td style="padding:10px 14px;white-space:nowrap;color:var(--muted);">' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) + '</td></tr>'; }).join('');
     }
+  })();
+  /* ADMIN_LAYOUT_v1: Overview landing pane, grouped sticky sub-nav (Jarvis admin retired), meaningful badges */
+  (function(){
+    var W = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var sub = document.querySelector('.admin-subnav'), content = document.querySelector('.admin-content');
+    if (!sub || !content) return;
+    /* ---- overview pane ---- */
+    var pane = document.createElement('div'); pane.className = 'admin-pane'; pane.dataset.adminPane = 'overview'; pane.style.display = 'none';
+    pane.innerHTML = '<div class="admin-hero"><div class="eyebrow">Admin &middot; Overview</div><h2>Good to go? <span style="color:var(--muted-light);" id="ovSub">Checking what needs you today.</span></h2><div class="dek">One screen for what changed, who is showing up, and what the Directory is missing. Click any tile to jump in.</div></div>' +
+      '<div class="admin-section"><div class="ov-grid" id="ovTiles"><div class="ov-tile"><div class="k">Loading</div><div class="v">&hellip;</div></div></div>' +
+      '<div class="ov-two"><div class="ov-card"><h4>Recent changes</h4><div id="ovAudit" style="font-size:12.5px;color:var(--muted);">Loading&hellip;</div></div>' +
+      '<div class="ov-card"><h4>Directory gaps</h4><div id="ovGaps" style="font-size:12.5px;color:var(--muted);">Loading&hellip;</div></div></div>' +
+      '<div class="ov-card" style="margin-top:16px;"><h4>Jump to</h4><div class="ov-links" id="ovLinks"></div></div></div>';
+    content.insertBefore(pane, content.firstChild);
+    /* ---- sub-nav regroup ---- */
+    var btn = {}; sub.querySelectorAll('.admin-subnav-item').forEach(function(b){ btn[b.dataset.adminTab] = b; });
+    var ov = document.createElement('button'); ov.className = 'admin-subnav-item'; ov.dataset.adminTab = 'overview'; ov.innerHTML = '<span>Overview</span>'; ov.addEventListener('click', function(){ switchAdminTab('overview'); }); btn.overview = ov;
+    var GROUPS = [[null, ['overview']], ['People & access', ['people-admin', 'signin-log', 'help-routes']], ['Content', ['training-admin', 'spark-standard-admin', 'career-paths', 'circuit-admin', 'home-branding']], ['Insights', ['traffic', 'team-progress']], ['Tools', ['tools-admin']]];
+    var RETIRED = ['agents', 'connections', 'knowledge', 'role'];
+    var placed = {};
+    sub.innerHTML = '';
+    var filt = document.createElement('input'); filt.type = 'search'; filt.className = 'asn-filter'; filt.placeholder = 'Find a setting'; filt.setAttribute('aria-label', 'Filter admin sections'); sub.appendChild(filt);
+    GROUPS.forEach(function(g){ var lbl = null; if (g[0]) { lbl = document.createElement('div'); lbl.className = 'admin-section-label'; lbl.textContent = g[0]; sub.appendChild(lbl); } g[1].forEach(function(k){ if (btn[k]) { btn[k].dataset.group = g[0] || ''; sub.appendChild(btn[k]); placed[k] = 1; } }); });
+    var rest = Object.keys(btn).filter(function(k){ return !placed[k]; });
+    var other = rest.filter(function(k){ return RETIRED.indexOf(k) < 0; });
+    if (other.length) { var ol = document.createElement('div'); ol.className = 'admin-section-label'; ol.textContent = 'More'; sub.appendChild(ol); other.forEach(function(k){ sub.appendChild(btn[k]); }); }
+    RETIRED.forEach(function(k){ if (btn[k]) { btn[k].classList.add('asn-hide'); sub.appendChild(btn[k]); } });
+    sub.querySelectorAll('.badge-mini').forEach(function(b){ if (b.id === 'agentCount' || !b.id) { if (!b.closest('[data-admin-tab="people-admin"]')) b.remove(); } });
+    filt.addEventListener('input', function(){ var q = filt.value.toLowerCase().trim(); sub.querySelectorAll('.admin-subnav-item').forEach(function(b){ if (RETIRED.indexOf(b.dataset.adminTab) >= 0) return; b.classList.toggle('asn-hide', !!q && b.textContent.toLowerCase().indexOf(q) < 0); }); tidy(); });
+    function tidy(){ var labels = sub.querySelectorAll('.admin-section-label'); labels.forEach(function(l){ var n = l.nextElementSibling, any = false; while (n && !n.classList.contains('admin-section-label')) { if (n.classList.contains('admin-subnav-item') && getComputedStyle(n).display !== 'none') any = true; n = n.nextElementSibling; } l.classList.toggle('asn-hide', !any); }); }
+    new MutationObserver(function(){ tidy(); }).observe(sub, { attributes: true, subtree: true, attributeFilter: ['class'] }); tidy();
+    /* ---- land on Overview the first time Admin opens ---- */
+    var landed = false;
+    document.querySelectorAll('.nav-item[data-tab="admin"]').forEach(function(n){ n.addEventListener('click', function(){ if (!landed) { landed = true; setTimeout(function(){ if (!ov.classList.contains('hide-for-role')) switchAdminTab('overview'); }, 30); } }); });
+    setTimeout(function(){ if (!ov.classList.contains('hide-for-role') && document.querySelector('.admin-subnav-item.active[data-admin-tab="agents"]')) switchAdminTab('overview'); }, 1200);
+    /* ---- data ---- */
+    function badge(k, n, cls){ var b = btn[k]; if (!b) return; var e = b.querySelector('.badge-mini.ov'); if (!n) { if (e) e.remove(); return; } if (!e) { e = document.createElement('span'); e.className = 'badge-mini ov'; b.appendChild(e); } e.className = 'badge-mini ov ' + (cls || ''); e.textContent = n; }
+    var tile = function(k, v, s, cls, tab){ return '<button type="button" class="ov-tile ' + (cls || '') + '" data-go="' + esc(tab || '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + s + '</div><span class="go"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></button>'; };
+    window.ovLoad = function(){
+      var tok = Promise.resolve(window.SPARK_SB && window.SPARK_SB.getToken ? window.SPARK_SB.getToken() : '');
+      var get = function(p){ return tok.then(function(t){ return fetch(W + p, { headers: { 'Authorization': 'Bearer ' + t } }).then(function(r){ return r.json(); }); }).catch(function(){ return {}; }); };
+      Promise.all([get('/signin-log?limit=2000'), get('/track?days=7'), get('/directory'), get('/audit?limit=12'), get('/help-routes')]).then(function(res){
+        var sl = res[0].rows || [], tr = res[1].rows || [], people = res[2].people || [], audit = res[3].rows || [], routes = res[4].rows || [];
+        var now = Date.now(), d1 = now - 864e5, d7 = now - 7 * 864e5, d30 = now - 30 * 864e5;
+        var seen = {}, today = {}, week = {};
+        sl.forEach(function(r){ if (r.event === 'signed_out') return; var t = new Date(r.ts).getTime(), e = (r.email || '').toLowerCase(); seen[e] = Math.max(seen[e] || 0, t); if (t > d1) today[e] = 1; if (t > d7) week[e] = 1; });
+        var quiet = Object.keys(seen).filter(function(e){ return seen[e] < d30; }).length;
+        var vis = tr.length, visPeople = {}; var tabs = {}; tr.forEach(function(r){ visPeople[(r.email || '').toLowerCase()] = 1; if (r.type === 'tab') { var l = (r.label || r.target).replace(/^[^A-Za-z0-9]+/, ''); tabs[l] = (tabs[l] || 0) + 1; } });
+        var topTab = Object.keys(tabs).sort(function(a, b){ return tabs[b] - tabs[a]; })[0];
+        var noMgr = people.filter(function(p){ return !p.managerId; }), noCo = people.filter(function(p){ return !p.company; }), noTitle = people.filter(function(p){ return !p.title; }), noDept = people.filter(function(p){ return !p.department; });
+        var gaps = noMgr.length + noCo.length + noTitle.length;
+        var noOwner = routes.filter(function(r){ return !(r.owner && r.owner.email); }).length;
+        document.getElementById('ovTiles').innerHTML =
+          tile('Signed in today', Object.keys(today).length, '<b>' + Object.keys(week).length + '</b> this week &middot; ' + people.length + ' in the directory', '', 'signin-log') +
+          tile('Gone quiet', quiet, quiet ? 'not seen in 30+ days' : 'everyone who has signed in was here this month', quiet ? 'warn' : 'good', 'signin-log') +
+          tile('Visits, 7 days', vis.toLocaleString(), (topTab ? 'top tab <b>' + esc(topTab) + '</b> &middot; ' : '') + Object.keys(visPeople).length + ' people', '', 'traffic') +
+          tile('Directory gaps', gaps, '<b>' + noMgr.length + '</b> no manager &middot; <b>' + noCo.length + '</b> no company &middot; <b>' + noTitle.length + '</b> no title', gaps ? (noMgr.length ? 'bad' : 'warn') : 'good', 'people-admin') +
+          tile('Who to ask', routes.length, noOwner ? '<b>' + noOwner + '</b> without an owner' : 'every topic has an owner', noOwner ? 'warn' : 'good', 'help-routes');
+        document.getElementById('ovSub').textContent = gaps || quiet || noOwner ? 'A few things could use a look.' : 'Nothing is waiting on you.';
+        badge('people-admin', gaps, noMgr.length ? 'bad' : 'warn'); badge('signin-log', quiet, 'warn'); badge('help-routes', noOwner, 'warn');
+        var fmt = function(ts){ var d = new Date(ts); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); };
+        var byId = {}; people.forEach(function(p){ byId[p.id] = p.name; });
+        document.getElementById('ovAudit').innerHTML = audit.length ? audit.map(function(a){ var who = (a.actor || '').split('@')[0]; var act = String(a.action || '').replace(/[._]/g, ' '); var tgt = byId[a.target] || a.target || ''; return '<div class="ov-row"><span class="t">' + esc(fmt(a.ts || a.created_at)) + '</span><span><b>' + esc(who) + '</b> ' + esc(act) + (tgt ? ' &middot; ' + esc(tgt) : '') + '</span></div>'; }).join('') : 'No admin changes recorded yet.';
+        var gapList = function(label, arr){ return arr.length ? '<div class="ov-row"><span class="t">' + label + '</span><span>' + arr.slice(0, 6).map(function(p){ return esc(p.name); }).join(', ') + (arr.length > 6 ? ' and ' + (arr.length - 6) + ' more' : '') + '</span></div>' : ''; };
+        document.getElementById('ovGaps').innerHTML = (gapList('No manager', noMgr) + gapList('No company', noCo) + gapList('No title', noTitle) + gapList('No team', noDept)) || 'Every profile has a manager, company, title and team.';
+        document.getElementById('ovLinks').innerHTML = [['people-admin', 'People & roles'], ['help-routes', 'Edit Who to ask'], ['traffic', 'Where people go'], ['training-admin', 'Training'], ['spark-standard-admin', 'Spark Standard']].map(function(l){ return '<button type="button" data-go="' + l[0] + '">' + l[1] + '</button>'; }).join('') + '<button type="button" onclick="window.dirShow&&window.dirShow()">Open the Directory</button>';
+      });
+    };
+    pane.addEventListener('click', function(e){ var g = e.target.closest('[data-go]'); if (g && g.dataset.go) switchAdminTab(g.dataset.go); });
   })();
   /* HELP_ROUTES_v1: Admin → Who to ask */
   var HR_ROWS = [];
@@ -13840,7 +13942,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */, 'traffic' /* TRACK_v1 */],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */, 'traffic' /* TRACK_v1 */, 'overview' /* ADMIN_LAYOUT_v1 */],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
@@ -13975,7 +14077,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['team-progress','Team progress'], ['circuit-admin','Circuit content'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
-    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['traffic','Where people go'], ['content','Content'], ['security','Security & access'],
+    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['traffic','Where people go'], ['overview','Overview'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
     ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
   ];
