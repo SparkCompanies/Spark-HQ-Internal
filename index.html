@@ -10131,6 +10131,22 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     };
     pane.addEventListener('click', function(e){ var g = e.target.closest('[data-go]'); if (g && g.dataset.go) switchAdminTab(g.dataset.go); });
   })();
+  /* MY_PHOTO_v1: the account avatar (top bar + menu) shows the signed-in person's Microsoft 365 photo when they have one */
+  (function(){
+    var done = false, tries = 0;
+    function apply(u){ ['userAvatar', 'umAvatar'].forEach(function(id){ var el = document.getElementById(id); if (!el) return; el.style.backgroundImage = 'url("' + u + '")'; el.style.backgroundSize = 'cover'; el.style.backgroundPosition = 'center'; el.style.color = 'transparent'; el.setAttribute('data-photo', '1'); }); }
+    function tick(){
+      if (done || tries++ > 60) return;
+      var u = window.SPARK_SB && window.SPARK_SB.whoami && window.SPARK_SB.whoami();
+      var em = (u && u.email) || ((document.getElementById('umEmail') || {}).textContent || '').trim();
+      if (!em || !window.hqPhoto) { setTimeout(tick, 1000); return; }
+      done = true;
+      window.hqPhoto(em).then(function(url){ if (url) apply(url); });
+    }
+    setTimeout(tick, 800);
+    /* if the avatar text gets re-rendered later (sign-in refresh), keep the photo */
+    new MutationObserver(function(){ var el = document.getElementById('userAvatar'); if (el && el.getAttribute('data-photo') && el.style.color !== 'transparent') el.style.color = 'transparent'; }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  })();
   /* HELP_ROUTES_v1: Admin → Who to ask */
   var HR_ROWS = [];
   window.hrLoad = function() {
