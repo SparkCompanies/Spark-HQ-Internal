@@ -379,9 +379,10 @@ function openPerson(name){
   var tro=[];
   (function(){
     var tt=D.mt.find(function(x){return x.n===p.n}); if(!tt||!tt.qt) return;
-    var wd0=D.iw[p.n]||[]; var cq=qtrOf(+curIso.split('-')[1]);
+    var wd0=D.iw[p.n]||[];
+    var cq=(typeof CQ!=='undefined'&&CQ)?CQ:(typeof QL!=='undefined'?parseInt(String(QL).slice(1),10)||4:4);
     var qs={1:0,2:0,3:0,4:0};
-    isoList.forEach(function(w,i){ var e=wd0[i]; if(e) qs[qtrOf(+w.split('-')[1])]+=e.t||0; });
+    wd0.forEach(function(e){ if(!e||!e.w) return; var mth=+String(e.w).split('/')[0]; if(mth>=1&&mth<=12) qs[qtrOf(mth)]+=e.t||0; });
     for(var qn=1;qn<=cq;qn++){
       var tg=tt.qt[qn]||{};
       var qv = qn===cq ? (tt.q3||0) : qs[qn];
