@@ -2114,6 +2114,20 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 #v2Wx{max-width:none}
 #v2Google{max-width:none !important}
 @media (max-width:760px){.v2-topcol{flex-direction:column;align-items:flex-start;gap:10px}}
+
+/* JWU_v1: "#JWU · Just Watch Us" stamp under the Inc. 5000 badge */
+#v2Jwu{position:relative;margin-top:30px;display:inline-block;user-select:none;text-decoration:none}
+#v2Jwu .big{position:relative;font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(96px,9.5vw,150px);line-height:.9;letter-spacing:.02em;white-space:nowrap;
+  background:linear-gradient(180deg,#fff2a8 0%,#FFD513 38%,#FFC800 60%,#c99a00 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 10px 24px rgba(0,0,0,.65)) drop-shadow(0 0 28px rgba(255,200,0,.25))}
+#v2Jwu .big::before,#v2Jwu .big::after{content:attr(data-t);position:absolute;inset:0;color:transparent;-webkit-text-stroke:2px #fff7cc;opacity:0;pointer-events:none;filter:drop-shadow(0 0 14px rgba(255,213,19,.9)) drop-shadow(0 0 40px rgba(255,213,19,.5))}
+#v2Jwu .big::before{-webkit-mask-image:radial-gradient(28% 60% at 30% 50%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);mask-image:radial-gradient(28% 60% at 30% 50%,#000 0%,rgba(0,0,0,.7) 45%,transparent 72%);animation:v2ArcA 9s linear 2s infinite}
+#v2Jwu .big::after{-webkit-mask-image:radial-gradient(24% 60% at 78% 50%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);mask-image:radial-gradient(24% 60% at 78% 50%,#000 0%,rgba(0,0,0,.65) 45%,transparent 70%);animation:v2ArcB 11s linear 5s infinite}
+#v2Jwu .sub{display:flex;align-items:center;gap:12px;margin-top:8px;font-size:12px;font-weight:600;letter-spacing:.34em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+#v2Jwu .sub::before{content:"";width:34px;height:2px;background:linear-gradient(90deg,#FFD513,rgba(255,213,19,.2));box-shadow:0 0 10px rgba(255,213,19,.6)}
+#v2Jwu .sub::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.18),transparent)}
+@media (prefers-reduced-motion:reduce){#v2Jwu .big::before,#v2Jwu .big::after{animation:none}}
+@media (max-width:760px){#v2Jwu{margin-top:22px}#v2Jwu .big{font-size:clamp(72px,20vw,110px)}}
 /* 1t) Who do I ask? (HELP_ROUTES_v1) */
 #v2Help .v2-btn.ghost,#v2Top .v2-btn.ghost{color:#111;background:#fff;border:1px solid var(--line)}
 #v2Help .v2-btn.ghost:hover,#v2Top .v2-btn.ghost:hover{border-color:var(--gold);background:#fffbe6}
@@ -2521,6 +2535,14 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
    throw new Error(x.j&&x.j.error||'bad');
   }).catch(function(){ if(!document.querySelector('#v2OutList .p')){ document.getElementById('v2OutN').textContent=''; document.getElementById('v2OutList').innerHTML='<div class="nt">Couldn\u2019t reach Outlook right now.</div>'; } }); };
   load(); setInterval(load, 10*60*1000);
+ })();
+
+ /* JWU_v1: the "#JWU" stamp (Just Watch Us) fills the space under the Inc. 5000 badge */
+ (function(){
+  var left=document.querySelector('.hero .bnr-left'); if(!left||document.getElementById('v2Jwu')) return;
+  var j=document.createElement('div'); j.id='v2Jwu'; j.setAttribute('aria-label','#JWU: Just Watch Us');
+  j.innerHTML='<div class="big" data-t="#JWU">#JWU</div><div class="sub">Just watch us</div>';
+  var inc=document.getElementById('v2Inc'); if(inc&&inc.parentNode===left){ inc.insertAdjacentElement('afterend', j); } else { left.appendChild(j); }
  })();
 
  /* 1t) Who do I ask? — need-based routing, read from the worker (/help-routes); admins edit it in Admin → Who to ask */
