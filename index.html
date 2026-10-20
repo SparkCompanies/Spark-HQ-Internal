@@ -6464,7 +6464,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   window.hqHelpClose=function(){ var o=document.getElementById('hqHelpOver'); if(o) o.classList.remove('on'); document.body.style.overflow=''; };
 })();
 </script>
-<style id="m365Bell">/* M365_BELL_v1: bell sits at the left of the top bar, so the dropdown opens to the right */.notif-dropdown{left:0 !important;right:auto !important}</style>
+<style id="m365Bell">/* TOPBAR_RIGHT_v1: utilities (Need help, bell, account) sit at the right edge; dropdowns open leftward */.topbar .right{margin-left:auto}.notif-dropdown{right:0;left:auto}@media (max-width:640px){.topbar .right{gap:8px}}</style>
 <style id="hideJarvis">/* HIDE_JARVIS_v1: Jarvis hidden for now (remove this block to bring it back) */.nav-item.nav-jarvis,#jn-sphere,#topSearch{display:none !important}</style>
 </head>
 <body>
