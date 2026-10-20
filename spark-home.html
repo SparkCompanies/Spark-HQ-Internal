@@ -2098,6 +2098,17 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
 #v2Out .nt b{color:#fff;font-weight:600}
 #v2Out .p[title]{cursor:help}
 @media (max-width:760px){#v2Out{width:100%}}
+
+/* HERO_LAYOUT_v2: compact utility row (greeting · date · socials), then two columns that start on the same line */
+.v2-topcol{flex-direction:row;align-items:center;gap:16px}
+.hero .banner{align-items:start !important;padding-top:18px !important}
+.bnr-right{display:flex;flex-direction:column;gap:18px;min-width:0;justify-self:end;width:100%;max-width:640px}
+.bnr-right .v2-tt{max-width:none;justify-self:auto}
+.bnr-right #v2Out{width:100%}
+.bnr-right #v2Tt{margin:0}
+#v2Wx{max-width:none}
+#v2Google{max-width:none !important}
+@media (max-width:760px){.v2-topcol{flex-direction:column;align-items:flex-start;gap:10px}}
 /* 1t) Who do I ask? (HELP_ROUTES_v1) */
 #v2Help .v2-btn.ghost,#v2Top .v2-btn.ghost{color:#111;background:#fff;border:1px solid var(--line)}
 #v2Help .v2-btn.ghost:hover,#v2Top .v2-btn.ghost:hover{border-color:var(--gold);background:#fffbe6}
@@ -2485,7 +2496,9 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   var W=(typeof WORKER_URL==='string'&&WORKER_URL)||'https://spark-hq-worker.sparkcompanies.workers.dev';
   var box=document.createElement('div'); box.id='v2Out'; box.setAttribute('aria-label','Who is out of office');
   box.innerHTML='<div class="hd"><b>'+svg('M3 7h18v12H3zM3 7l9 6 9-6')+'Out of office</b><span id="v2OutN">checking…</span></div><div class="ls" id="v2OutList"><div class="nt">Reading Outlook auto-replies…</div></div>';
-  col.appendChild(box);
+  /* HERO_LAYOUT_v2: the card lives in the banner's right column above the TikTok card, so both columns start at the same line */
+  var tt=document.getElementById('v2Tt'), bn=document.querySelector('.hero .banner');
+  if(tt && bn){ var wrap=document.getElementById('v2Right'); if(!wrap){ wrap=document.createElement('div'); wrap.id='v2Right'; wrap.className='bnr-right'; bn.insertBefore(wrap, tt); wrap.appendChild(tt); } wrap.insertBefore(box, wrap.firstChild); } else { col.appendChild(box); }
   var ini=function(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p.length>1?p[p.length-1]:'')[0]||'').toUpperCase(); };
   var until=function(iso){ if(!iso) return 'until further notice'; var d=new Date(iso), now=new Date(); var days=Math.round((d.setHours(0,0,0,0)-now.setHours(0,0,0,0))/864e5); var dd=new Date(iso); var t=dd.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); if(days<=0) return 'back today'+(dd.getHours()?' · '+t:''); if(days===1) return 'back tomorrow'; if(days<7) return 'back '+dd.toLocaleDateString(undefined,{weekday:'long'}); return 'back '+dd.toLocaleDateString(undefined,{month:'short',day:'numeric'}); };
   var tokP=function(){ try{ if(window.parent&&window.parent!==window&&window.parent.SPARK_SB&&window.parent.SPARK_SB.getToken) return Promise.resolve(window.parent.SPARK_SB.getToken()); }catch(e){} try{ var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}'); return Promise.resolve(a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||''); }catch(e){ return Promise.resolve(''); } };
