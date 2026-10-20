@@ -1914,6 +1914,15 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/audit") {
+      // ADMIN_OVERVIEW_v1: recent admin changes (directory edits, who-to-ask edits) for the Admin overview
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      const lim = Math.min(parseInt(url.searchParams.get("limit") || "25", 10) || 25, 200);
+      const r = await sbService(env, "GET", "spark_hq_audit?select=*&order=id.desc&limit=" + lim);
+      if (!r.ok) return json({ error: "Could not read audit", detail: r.data }, 502, origin);
+      return json({ ok: true, rows: r.data }, 200, origin);
+    }
     if (url.pathname === "/track") {
       // TRACK_v1: where people go in HQ. POST {events:[{type,target,label}]} from any signed-in user; GET ?days=30 for admins.
       // Table: spark_hq_pageviews (id bigserial pk, ts timestamptz default now(), email text, type text, target text, label text, device text, origin text)
