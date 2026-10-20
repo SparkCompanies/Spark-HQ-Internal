@@ -1415,13 +1415,14 @@ window.SPARK_LIVE = (function () {
     var curMonth = +curIso.split('-')[1];
     var cw = pweek(curIso), pv = pweek(prev);
     D.people = Object.keys(names).filter(function (n) { return !chargeHidden(n); }).map(function (n) {
-      var RAW_ANCHOR = '2026-08-02';
       var m0 = master[n] || {};
-      var cum = 0, q = 0, mo = 0, cumRaw = Number(m0.cum_raw) || 0, qRaw = 0, moRaw = 0;
+      // Cumulative = straight sum of the stored weekly book (single source of truth,
+      // same as the drawer's week-to-week table). The 8/2 seed anchors are retired.
+      var cum = 0, q = 0, mo = 0, cumRaw = 0, qRaw = 0, moRaw = 0;
       isoList.forEach(function (w) {
         var p = pweek(w)[n]; if (!p) return;
         var rw = rawOf(p);
-        cum += p.tt; if (w > RAW_ANCHOR) cumRaw += rw;
+        cum += p.tt; cumRaw += rw;
         if (qtrOf(+w.split('-')[1]) === qtrOf(curMonth)) { q += p.tt; qRaw += rw; }
         if (+w.split('-')[1] === curMonth) { mo += p.tt; moRaw += rw; }
       });
@@ -1430,14 +1431,15 @@ window.SPARK_LIVE = (function () {
       return { n: n, rl: m.role || '', en: m.entity || 'Spark Talent', bu: m.bu || '', cum: cumRaw, mo: moRaw, q: qRaw, cumRaw: cumRaw, moRaw: moRaw, qRaw: qRaw, wkRaw: rawOf(c), rec: c.rec, am: c.sales, fd: c.fd, tt: c.tt, wow: rawOf(c) - rawOf(l) };
     }).sort(function (a, b) { return b.cumRaw - a.cumRaw; });
     (function () {
-      var RAW_ANCHOR = '2026-08-02';
-      // House Account cumulative anchor as of WE 2026-08-02 (set 8/27/26); weekly raws add on top.
+      // House anchor = House's own book as of WE 8/2 (never imported as weekly rows).
+      // ALL weekly rows add on top — including pre-8/2 weeks folded in from departed
+      // producers (Luke, Cor'Sean), which the old anchor cutoff wrongly excluded.
       var HOUSE_CUM_ANCHOR = 461094.7733;
       var cumRaw = HOUSE_CUM_ANCHOR, qRaw = 0, moRaw = 0, any = false;
       isoList.forEach(function (w) {
         var p = pweek(w)['House Account']; if (!p) return;
         any = true; var rw = rawOf(p);
-        if (w > RAW_ANCHOR) cumRaw += rw;
+        cumRaw += rw;
         if (qtrOf(+w.split('-')[1]) === qtrOf(curMonth)) qRaw += rw;
         if (+w.split('-')[1] === curMonth) moRaw += rw;
       });
