@@ -9955,7 +9955,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   (function(){
     var W = 'https://spark-hq-worker.sparkcompanies.workers.dev', Q = [], timer = null, lastTab = null, lastAdmin = null;
     var LABELS = {};
-    document.querySelectorAll('.nav-item[data-tab]').forEach(function(b){ LABELS[b.dataset.tab] = (b.textContent || '').trim(); });
+    document.querySelectorAll('.nav-item[data-tab]').forEach(function(b){ var c = b.cloneNode(true); c.querySelectorAll('.ico,.nav-live-dot,.badge-mini').forEach(function(n){ n.remove(); }); LABELS[b.dataset.tab] = (c.textContent || '').replace(/\s+/g, ' ').trim(); });
     function flush(){ timer = null; if (!Q.length || !window.SPARK_SB || !window.SPARK_SB.getToken) return; var batch = Q.splice(0, 50);
       Promise.resolve(window.SPARK_SB.getToken()).then(function(t){ if (!t) { return; } return fetch(W + '/track', { method: 'POST', keepalive: true, headers: { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ events: batch }) }); }).catch(function(){}); }
     window.hqTrack = function(type, target, label){ if (!target) return; Q.push({ type: type, target: target, label: label || '', ts: new Date().toISOString() }); if (!timer) timer = setTimeout(flush, 8000); };
@@ -9990,7 +9990,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     function tfRender(){
       var rows = TF_ROWS, tabs = {}, tabsU = {}, acts = {}, actsU = {}, help = {}, helpU = {}, days = {}, people = {}, allPeople = {};
       rows.forEach(function(r){
-        var lbl = (r.label || r.target || '').split(' \u00b7 ')[0] || r.target, em = (r.email || '').toLowerCase(); allPeople[em] = 1;
+        var lbl = (r.type === 'help' ? (r.label || '').split(' \u00b7 ')[0] : (r.label || '')).replace(/^[^A-Za-z0-9]+/, '').trim() || r.target, em = (r.email || '').toLowerCase(); allPeople[em] = 1;
         var bucket = r.type === 'help' ? [help, helpU] : (r.type === 'action' ? [acts, actsU] : [tabs, tabsU]);
         bucket[0][lbl] = (bucket[0][lbl] || 0) + 1; (bucket[1][lbl] = bucket[1][lbl] || {})[em] = 1;
         var d = new Date(r.ts); var dk = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); days[dk] = (days[dk] || 0) + 1;
