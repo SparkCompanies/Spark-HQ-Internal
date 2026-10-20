@@ -1914,6 +1914,46 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/whos-out") {
+      // WHOS_OUT_v1: who has an Outlook automatic reply (OOO) on right now. Any signed-in user. Needs MailboxSettings.Read (Application) on the worker's Entra app.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/whos-out-v1");
+      if (!url.searchParams.get("fresh")) { const hit = await cache.match(ck); if (hit) { const h = new Headers(hit.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v)); return new Response(hit.body, { status: 200, headers: h }); } }
+      try {
+        const token = await getGraphToken(env);
+        const users = await fetchDirectory(token);
+        const SPARK_DOMAINS = ["sparkcompanies.com", "sparktalentinc.com", "ignitesearch.com", "flexworkforceco.com", "johnjosephpartners.com"];
+        const people = users.filter((u) => u.accountEnabled !== false && u.givenName && u.surname).map((u) => ({ id: u.id, name: u.displayName || (u.givenName + " " + u.surname), email: (u.mail || u.userPrincipalName || "").toLowerCase(), title: u.jobTitle || "", department: u.department || "", company: u.companyName || "" })).filter((p) => p.email && SPARK_DOMAINS.indexOf(p.email.split("@")[1]) !== -1);
+        const out = []; let denied = false;
+        for (let i = 0; i < people.length; i += 20) {
+          const chunk = people.slice(i, i + 20);
+          const br = await fetch("https://graph.microsoft.com/v1.0/$batch", { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ requests: chunk.map((p, k) => ({ id: String(k), method: "GET", url: "/users/" + p.id + "/mailboxSettings/automaticRepliesSetting" })) }) });
+          if (!br.ok) { const t = await br.text(); throw new Error("Graph batch failed: " + br.status + " " + t.slice(0, 160)); }
+          const bj = await br.json();
+          (bj.responses || []).forEach((r) => {
+            const p = chunk[parseInt(r.id, 10)]; if (!p) return;
+            if (r.status === 403) { denied = true; return; }
+            if (r.status !== 200 || !r.body) return;
+            const a = r.body; const st = a.status || "disabled"; if (st === "disabled") return;
+            const now = Date.now(); const toMs = (d) => d && d.dateTime ? Date.parse(d.dateTime + (d.timeZone === "UTC" || /Z$/.test(d.dateTime) ? "Z" : "Z")) : NaN;
+            let start = toMs(a.scheduledStartDateTime), end = toMs(a.scheduledEndDateTime);
+            if (st === "scheduled" && ((!isNaN(start) && start > now) || (!isNaN(end) && end < now))) return;
+            const msg = String(a.internalReplyMessage || a.externalReplyMessage || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 220);
+            out.push({ id: p.id, name: p.name, email: p.email, title: p.title, department: p.department, company: p.company, until: st === "scheduled" && !isNaN(end) ? new Date(end).toISOString() : null, message: msg });
+          });
+        }
+        if (denied && !out.length) return json({ error: "Microsoft 365 refused: the worker's app needs the MailboxSettings.Read application permission with admin consent.", code: "needs_permission" }, 403, origin);
+        out.sort((a, b) => a.name.localeCompare(b.name));
+        const body = JSON.stringify({ ok: true, checked: people.length, asOf: new Date().toISOString(), out });
+        const resp = new Response(body, { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=600" } });
+        try { await cache.put(ck, resp.clone()); } catch (e) {}
+        const h = new Headers(resp.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v));
+        return new Response(body, { status: 200, headers: h });
+      } catch (e) {
+        return json({ error: String(e && e.message || e).slice(0, 300) }, 502, origin);
+      }
+    }
     if (url.pathname === "/audit") {
       // ADMIN_OVERVIEW_v1: recent admin changes (directory edits, who-to-ask edits) for the Admin overview
       const gate = await verifyAdmin(request, env);
