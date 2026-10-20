@@ -8377,15 +8377,27 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
             </div>
             <div class="admin-section">
               <div class="admin-section-head">
-                <h3>Recent activity</h3>
+                <h3 id="slTitle">Sign-ins by person</h3>
                 <div class="actions">
+                  <div id="slMode" style="display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:12px;">
+                    <button type="button" data-m="people" class="on" onclick="slSetMode('people')" style="font:inherit;padding:7px 12px;border:0;cursor:pointer;background:var(--ink);color:var(--gold);">By person</button>
+                    <button type="button" data-m="all" onclick="slSetMode('all')" style="font:inherit;padding:7px 12px;border:0;cursor:pointer;background:#fff;color:var(--ink);">All activity</button>
+                  </div>
                   <input type="search" id="slFilter" placeholder="Filter by name or email" style="font:inherit;font-size:12.5px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;min-width:220px;" oninput="slRender()" />
                   <button class="btn-secondary" onclick="slLoad()">Refresh</button>
                   <button class="btn-secondary" onclick="slExport()">Export CSV</button>
                 </div>
               </div>
               <div id="slStatus" style="font-size:12px;color:var(--muted-light);margin:0 0 10px;">Loading&hellip;</div>
-              <div style="overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;">
+              <div id="slPeopleWrap" style="overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;">
+                <table id="slPeople" style="width:100%;border-collapse:collapse;font-size:12.5px;">
+                  <thead><tr style="text-align:left;background:var(--paper);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">
+                    <th style="padding:10px 14px;">Person</th><th style="padding:10px 14px;">Last sign-in</th><th style="padding:10px 14px;text-align:right;">Last 7 days</th><th style="padding:10px 14px;text-align:right;">Last 30 days</th><th style="padding:10px 14px;text-align:right;">All time</th><th style="padding:10px 14px;">Usual device</th><th style="padding:10px 14px;">Last location</th><th style="padding:10px 14px;">Trend</th>
+                  </tr></thead>
+                  <tbody id="slPeopleBody"></tbody>
+                </table>
+              </div>
+              <div id="slTableWrap" style="display:none;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;">
                 <table id="slTable" style="width:100%;border-collapse:collapse;font-size:12.5px;">
                   <thead><tr style="text-align:left;background:var(--paper);color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;">
                     <th style="padding:10px 14px;">When</th><th style="padding:10px 14px;">Who</th><th style="padding:10px 14px;">Event</th><th style="padding:10px 14px;">Device</th><th style="padding:10px 14px;">Location</th><th style="padding:10px 14px;">IP</th>
@@ -9958,14 +9970,61 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     var st = document.getElementById('slStatus'); if (st) st.textContent = 'Loading\u2026';
     if (!window.SPARK_SB) return;
     window.SPARK_SB.getToken().then(function(tok){
-      return fetch('https://spark-hq-worker.sparkcompanies.workers.dev/signin-log?limit=500', { headers: { 'Authorization': 'Bearer ' + tok } }).then(function(r){ return r.json(); });
+      return fetch('https://spark-hq-worker.sparkcompanies.workers.dev/signin-log?limit=2000', { headers: { 'Authorization': 'Bearer ' + tok } }).then(function(r){ return r.json(); });
     }).then(function(j){
       if (!j || !j.ok) throw new Error((j && j.error) || 'Could not load');
       SL_ROWS = j.rows || []; window.slRender();
     }).catch(function(e){ if (st) st.textContent = 'Could not load the sign-in log: ' + (e.message || e); });
   };
+  var SL_MODE = 'people';
+  window.slSetMode = function(m) {
+    SL_MODE = m;
+    document.getElementById('slPeopleWrap').style.display = m === 'people' ? '' : 'none';
+    document.getElementById('slTableWrap').style.display = m === 'all' ? '' : 'none';
+    document.getElementById('slTitle').textContent = m === 'people' ? 'Sign-ins by person' : 'All activity';
+    document.querySelectorAll('#slMode button').forEach(function(b){ var on = b.dataset.m === m; b.style.background = on ? 'var(--ink)' : '#fff'; b.style.color = on ? 'var(--gold)' : 'var(--ink)'; });
+    window.slRender();
+  };
+  window.slPerson = function(email) { var f = document.getElementById('slFilter'); if (f) f.value = email; window.slSetMode('all'); };
+  function slRenderPeople(q) {
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var now = Date.now(), d7 = now - 7 * 864e5, d30 = now - 30 * 864e5, by = {};
+    SL_ROWS.forEach(function(r){
+      if (r.event === 'signed_out') return;
+      var k = (r.email || '').toLowerCase(); if (!k || (q && k.indexOf(q) < 0)) return;
+      var p = by[k] || (by[k] = { email: k, n: 0, n7: 0, n30: 0, last: null, lastRow: null, dev: {}, days: {} });
+      var t = new Date(r.ts).getTime(); p.n++; if (t > d7) p.n7++; if (t > d30) p.n30++;
+      if (!p.last || t > p.last) { p.last = t; p.lastRow = r; }
+      p.dev[r.device || 'desktop'] = (p.dev[r.device || 'desktop'] || 0) + 1;
+      if (t > now - 14 * 864e5) { var day = Math.floor((now - t) / 864e5); p.days[day] = (p.days[day] || 0) + 1; }
+    });
+    var list = Object.keys(by).map(function(k){ return by[k]; }).sort(function(a, b){ return b.last - a.last; });
+    var st = document.getElementById('slStatus');
+    if (st) st.textContent = list.length ? list.length + ' people have signed in' + (q ? ' matching \u201c' + q + '\u201d' : '') + ' \u00b7 most recent first \u00b7 click a row for their full history' : 'No sign-ins recorded yet.';
+    var rel = function(t){ var m = Math.round((now - t) / 6e4); if (m < 2) return 'just now'; if (m < 60) return m + ' min ago'; var h = Math.round(m / 60); if (h < 24) return h + ' hr ago'; var d = Math.round(h / 24); return d === 1 ? 'yesterday' : d + ' days ago'; };
+    var spark = function(days){ var mx = 1, i; for (i = 0; i < 14; i++) mx = Math.max(mx, days[i] || 0); var s = '<svg viewBox="0 0 70 18" width="70" height="18" aria-hidden="true">'; for (i = 13; i >= 0; i--) { var v = days[i] || 0, h = v ? Math.max(3, Math.round(v / mx * 16)) : 1; s += '<rect x="' + ((13 - i) * 5) + '" y="' + (17 - h) + '" width="4" height="' + h + '" rx="1" fill="' + (v ? '#FFC800' : '#e7e4dc') + '"/>'; } return s + '</svg>'; };
+    var initials = function(e){ var n = e.split('@')[0].replace(/[._-]+/g, ' '); return (n[0] || '').toUpperCase() + ((n.split(' ')[1] || '')[0] || '').toUpperCase(); };
+    document.getElementById('slPeopleBody').innerHTML = list.map(function(p){
+      var r = p.lastRow || {}, d = new Date(p.last);
+      var when = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      var dev = Object.keys(p.dev).sort(function(a, b){ return p.dev[b] - p.dev[a]; })[0] || '';
+      var loc = [r.city, r.region].filter(Boolean).join(', ') || (r.country || '\u2014');
+      var stale = p.last < d30;
+      return '<tr style="border-top:1px solid var(--line-light);cursor:pointer;" onclick="slPerson(\'' + esc(p.email) + '\')" title="See every sign-in for ' + esc(p.email) + '">' +
+        '<td style="padding:10px 14px;"><div style="display:flex;align-items:center;gap:10px;"><span class="av" data-pe="' + esc(p.email) + '" style="position:relative;overflow:hidden;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--gold);display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;">' + esc(initials(p.email)) + '</span><div style="min-width:0;"><div style="font-weight:600;color:var(--ink);">' + esc(p.email) + '</div><div style="font-size:11px;color:var(--muted);">' + (stale ? '<span style="color:#b45309;">Not seen in 30+ days</span>' : rel(p.last)) + '</div></div></div></td>' +
+        '<td style="padding:10px 14px;white-space:nowrap;">' + esc(when) + '</td>' +
+        '<td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;">' + p.n7 + '</td>' +
+        '<td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;">' + p.n30 + '</td>' +
+        '<td style="padding:10px 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);">' + p.n + '</td>' +
+        '<td style="padding:10px 14px;text-transform:capitalize;">' + esc(dev) + '</td>' +
+        '<td style="padding:10px 14px;">' + esc(loc) + '</td>' +
+        '<td style="padding:10px 14px;">' + spark(p.days) + '</td></tr>';
+    }).join('');
+    if (window.hqPhoto) { document.querySelectorAll('#slPeopleBody .av[data-pe]').forEach(function(a){ window.hqPhoto(a.getAttribute('data-pe')).then(function(u){ if (u && !a.querySelector('img')) { var im = new Image(); im.alt = ''; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%'; im.src = u; a.appendChild(im); } }); }); }
+  }
   window.slRender = function() {
     var q = ((document.getElementById('slFilter') || {}).value || '').toLowerCase().trim();
+    if (SL_MODE === 'people') { slRenderPeople(q); return; }
     var rows = SL_ROWS.filter(function(r){ return !q || (r.email || '').toLowerCase().indexOf(q) >= 0; });
     var st = document.getElementById('slStatus');
     if (st) st.textContent = rows.length ? rows.length + ' entr' + (rows.length === 1 ? 'y' : 'ies') + (q ? ' matching \u201c' + q + '\u201d' : '') + ' \u00b7 newest first' : 'No sign-ins recorded yet.';
