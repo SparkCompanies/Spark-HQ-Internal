@@ -1914,6 +1914,34 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    if (url.pathname === "/track") {
+      // TRACK_v1: where people go in HQ. POST {events:[{type,target,label}]} from any signed-in user; GET ?days=30 for admins.
+      // Table: spark_hq_pageviews (id bigserial pk, ts timestamptz default now(), email text, type text, target text, label text, device text, origin text)
+      if (request.method === "POST") {
+        const who = await verifyUser(request, env);
+        if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+        let body = {};
+        try { body = await request.json(); } catch (e) {}
+        const ua = request.headers.get("User-Agent") || "";
+        const device = /iPhone|iPad|Android|Mobile/i.test(ua) ? "mobile" : "desktop";
+        const clean = (s, n) => String(s == null ? "" : s).trim().slice(0, n);
+        const rows = (Array.isArray(body.events) ? body.events : []).slice(0, 50).map((e) => ({
+          email: who.email, type: clean(e.type, 24) || "tab", target: clean(e.target, 80), label: clean(e.label, 120), device, origin: origin || "",
+          ts: e.ts && !isNaN(Date.parse(e.ts)) ? new Date(e.ts).toISOString() : new Date().toISOString()
+        })).filter((r) => r.target);
+        if (!rows.length) return json({ ok: true, n: 0 }, 200, origin);
+        const r = await sbService(env, "POST", "spark_hq_pageviews", rows);
+        if (!r.ok) return json({ error: "Could not write", detail: r.data }, 502, origin);
+        return json({ ok: true, n: rows.length }, 200, origin);
+      }
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      const days = Math.min(Math.max(parseInt(url.searchParams.get("days") || "30", 10) || 30, 1), 365);
+      const since = new Date(Date.now() - days * 864e5).toISOString();
+      const r = await sbService(env, "GET", "spark_hq_pageviews?select=ts,email,type,target,label,device&ts=gte." + encodeURIComponent(since) + "&order=ts.desc&limit=20000");
+      if (!r.ok) return json({ error: "Could not read", detail: r.data }, 502, origin);
+      return json({ ok: true, days, rows: r.data }, 200, origin);
+    }
     if (url.pathname === "/photo") {
       // PHOTO_PROXY_v1: M365 profile photo for a Spark address (any signed-in user). 204 when the person has none.
       const who = await verifyUser(request, env);
