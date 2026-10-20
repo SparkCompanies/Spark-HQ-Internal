@@ -390,15 +390,21 @@ function openPerson(name){
       if(tg.c>0 && qv>=tg.c) tro.push({k:'b',q:qn});
     }
   })();
-  window.__bdgTro = tro;
+  // group by quarter: one column per quarter with any hit; igniter row above contest row
+  var troQ={}; tro.forEach(function(a){ (troQ[a.q]=troQ[a.q]||{q:a.q})[a.k]=1; });
+  var troCols=Object.keys(troQ).map(function(k){return troQ[k]}).sort(function(a,b){return a.q-b.q});
+  var troList=[];
   var troH='';
-  if(tro.length){
-    troH='<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:230px;flex:0 0 auto">';
-    tro.forEach(function(a,i){
-      troH+='<div style="text-align:center"><div style="width:46px;height:46px;border-radius:50%;background:#0E1118;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px #1E2638,0 0 10px rgba(255,200,0,.18)"><svg id="bdgT'+i+'" width="42" height="42" viewBox="0 0 100 100"></svg></div><div class="m" style="font-size:8px;color:var(--gold);font-weight:800;margin-top:3px;letter-spacing:.5px">Q'+a.q+' \u00b7 26</div></div>';
-    });
+  if(troCols.length){
+    var coin=function(id){return '<div style="width:46px;height:46px;border-radius:50%;background:#0E1118;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px #1E2638,0 0 10px rgba(255,200,0,.18)"><svg id="'+id+'" width="42" height="42" viewBox="0 0 100 100"></svg></div>'};
+    var blank='<div style="width:46px;height:46px"></div>';
+    troH='<div style="display:grid;grid-template-columns:repeat('+troCols.length+',46px);gap:8px 10px;flex:0 0 auto;margin-right:36px">';
+    troCols.forEach(function(qc){ if(qc.f){var id='bdgTi'+qc.q; troList.push({k:'f',id:id}); troH+=coin(id);} else troH+=blank; });
+    troCols.forEach(function(qc){ if(qc.b){var id='bdgTc'+qc.q; troList.push({k:'b',id:id}); troH+=coin(id);} else troH+=blank; });
+    troCols.forEach(function(qc){ troH+='<div class="m" style="font-size:8px;color:var(--gold);font-weight:800;text-align:center;letter-spacing:.5px">Q'+qc.q+' \u00b7 26</div>'; });
     troH+='</div>';
   }
+  window.__bdgTro = troList;
   var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:22px"><div><div style="font-size:25px;font-weight:800;letter-spacing:-.5px">'+p.n+'</div>';
   h+='<div style="font-size:12px;color:var(--dm);margin-top:3px">'+p.rl+'</div>';
   h+='<div style="margin-top:10px;display:flex;gap:6px">'+pill(p.en,c)+(p.bu?pill(p.bu,'var(--dm)'):'')+'</div></div>'+troH+'</div>';
@@ -2084,7 +2090,7 @@ window.SPARK_LIVE = (function () {
   setInterval(function(){
     if(document.hidden)return;
     var tro=window.__bdgTro||[];
-    for(var ti=0;ti<tro.length;ti++){var te=document.getElementById('bdgT'+ti);if(te)te.innerHTML=tro[ti].k==='f'?bdgFlame(108,true):bdgBolt(108,true);}
+    for(var ti=0;ti<tro.length;ti++){var te=document.getElementById(tro[ti].id);if(te)te.innerHTML=tro[ti].k==='f'?bdgFlame(108,true):bdgBolt(108,true);}
     var f=document.getElementById('bdgF');if(!f)return;
     var B=window.__bdg;if(!B)return;
     f.innerHTML=bdgFlame(B.ig);
