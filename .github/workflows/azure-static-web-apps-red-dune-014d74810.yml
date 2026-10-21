@@ -23,6 +23,11 @@ jobs:
             cp "$f" site/
           done
           cp *.mp4 *.png *.jpg *.svg *.pdf *.webm *.mp3 site/ 2>/dev/null || true
+          # PWA_v1: the installable app needs these served as real files. Without them Azure
+          # falls back to index.html, the service worker is refused for bad MIME type, and
+          # push notifications never register.
+          cp sw.js manifest.webmanifest site/ 2>/dev/null || true
+          if [ -d icons ]; then mkdir -p site/icons && cp icons/* site/icons/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
           ls site/*.html | sed 's|site/|  |'
