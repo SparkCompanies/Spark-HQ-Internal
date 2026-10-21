@@ -1488,5 +1488,175 @@ async function loadShared(){
 }
 loadShared();
 </script>
+<!-- ===== Territory Command: Search-all bar (header search across territories, states, companies, reqs) ===== -->
+<style>
+  .gs-wrap{position:relative;flex:0 1 420px;margin:0 16px;min-width:200px}
+  .gs-box{display:flex;align-items:center;gap:8px;height:35px;padding:0 10px;border:1px solid var(--edge);border-radius:4px;background:var(--panel)}
+  .gs-box:focus-within{border-color:var(--gold)}
+  .gs-box svg{flex:none;color:var(--dim)}
+  .gs-box input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--txt);font:13px Jost,system-ui,sans-serif}
+  .gs-box input::placeholder{color:var(--faint)}
+  .gs-kbd{flex:none;font:11px Jost,system-ui,sans-serif;color:var(--faint);border:1px solid var(--edge);border-radius:3px;padding:1px 5px}
+  .gs-drop{position:absolute;top:40px;left:0;right:0;max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--edge);border-radius:6px;box-shadow:0 16px 40px rgba(0,0,0,.55);z-index:9999;display:none}
+  .gs-drop.open{display:block}
+  .gs-grp{padding:8px 12px 4px;font:600 10px Jost,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .gs-row{display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;font:13px Jost,system-ui,sans-serif;color:var(--txt)}
+  .gs-row.on,.gs-row:hover{background:var(--panel2)}
+  .gs-dot{flex:none;width:9px;height:9px;border-radius:2px}
+  .gs-main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gs-main mark{background:none;color:var(--gold-hi)}
+  .gs-sub{flex:none;font-size:11px;color:var(--dim);max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gs-sf{flex:none;display:flex;color:var(--faint)}
+  .gs-sf:hover{color:var(--gold-hi)}
+  .gs-empty{padding:14px 12px;font:13px Jost,system-ui,sans-serif;color:var(--dim)}
+</style>
+<script>
+(function(){
+  var ICON_SEARCH='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+  var ICON_EXT='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+  var PER_GROUP=8;
+
+  var header=document.querySelector('header'); if(!header) return;
+  var wrap=document.createElement('div'); wrap.className='gs-wrap';
+  wrap.innerHTML='<div class="gs-box">'+ICON_SEARCH+'<input id="gsInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search companies, reqs, states, territories"><span class="gs-kbd">/</span></div><div class="gs-drop" id="gsDrop"></div>';
+  var sp=header.querySelector('.sp'); header.insertBefore(wrap, sp || header.querySelector('#exportBtn'));
+  var inp=wrap.querySelector('#gsInput'), drop=wrap.querySelector('#gsDrop');
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function hl(text,q){var t=String(text||''),i=t.toLowerCase().indexOf(q);return i<0?esc(t):esc(t.slice(0,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length));}
+  function terrById(id){return (data.territories||[]).find(function(t){return t.id===id;});}
+  function placeOf(rec){var s=null,t=null;try{s=stateOfRec(rec);t=s?terrOfRec(s,rec):null;}catch(e){}return {s:s,t:t};}
+
+  // Index is rebuilt when Salesforce data changes (SF.at) so it never goes stale.
+  var idx=null, idxAt=null;
+  function buildIndex(){
+    if(idx && idxAt===SF.at && idx.n===(SF.accts||[]).length+(SF.jobs||[]).length) return;
+    idx={n:(SF.accts||[]).length+(SF.jobs||[]).length,
+      accts:(SF.accts||[]).map(function(a){return {r:a,k:[a.name,a.city,a.zip,a.shippingState,a.bu,a.co].join(' ').toLowerCase()};}),
+      jobs:(SF.jobs||[]).map(function(j){return {r:j,k:[j.name,j.account,j.bu,j.shippingState].join(' ').toLowerCase()};})};
+    idxAt=SF.at;
+  }
+
+  var items=[], sel=-1;
+  function search(raw){
+    var q=raw.trim().toLowerCase(); items=[]; sel=-1;
+    if(q.length<2){drop.classList.remove('open');return;}
+    buildIndex();
+    var groups=[];
+
+    // Territories
+    var tr=(data.territories||[]).filter(function(t){return t.name.toLowerCase().indexOf(q)>=0;}).map(function(t){
+      return {html:hl(t.name,q),sub:'Territory',color:t.color,go:function(){setFocus(t.id);}};});
+    if(tr.length) groups.push(['Territories',tr]);
+
+    // States (Michigan splits by county, so it lists one row per territory that owns MI counties)
+    var st=[];
+    Object.keys(STATES).forEach(function(ab){
+      var nm=STATES[ab].name||ab;
+      if(nm.toLowerCase().indexOf(q)<0 && ab.toLowerCase()!==q) return;
+      var t=terrOf(ab);
+      if(t){st.push({html:hl(nm,q)+' <span style="color:var(--faint)">'+ab+'</span>',sub:t.name,color:t.color,go:function(){setFocus(t.id,ab);}});}
+      else{
+        (data.territories||[]).filter(function(x){return (x.counties||[]).some(function(f){return f.slice(0,2)==='26';});}).forEach(function(x){
+          st.push({html:hl(nm,q)+' <span style="color:var(--faint)">'+ab+'</span>',sub:x.name,color:x.color,go:function(){setFocus(x.id,'MI');}});});
+      }
+    });
+    if(st.length) groups.push(['States',st.slice(0,PER_GROUP)]);
+
+    // Companies (searches ALL accounts, ignoring the Status/Company/BU filters)
+    var ac=[],acTotal=0;
+    for(var i=0;i<idx.accts.length;i++){ if(idx.accts[i].k.indexOf(q)<0) continue; acTotal++;
+      if(ac.length<PER_GROUP){ (function(a){ var p=placeOf(a);
+        ac.push({html:hl(a.name,q),sub:[a.city,a.shippingState].filter(Boolean).join(', ')+(p.t?' · '+p.t.name.replace(/^National /,''):' · Unassigned')+(a.status?' · '+a.status:''),
+          color:p.t?p.t.color:'var(--faint)',url:a.url,
+          go:function(){ if(!p.t){ if(a.url) window.open(a.url,'_blank'); return; } openTo(p.t.id,p.s,'clients',a.name,passFilters(a)); }});
+      })(idx.accts[i].r); }
+    }
+    if(ac.length) groups.push(['Companies'+(acTotal>PER_GROUP?' · '+acTotal.toLocaleString()+' matches':''),ac]);
+
+    // Reqs
+    var jb=[],jbTotal=0;
+    for(var k=0;k<idx.jobs.length;k++){ if(idx.jobs[k].k.indexOf(q)<0) continue; jbTotal++;
+      if(jb.length<PER_GROUP){ (function(j){ var p=placeOf(j._host||j); if(!p.t) p=placeOf(j);
+        jb.push({html:hl(j.name,q),sub:(j.account||'')+(j.shippingState?' · '+j.shippingState:'')+(p.t?' · '+p.t.name.replace(/^National /,''):''),
+          color:p.t?p.t.color:'var(--faint)',url:j.url,
+          go:function(){ if(!p.t){ if(j.url) window.open(j.url,'_blank'); return; } openReq(p.t.id,p.s,j); }});
+      })(idx.jobs[k].r); }
+    }
+    if(jb.length) groups.push(['Reqs'+(jbTotal>PER_GROUP?' · '+jbTotal+' matches':''),jb]);
+
+    var html='';
+    if(!groups.length) html='<div class="gs-empty">No matches for "'+esc(raw.trim())+'"</div>';
+    groups.forEach(function(g){
+      html+='<div class="gs-grp">'+esc(g[0])+'</div>';
+      g[1].forEach(function(it){ var n=items.length; items.push(it);
+        html+='<div class="gs-row" data-i="'+n+'"><span class="gs-dot" style="background:'+it.color+'"></span><span class="gs-main">'+it.html+'</span><span class="gs-sub">'+esc(it.sub)+'</span>'+
+          (it.url?'<a class="gs-sf" href="'+esc(it.url)+'" target="_blank" rel="noopener" title="Open in Salesforce">'+ICON_EXT+'</a>':'')+'</div>';});
+    });
+    drop.innerHTML=html; drop.classList.add('open');
+    if(items.length) mark(0);
+  }
+
+  // Focus the territory, open its panel, jump to the right tab, and pre-fill the panel filter.
+  function openTo(tid,st,tab,q,visible){
+    var t=terrById(tid); if(!t) return;
+    var stArg = st==='MI' ? 'MI' : (st || undefined);
+    setFocus(tid,stArg);
+    if(tab==='reqs'){ var tb=document.querySelector('.p-tab[data-pt="reqs"]'); if(tb) tb.click(); }
+    panelQ=q||''; var ps=document.getElementById('pSearch'); if(ps) ps.value=panelQ;
+    renderPanel();
+    if(!visible && typeof toast==='function') toast('That company is hidden by the current Status/Company/BU filters');
+  }
+
+  // Reqs tab is grouped by BU (no text filter), so expand the req's BU, scroll to it, and flash it.
+  function openReq(tid,st,j){
+    setFocus(tid, st==='MI' ? 'MI' : (st || undefined));
+    var tb=document.querySelector('.p-tab[data-pt="reqs"]'); if(tb) tb.click();
+    if(j.bu) openBUs[j.bu]=true;
+    renderPanel();
+    var name=String(j.name||'').trim(), hit=null;
+    panelEl.querySelectorAll('div,span,a').forEach(function(el){
+      var own=''; el.childNodes.forEach(function(n){ if(n.nodeType===3) own+=n.textContent; });
+      if(own.trim()===name) hit=el;
+    });
+    if(!hit){ if(typeof toast==='function') toast('Req is in '+(j.bu||'this territory')+' but hidden by current filters'); return; }
+    var row=hit.parentElement||hit;
+    row.scrollIntoView({block:'center'});
+    row.style.transition='box-shadow .3s'; row.style.boxShadow='inset 0 0 0 1px var(--gold-hi)';
+    setTimeout(function(){ row.style.boxShadow=''; },2200);
+  }
+
+  function mark(i){
+    var rows=drop.querySelectorAll('.gs-row'); if(!rows.length) return;
+    sel=(i+rows.length)%rows.length;
+    rows.forEach(function(r){r.classList.toggle('on',+r.dataset.i===sel);});
+    rows[sel].scrollIntoView({block:'nearest'});
+  }
+  function pick(i){
+    var it=items[i]; if(!it) return;
+    if(typeof admin!=='undefined' && admin && typeof toast==='function'){ toast('Exit admin edit to open territory panels'); return; }
+    drop.classList.remove('open'); inp.blur(); it.go();
+  }
+
+  var tmr; inp.addEventListener('input',function(){clearTimeout(tmr);tmr=setTimeout(function(){search(inp.value);},90);});
+  inp.addEventListener('focus',function(){ if(inp.value.trim().length>=2) search(inp.value); });
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'){e.preventDefault();mark(sel+1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();mark(sel-1);}
+    else if(e.key==='Enter'){e.preventDefault();pick(sel<0?0:sel);}
+    else if(e.key==='Escape'){ if(inp.value){inp.value='';drop.classList.remove('open');} else inp.blur(); }
+  });
+  drop.addEventListener('mousedown',function(e){
+    if(e.target.closest('.gs-sf')) return;
+    var r=e.target.closest('.gs-row'); if(!r) return; e.preventDefault(); pick(+r.dataset.i);
+  });
+  document.addEventListener('mousedown',function(e){ if(!wrap.contains(e.target)) drop.classList.remove('open'); });
+  document.addEventListener('keydown',function(e){
+    var tag=(e.target.tagName||'').toLowerCase();
+    if(e.key==='/' && tag!=='input' && tag!=='textarea' && tag!=='select' && !e.target.isContentEditable){ e.preventDefault(); inp.focus(); inp.select(); }
+  });
+})();
+</script>
+<!-- ===== /Search-all bar ===== -->
 </body>
 </html>
