@@ -1081,6 +1081,7 @@ async function whosOutDigest(env) {
   return pushBroadcast(env, "whosOut", { title: "Who's out today", body, url: "/", tag: "whos-out" });
 }
 __name(whosOutDigest, "whosOutDigest");
+// build marker: GREETINGS_v1 (2026-10-21)
 
 // ---------- GREETINGS_v1: birthday & work-anniversary emails ----------
 // Birthdays come from the Spark Board (the only place they live); anniversaries come from
