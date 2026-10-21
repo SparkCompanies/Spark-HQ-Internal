@@ -2291,6 +2291,85 @@ var worker_default = {
       if (!r.ok) return json({ error: "Could not read", detail: r.data }, 502, origin);
       return json({ ok: true, days, rows: r.data }, 200, origin);
     }
+    if (url.pathname === "/hire-dates") {
+      // HIREDATES_v1: admin-only. GET matches the Birthdays/Anniversaries Spark Board against the M365
+      // directory and proposes hire dates; POST writes the confirmed list to employeeHireDate.
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+      const keyOf = (s) => { const t = norm(s).split(" ").filter(Boolean); return t.length < 2 ? t.join(" ") : t[0] + " " + t[t.length - 1]; };
+      if (request.method === "GET") {
+        const lst = await sbService(env, "GET", "spark_boards?select=id,name");
+        if (!lst.ok) return json({ error: "boards unreadable" }, 502, origin);
+        const hit = (lst.data || []).find((b) => /birthday|anniversar/i.test(String(b.name || "")));
+        if (!hit) return json({ error: "No birthday/anniversary board found" }, 404, origin);
+        const br = await sbService(env, "GET", "spark_boards?select=data&id=eq." + encodeURIComponent(hit.id) + "&limit=1");
+        if (!br.ok || !br.data || !br.data[0]) return json({ error: "board unreadable" }, 502, origin);
+        const board = br.data[0].data || {};
+        const col = (re) => (board.columns || []).find((c) => c && re.test(String(c.label || c.name || c.key || "")));
+        const cHire = col(/hire.?date|start.?date/i);
+        if (!cHire) return json({ error: "No hire date column on that board", columns: (board.columns || []).map((c) => c.label || c.name || c.key) }, 400, origin);
+        const iso = (v) => {
+          if (!v) return "";
+          if (typeof v === "object" && v.date) v = v.date;
+          const s = String(v).trim();
+          let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (m) return m[1] + "-" + m[2] + "-" + m[3];
+          m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+          if (m) { let y = +m[3]; if (y < 100) y += y < 50 ? 2000 : 1900; return y + "-" + String(+m[1]).padStart(2, "0") + "-" + String(+m[2]).padStart(2, "0"); }
+          const d = new Date(s);
+          return isNaN(d) ? "" : d.toISOString().slice(0, 10);
+        };
+        const rows = [];
+        (board.groups || []).forEach((g) => (g.items || []).forEach((it) => {
+          const nm = String(it.name || it.title || "").trim();
+          const hd = iso(it[cHire.key]);
+          if (nm && hd) rows.push({ boardName: nm, hireDate: hd });
+        }));
+        const token = await getGraphToken(env);
+        const users = await fetchDirectory(token);
+        const people = directoryPeople(users);
+        const cur = {}; users.forEach((u) => { if (u.employeeHireDate) cur[u.id] = String(u.employeeHireDate).slice(0, 10); });
+        const byKey = {}; people.forEach((p) => { const k = keyOf(p.name); if (k) (byKey[k] = byKey[k] || []).push(p); });
+        const matched = [], ambiguous = [], unmatched = [];
+        const used = {};
+        rows.forEach((r) => {
+          let k = keyOf(r.boardName);
+          let cands = byKey[k] || [];
+          if (!cands.length) { // try "Last, First"
+            const parts = norm(r.boardName).split(" ").filter(Boolean);
+            if (parts.length >= 2) cands = byKey[parts[parts.length - 1] + " " + parts[0]] || [];
+          }
+          if (!cands.length) return unmatched.push(r);
+          if (cands.length > 1) return ambiguous.push(Object.assign({ options: cands.map((p) => p.name + " <" + p.email + ">") }, r));
+          const p = cands[0];
+          if (used[p.id]) return ambiguous.push(Object.assign({ options: ["already matched to another row"] }, r));
+          used[p.id] = 1;
+          matched.push({ id: p.id, name: p.name, email: p.email, boardName: r.boardName, hireDate: r.hireDate, current: cur[p.id] || "", changes: (cur[p.id] || "") !== r.hireDate });
+        });
+        const noRow = people.filter((p) => !used[p.id]).map((p) => ({ name: p.name, email: p.email, current: cur[p.id] || "" }));
+        return json({ ok: true, board: hit.name, column: cHire.label || cHire.name, boardRows: rows.length, matched, ambiguous, unmatched, peopleWithNoBoardRow: noRow }, 200, origin);
+      }
+      if (request.method === "POST") {
+        let body; try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        const list = Array.isArray(body && body.updates) ? body.updates.slice(0, 300) : [];
+        if (!list.length) return json({ error: "updates required" }, 400, origin);
+        const token = await getGraphToken(env);
+        const done = [], failed = [];
+        for (const u of list) {
+          const id = String(u.id || "").trim(), hd = String(u.hireDate || "").trim();
+          if (!/^[0-9a-f-]{36}$/i.test(id) || !/^\d{4}-\d{2}-\d{2}$/.test(hd)) { failed.push({ id, hireDate: hd, error: "bad input" }); continue; }
+          try {
+            const r = await fetch("https://graph.microsoft.com/v1.0/users/" + id, { method: "PATCH", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ employeeHireDate: hd + "T00:00:00Z" }) });
+            if (r.ok || r.status === 204) done.push(id);
+            else failed.push({ id, hireDate: hd, error: (await r.text()).slice(0, 120) });
+          } catch (e) { failed.push({ id, hireDate: hd, error: String(e.message || e).slice(0, 100) }); }
+        }
+        try { await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "hire_dates.bulk", target: String(done.length), detail: JSON.stringify({ ok: done.length, failed: failed.length }) }); } catch (e) {}
+        return json({ ok: true, updated: done.length, failed }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
     if (url.pathname === "/photos") {
       // PHOTOS_BULK_v1: every M365 profile photo in ONE response (data URLs), edge-cached for an hour.
       // Replaces ~60 separate /photo round trips per directory load.
