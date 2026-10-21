@@ -1081,6 +1081,192 @@ async function whosOutDigest(env) {
   return pushBroadcast(env, "whosOut", { title: "Who's out today", body, url: "/", tag: "whos-out" });
 }
 __name(whosOutDigest, "whosOutDigest");
+
+// ---------- GREETINGS_v1: birthday & work-anniversary emails ----------
+// Birthdays come from the Spark Board (the only place they live); anniversaries come from
+// M365 employeeHireDate, which the Directory card now edits. Every send is recorded in
+// spark_hq_greetings so a redeploy, a retry or a manual run can never double-send.
+const G_FROM = (env) => String(env.GREETINGS_FROM || "aspegel@sparkcompanies.com").toLowerCase();
+const gEsc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function gDetroit(offsetDays) {
+  const base = new Date(Date.now() + (offsetDays || 0) * 864e5);
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/Detroit", year: "numeric", month: "2-digit", day: "2-digit", weekday: "short" });
+  const p = {}; f.formatToParts(base).forEach((x) => { if (x.type !== "literal") p[x.type] = x.value; });
+  return { y: +p.year, m: +p.month, d: +p.day, wd: p.weekday, iso: p.year + "-" + p.month + "-" + p.day };
+}
+const gLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+// Feb 29 birthdays and hire dates are observed on the 28th in common years.
+const gObs = (m, d, y) => (m === 2 && d === 29 && !gLeap(y)) ? { m: 2, d: 28 } : { m, d };
+function gParse(v) {
+  if (!v) return null;
+  if (typeof v === "object" && v.date) v = v.date;
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return { y: +m[1], m: +m[2], d: +m[3] };
+  m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) { let y = +m[3]; if (y < 100) y += y < 50 ? 2000 : 1900; return { y, m: +m[1], d: +m[2] }; }
+  const dt = new Date(s);
+  return isNaN(dt) ? null : { y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() };
+}
+const gNorm = (s) => String(s || "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+// Board names arrive "Last, First M."; the directory uses nicknames. Same splitter /hire-dates uses.
+function gSplit(raw) {
+  const s = String(raw || "").replace(/\s+/g, " ").trim();
+  let first = "", last = "";
+  if (s.indexOf(",") !== -1) {
+    const a = s.split(",");
+    last = gNorm(a[0]);
+    first = (gNorm(a[1]).split(" ").filter((t) => t.length > 1)[0]) || gNorm(a[1]).split(" ")[0] || "";
+  } else {
+    const t = gNorm(s).split(" ").filter(Boolean).filter((x) => x.length > 1);
+    first = t[0] || ""; last = t.length > 1 ? t[t.length - 1] : "";
+  }
+  return { first, last };
+}
+const gFirst = (name) => String(name || "").trim().split(/\s+/)[0] || "there";
+
+// The days one run covers: normally just today; a Friday run also carries Saturday and Sunday,
+// so a weekend birthday still lands in the working week rather than a day late on Monday.
+function gWindow(forDate) {
+  if (forDate && /^\d{4}-\d{2}-\d{2}$/.test(forDate)) {
+    const p = forDate.split("-");
+    return [{ y: +p[0], m: +p[1], d: +p[2], iso: forDate, early: false }];
+  }
+  const t0 = gDetroit(0), days = [Object.assign({ early: false }, t0)];
+  if (t0.wd === "Fri") { [1, 2].forEach((n) => { const t = gDetroit(n); days.push(Object.assign({ early: true }, t)); }); }
+  return days;
+}
+
+async function greetingsCollect(env, forDate) {
+  const token = await getGraphToken(env);
+  const users = await fetchDirectory(token);
+  const people = directoryPeople(users);
+  const byId = {}; people.forEach((p) => { byId[p.id] = p; });
+  const hire = {}; users.forEach((u) => { if (u.employeeHireDate && byId[u.id]) hire[u.id] = gParse(String(u.employeeHireDate).slice(0, 10)); });
+
+  // birthdays live on the Spark Board, keyed by name
+  const birth = {};
+  try {
+    const lst = await sbService(env, "GET", "spark_boards?select=id,name");
+    const hit = (lst.data || []).find((b) => /birthday/i.test(String(b.name || "")));
+    if (hit) {
+      const br = await sbService(env, "GET", "spark_boards?select=data&id=eq." + encodeURIComponent(hit.id) + "&limit=1");
+      const board = (br.data && br.data[0] && br.data[0].data) || {};
+      const col = (re) => (board.columns || []).find((c) => c && re.test(String(c.label || c.name || c.key || "")));
+      const cB = col(/birth.?date|\bdob\b/i);
+      if (cB) {
+        const byFull = {}, bySur = {};
+        people.forEach((p) => {
+          const n = gSplit(p.name);
+          if (n.first && n.last) (byFull[n.first + " " + n.last] = byFull[n.first + " " + n.last] || []).push(p);
+          if (n.last) (bySur[n.last] = bySur[n.last] || []).push(p);
+        });
+        (board.groups || []).forEach((g) => (g.items || []).forEach((it) => {
+          if (!it || it.deletedAt || it.archivedAt) return;
+          const bd = gParse(it[cB.key]); if (!bd) return;
+          const n = gSplit(it.name || "");
+          let cands = (n.first && n.last) ? (byFull[n.first + " " + n.last] || []) : [];
+          if (!cands.length && n.last) {
+            const sur = bySur[n.last] || [];
+            const ini = sur.filter((p) => gSplit(p.name).first.charAt(0) === n.first.charAt(0));
+            cands = ini.length ? ini : (sur.length === 1 ? sur : []);
+          }
+          if (cands.length === 1) birth[cands[0].id] = bd;
+        }));
+      }
+    }
+  } catch (e) { console.error("greetings board read failed", e && e.message); }
+
+  const days = gWindow(forDate), out = [];
+  days.forEach((day) => {
+    people.forEach((p) => {
+      const b = birth[p.id];
+      if (b) { const o = gObs(b.m, b.d, day.y); if (o.m === day.m && o.d === day.d) out.push({ id: p.id, name: p.name, email: p.email, first: gFirst(p.name), kind: "birthday", years: 0, on: day.iso, early: day.early }); }
+      const h = hire[p.id];
+      if (h) {
+        const o = gObs(h.m, h.d, day.y), yrs = day.y - h.y;
+        if (o.m === day.m && o.d === day.d && yrs >= 1) out.push({ id: p.id, name: p.name, email: p.email, first: gFirst(p.name), kind: "anniversary", years: yrs, on: day.iso, early: day.early });
+      }
+    });
+  });
+  return { days: days.map((d) => d.iso), people: out, directory: people.length, withBirthday: Object.keys(birth).length, withHireDate: Object.keys(hire).length };
+}
+
+// Outlook-safe: tables, inline styles, no external images, no web fonts.
+function greetingsEmail(p) {
+  const bday = p.kind === "birthday";
+  const yr = p.years, plural = yr === 1 ? "year" : "years";
+  const big = bday ? "HAPPY BIRTHDAY" : (yr + " " + plural.toUpperCase());
+  const sub = bday ? "" : "at Spark";
+  const subject = bday ? ("Happy birthday, " + p.first) : (p.first + " — " + yr + " " + plural + " at Spark");
+  const lines = bday
+    ? ["Hope today gives you a minute that's actually yours, and that someone else picks up the hard thing on your list.", "Glad you're here."]
+    : [(yr === 1 ? "One year in." : yr + " years in.") + " That's a long stretch of showing up and caring how the work turns out, and it doesn't go unnoticed.", "Thank you for the way you do it. Here's to the next one."];
+  const text = p.first + " —\n\n" + lines.join("\n\n") + "\n\nAllie\nVP of Operations, Spark Companies";
+  const html =
+'<!doctype html><html><body style="margin:0;padding:0;background:#f4f2ec;">' +
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f2ec;padding:28px 12px;"><tr><td align="center">' +
+'<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e7e3d8;">' +
+  '<tr><td style="background:#0d0e1a;padding:30px 34px 26px;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:3px;color:#8d8778;font-weight:bold;">SPARK COMPANIES</td></tr>' +
+    '<tr><td style="padding-top:4px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:34px;height:3px;background:#FFC800;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>' +
+    '<tr><td style="padding-top:20px;font-family:Arial,Helvetica,sans-serif;font-size:' + (bday ? "30" : "40") + 'px;line-height:1.02;letter-spacing:' + (bday ? "1" : "2") + 'px;color:#FFC800;font-weight:bold;">' + gEsc(big) + '</td></tr>' +
+    (sub ? '<tr><td style="padding-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:4px;color:#b9b2a0;font-weight:bold;">' + gEsc(sub.toUpperCase()) + '</td></tr>' : '') +
+    '</table></td></tr>' +
+  '<tr><td style="padding:30px 34px 10px;font-family:Arial,Helvetica,sans-serif;font-size:17px;color:#111111;font-weight:bold;">' + gEsc(p.first) + ' —</td></tr>' +
+  lines.map((l) => '<tr><td style="padding:0 34px 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#33302a;">' + gEsc(l) + '</td></tr>').join('') +
+  '<tr><td style="padding:6px 34px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#33302a;">Allie<br><span style="font-size:12.5px;color:#7c766a;">VP of Operations, Spark Companies</span></td></tr>' +
+  '<tr><td style="background:#faf9f6;border-top:1px solid #eceae2;padding:14px 34px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a9486;letter-spacing:.5px;">JUST WATCH US</td></tr>' +
+'</table></td></tr></table></body></html>';
+  return { subject, html, text };
+}
+
+async function greetingsRun(env, opts) {
+  opts = opts || {};
+  const live = !opts.dry && String(env.GREETINGS_ENABLED || "").toLowerCase() === "on";
+  const col = await greetingsCollect(env, opts.date);
+  let list = col.people;
+  if (opts.only) { const o = String(opts.only).toLowerCase(); list = list.filter((p) => p.email === o); }
+
+  // already sent? one row per person / kind / year
+  const yearOf = (p) => p.on.slice(0, 4);
+  let sentKeys = {};
+  if (list.length) {
+    try {
+      const yrs = Array.from(new Set(list.map(yearOf)));
+      const r = await sbService(env, "GET", "spark_hq_greetings?select=person_id,kind,year&year=in.(" + yrs.join(",") + ")&limit=2000");
+      if (r.ok) (r.data || []).forEach((x) => { sentKeys[x.person_id + "|" + x.kind + "|" + x.year] = 1; });
+    } catch (e) {}
+  }
+  const todo = opts.resend ? list : list.filter((p) => !sentKeys[p.id + "|" + p.kind + "|" + yearOf(p)]);
+
+  const token = (live || opts.sendTo) ? await getGraphToken(env) : null;
+  const from = G_FROM(env);
+  const results = [];
+  for (const p of todo) {
+    const msg = greetingsEmail(p);
+    const to = opts.sendTo || p.email;
+    if (!live && !opts.sendTo) { results.push({ to, name: p.name, kind: p.kind, years: p.years, on: p.on, subject: msg.subject, sent: false, why: opts.dry ? "dry run" : "GREETINGS_ENABLED is off" }); continue; }
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(from) + "/sendMail", {
+        method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ message: { subject: msg.subject, body: { contentType: "HTML", content: msg.html }, toRecipients: [{ emailAddress: { address: to } }] }, saveToSentItems: true })
+      });
+      const ok = r.ok || r.status === 202;
+      results.push({ to, name: p.name, kind: p.kind, years: p.years, on: p.on, subject: msg.subject, sent: ok, why: ok ? "" : (await r.text()).slice(0, 180) });
+      if (ok && !opts.sendTo) {
+        try { await sbService(env, "POST", "spark_hq_greetings", { person_id: p.id, kind: p.kind, year: +yearOf(p), name: p.name, email: p.email, years: p.years, sent_on: p.on }); } catch (e) {}
+        try {
+          const body = p.kind === "birthday" ? ("Happy birthday, " + p.first + "!") : (p.first + " hits " + p.years + " year" + (p.years === 1 ? "" : "s") + " at Spark today. #JWU");
+          await sbService(env, "POST", "spark_hq_pulse_posts", { kind: "milestone", who: p.name, value: p.kind === "birthday" ? "Birthday" : (p.years + " year" + (p.years === 1 ? "" : "s")), body, posted_by: from, ts: new Date().toISOString() });
+        } catch (e) {}
+      }
+    } catch (e) { results.push({ to, name: p.name, kind: p.kind, sent: false, why: String(e && e.message).slice(0, 120) }); }
+  }
+  return { ok: true, live, days: col.days, found: list.length, alreadySent: list.length - todo.length, directory: col.directory, withBirthday: col.withBirthday, withHireDate: col.withHireDate, results };
+}
+__name(greetingsRun, "greetingsRun");
+
 async function getGraphToken(env) {
   const body = new URLSearchParams({
     client_id: env.AZ_CLIENT_ID,
@@ -2118,6 +2304,28 @@ var worker_default = {
         });
         starting.sort((a, b) => a.days - b.days); anniv.sort((a, b) => a.days - b.days);
         return json({ ok: true, starting, anniversaries: anniv, withHireDate: Object.keys(hire).length, total: people.length }, 200, origin);
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
+    }
+    if (url.pathname === "/greetings/preview" || url.pathname === "/greetings/run") {
+      // GREETINGS_v1: admin only. preview = never sends; run honours ?dry, GREETINGS_ENABLED, and
+      // sendTo (a single test recipient, which is never recorded or posted to The Pulse).
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      try {
+        if (url.pathname === "/greetings/preview") {
+          const col = await greetingsCollect(env, url.searchParams.get("date") || "");
+          const i = parseInt(url.searchParams.get("i") || "0", 10) || 0;
+          if (url.searchParams.get("html") === "1") {
+            const p = col.people[i] || { first: gate.email.split("@")[0], name: "Sample Person", kind: url.searchParams.get("kind") === "anniversary" ? "anniversary" : "birthday", years: parseInt(url.searchParams.get("years") || "5", 10) || 5 };
+            return new Response(greetingsEmail(p).html, { status: 200, headers: Object.assign({ "Content-Type": "text/html; charset=utf-8" }, corsHeaders(origin)) });
+          }
+          return json({ ok: true, enabled: String(env.GREETINGS_ENABLED || "").toLowerCase() === "on", from: G_FROM(env), days: col.days, directory: col.directory, withBirthday: col.withBirthday, withHireDate: col.withHireDate, people: col.people.map((p) => Object.assign({ subject: greetingsEmail(p).subject }, p)) }, 200, origin);
+        }
+        if (request.method !== "POST") return json({ error: "POST required" }, 405, origin);
+        let b = {}; try { b = await request.json(); } catch (e) {}
+        const out = await greetingsRun(env, { dry: !!b.dry, date: b.date || "", only: b.only || "", sendTo: b.sendTo || "", resend: !!b.resend });
+        try { await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "greetings.run", target: String(out.results.length), detail: JSON.stringify({ live: out.live, days: out.days, sent: out.results.filter((r) => r.sent).length }) }); } catch (e) {}
+        return json(out, 200, origin);
       } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
     }
     if (url.pathname === "/jwu") {
@@ -9957,6 +10165,8 @@ var worker_default = {
     const cron = (event && event.cron) || "";
     // PUSH_v1: weekday 8am ET "who's out" digest ("0 12 * * 1-5"); the Thursday weekly-sales pull keeps its own schedule ("0 12 * * 4")
     if (cron === "0 12 * * 1-5") { ctx.waitUntil(whosOutDigest(env).catch(function(e) { console.error("whos-out digest failed", e && e.message); })); }
+    // GREETINGS_v1: daily 9am ET birthday / anniversary send ("0 13 * * *")
+    if (cron === "0 13 * * *") { ctx.waitUntil(greetingsRun(env, {}).catch(function(e) { console.error("greetings cron failed", e && e.message); })); }
     if (!cron || cron === "0 12 * * 4") { ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); })); }
   }
 };
