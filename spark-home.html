@@ -2305,6 +2305,16 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   pb.addEventListener('click',goPB); pb.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goPB(); } });
  }
 
+ /* 1c2) Quick Actions: Onboarding Tracker tile (opens the workbook in a new tab), before More Apps */
+ if(qgrid && !document.getElementById('v2Onboarding')){
+  var more2=[].slice.call(qgrid.querySelectorAll('.qab')).filter(function(b){return b.textContent.trim()==='More Apps';})[0];
+  var ob=document.createElement('div'); ob.className='qab'; ob.id='v2Onboarding'; ob.setAttribute('role','link'); ob.setAttribute('tabindex','0');
+  ob.innerHTML='<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="3" rx="1"></rect><path d="M15 4.5h2A2 2 0 0119 6.5v13a2 2 0 01-2 2H7a2 2 0 01-2-2v-13a2 2 0 012-2h2"></path><path d="M8.5 13l2.2 2.2L15.5 10.5"></path></svg>Onboarding';
+  qgrid.insertBefore(ob, more2||null);
+  var goOB=function(){ window.open('https://sparktalent-my.sharepoint.com/:x:/r/personal/aspegel_sparkcompanies_com/_layouts/15/Doc.aspx?sourcedoc=%7B1383A0E4-0769-42EE-AA11-41097F547FD0%7D&file=Onboarding_Tracker_Working_Copy%20(4).xlsx&action=default&mobileredirect=true&DefaultItemOpen=1','_blank','noopener'); };
+  ob.addEventListener('click',goOB); ob.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goOB(); } });
+ }
+
  /* 1d) Google search bar at the top of Quick Actions (opens results in a new tab) */
  var qa=document.querySelector('section.qa');
  if(qa && !document.getElementById('v2Google')){
