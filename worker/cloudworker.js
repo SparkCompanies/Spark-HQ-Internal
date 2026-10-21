@@ -2330,22 +2330,46 @@ var worker_default = {
         const users = await fetchDirectory(token);
         const people = directoryPeople(users);
         const cur = {}; users.forEach((u) => { if (u.employeeHireDate) cur[u.id] = String(u.employeeHireDate).slice(0, 10); });
-        const byKey = {}; people.forEach((p) => { const k = keyOf(p.name); if (k) (byKey[k] = byKey[k] || []).push(p); });
+        // Board names arrive as "Last, First M." or "First Last"; directory names use nicknames
+        // (Alexandra -> Allie). Split on the comma, drop middle initials, then fall back to
+        // surname + first initial, which is unique for everyone here.
+        const split = (raw) => {
+          const s = String(raw || "").replace(/\s+/g, " ").trim();
+          let first = "", last = "";
+          if (s.indexOf(",") !== -1) {
+            const a = s.split(",");
+            last = norm(a[0]);
+            first = (norm(a[1]).split(" ").filter((t) => t.length > 1)[0]) || norm(a[1]).split(" ")[0] || "";
+          } else {
+            const t = norm(s).split(" ").filter(Boolean).filter((x) => x.length > 1);
+            first = t[0] || ""; last = t.length > 1 ? t[t.length - 1] : "";
+          }
+          return { first, last };
+        };
+        const byFull = {}, bySur = {};
+        people.forEach((p) => {
+          const n = split(p.name);
+          if (n.first && n.last) (byFull[n.first + " " + n.last] = byFull[n.first + " " + n.last] || []).push(p);
+          if (n.last) (bySur[n.last] = bySur[n.last] || []).push(p);
+        });
         const matched = [], ambiguous = [], unmatched = [];
         const used = {};
         rows.forEach((r) => {
-          let k = keyOf(r.boardName);
-          let cands = byKey[k] || [];
-          if (!cands.length) { // try "Last, First"
-            const parts = norm(r.boardName).split(" ").filter(Boolean);
-            if (parts.length >= 2) cands = byKey[parts[parts.length - 1] + " " + parts[0]] || [];
+          const n = split(r.boardName);
+          let via = "full name", cands = (n.first && n.last) ? (byFull[n.first + " " + n.last] || []) : [];
+          if (!cands.length && n.last) {
+            const sur = (bySur[n.last] || []);
+            const ini = sur.filter((p) => split(p.name).first.charAt(0) === n.first.charAt(0));
+            if (ini.length) { cands = ini; via = "surname + first initial"; }
+            else if (sur.length === 1) { cands = sur; via = "surname only"; }
+            else cands = sur;
           }
           if (!cands.length) return unmatched.push(r);
           if (cands.length > 1) return ambiguous.push(Object.assign({ options: cands.map((p) => p.name + " <" + p.email + ">") }, r));
           const p = cands[0];
           if (used[p.id]) return ambiguous.push(Object.assign({ options: ["already matched to another row"] }, r));
           used[p.id] = 1;
-          matched.push({ id: p.id, name: p.name, email: p.email, boardName: r.boardName, hireDate: r.hireDate, current: cur[p.id] || "", changes: (cur[p.id] || "") !== r.hireDate });
+          matched.push({ id: p.id, name: p.name, email: p.email, boardName: r.boardName, hireDate: r.hireDate, current: cur[p.id] || "", changes: (cur[p.id] || "") !== r.hireDate, via });
         });
         const noRow = people.filter((p) => !used[p.id]).map((p) => ({ name: p.name, email: p.email, current: cur[p.id] || "" }));
         return json({ ok: true, board: hit.name, column: cHire.label || cHire.name, boardRows: rows.length, matched, ambiguous, unmatched, peopleWithNoBoardRow: noRow }, 200, origin);
