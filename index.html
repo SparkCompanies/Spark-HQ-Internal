@@ -14263,21 +14263,21 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
       adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */, 'traffic' /* TRACK_v1 */, 'overview' /* ADMIN_LAYOUT_v1 */, 'announcements' /* ANNOUNCE_v1 */],
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','brand','leadership','admin']
     },
     manager: {
       label: 'MANAGER', icon: '◐', builtin: true,
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['knowledge'] /* SPARK_ROLE_LOCK_v1: managers keep agent knowledge; switcher/demo panes removed */,
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','brand','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: [] /* SPARK_ROLE_LOCK_v1: members get no Admin tab */,
-      navItems: ['home','command','people','leadership','terrmap','chargecc','training','standard','careers' /* STANDARD_ACCESS_v2 */]
+      navItems: ['home','command','people','leadership','terrmap','chargecc','training','standard','careers','brand' /* BRAND_HUB_v1 */]
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -14308,6 +14308,8 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           }
         }); // vTerrMap — ensure Territory Map nav exists in saved sets
   Object.keys(merged).forEach(function(k){ var ni = merged[k].navItems; if (Array.isArray(ni) && ni.indexOf('terrmap') === -1) { var bi = ni.indexOf('boards'); if (bi !== -1) ni.splice(bi + 1, 0, 'terrmap'); else ni.splice(1, 0, 'terrmap'); } });
+  /* BRAND_HUB_v1 — saved role sets predate the Brand tab, so add it for everyone or it stays hidden behind hide-for-role */
+  Object.keys(merged).forEach(function(k){ var ni = merged[k].navItems; if (Array.isArray(ni) && ni.indexOf('brand') === -1) { var ti = ni.indexOf('tools'); if (ti !== -1) ni.splice(ti + 1, 0, 'brand'); else ni.push('brand'); } });
         // vTkLinks — ensure TimeKeep Links nav exists in saved sets (admins/managers, not members)
         Object.keys(merged).forEach(function(k){
           if (k === 'member') return;
