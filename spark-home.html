@@ -429,7 +429,7 @@ body{font-family:'Jost',sans-serif;background:linear-gradient(160deg,#fbfaf5 0%,
         <a href="#"><i style="background:#27c93f"></i>Training</a>
         <a href="#"><i style="background:#FFC800"></i>Spark Standard</a>
         <a href="#"><i style="background:#4aa3ff"></i>Tools</a>
-        <a href="#"><i style="background:#b06bff"></i>Documents</a>
+        <a href="https://www.microsoft365.com/launch/onedrive" target="_blank" rel="noopener" data-ext="1"><i style="background:#b06bff"></i>Documents</a>
         <a href="#pulse"><i style="background:#ff5aa0"></i>The Pulse</a>
         <a href="#"><i style="background:#FFC800"></i>Ask Jarvis</a>
       </nav>
@@ -837,7 +837,7 @@ function hqNav(tab){try{parent.postMessage({type:'spark-nav',tab:tab},window.loc
  var qmap={'TimeKeep':'tools','Time Off':'people','Payroll':'finance','Benefits':'docs','Directory':'people','Spark Boards':'boards','Expenses':'finance','More Apps':'tools'};
  document.querySelectorAll('.qab').forEach(function(b){b.addEventListener('click',function(){var k=b.textContent.trim();hqNav(qmap[k]||'tools');});});
  var nmap={'Training':'training','Spark Standard':'standard','Tools':'tools','Documents':'docs','The Pulse':null,'Ask Jarvis':'jarvis'};
- document.querySelectorAll('.quicknav a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var k=a.textContent.trim();var t=nmap[k];if(t===null){document.getElementById('pulse').scrollIntoView({behavior:'smooth'});}else{hqNav(t||'home');}});});
+ document.querySelectorAll('.quicknav a').forEach(function(a){a.addEventListener('click',function(e){if(a.getAttribute('data-ext')){return;}e.preventDefault();var k=a.textContent.trim();var t=nmap[k];if(t===null){document.getElementById('pulse').scrollIntoView({behavior:'smooth'});}else{hqNav(t||'home');}});});
 })();
 /* ---------- pulse (Supabase-shared, localStorage fallback) ---------- */
 var PULSE={posts:[]};var PULSE_CLOUD=false;
