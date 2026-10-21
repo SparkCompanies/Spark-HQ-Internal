@@ -405,7 +405,7 @@ function openPerson(name){
     troH+='</div>';
   }
   window.__bdgTro = troList;
-  var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:22px"><div><div style="font-size:25px;font-weight:800;letter-spacing:-.5px">'+p.n+'</div>';
+  var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:22px"><div><div id="droPN" style="font-size:25px;font-weight:800;letter-spacing:-.5px">'+p.n+'</div>';
   h+='<div style="font-size:12px;color:var(--dm);margin-top:3px">'+p.rl+'</div>';
   h+='<div style="margin-top:10px;display:flex;gap:6px">'+pill(p.en,c)+(p.bu?pill(p.bu,'var(--dm)'):'')+'</div></div>'+troH+'</div>';
   h+='<div class="g g3" style="margin-bottom:16px">';
@@ -3083,7 +3083,7 @@ window.SPARK_LIVE = (function () {
       new MutationObserver(function () {
         try {
           if (!_dro.classList.contains('on')) { wowHide(); return; }
-          var head = _drbEl.firstElementChild && _drbEl.firstElementChild.firstElementChild;
+          var head = _drbEl.querySelector('#droPN') || (_drbEl.firstElementChild && _drbEl.firstElementChild.firstElementChild);
           var nm = head ? String(head.textContent || '').trim() : '';
           if (nm && D.people && D.people.some(function (x) { return x.n === nm; })) drawWow(nm); else wowHide();
         } catch (e) { }
