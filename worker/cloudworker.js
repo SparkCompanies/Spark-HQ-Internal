@@ -1231,12 +1231,18 @@ async function greetingsRun(env, opts) {
   // already sent? one row per person / kind / year
   const yearOf = (p) => p.on.slice(0, 4);
   let sentKeys = {};
-  if (list.length) {
+  if (list.length && !opts.sendTo) {
+    // Fail closed: without a readable ledger we cannot tell who has already been written to,
+    // and a daily cron with no dedupe would mail the same person every morning.
+    let r = null;
     try {
       const yrs = Array.from(new Set(list.map(yearOf)));
-      const r = await sbService(env, "GET", "spark_hq_greetings?select=person_id,kind,year&year=in.(" + yrs.join(",") + ")&limit=2000");
-      if (r.ok) (r.data || []).forEach((x) => { sentKeys[x.person_id + "|" + x.kind + "|" + x.year] = 1; });
-    } catch (e) {}
+      r = await sbService(env, "GET", "spark_hq_greetings?select=person_id,kind,year&year=in.(" + yrs.join(",") + ")&limit=2000");
+    } catch (e) { r = null; }
+    if (!r || !r.ok || !Array.isArray(r.data)) {
+      return { ok: false, live: false, days: col.days, found: list.length, error: "The spark_hq_greetings ledger is unreadable, so nothing was sent. Run greetings.sql in Supabase first.", results: [] };
+    }
+    r.data.forEach((x) => { sentKeys[x.person_id + "|" + x.kind + "|" + x.year] = 1; });
   }
   const todo = opts.resend ? list : list.filter((p) => !sentKeys[p.id + "|" + p.kind + "|" + yearOf(p)]);
 
