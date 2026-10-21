@@ -2341,6 +2341,26 @@ var worker_default = {
         return json({ ok: true, starting, anniversaries: anniv, withHireDate: Object.keys(hire).length, total: people.length }, 200, origin);
       } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
     }
+    if (url.pathname === "/greetings/policy-check") {
+      // GREETINGS_v1 diagnostic: does the application access policy actually stop the greetings app
+      // sending as someone outside hq-auto-senders? Asks Graph to send as ?as=<upn> with a message
+      // that carries NO recipients, so it can never deliver: Graph checks the policy before it
+      // validates the body. 403 => the restriction is holding. 400 => the app may send as them.
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      const as = String(url.searchParams.get("as") || "").trim();
+      if (!/^[^@\s]+@[^@\s]+$/.test(as)) return json({ error: "Pass ?as=someone@domain" }, 400, origin);
+      try {
+        const token = await getSendToken(env);
+        const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(as) + "/sendMail", {
+          method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ message: {}, saveToSentItems: false })  // no recipients, no subject, no body
+        });
+        const txt = (await r.text()).slice(0, 220);
+        const denied = r.status === 403;
+        return json({ ok: true, as, status: r.status, denied, verdict: denied ? "Denied - the policy is holding for this mailbox" : (r.status === 400 ? "ALLOWED - this app could send as " + as : "Inconclusive (" + r.status + ")"), detail: txt }, 200, origin);
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
+    }
     if (url.pathname === "/greetings/preview" || url.pathname === "/greetings/run") {
       // GREETINGS_v1: admin only. preview = never sends; run honours ?dry, GREETINGS_ENABLED, and
       // sendTo (a single test recipient, which is never recorded or posted to The Pulse).
