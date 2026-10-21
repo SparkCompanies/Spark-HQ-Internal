@@ -3,7 +3,8 @@
     "rewrite": "/index.html",
     "exclude": [
       "/assets/*",
-      "*.{css,scss,js,mjs,json,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf,mp4,mov,webm,mp3,wav,pdf}",
+      "/icons/*",
+      "*.{css,scss,js,mjs,json,webmanifest,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf,mp4,mov,webm,mp3,wav,pdf}",
       "/spark-*.html",
       "/sparkline.html"
     ]
@@ -15,7 +16,8 @@
     ".css": "text/css",
     ".svg": "image/svg+xml",
     ".woff": "font/woff",
-    ".woff2": "font/woff2"
+    ".woff2": "font/woff2",
+    ".webmanifest": "application/manifest+json"
   },
   "responseOverrides": {
     "404": {
