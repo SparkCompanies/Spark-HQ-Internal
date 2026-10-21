@@ -595,7 +595,7 @@ function corsHeaders(origin) {
   const allow = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     "Access-Control-Allow-Origin": allow,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Admin-Pin",
     "Access-Control-Max-Age": "86400"
   };
@@ -981,6 +981,106 @@ async function getMyCalendar(env, email, days) {
   }
 }
 __name(getMyCalendar, "getMyCalendar");
+// ---------- shared: directory people (same filter the /directory route uses) ----------
+function directoryPeople(users) {
+  const SPARK_DOMAINS = ["sparkcompanies.com", "sparktalentinc.com", "ignitesearch.com", "flexworkforceco.com", "johnjosephpartners.com"];
+  return users.filter((u) => u.accountEnabled !== false && u.givenName && u.surname).map((u) => ({
+    id: u.id, name: u.displayName || (u.givenName + " " + u.surname), email: (u.mail || u.userPrincipalName || "").toLowerCase(),
+    title: u.jobTitle || "", department: u.department || "", company: u.companyName || ""
+  })).filter((p) => p.email && SPARK_DOMAINS.indexOf(p.email.split("@")[1]) !== -1);
+}
+__name(directoryPeople, "directoryPeople");
+
+// ---------- Web Push (RFC 8291 aes128gcm + RFC 8292 VAPID), no libraries ----------
+const b64u = {
+  enc: (buf) => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+  dec: (s) => { s = String(s || "").replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; const bin = atob(s); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+};
+function concatBytes() { let n = 0; for (const a of arguments) n += a.length; const out = new Uint8Array(n); let o = 0; for (const a of arguments) { out.set(a, o); o += a.length; } return out; }
+async function hkdf(salt, ikm, info, len) {
+  const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info }, key, len * 8));
+}
+async function vapidAuth(env, endpoint) {
+  const pub = b64u.dec(env.VAPID_PUBLIC_KEY), priv = b64u.dec(env.VAPID_PRIVATE_KEY);
+  if (pub.length !== 65 || priv.length !== 32) throw new Error("VAPID keys missing or malformed");
+  const jwk = { kty: "EC", crv: "P-256", x: b64u.enc(pub.slice(1, 33)), y: b64u.enc(pub.slice(33, 65)), d: b64u.enc(priv) };
+  const key = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const aud = new URL(endpoint).origin;
+  const te = new TextEncoder();
+  const head = b64u.enc(te.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+  const claims = b64u.enc(te.encode(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: env.VAPID_SUBJECT || "mailto:aspegel@sparkcompanies.com" })));
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, te.encode(head + "." + claims));
+  return "vapid t=" + head + "." + claims + "." + b64u.enc(sig) + ", k=" + env.VAPID_PUBLIC_KEY;
+}
+async function webPushSend(env, sub, payloadObj) {
+  const te = new TextEncoder();
+  const uaPub = b64u.dec(sub.p256dh), authSecret = b64u.dec(sub.auth);
+  const local = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const asPub = new Uint8Array(await crypto.subtle.exportKey("raw", local.publicKey));
+  const uaKey = await crypto.subtle.importKey("raw", uaPub, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: uaKey }, local.privateKey, 256));
+  const ikm = await hkdf(authSecret, shared, concatBytes(te.encode("WebPush: info\0"), uaPub, asPub), 32);
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const cek = await hkdf(salt, ikm, te.encode("Content-Encoding: aes128gcm\0"), 16);
+  const nonce = await hkdf(salt, ikm, te.encode("Content-Encoding: nonce\0"), 12);
+  const plain = concatBytes(te.encode(JSON.stringify(payloadObj)), new Uint8Array([2]));
+  const aesKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, ["encrypt"]);
+  const cipher = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce, tagLength: 128 }, aesKey, plain));
+  const rs = new Uint8Array([0, 0, 16, 0]); // record size 4096
+  const body = concatBytes(salt, rs, new Uint8Array([asPub.length]), asPub, cipher);
+  const r = await fetch(sub.endpoint, { method: "POST", headers: { "Authorization": await vapidAuth(env, sub.endpoint), "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream", "TTL": "86400", "Urgency": "normal" }, body });
+  return r.status;
+}
+async function pushToSubs(env, subs, msg) {
+  let sent = 0;
+  for (const s of subs) {
+    try {
+      const st = await webPushSend(env, s, msg);
+      if (st === 404 || st === 410) { await sbService(env, "DELETE", "spark_hq_push_subs?endpoint=eq." + encodeURIComponent(s.endpoint)); }
+      else if (st >= 200 && st < 300) sent++;
+    } catch (e) { console.error("push failed", e && e.message); }
+  }
+  return sent;
+}
+__name(pushToSubs, "pushToSubs");
+async function pushToEmails(env, emails, pref, msg) {
+  if (!env.VAPID_PUBLIC_KEY) return 0;
+  const list = emails.map((e) => encodeURIComponent(String(e).toLowerCase())).join(",");
+  const r = await sbService(env, "GET", "spark_hq_push_subs?select=endpoint,p256dh,auth,prefs,email&email=in.(" + list + ")");
+  if (!r.ok || !Array.isArray(r.data)) return 0;
+  const subs = r.data.filter((s) => !pref || !s.prefs || s.prefs[pref] !== false);
+  return pushToSubs(env, subs, msg);
+}
+__name(pushToEmails, "pushToEmails");
+async function pushBroadcast(env, pref, msg) {
+  if (!env.VAPID_PUBLIC_KEY) return 0;
+  const r = await sbService(env, "GET", "spark_hq_push_subs?select=endpoint,p256dh,auth,prefs,email&limit=2000");
+  if (!r.ok || !Array.isArray(r.data)) return 0;
+  const subs = r.data.filter((s) => !pref || !s.prefs || s.prefs[pref] !== false);
+  return pushToSubs(env, subs, msg);
+}
+__name(pushBroadcast, "pushBroadcast");
+// 8am weekday digest: who has an out-of-office on today (same source as the Home card)
+async function whosOutDigest(env) {
+  const token = await getGraphToken(env);
+  const people = directoryPeople(await fetchDirectory(token));
+  const out = [];
+  for (let i = 0; i < people.length; i += 20) {
+    const chunk = people.slice(i, i + 20);
+    const br = await fetch("https://graph.microsoft.com/v1.0/$batch", { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ requests: chunk.map((p, k) => ({ id: String(k), method: "GET", url: "/users/" + p.id + "/mailboxSettings/automaticRepliesSetting" })) }) });
+    if (!br.ok) continue;
+    const bj = await br.json();
+    (bj.responses || []).forEach((r) => { const p = chunk[parseInt(r.id, 10)]; if (!p || r.status !== 200 || !r.body) return; const a = r.body; if ((a.status || "disabled") === "disabled") return;
+      const now = Date.now(); const ms = (d) => d && d.dateTime ? Date.parse(d.dateTime + "Z") : NaN; const s = ms(a.scheduledStartDateTime), e = ms(a.scheduledEndDateTime);
+      if (a.status === "scheduled" && ((!isNaN(s) && s > now) || (!isNaN(e) && e < now))) return;
+      out.push(p.name.split(" ")[0] + " " + (p.name.split(" ").slice(-1)[0] || "").charAt(0) + "."); });
+  }
+  if (!out.length) return 0;
+  const body = "Out today: " + out.slice(0, 8).join(", ") + (out.length > 8 ? " +" + (out.length - 8) + " more" : "");
+  return pushBroadcast(env, "whosOut", { title: "Who's out today", body, url: "/", tag: "whos-out" });
+}
+__name(whosOutDigest, "whosOutDigest");
 async function getGraphToken(env) {
   const body = new URLSearchParams({
     client_id: env.AZ_CLIENT_ID,
@@ -1001,7 +1101,7 @@ async function getGraphToken(env) {
 }
 __name(getGraphToken, "getGraphToken");
 async function fetchDirectory(token) {
-  const select = "id,displayName,givenName,surname,mail,userPrincipalName,jobTitle,department,companyName,mobilePhone,businessPhones,accountEnabled";
+  const select = "id,displayName,givenName,surname,mail,userPrincipalName,jobTitle,department,companyName,mobilePhone,businessPhones,accountEnabled,employeeHireDate";
   let url = "https://graph.microsoft.com/v1.0/users?$select=" + select + "&$expand=manager($select=id)&$top=999";
   const out = [];
   for (let i = 0; i < 20 && url; i++) {
@@ -1096,7 +1196,7 @@ async function xeroAccessForTenant(env, tenantId) {
 }
 __name(xeroAccessForTenant, "xeroAccessForTenant");
 function sbxCors() {
-  return { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" };
+  return { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" };
 }
 __name(sbxCors, "sbxCors");
 function sbxJson(body, status) {
@@ -1913,6 +2013,205 @@ var worker_default = {
       } catch (e) {
         return json({ error: String(e.message || e) }, 502, origin);
       }
+    }
+    if (url.pathname === "/announcements" || url.pathname === "/announcements/ack" || url.pathname === "/announcements/acks") {
+      // ANNOUNCE_v1: pinned announcements with "Got it" acknowledgments.
+      // Tables: spark_hq_announcements (id bigserial, title, body, link_url, link_label, pinned bool, requires_ack bool, notify bool, starts_at, ends_at, created_by, created_at)
+      //         spark_hq_announcement_acks (id bigserial, announcement_id bigint, email text, ts timestamptz, unique(announcement_id,email))
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const nowIso = new Date().toISOString();
+      if (url.pathname === "/announcements/ack" && request.method === "POST") {
+        let b = {}; try { b = await request.json(); } catch (e) {}
+        const id = parseInt(b.id, 10); if (!id) return json({ error: "id required" }, 400, origin);
+        const r = await sbService(env, "POST", "spark_hq_announcement_acks?on_conflict=announcement_id,email", { announcement_id: id, email: who.email, ts: nowIso });
+        if (!r.ok) return json({ error: "Could not record", detail: r.data }, 502, origin);
+        return json({ ok: true }, 200, origin);
+      }
+      if (url.pathname === "/announcements" && request.method === "GET") {
+        const r = await sbService(env, "GET", "spark_hq_announcements?select=*&order=pinned.desc,created_at.desc&limit=50");
+        if (!r.ok) return json({ error: "Could not read", detail: r.data }, 502, origin);
+        const a = await sbService(env, "GET", "spark_hq_announcement_acks?select=announcement_id,ts&email=eq." + encodeURIComponent(who.email));
+        const mine = {}; (a.ok && Array.isArray(a.data) ? a.data : []).forEach((x) => { mine[x.announcement_id] = x.ts; });
+        const rows = (r.data || []).filter((x) => (!x.starts_at || x.starts_at <= nowIso) && (!x.ends_at || x.ends_at >= nowIso)).map((x) => Object.assign({}, x, { acked_at: mine[x.id] || null }));
+        return json({ ok: true, rows }, 200, origin);
+      }
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      if (url.pathname === "/announcements/acks") {
+        const id = parseInt(url.searchParams.get("id") || "0", 10); if (!id) return json({ error: "id required" }, 400, origin);
+        const a = await sbService(env, "GET", "spark_hq_announcement_acks?select=email,ts&announcement_id=eq." + id + "&order=ts.desc");
+        let people = [];
+        try { const token = await getGraphToken(env); people = directoryPeople(await fetchDirectory(token)).map((p) => ({ name: p.name, email: p.email, title: p.title })); } catch (e) {}
+        const acked = a.ok ? a.data : []; const set = {}; acked.forEach((x) => { set[(x.email || "").toLowerCase()] = x.ts; });
+        return json({ ok: true, acked: acked, read: people.filter((p) => set[p.email]).map((p) => Object.assign({ ts: set[p.email] }, p)), unread: people.filter((p) => !set[p.email]) }, 200, origin);
+      }
+      if (request.method === "DELETE") {
+        const id = parseInt(url.searchParams.get("id") || "0", 10); if (!id) return json({ error: "id required" }, 400, origin);
+        await sbService(env, "DELETE", "spark_hq_announcement_acks?announcement_id=eq." + id);
+        const r = await sbService(env, "DELETE", "spark_hq_announcements?id=eq." + id);
+        if (!r.ok) return json({ error: "Could not delete", detail: r.data }, 502, origin);
+        return json({ ok: true }, 200, origin);
+      }
+      if (request.method === "POST") {
+        let b; try { b = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        const clean = (s, n) => String(s == null ? "" : s).trim().slice(0, n);
+        const row = { title: clean(b.title, 140), body: clean(b.body, 2000), link_url: clean(b.link_url, 500), link_label: clean(b.link_label, 60), pinned: !!b.pinned, requires_ack: !!b.requires_ack, notify: !!b.notify, starts_at: b.starts_at || null, ends_at: b.ends_at || null };
+        if (!row.title) return json({ error: "Title is required" }, 400, origin);
+        if (b.id) row.id = parseInt(b.id, 10); else { row.created_by = gate.email; row.created_at = nowIso; }
+        const r = await sbService(env, "POST", "spark_hq_announcements" + (row.id ? "?on_conflict=id" : ""), row);
+        if (!r.ok) return json({ error: "Could not save", detail: r.data }, 502, origin);
+        const saved = Array.isArray(r.data) ? r.data[0] : r.data;
+        let pushed = 0;
+        if (b.notify && !b.id) { try { pushed = await pushBroadcast(env, "announcements", { title: "Spark HQ: " + row.title, body: row.body.slice(0, 140), url: "/", tag: "ann-" + (saved && saved.id) }); } catch (e) {} }
+        try { await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "announcement.save", target: String(saved && saved.id || ""), detail: JSON.stringify({ title: row.title, pushed }) }); } catch (e) {}
+        return json({ ok: true, row: saved, pushed }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
+    if (url.pathname === "/presence") {
+      // PRESENCE_v1: Teams presence for everyone in the directory (needs Presence.Read.All application permission). Cached 60s.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/presence-v1");
+      const hit = await cache.match(ck); if (hit) { const h = new Headers(hit.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v)); return new Response(hit.body, { status: 200, headers: h }); }
+      try {
+        const token = await getGraphToken(env);
+        const people = directoryPeople(await fetchDirectory(token));
+        const out = {}; const byId = {}; people.forEach((p) => { byId[p.id] = p.email; });
+        const ids = people.map((p) => p.id);
+        for (let i = 0; i < ids.length; i += 600) {
+          const r = await fetch("https://graph.microsoft.com/v1.0/communications/getPresencesByUserId", { method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ ids: ids.slice(i, i + 600) }) });
+          if (r.status === 403) return json({ error: "Microsoft 365 refused: the worker's app needs Presence.Read.All (Application) with admin consent.", code: "needs_permission" }, 403, origin);
+          if (!r.ok) { const t = await r.text(); throw new Error("presence " + r.status + " " + t.slice(0, 120)); }
+          const j = await r.json(); (j.value || []).forEach((p) => { const em = byId[p.id]; if (em) out[em] = { a: p.availability || "PresenceUnknown", s: p.activity || "" }; });
+        }
+        const body = JSON.stringify({ ok: true, asOf: new Date().toISOString(), presence: out });
+        const resp = new Response(body, { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" } });
+        try { await cache.put(ck, resp.clone()); } catch (e) {}
+        const h = new Headers(resp.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v));
+        return new Response(body, { status: 200, headers: h });
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
+    }
+    if (url.pathname === "/milestones") {
+      // MILESTONES_v1: starting this week + work anniversaries, from M365 employeeHireDate.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const token = await getGraphToken(env);
+        const users = await fetchDirectory(token);
+        const people = directoryPeople(users);
+        const hire = {}; users.forEach((u) => { if (u.employeeHireDate) hire[u.id] = u.employeeHireDate; });
+        const now = new Date(); const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+        const starting = [], anniv = [];
+        people.forEach((p) => {
+          const hd = hire[p.id]; if (!hd) return; const d = new Date(hd); if (isNaN(d)) return;
+          const hUTC = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+          const days = Math.round((hUTC - today) / 864e5);
+          if (days >= -7 && days <= 14) { starting.push(Object.assign({ date: hd.slice(0, 10), days }, p)); return; }
+          const years = now.getUTCFullYear() - d.getUTCFullYear();
+          let next = Date.UTC(now.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); let yrs = years;
+          let delta = Math.round((next - today) / 864e5);
+          if (delta < -7) { next = Date.UTC(now.getUTCFullYear() + 1, d.getUTCMonth(), d.getUTCDate()); delta = Math.round((next - today) / 864e5); yrs = years + 1; }
+          if (yrs >= 1 && delta >= -7 && delta <= 14) anniv.push(Object.assign({ date: new Date(next).toISOString().slice(0, 10), days: delta, years: yrs, since: hd.slice(0, 10) }, p));
+        });
+        starting.sort((a, b) => a.days - b.days); anniv.sort((a, b) => a.days - b.days);
+        return json({ ok: true, starting, anniversaries: anniv, withHireDate: Object.keys(hire).length, total: people.length }, 200, origin);
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
+    }
+    if (url.pathname === "/jwu") {
+      // JWU_WALL_v1: shout-outs in The Pulse tagged #JWU (last 30 days) + this week's most-tagged person.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const since = new Date(Date.now() - 30 * 864e5).toISOString();
+      const r = await sbService(env, "GET", "spark_hq_pulse_posts?select=*&ts=gte." + encodeURIComponent(since) + "&order=ts.desc&limit=400");
+      if (!r.ok) return json({ error: "Could not read", detail: r.data }, 502, origin);
+      const posts = (r.data || []).filter((p) => /#\s?jwu\b/i.test((p.body || "") + " " + (p.value || "") + " " + (p.who || "")));
+      const wk = Date.now() - 7 * 864e5, tally = {};
+      posts.forEach((p) => { if (new Date(p.ts).getTime() >= wk && p.who && !/^spark team$/i.test(p.who)) { const k = p.who.trim(); tally[k] = (tally[k] || 0) + 1; } });
+      const leaders = Object.keys(tally).map((k) => ({ who: k, n: tally[k] })).sort((a, b) => b.n - a.n);
+      return json({ ok: true, posts: posts.slice(0, 40), leaders: leaders.slice(0, 3), weekTop: leaders[0] || null }, 200, origin);
+    }
+    if (url.pathname === "/push/key") {
+      return json({ ok: !!env.VAPID_PUBLIC_KEY, key: env.VAPID_PUBLIC_KEY || "" }, 200, origin);
+    }
+    if (url.pathname === "/push/subscribe" || url.pathname === "/push/unsubscribe" || url.pathname === "/push/test" || url.pathname === "/push/shoutout") {
+      // PUSH_v1: Web Push subscriptions (table spark_hq_push_subs: id, email, endpoint unique, p256dh, auth, prefs jsonb, ua, created_at, updated_at)
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      if (request.method !== "POST") return json({ error: "POST required" }, 405, origin);
+      let b = {}; try { b = await request.json(); } catch (e) {}
+      if (url.pathname === "/push/subscribe") {
+        const s = b.sub || {}; const keys = s.keys || {};
+        if (!s.endpoint || !keys.p256dh || !keys.auth) return json({ error: "subscription missing" }, 400, origin);
+        const prefs = Object.assign({ whosOut: true, shoutouts: true, announcements: true }, b.prefs || {});
+        const row = { email: who.email, endpoint: s.endpoint, p256dh: keys.p256dh, auth: keys.auth, prefs, ua: (request.headers.get("User-Agent") || "").slice(0, 200), updated_at: new Date().toISOString() };
+        const r = await sbService(env, "POST", "spark_hq_push_subs?on_conflict=endpoint", row);
+        if (!r.ok) return json({ error: "Could not save subscription", detail: r.data }, 502, origin);
+        return json({ ok: true, prefs }, 200, origin);
+      }
+      if (url.pathname === "/push/unsubscribe") {
+        if (b.endpoint) await sbService(env, "DELETE", "spark_hq_push_subs?endpoint=eq." + encodeURIComponent(b.endpoint));
+        else await sbService(env, "DELETE", "spark_hq_push_subs?email=eq." + encodeURIComponent(who.email));
+        return json({ ok: true }, 200, origin);
+      }
+      if (url.pathname === "/push/test") {
+        const n = await pushToEmails(env, [who.email], null, { title: "Spark HQ", body: "Notifications are on. You'll hear about who's out, shout-outs and announcements here.", url: "/", tag: "test" });
+        return json({ ok: true, sent: n }, 200, origin);
+      }
+      if (url.pathname === "/push/shoutout") {
+        const name = String(b.who || "").trim(); if (!name) return json({ ok: true, sent: 0 }, 200, origin);
+        let target = null;
+        try { const token = await getGraphToken(env); const people = directoryPeople(await fetchDirectory(token)); const k = name.toLowerCase(); target = people.find((p) => p.name.toLowerCase() === k) || people.find((p) => p.name.toLowerCase().indexOf(k) === 0) || null; } catch (e) {}
+        if (!target) return json({ ok: true, sent: 0 }, 200, origin);
+        const from = (b.posted_by || who.email || "").split("@")[0];
+        const n = await pushToEmails(env, [target.email], "shoutouts", { title: "You got a shout-out", body: (from ? from + ": " : "") + String(b.body || "").slice(0, 120), url: "/#pulse", tag: "shout" });
+        return json({ ok: true, sent: n }, 200, origin);
+      }
+    }
+    if (url.pathname === "/push/send") {
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      let b = {}; try { b = await request.json(); } catch (e) {}
+      const msg = { title: String(b.title || "Spark HQ").slice(0, 80), body: String(b.body || "").slice(0, 160), url: String(b.url || "/").slice(0, 200), tag: "admin" };
+      const n = b.to && /@/.test(b.to) ? await pushToEmails(env, [String(b.to).toLowerCase()], null, msg) : await pushBroadcast(env, null, msg);
+      return json({ ok: true, sent: n }, 200, origin);
+    }
+    if (url.pathname === "/reviews" || url.pathname === "/reviews/find") {
+      // GREVIEWS_v1: Google reviews for Spark's business profiles via Places API (New). Env: GOOGLE_PLACES_KEY, GOOGLE_PLACE_IDS ("id|Label,id|Label").
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      if (!env.GOOGLE_PLACES_KEY) return json({ error: "Google Places key is not set on the worker.", code: "needs_key" }, 503, origin);
+      if (url.pathname === "/reviews/find") {
+        const gate = await verifyAdmin(request, env); if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+        const q = (url.searchParams.get("q") || "").slice(0, 120); if (!q) return json({ error: "q required" }, 400, origin);
+        const r = await fetch("https://places.googleapis.com/v1/places:searchText", { method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": env.GOOGLE_PLACES_KEY, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount" }, body: JSON.stringify({ textQuery: q }) });
+        const j = await r.json(); if (!r.ok) return json({ error: (j.error && j.error.message) || ("Places " + r.status) }, 502, origin);
+        return json({ ok: true, places: (j.places || []).map((p) => ({ id: p.id, name: p.displayName && p.displayName.text, address: p.formattedAddress, rating: p.rating, count: p.userRatingCount })) }, 200, origin);
+      }
+      const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/greviews-v1");
+      if (!url.searchParams.get("fresh")) { const hit = await cache.match(ck); if (hit) { const h = new Headers(hit.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v)); return new Response(hit.body, { status: 200, headers: h }); } }
+      const ids = String(env.GOOGLE_PLACE_IDS || "").split(",").map((s) => s.trim()).filter(Boolean);
+      if (!ids.length) return json({ error: "No GOOGLE_PLACE_IDS configured.", code: "needs_places" }, 503, origin);
+      const places = [], reviews = [];
+      for (const spec of ids) {
+        const [id, label] = spec.split("|");
+        try {
+          const r = await fetch("https://places.googleapis.com/v1/places/" + encodeURIComponent(id.trim()) + "?fields=id,displayName,rating,userRatingCount,reviews,googleMapsUri,formattedAddress", { headers: { "X-Goog-Api-Key": env.GOOGLE_PLACES_KEY } });
+          if (!r.ok) continue;
+          const p = await r.json();
+          const name = (label || (p.displayName && p.displayName.text) || "").trim();
+          places.push({ id: p.id, name, address: p.formattedAddress || "", rating: p.rating || null, count: p.userRatingCount || 0, url: p.googleMapsUri || "" });
+          (p.reviews || []).forEach((rv) => { reviews.push({ place: name, placeUrl: p.googleMapsUri || "", rating: rv.rating || 0, text: (rv.text && rv.text.text) || (rv.originalText && rv.originalText.text) || "", author: (rv.authorAttribution && rv.authorAttribution.displayName) || "Google user", photo: (rv.authorAttribution && rv.authorAttribution.photoUri) || "", when: rv.relativePublishTimeDescription || "", ts: rv.publishTime || "" }); });
+        } catch (e) {}
+      }
+      reviews.sort((a, b) => (b.ts || "").localeCompare(a.ts || ""));
+      const rated = places.filter((p) => p.rating); const avg = rated.length ? rated.reduce((s, p) => s + p.rating * p.count, 0) / Math.max(1, rated.reduce((s, p) => s + p.count, 0)) : null;
+      const body = JSON.stringify({ ok: true, asOf: new Date().toISOString(), places, reviews, overall: avg ? Math.round(avg * 10) / 10 : null, total: places.reduce((s, p) => s + p.count, 0) });
+      const resp = new Response(body, { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=21600" } });
+      try { await cache.put(ck, resp.clone()); } catch (e) {}
+      const h = new Headers(resp.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v));
+      return new Response(body, { status: 200, headers: h });
     }
     if (url.pathname === "/whos-out") {
       // WHOS_OUT_v1: who has an Outlook automatic reply (OOO) on right now. Any signed-in user. Needs MailboxSettings.Read (Application) on the worker's Entra app.
@@ -9510,7 +9809,10 @@ var worker_default = {
   },
   // WEEKLY_SALES_CRON_v1 — wrangler.toml: [triggers] crons = ["0 12 * * 4"]
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); }));
+    const cron = (event && event.cron) || "";
+    // PUSH_v1: weekday 8am ET "who's out" digest ("0 12 * * 1-5"); the Thursday weekly-sales pull keeps its own schedule ("0 12 * * 4")
+    if (cron === "0 12 * * 1-5") { ctx.waitUntil(whosOutDigest(env).catch(function(e) { console.error("whos-out digest failed", e && e.message); })); }
+    if (!cron || cron === "0 12 * * 4") { ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); })); }
   }
 };
 export {
