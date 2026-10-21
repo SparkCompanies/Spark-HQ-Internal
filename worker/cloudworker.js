@@ -1246,8 +1246,11 @@ async function greetingsRun(env, opts) {
     r.data.forEach((x) => { sentKeys[x.person_id + "|" + x.kind + "|" + x.year] = 1; });
   }
   const todo = opts.resend ? list : list.filter((p) => !sentKeys[p.id + "|" + p.kind + "|" + yearOf(p)]);
+  if ((live || opts.sendTo) && todo.length && (!env.GREETINGS_CLIENT_ID || !env.GREETINGS_CLIENT_SECRET)) {
+    return { ok: false, live: false, days: col.days, found: list.length, error: "Greetings sender app is not configured (GREETINGS_CLIENT_ID / GREETINGS_CLIENT_SECRET). Nothing was sent.", results: [] };
+  }
 
-  const token = (live || opts.sendTo) ? await getGraphToken(env) : null;
+  const token = (live || opts.sendTo) ? await getSendToken(env) : null;
   const from = G_FROM(env);
   const results = [];
   for (const p of todo) {
@@ -1293,6 +1296,26 @@ async function getGraphToken(env) {
   return data.access_token;
 }
 __name(getGraphToken, "getGraphToken");
+// GREETINGS_v1: the greetings sender is a SEPARATE app registration holding Mail.Send and nothing
+// else. It must not reuse AZ_CLIENT_ID: that app is scoped to the 59-member Spark HQ Alfred group,
+// and because application access policies are OR'd per app, Mail.Send there would mean send-as
+// rights over all 59 mailboxes with no way to narrow it. No creds, no send.
+async function getSendToken(env) {
+  if (!env.GREETINGS_CLIENT_ID || !env.GREETINGS_CLIENT_SECRET) {
+    throw new Error("Greetings sender app is not configured (GREETINGS_CLIENT_ID / GREETINGS_CLIENT_SECRET). Nothing was sent.");
+  }
+  const body = new URLSearchParams({
+    client_id: env.GREETINGS_CLIENT_ID,
+    client_secret: env.GREETINGS_CLIENT_SECRET,
+    scope: "https://graph.microsoft.com/.default",
+    grant_type: "client_credentials"
+  });
+  const resp = await fetch("https://login.microsoftonline.com/" + env.AZ_TENANT_ID + "/oauth2/v2.0/token",
+    { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
+  if (!resp.ok) throw new Error("Greetings token failed: " + resp.status + " " + (await resp.text()).slice(0, 180));
+  return (await resp.json()).access_token;
+}
+__name(getSendToken, "getSendToken");
 async function fetchDirectory(token) {
   const select = "id,displayName,givenName,surname,mail,userPrincipalName,jobTitle,department,companyName,mobilePhone,businessPhones,accountEnabled,employeeHireDate";
   let url = "https://graph.microsoft.com/v1.0/users?$select=" + select + "&$expand=manager($select=id)&$top=999";
