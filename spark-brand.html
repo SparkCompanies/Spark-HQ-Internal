@@ -20,20 +20,45 @@ body{background:var(--cream);color:var(--ink);font:400 15px/1.55 'Jost',system-u
 a{color:inherit}
 
 /* ---------- hero ---------- */
-.bhero{position:relative;overflow:hidden;background:var(--night);color:#fff;padding:54px 0 48px;margin-bottom:34px}
-.bhero::before{content:'';position:absolute;inset:0;background:
-  radial-gradient(120% 90% at 12% -10%,rgba(255,200,0,.22),transparent 60%),
-  radial-gradient(90% 70% at 100% 110%,rgba(255,213,19,.12),transparent 62%)}
-.bhero::after{content:'';position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
-.bhero .wrap{position:relative}
-.beyebrow{font-size:11px;letter-spacing:.26em;color:var(--gold);font-weight:600;margin:0 0 10px;display:flex;align-items:center;gap:9px}
-.beyebrow svg{width:14px;height:14px;fill:var(--gold)}
-.bhero h1{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:clamp(44px,7vw,78px);line-height:.92;letter-spacing:.012em;margin:0 0 14px}
-.bhero h1 em{font-style:normal;color:var(--gold)}
-.bhero p{max-width:620px;margin:0;color:#c9c3b4;font-size:16px;line-height:1.6}
-.bjump{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
-.bjump a{text-decoration:none;font-size:12.5px;font-weight:500;letter-spacing:.02em;padding:8px 15px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:#efeadc;background:rgba(255,255,255,.04);transition:.15s}
-.bjump a:hover{border-color:var(--gold);color:var(--gold);background:rgba(255,200,0,.08)}
+.bhero{position:relative;overflow:hidden;background:#06070f;color:#fff;padding:74px 0 0;margin-bottom:34px;isolation:isolate}
+/* three light pools, warm at the top left, cooler and tighter bottom right */
+.bhero .glow{position:absolute;inset:-20% -10%;z-index:0;pointer-events:none;background:
+  radial-gradient(42% 52% at 10% 2%,rgba(255,200,0,.30),transparent 62%),
+  radial-gradient(34% 44% at 88% 96%,rgba(255,213,19,.17),transparent 66%),
+  radial-gradient(70% 90% at 50% 120%,rgba(12,39,69,.55),transparent 70%)}
+/* the mark, blown up and pushed off the right edge, catching the light */
+.bhero .mark{position:absolute;right:-5%;top:-16%;width:620px;height:auto;z-index:0;opacity:.085;
+  transform:rotate(-8deg);pointer-events:none;filter:drop-shadow(0 0 60px rgba(255,200,0,.5))}
+/* film grain so the dark field has tooth instead of reading as flat ink */
+.bhero .grain{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.22;mix-blend-mode:overlay}
+.bhero .wrap{position:relative;z-index:2;padding-bottom:0}   /* .wrap carries 90px globally; the hero does not want it */
+.beyebrow{font-size:11px;letter-spacing:.3em;color:var(--gold);font-weight:600;margin:0 0 14px;display:flex;align-items:center;gap:9px}
+.beyebrow svg{width:15px;height:15px;fill:var(--gold);filter:drop-shadow(0 0 9px rgba(255,200,0,.75))}
+.bhero h1{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:clamp(52px,9.2vw,112px);line-height:.86;
+  letter-spacing:.012em;margin:0 0 18px;text-shadow:0 2px 0 rgba(0,0,0,.45),0 18px 50px rgba(0,0,0,.55)}
+.bhero h1 em{font-style:normal;background:linear-gradient(177deg,#FFF1AE 2%,#FFC800 42%,#E5A200 96%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 14px rgba(255,200,0,.42))}
+.bhero p.lede{max-width:610px;margin:0;color:#b9b2a2;font-size:16.5px;line-height:1.62}
+.bjump{display:flex;gap:9px;flex-wrap:wrap;margin:28px 0 40px}
+.bjump a{text-decoration:none;font-size:12.5px;font-weight:500;letter-spacing:.03em;padding:9px 17px;border-radius:999px;
+  color:#efeadc;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);transition:.16s}
+.bjump a:hover{border-color:rgba(255,200,0,.75);color:#FFD513;background:rgba(255,200,0,.1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 6px 22px -10px rgba(255,200,0,.75)}
+/* the seven brands, reversed, drifting along the base of the hero */
+.bstrip{position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.085);
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0));
+  padding:19px 0 21px;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 9%,#000 91%,transparent)}
+.bstrip .track{display:flex;align-items:center;gap:62px;width:max-content;animation:bdrift 46s linear infinite}
+.bstrip img{height:29px;width:auto;opacity:.82;filter:drop-shadow(0 2px 7px rgba(0,0,0,.55));flex:none}
+@keyframes bdrift{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.bstrip .track{animation:none}}
+.bhero .edge{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:3;
+  background:linear-gradient(90deg,transparent,#FFC800 18%,#FFF1AE 50%,#FFC800 82%,transparent);
+  box-shadow:0 0 26px 3px rgba(255,200,0,.55)}
 
 /* ---------- section furniture ---------- */
 section{scroll-margin-top:18px;margin-bottom:54px}
@@ -71,16 +96,19 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 .toggle button.on{background:var(--night);color:var(--gold)}
 
 /* ---------- colour ---------- */
-.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
-.sw{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;cursor:pointer;text-align:left;padding:0;font:inherit;transition:.15s}
-.sw:hover{transform:translateY(-2px);border-color:#e8bb17;box-shadow:0 14px 28px -18px rgba(20,18,10,.4)}
-.sw .chip{height:76px;position:relative}
-.sw .chip::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 55%)}
-.sw .meta{padding:10px 12px 12px}
-.sw .nm{font-weight:600;font-size:13px;margin:0 0 1px}
-.sw .hex{font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);letter-spacing:.03em}
-.sw .who{font-size:11px;color:var(--muted-light);margin-top:3px}
-.copied{color:#1a7f37 !important;font-weight:600}
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(176px,1fr));gap:13px}
+.sw{position:relative;border:0;border-radius:15px;overflow:hidden;cursor:pointer;text-align:left;padding:0;font:inherit;
+  min-height:150px;display:block;transition:transform .16s,box-shadow .16s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 1px 2px rgba(20,18,10,.1),0 14px 30px -18px rgba(20,18,10,.55)}
+.sw:hover{transform:translateY(-3px);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 22px 42px -20px rgba(20,18,10,.7)}
+.sw::after{content:'';position:absolute;inset:0;border-radius:15px;pointer-events:none;
+  background:linear-gradient(176deg,rgba(255,255,255,.26),rgba(255,255,255,0) 44%,rgba(0,0,0,.14));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.09)}
+.sw .meta{position:relative;z-index:1;padding:15px 16px 16px;display:flex;flex-direction:column;height:100%;justify-content:flex-end}
+.sw .nm{font-weight:600;font-size:13.5px;margin:0 0 2px;line-height:1.2}
+.sw .hex{font:600 12.5px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;display:block}
+.sw .who{font-size:11px;margin-top:4px;opacity:.72;line-height:1.35}
+.copied{font-weight:700 !important}
 .note{font-size:13px;color:var(--muted);background:#fffdf3;border:1px solid #f2e7c0;border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:12px 15px;margin-top:16px;line-height:1.55}
 
 /* ---------- type ---------- */
@@ -126,15 +154,20 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 <body>
 
 <header class="bhero">
+  <div class="glow"></div>
+  <img class="mark" src="brand/spark-companies-reversed.svg" alt="" aria-hidden="true">
+  <svg class="grain" aria-hidden="true"><filter id="bgrain"><feTurbulence type="fractalNoise" baseFrequency="0.86" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#bgrain)"/></svg>
   <div class="wrap">
     <p class="beyebrow"><svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12z"/></svg>BRAND HUB</p>
     <h1>One portfolio.<br><em>Seven brands.</em></h1>
-    <p>Every logo, colour and rule in one place, so nothing has to be rebuilt from memory or pulled off a website. Grab what you need and go.</p>
+    <p class="lede">Every logo, colour and rule in one place, so nothing has to be rebuilt from memory or pulled off a website. Grab what you need and go.</p>
     <nav class="bjump">
       <a href="#logos">Logos</a><a href="#colour">Colour</a><a href="#type">Typography</a>
-      <a href="#posts">Make a post</a><a href="#signature">Email signature</a><a href="#rules">Rules</a>
+      <a href="#posts">Make a post</a><a href="#rules">Rules</a>
     </nav>
   </div>
+  <div class="bstrip"><div class="track" id="bTrack"></div></div>
+  <div class="edge"></div>
 </header>
 
 <div class="wrap">
@@ -175,16 +208,16 @@ section{scroll-margin-top:18px;margin-bottom:54px}
         <p class="tfall" style="margin-top:12px">font-family:'Bebas Neue',Impact,'Haettenschweiler',sans-serif</p>
       </div>
       <div class="card tcard">
-        <p class="tspec">TEXT &middot; Jost</p>
+        <p class="tspec">TEXT &middot; Jost (web) / Century Gothic (Office)</p>
         <p class="tsample tjost">We are people driven and service focused.</p>
-        <p class="tuse">Everything else &mdash; body copy, buttons, labels, decks, documents. Weights 300 to 700. Keep body text at 400 and use 600 for emphasis rather than reaching for bold 700.</p>
+        <p class="tuse">Everything else &mdash; body copy, buttons, labels, decks, documents. Weights 300 to 700; keep body at 400 and use 600 for emphasis rather than reaching for bold.<br><br><b>In PowerPoint and Word use Century Gothic.</b> It ships with Office, so it is on every machine already, and it is the same geometric shape as Jost &mdash; nobody will see the difference between a deck and the website.</p>
         <div class="lrow">
           <a class="btn" href="https://fonts.google.com/specimen/Jost" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Install</a>
         </div>
         <p class="tfall" style="margin-top:12px">font-family:'Jost',-apple-system,'Segoe UI',Arial,sans-serif</p>
       </div>
     </div>
-    <p class="note"><b>If a font will not install</b> &mdash; on a locked-down machine, or in an email, or on a client's laptop &mdash; fall back to Arial rather than letting it land in Times New Roman. Email clients in particular ignore web fonts entirely, which is why the signature below is built in Arial on purpose.</p>
+    <p class="note"><b>If a font will not install</b> &mdash; on a locked-down machine, or in an email, or on a client's laptop &mdash; fall back to Arial rather than letting it land in Times New Roman. Email clients in particular ignore web fonts entirely, so anything headed into an email should be Arial from the start.</p>
   </section>
 
   <section id="posts">
@@ -233,29 +266,6 @@ section{scroll-margin-top:18px;margin-bottom:54px}
     </div>
   </section>
 
-  <section id="signature">
-    <div class="shead">
-      <p class="k">EMAIL SIGNATURE</p>
-      <h2>The standard block</h2>
-      <p>Fill in your details, copy, paste into Outlook. Built in Arial because email clients ignore web fonts.</p>
-    </div>
-    <div class="card sigwrap">
-      <div>
-        <div class="sigprev" id="sigPrev"></div>
-        <div class="lrow" style="margin-top:13px">
-          <button class="btn" id="sigCopy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>Copy signature</button>
-          <span style="font-size:12px;color:var(--muted-light)">Paste into Outlook &rarr; Signatures</span>
-        </div>
-      </div>
-      <div class="pmf" style="min-width:230px">
-        <label for="sgName">Name</label><input id="sgName" value="Allie Spegel">
-        <label for="sgTitle">Title</label><input id="sgTitle" value="VP of Operations">
-        <label for="sgEntity">Entity</label><select id="sgEntity"></select>
-        <label for="sgPhone">Phone</label><input id="sgPhone" value="248.632.3560">
-        <label for="sgEmail">Email</label><input id="sgEmail" value="aspegel@sparkcompanies.com">
-      </div>
-    </div>
-  </section>
 
   <section id="rules">
     <div class="shead">

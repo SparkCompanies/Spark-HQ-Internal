@@ -3,21 +3,21 @@
   "use strict";
 
   var BRANDS = [
-    { key:"companies", name:"Spark Companies", mark:"®", svg:"brand/spark-companies.svg", png:"brand/spark-companies-logo.png",
+    { key:"companies", name:"Spark Companies", mark:"®", svg:"brand/spark-companies.svg", png:"brand/spark-companies-logo.png", rev:"brand/spark-companies-reversed.svg", revPng:"brand/spark-companies-reversed.png",
       gold:"#FFC800", logoGold:"#FBD20F", dark:"#0D0E1A", house:true,
       note:"The house brand. Its gold is the portfolio colour — use it for anything that spans more than one entity." },
-    { key:"talent", name:"Spark Talent Acquisition", mark:"™", svg:"brand/spark-talent.svg", png:"brand/spark-talent-logo.png",
+    { key:"talent", name:"Spark Talent Acquisition", mark:"™", svg:"brand/spark-talent.svg", png:"brand/spark-talent-logo.png", rev:"brand/spark-talent-reversed.svg", revPng:"brand/spark-talent-reversed.png",
       gold:"#FCD20E", dark:"#000000", note:"Staffing and direct hire. Carries ™, not ®." },
-    { key:"ignite", name:"Ignite Search", mark:"", svg:"brand/ignite-search.svg", png:"brand/ignite-search-logo.png",
+    { key:"ignite", name:"Ignite Search", mark:"", svg:"brand/ignite-search.svg", png:"brand/ignite-search-logo.png", rev:"brand/ignite-search-reversed.svg", revPng:"brand/ignite-search-reversed.png",
       gold:"#F2D416", dark:"#000000", note:"Executive search and strategy, and IT staffing." },
-    { key:"jjp", name:"John Joseph Partners", mark:"®", svg:"brand/jjp.svg", png:"brand/jjp-logo.png",
+    { key:"jjp", name:"John Joseph Partners", mark:"®", svg:"brand/jjp.svg", png:"brand/jjp-logo.png", rev:"brand/jjp-reversed.svg", revPng:"brand/jjp-reversed.png",
       gold:"#FAD110", dark:"#000000", note:"IT staffing and search. Registered mark.",
       alts:[ {label:"Mark only", svg:"brand/jjp-mark.svg", png:"brand/jjp-mark-light.png"},
              {label:"Mark, reversed", png:"brand/jjp-mark-dark.png"} ] },
-    { key:"flex", name:"Flex Workforce Solutions", mark:"", svg:"brand/flex.svg", png:"brand/flex-logo.png",
+    { key:"flex", name:"Flex Workforce Solutions", mark:"", svg:"brand/flex.svg", png:"brand/flex-logo.png", rev:"brand/flex-reversed.svg", revPng:"brand/flex-reversed.png",
       gold:"#EC8F2F", dark:"#0C2745", orange:true,
       note:"The one brand that is deliberately not gold. Orange and navy, its own identity — do not “correct” it." },
-    { key:"packaging", name:"Spark Packaging", mark:"", svg:"brand/spark-packaging.svg", png:"brand/spark-packaging-wordmark.png",
+    { key:"packaging", name:"Spark Packaging", mark:"", svg:"brand/spark-packaging.svg", png:"brand/spark-packaging-wordmark.png", rev:"brand/spark-packaging-reversed.svg", revPng:"brand/spark-packaging-reversed.png",
       gold:"#FFDD5F", dark:"#3D3D3D", note:"Packaging and co-manufacturing talent.",
       alts:[ {label:"Circle badge", png:"brand/spark-packaging-logo.png"},
              {label:"Reversed", png:"brand/spark-packaging-reversed.png"} ] },
@@ -47,6 +47,7 @@
           (b.svg ? '<a class="btn" href="' + esc(b.svg) + '" download>' + dlIcon + "SVG</a>"
                  : '<span class="btn dim">SVG soon</span>') +
           '<a class="btn" href="' + esc(b.png) + '" download>' + dlIcon + "PNG</a>" +
+          (b.rev ? '<a class="btn" href="' + esc(b.rev) + '" download title="White artwork, for dark backgrounds">' + dlIcon + "REVERSED</a>" : "") +
           alts +
           '<span class="toggle"><button class="on" data-bg="' + b.key + ':light">LIGHT</button>' +
           '<button data-bg="' + b.key + ':dark">DARK</button></span>' +
@@ -61,7 +62,11 @@
       if (bg) {
         var p = bg.getAttribute("data-bg").split(":");
         var stage = grid.querySelector('[data-stage="' + p[0] + '"]');
-        stage.classList.toggle("dark", p[1] === "dark");
+        var isDark = p[1] === "dark";
+        stage.classList.toggle("dark", isDark);
+        var br = BRANDS.filter(function (x) { return x.key === p[0]; })[0];
+        var im = stage.querySelector("img");
+        if (br && im) im.src = isDark ? (br.rev || br.svg || br.png) : (br.svg || br.png);
         bg.parentNode.querySelectorAll("button").forEach(function (x) { x.classList.remove("on"); });
         bg.classList.add("on");
         return;
@@ -79,11 +84,13 @@
   }
 
   /* ---------------- colour ---------------- */
+  // Named explicitly: deriving from the brand name gave two "Spark gold"s and called Flex's orange gold.
+  var SWNAME = { companies:"House gold", talent:"Spark Talent gold", ignite:"Ignite gold",
+                 jjp:"JJP gold", flex:"Flex orange", packaging:"Packaging gold" };
   var SW = [];
   BRANDS.forEach(function (b) {
     if (b.key === "bolt") return;
-    SW.push({ nm: b.house ? "House gold" : b.name.split(" ")[0] + " gold", hex: b.gold,
-              who: b.house ? "Portfolio-wide" : b.name, dark: false });
+    SW.push({ nm: SWNAME[b.key] || b.name, hex: b.gold, who: b.house ? "Portfolio-wide" : b.name });
   });
   SW.push({ nm:"Night", hex:"#0D0E1A", who:"Spark Companies, Spark HQ", dark:true });
   SW.push({ nm:"Flex navy", hex:"#0C2745", who:"Flex Workforce Solutions", dark:true });
@@ -92,11 +99,17 @@
 
   var swEl = document.getElementById("swatches");
   if (swEl) {
+    var lum = function (hex) {
+      var h = hex.replace("#", "");
+      var r = parseInt(h.slice(0, 2), 16) / 255, g = parseInt(h.slice(2, 4), 16) / 255, b = parseInt(h.slice(4, 6), 16) / 255;
+      var f = function (c) { return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
     swEl.innerHTML = SW.map(function (s) {
-      return '<button class="sw" data-hex="' + s.hex + '">' +
-        '<span class="chip" style="background:' + s.hex + (s.hex.toUpperCase() === "#FAF9F6" ? ";border-bottom:1px solid var(--line)" : "") + '"></span>' +
+      var ink = lum(s.hex) > 0.42 ? "#17150d" : "#ffffff";   // contrast against the tile itself
+      return '<button class="sw" data-hex="' + s.hex + '" style="background:' + s.hex + ';color:' + ink + '" title="Copy ' + s.hex + '">' +
         '<span class="meta"><p class="nm">' + esc(s.nm) + '</p><span class="hex">' + s.hex + "</span>" +
-        '<div class="who">' + esc(s.who) + "</div></span></button>";
+        '<span class="who">' + esc(s.who) + "</span></span></button>";
     }).join("");
     swEl.addEventListener("click", function (e) {
       var b = e.target.closest("[data-hex]"); if (!b) return;
@@ -250,57 +263,12 @@
     setTimeout(draw, 900);
   }
 
-  /* ---------------- signature ---------------- */
-  var sgE = document.getElementById("sgEntity");
-  if (sgE) {
-    var ENT = {
-      companies:["Spark Companies®","sparkcompanies.com"],
-      talent:["Spark Talent Acquisition™","sparktalentinc.com"],
-      ignite:["Ignite Search","ignitesearch.com"],
-      jjp:["John Joseph Partners®","johnjosephpartners.com"],
-      flex:["Flex Workforce Solutions","flexworkforceco.com"],
-      packaging:["Spark Packaging","sparkcompanies.com"],
-      bolt:["Bolt Creative","sparkcompanies.com"]
-    };
-    sgE.innerHTML = Object.keys(ENT).map(function (k) {
-      return '<option value="' + k + '">' + esc(ENT[k][0]) + "</option>";
+  /* ---------------- hero brand strip ---------------- */
+  var trk = document.getElementById("bTrack");
+  if (trk) {
+    var marks = BRANDS.filter(function (b) { return b.rev; }).map(function (b) {
+      return '<img src="' + esc(b.rev) + '" alt="' + esc(b.name) + '" loading="lazy">';
     }).join("");
-
-    var sigHtml = function () {
-      var g = function (id) { return document.getElementById(id).value.trim(); };
-      var e = ENT[sgE.value];
-      return '<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;color:#111;"><tr><td>' +
-        '<div style="font-size:15px;font-weight:bold;color:#111;">' + esc(g("sgName")) + "</div>" +
-        '<div style="font-size:12.5px;color:#6f6a5d;">' + esc(g("sgTitle")) + " &middot; " + esc(e[0]) + "</div>" +
-        '<div style="height:2px;width:40px;background:#FFC800;margin:9px 0;font-size:0;line-height:0;">&nbsp;</div>' +
-        '<div style="font-size:12.5px;color:#111;">' + esc(g("sgPhone")) +
-          ' &nbsp;|&nbsp; <a href="mailto:' + esc(g("sgEmail")) + '" style="color:#7a5d00;text-decoration:none;">' + esc(g("sgEmail")) + "</a></div>" +
-        '<div style="font-size:12.5px;color:#6f6a5d;">' + esc(e[1]) + " &nbsp;|&nbsp; Troy, MI &middot; Franklin, TN</div>" +
-        '<div style="font-size:11px;color:#9a9486;padding-top:7px;letter-spacing:1px;">JUST WATCH US</div>' +
-        "</td></tr></table>";
-    };
-    var paint = function () { document.getElementById("sigPrev").innerHTML = sigHtml(); };
-    ["sgName","sgTitle","sgEntity","sgPhone","sgEmail"].forEach(function (id) {
-      var el = document.getElementById(id);
-      el.addEventListener(el.tagName === "SELECT" ? "change" : "input", paint);
-    });
-    paint();
-
-    document.getElementById("sigCopy").addEventListener("click", function () {
-      var btn = this, html = sigHtml();
-      var done = function () { var t = btn.innerHTML; btn.innerHTML = "Copied"; setTimeout(function () { btn.innerHTML = t; }, 1300); };
-      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
-        navigator.clipboard.write([new ClipboardItem({
-          "text/html": new Blob([html], { type: "text/html" }),
-          "text/plain": new Blob([document.getElementById("sigPrev").innerText], { type: "text/plain" })
-        })]).then(done, fallback);
-      } else fallback();
-      function fallback() {
-        var r = document.createRange(); r.selectNode(document.getElementById("sigPrev"));
-        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-        try { document.execCommand("copy"); done(); } catch (x) {}
-        s.removeAllRanges();
-      }
-    });
+    trk.innerHTML = marks + marks;   // duplicated so the -50% drift loops seamlessly
   }
 })();
