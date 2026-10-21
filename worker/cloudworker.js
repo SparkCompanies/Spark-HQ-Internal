@@ -1944,6 +1944,7 @@ var worker_default = {
           department: u.department || "",
           company: u.companyName || "",
           mobile: u.mobilePhone || "",
+          hireDate: u.employeeHireDate ? String(u.employeeHireDate).slice(0, 10) : "",
           phone: (u.businessPhones && u.businessPhones[0]) || "",
           managerId: u.manager && u.manager.id || null,
           // signals used only to filter out shared/room/equipment mailboxes (dropped before sending)
@@ -2290,6 +2291,40 @@ var worker_default = {
       if (!r.ok) return json({ error: "Could not read", detail: r.data }, 502, origin);
       return json({ ok: true, days, rows: r.data }, 200, origin);
     }
+    if (url.pathname === "/photos") {
+      // PHOTOS_BULK_v1: every M365 profile photo in ONE response (data URLs), edge-cached for an hour.
+      // Replaces ~60 separate /photo round trips per directory load.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/photos-v1");
+      if (!url.searchParams.get("fresh")) {
+        const hit = await cache.match(ck);
+        if (hit) { const h = new Headers(hit.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v)); return new Response(hit.body, { status: 200, headers: h }); }
+      }
+      try {
+        const token = await getGraphToken(env);
+        const people = directoryPeople(await fetchDirectory(token));
+        const photos = {};
+        for (let i = 0; i < people.length; i += 15) {
+          const chunk = people.slice(i, i + 15);
+          await Promise.all(chunk.map(async (p) => {
+            try {
+              const r = await fetch("https://graph.microsoft.com/v1.0/users/" + p.id + "/photos/96x96/$value", { headers: { "Authorization": "Bearer " + token } });
+              if (!r.ok) return;
+              const buf = new Uint8Array(await r.arrayBuffer());
+              if (buf.length < 100 || buf.length > 200000) return;
+              let bin = ""; for (let k = 0; k < buf.length; k += 8192) bin += String.fromCharCode.apply(null, buf.subarray(k, k + 8192));
+              photos[p.email] = "data:" + (r.headers.get("Content-Type") || "image/jpeg") + ";base64," + btoa(bin);
+            } catch (e) {}
+          }));
+        }
+        const body = JSON.stringify({ ok: true, asOf: new Date().toISOString(), count: Object.keys(photos).length, photos });
+        const resp = new Response(body, { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } });
+        try { await cache.put(ck, resp.clone()); } catch (e) {}
+        const h = new Headers(resp.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v));
+        return new Response(body, { status: 200, headers: h });
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
+    }
     if (url.pathname === "/photo") {
       // PHOTO_PROXY_v1: M365 profile photo for a Spark address (any signed-in user). 204 when the person has none.
       const who = await verifyUser(request, env);
@@ -2411,6 +2446,13 @@ var worker_default = {
       if (typeof body.company === "string") patch.companyName = body.company.trim().slice(0, 64);
       if (typeof body.mobile === "string") patch.mobilePhone = body.mobile.trim().slice(0, 40) || null;
       if (typeof body.phone === "string") patch.businessPhones = body.phone.trim() ? [body.phone.trim().slice(0, 40)] : [];
+      // MILESTONES_v1: hire date drives "starting this week" and work anniversaries. Graph wants a full ISO timestamp.
+      if (typeof body.hireDate === "string") {
+        const hd = body.hireDate.trim();
+        if (!hd) patch.employeeHireDate = null;
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(hd)) patch.employeeHireDate = hd + "T00:00:00Z";
+        else return json({ error: "Hire date must look like 2026-03-14" }, 400, origin);
+      }
       const hasMgr = Object.prototype.hasOwnProperty.call(body, "managerId");
       const managerId = hasMgr ? (body.managerId ? String(body.managerId).trim() : null) : undefined;
       if (hasMgr && managerId && !/^[0-9a-f-]{36}$/i.test(managerId)) return json({ error: "Invalid manager id" }, 400, origin);
