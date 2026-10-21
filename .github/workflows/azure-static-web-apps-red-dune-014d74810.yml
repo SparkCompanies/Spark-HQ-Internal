@@ -28,6 +28,11 @@ jobs:
           # push notifications never register.
           cp sw.js manifest.webmanifest site/ 2>/dev/null || true
           if [ -d icons ]; then mkdir -p site/icons && cp icons/* site/icons/; fi
+          # BRAND_HUB_v1: the brand page needs its script and its logo folder served as real
+          # files. Root *.js is NOT staged wholesale on purpose - the repo root holds helper
+          # snippets that should never be public - so name each page script explicitly.
+          cp spark-brand.js site/ 2>/dev/null || true
+          if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
           ls site/*.html | sed 's|site/|  |'
