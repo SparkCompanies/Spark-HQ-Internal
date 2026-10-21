@@ -2533,11 +2533,18 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   var W=(typeof WORKER_URL==='string'&&WORKER_URL)||'https://spark-hq-worker.sparkcompanies.workers.dev';
   var memo={}, dirP=null;
   var tokP=function(){ try{ if(window.parent&&window.parent!==window&&window.parent.SPARK_SB&&window.parent.SPARK_SB.getToken){ return Promise.resolve(window.parent.SPARK_SB.getToken()); } }catch(e){} try{ var a=JSON.parse(localStorage.getItem('spark_hq_sb_auth')||'{}'); return Promise.resolve(a.access_token||(a.currentSession&&a.currentSession.access_token)||(a.session&&a.session.access_token)||''); }catch(e){ return Promise.resolve(''); } };
+  /* PHOTOS_BULK_v1: all photos in one request, cached an hour, shared with the shell and directory */
+  var pmap=null, pprom=null;
+  function allPhotos(){
+   if(pprom) return pprom;
+   try{ var c=JSON.parse(localStorage.getItem('hqPhotos')||'null'); if(c&&c.ts&&Date.now()-c.ts<36e5&&c.photos){ pmap=c.photos; pprom=Promise.resolve(pmap); return pprom; } }catch(e){}
+   pprom=tokP().then(function(t){ if(!t) return {}; return fetch(W+'/photos',{headers:{Authorization:'Bearer '+t}}).then(function(r){ return r.ok?r.json():{}; }).then(function(j){ var m=(j&&j.photos)||{}; pmap=m; try{ localStorage.setItem('hqPhotos',JSON.stringify({ts:Date.now(),photos:m})); }catch(e){} return m; }); }).catch(function(){ pmap={}; return {}; });
+   return pprom;
+  }
   window.__hqPhoto=function(email){
    email=String(email||'').toLowerCase().trim(); if(!email) return Promise.resolve(null);
-   if(memo[email]) return memo[email];
-   memo[email]=tokP().then(function(t){ if(!t) return null; return fetch(W+'/photo?email='+encodeURIComponent(email),{headers:{Authorization:'Bearer '+t}}).then(function(r){ if(r.status!==200) return null; return r.blob().then(function(b){ return b.size>100?URL.createObjectURL(b):null; }); }); }).catch(function(){ return null; });
-   return memo[email];
+   if(pmap) return Promise.resolve(pmap[email]||null);
+   return allPhotos().then(function(m){ return m[email]||null; });
   };
   var dir=function(){
    if(dirP) return dirP;
@@ -2713,8 +2720,8 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   var load=function(){
    var p=null; try{ if(window.parent&&window.parent!==window&&window.parent.hqGraphToken) p=window.parent.hqGraphToken(); }catch(e){}
    if(!p) return;
-   p.then(function(t){ return fetch('https://graph.microsoft.com/v1.0/me/drive/recent?$top=12',{headers:{Authorization:'Bearer '+t}}); }).then(function(r){ if(r.status===403) throw new Error('scope'); return r.json(); }).then(function(j){
-    var items=(j.value||[]).filter(function(it){ return it.webUrl&&!/^~\$/.test(it.name||''); }).slice(0,10); paint(items); try{ localStorage.setItem('v2RecentCache',JSON.stringify({ts:Date.now(),items:items})); }catch(e){}
+   p.then(function(t){ return fetch('https://graph.microsoft.com/v1.0/me/drive/recent?$top=8',{headers:{Authorization:'Bearer '+t}}); }).then(function(r){ if(r.status===403) throw new Error('scope'); return r.json(); }).then(function(j){
+    var items=(j.value||[]).filter(function(it){ return it.webUrl&&!/^~\$/.test(it.name||''); }).slice(0,5); paint(items); try{ localStorage.setItem('v2RecentCache',JSON.stringify({ts:Date.now(),items:items})); }catch(e){}
    }).catch(function(e){ if(String(e&&e.message)==='scope'&&!sec.querySelector('.v2-rc')){ sec.style.display=''; sec.innerHTML='<div class="v2-top-head"><div><p class="v2-eyebrow">RECENT FILES</p></div></div><div class="v2-rc-note">Recent files need one more Microsoft permission (Files.Read on the Spark HQ app). Admins: grant it in Entra and this fills in on its own.</div>'; } });
   };
   setTimeout(load,2500); setInterval(load,10*60*1000);

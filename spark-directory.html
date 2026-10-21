@@ -78,6 +78,7 @@ main{padding:26px 40px 60px}
 .ph .av[data-pr]::after{width:14px;height:14px;border-color:#141628}
 .card .jwu{position:absolute;top:10px;right:10px;font-family:'Bebas Neue',Impact,sans-serif;font-size:13px;letter-spacing:.08em;color:#111;background:linear-gradient(180deg,#ffe066,#FFC800);padding:3px 8px;border-radius:999px;box-shadow:0 0 0 1px rgba(184,145,46,.5),0 0 16px -2px rgba(255,200,0,.9)}
 .card{position:relative}
+.ehint{font-size:11.5px;color:var(--muted);margin:-4px 0 10px;line-height:1.4}
 .av{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 55%,transparent)}
 .nm{font-weight:600;font-size:15.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt{color:var(--muted);font-size:13px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
@@ -369,10 +370,14 @@ li.col .tog svg{transform:rotate(-90deg)}
   window.addEventListener('message',function(e){ var m=e&&e.data; if(!m||m.type!=='spark-dir-find') return; var q=String(m.q||''); var tryOpen=function(n){ if(!PEOPLE.length){ if(n<40) setTimeout(function(){ tryOpen(n+1); },250); return; } setMode(false); $('q').value=q; state.q=q.trim(); render(); if(m.open){ var k=q.toLowerCase(); var p=PEOPLE.filter(function(x){ return x.name.toLowerCase()===k; })[0]; if(p) open(p.id); } }; tryOpen(0); });
   /* PHOTOS_v1: hydrate any avatar that carries an email; memoised per address, 204 = no photo (initials stay) */
   (function(){
-    var memo={};
-    function photo(em){ em=String(em||'').toLowerCase().trim(); if(!em) return Promise.resolve(null); if(memo[em]) return memo[em];
-      memo[em]=getToken().then(function(tok){ if(!tok) return null; return fetch(WORKER+'/photo?email='+encodeURIComponent(em),{headers:{Authorization:'Bearer '+tok}}).then(function(r){ if(r.status!==200) return null; return r.blob().then(function(b){ return b.size>100?URL.createObjectURL(b):null; }); }); }).catch(function(){ return null; });
-      return memo[em]; }
+    /* PHOTOS_BULK_v1: one request for all of them, cached an hour. This page used to fire ~60. */
+    var pmap=null, pprom=null;
+    function allPhotos(){
+      if (pprom) return pprom;
+      try { var c=JSON.parse(localStorage.getItem('hqPhotos')||'null'); if (c && c.ts && Date.now()-c.ts < 36e5 && c.photos) { pmap=c.photos; pprom=Promise.resolve(pmap); return pprom; } } catch(e){}
+      pprom=getToken().then(function(tok){ if(!tok) return {}; return fetch(WORKER+'/photos',{headers:{Authorization:'Bearer '+tok}}).then(function(r){ return r.ok?r.json():{}; }).then(function(j){ var m=(j&&j.photos)||{}; pmap=m; try{ localStorage.setItem('hqPhotos',JSON.stringify({ts:Date.now(),photos:m})); }catch(e){} return m; }); }).catch(function(){ pmap={}; return {}; });
+      return pprom; }
+    function photo(em){ em=String(em||'').toLowerCase().trim(); if(!em) return Promise.resolve(null); if(pmap) return Promise.resolve(pmap[em]||null); return allPhotos().then(function(m){ return m[em]||null; }); }
     function hydrate(root){ var els=(root||document).querySelectorAll('.av[data-pe]'); for(var i=0;i<els.length;i++){ (function(a){ if(a.getAttribute('data-ph')) return; a.setAttribute('data-ph','1'); photo(a.getAttribute('data-pe')).then(function(u){ if(u&&!a.querySelector('img')){ var im=new Image(); im.alt=''; im.src=u; a.appendChild(im); } }); })(els[i]); } }
     window.__dirPhotos=hydrate;
     var pending=false; new MutationObserver(function(){ if(pending) return; pending=true; requestAnimationFrame(function(){ pending=false; hydrate(document); }); }).observe(document.body,{childList:true,subtree:true});
@@ -501,6 +506,8 @@ li.col .tog svg{transform:rotate(-90deg)}
       '<div class="sl">Team</div><input id="e_dept" list="e_depts" value="'+esc(p.department||'')+'" placeholder="e.g. MI Metro" maxlength="64"><datalist id="e_depts">'+depts.map(function(d){return '<option value="'+esc(d)+'">'}).join('')+'</datalist>'+
       '<div class="e2"><div><div class="sl">Mobile</div><input id="e_mob" type="tel" value="'+esc(p.mobile||'')+'" placeholder="(248) 555-0100" maxlength="40"></div><div><div class="sl">Office</div><input id="e_ph" type="tel" value="'+esc(p.phone||'')+'" placeholder="(248) 555-0100" maxlength="40"></div></div>'+
       '<div class="sl">Reports to</div><select id="e_mgr">'+opts+'</select>'+
+      '<div class="sl">Hire date</div><input id="e_hire" type="date" value="'+esc(p.hireDate||'')+'">'+
+      '<div class="ehint">Drives &ldquo;starting this week&rdquo; and work anniversaries on the Home page.</div>'+
       '<div class="eerr" id="e_err"></div>'+
       '<div class="ebtns"><button type="submit" class="btn dark" id="e_save">Save to Microsoft 365</button><button type="button" class="btn ghost" id="e_cancel">Cancel</button></div>'+
       '<div class="enote">Changes write straight to this person\u2019s Microsoft 365 profile and show up in Outlook, Teams and the org chart within a few minutes.</div>'+
@@ -512,7 +519,7 @@ li.col .tog svg{transform:rotate(-90deg)}
     $('e_cancel').onclick=function(){ panel.classList.remove('editing'); };
     form.onsubmit=function(ev){
       ev.preventDefault();
-      var title=$('e_title').value.trim(), dept=$('e_dept').value.trim(), co=$('e_co').value.trim(), mob=$('e_mob').value.trim(), ph=$('e_ph').value.trim(), mgr=$('e_mgr').value||null;
+      var title=$('e_title').value.trim(), dept=$('e_dept').value.trim(), co=$('e_co').value.trim(), mob=$('e_mob').value.trim(), ph=$('e_ph').value.trim(), mgr=$('e_mgr').value||null, hire=($('e_hire')||{}).value||'';
       var body={id:p.id};
       if(title!==(p.title||'')) body.title=title;
       if(dept!==(p.department||'')) body.department=dept;
@@ -520,6 +527,7 @@ li.col .tog svg{transform:rotate(-90deg)}
       if(mob!==(p.mobile||'')) body.mobile=mob;
       if(ph!==(p.phone||'')) body.phone=ph;
       if(mgr!==(p.managerId||null)) body.managerId=mgr;
+      if(hire!==(p.hireDate||'')) body.hireDate=hire;
       if(Object.keys(body).length===1){ panel.classList.remove('editing'); return; }
       var save=$('e_save'), err=$('e_err'); save.disabled=true; save.textContent='Saving\u2026'; err.style.display='none';
       getToken().then(function(tok){
@@ -531,6 +539,7 @@ li.col .tog svg{transform:rotate(-90deg)}
         if('mobile' in body) p.mobile=body.mobile;
         if('phone' in body) p.phone=body.phone;
         if('managerId' in body) p.managerId=body.managerId;
+        if('hireDate' in body) p.hireDate=body.hireDate;
         p.hay=(p.name+' '+p.title+' '+p.department+' '+(p.company||'')+' '+p.email+' '+(p.mobile||'')+' '+(p.phone||'')).toLowerCase();
         rebuildReports(); chips(); render(); ORG.built=false; ORG._fitted=false; if(document.body.classList.contains('org')) setMode(true);
         panel.classList.remove('editing'); open(p.id); toast('Saved to Microsoft 365');

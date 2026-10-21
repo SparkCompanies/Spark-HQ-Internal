@@ -6489,9 +6489,26 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       '<div class="acts">'+acts+'</div>':'<div class="bk">No owner set yet</div>')+
       (b&&b.email?'<div class="bk">Out? Ask <b>'+esc(b.name)+'</b>'+(r.note?' · '+esc(r.note):'')+'</div>':(r.note?'<div class="bk">'+esc(r.note)+'</div>':''))+'</div>';
   };
-  var memo={};
-  window.hqPhoto=function(email){ email=String(email||'').toLowerCase().trim(); if(!email) return Promise.resolve(null); if(memo[email]) return memo[email];
-    memo[email]=Promise.resolve(window.SPARK_SB&&window.SPARK_SB.getToken?window.SPARK_SB.getToken():'').then(function(t){ if(!t) return null; return fetch(W+'/photo?email='+encodeURIComponent(email),{headers:{Authorization:'Bearer '+t}}).then(function(r){ if(r.status!==200) return null; return r.blob().then(function(b){ return b.size>100?URL.createObjectURL(b):null; }); }); }).catch(function(){ return null; }); return memo[email]; };
+  /* PHOTOS_BULK_v1: one request for every M365 photo, cached in localStorage for an hour.
+     This replaced ~60 separate /photo calls per directory load. */
+  var photoMap=null, photoP=null;
+  function loadPhotos(){
+    if (photoP) return photoP;
+    try { var c=JSON.parse(localStorage.getItem('hqPhotos')||'null'); if (c && c.ts && Date.now()-c.ts < 36e5 && c.photos) { photoMap=c.photos; photoP=Promise.resolve(photoMap); return photoP; } } catch(e){}
+    photoP = Promise.resolve(window.SPARK_SB&&window.SPARK_SB.getToken?window.SPARK_SB.getToken():'').then(function(t){
+      if(!t) return {};
+      return fetch(W+'/photos',{headers:{Authorization:'Bearer '+t}}).then(function(r){ return r.ok?r.json():{}; }).then(function(j){
+        var m=(j&&j.photos)||{}; photoMap=m;
+        try { localStorage.setItem('hqPhotos',JSON.stringify({ts:Date.now(),photos:m})); } catch(e){}
+        return m;
+      });
+    }).catch(function(){ photoMap={}; return {}; });
+    return photoP;
+  }
+  window.hqPhoto=function(email){ email=String(email||'').toLowerCase().trim(); if(!email) return Promise.resolve(null);
+    if (photoMap) return Promise.resolve(photoMap[email]||null);
+    return loadPhotos().then(function(m){ return m[email]||null; }); };
+  window.hqPhotosReady=loadPhotos;
   window.hqHelpHydrate=function(root){ [].forEach.call((root||document).querySelectorAll('#hqHelpOver .av[data-pe]'),function(a){ window.hqPhoto(a.getAttribute('data-pe')).then(function(u){ if(u&&!a.querySelector('img')){ var im=new Image(); im.alt=''; im.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%'; im.src=u; a.appendChild(im); } }); }); };
   window.hqHelpFetch=function(){
     var get=function(t){ return fetch(W+'/help-routes',{headers:t?{Authorization:'Bearer '+t}:{}}).then(function(r){ return r.json(); }); };
@@ -7939,7 +7956,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         <a href="https://spark-command.netlify.app" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:0.5px;color:var(--gold,#F5C518);text-decoration:none;border:1px solid rgba(245,197,24,0.45);border-radius:6px;padding:5px 10px;white-space:nowrap;">Open in new tab <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a>
       </div>
       <div style="font-size:11px;color:#8a8f98;padding:6px 16px;background:#0b0d12;border-bottom:1px solid #1a2330;">If this area stays blank, the Command Center is blocking embedding &mdash; use <strong style="color:#c9ced8;">Open in new tab</strong>, and it can be unblocked by adding a <code style="color:#c9ced8;">frame-ancestors</code> header on Netlify.</div>
-      <iframe id="ccFrame" src="https://spark-command.netlify.app" allow="microphone; clipboard-read; clipboard-write" referrerpolicy="no-referrer-when-downgrade" style="display:block;width:100%;height:calc(100vh - 56px - 44px - 30px);border:0;background:#070b13;"></iframe>
+      <iframe id="ccFrame" data-src="https://spark-command.netlify.app" allow="microphone; clipboard-read; clipboard-write" referrerpolicy="no-referrer-when-downgrade" style="display:block;width:100%;height:calc(100vh - 56px - 44px - 30px);border:0;background:#070b13;"></iframe>
     </div>
     <div id="view-training" class="tab-page cream" style="display: none;">
       <!-- SPARK_LAUNCH_TRAINING_CARD_V1 -->
@@ -9466,6 +9483,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           if (el) el.style.display = (v === tab) ? '' : 'none';
         });
         if (tab === 'home') { try { onbCalLoad(); } catch(e){} try { hwLoadSalesSnapshot(); } catch(e){} try { hwLoadHeadcount(); } catch(e){} try { renderPulse(); renderPulseBoard(); } catch(e){} }
+        /* PERF_v1: the Command Center is a third-party iframe that took ~6s to load. Only load it when opened. */
+        if (tab === 'command') { var cc = document.getElementById('ccFrame'); if (cc && !cc.src && cc.dataset.src) cc.src = cc.dataset.src; }
         if (tab === 'salesforce') { try { sfHubLoad(); } catch(e){} }
         if (tab === 'finance') { try { finLoad(); } catch(e){} }
         if (tab === 'sparkline') { try { window.SPARKLINE_INIT && window.SPARKLINE_INIT(); } catch(e){} }
@@ -13344,9 +13363,17 @@ var pending=all.filter(function(o){ var k=(o.inv.client||'')+'|'+(o.inv.referenc
   };
 
   // React to auth state: update pill, pull shared data on sign-in
+  /* PERF_v1: Supabase fires onChange on every token refresh. The heavy pulls below (permissions,
+     pulse, shared photos) used to run every single time — 200+ requests per page load. Now they
+     run once per signed-in user, at most once a minute. */
+  var _syncedUid = null, _syncedAt = 0;
   window.SPARK_SB.onChange(function(u) {
     try { window.updateUserAvatar(u); } catch(e){}
-    try { window.applyPermissionGates(u); } catch(e){}
+    var uid = u && (u.id || u.email) || null;
+    var heavy = !!uid && (uid !== _syncedUid || Date.now() - _syncedAt > 60000);
+    if (heavy) { _syncedUid = uid; _syncedAt = Date.now(); }
+    if (!uid) { _syncedUid = null; _syncedAt = 0; }
+    if (heavy) { try { window.applyPermissionGates(u); } catch(e){} }
     var pill = document.getElementById('sbAuthPill');
     var dot = document.getElementById('sbDot');
     var label = document.getElementById('sbAuthLabel');
@@ -13357,8 +13384,8 @@ var pending=all.filter(function(o){ var k=(o.inv.client||'')+'|'+(o.inv.referenc
       if (label) label.textContent = (u.email||'Signed in').split('@')[0];
       if (pill) pill.title = 'Signed in \u2014 syncing';
       var sm = document.getElementById('sbSyncMsg'); if (sm) sm.textContent = 'Pulling shared data\u2026';
-      if (window.sbSyncPullPulse) window.sbSyncPullPulse().then(function(pp){ if(!pp && window.SPARK_SB.whoami() && window.sbSyncPushPulse) window.sbSyncPushPulse(); });
-      sbSyncPullPhotos().then(function(pulled){
+      if (heavy && window.sbSyncPullPulse) window.sbSyncPullPulse().then(function(pp){ if(!pp && window.SPARK_SB.whoami() && window.sbSyncPushPulse) window.sbSyncPushPulse(); });
+      if (heavy) sbSyncPullPhotos().then(function(pulled){
         var sm2 = document.getElementById('sbSyncMsg');
         if (sm2) sm2.textContent = pulled ? 'Shared photos loaded from the cloud.' : 'Connected. Your edits will now sync.';
         // If nothing in cloud yet, seed it from local so other devices get it
