@@ -6350,6 +6350,33 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
   document.addEventListener('hq-install-ready',sync); document.addEventListener('DOMContentLoaded',sync); setTimeout(sync,2000);
   window.hqInstallClick=function(){ if(window.hqInstall&&window.hqInstall()) return; if(isIOS){ alert('To add Spark HQ to your home screen: tap the Share button in Safari, then "Add to Home Screen".'); } else { alert('Use your browser menu and choose "Install Spark HQ" or "Add to Home screen".'); } };
 })();</script>
+<style id="hqSearchCss">/* HQ_SEARCH_v1 */
+.hq-search-btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;color:var(--muted);font:500 12.5px 'Jost',sans-serif;padding:7px 11px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:border-color .15s,box-shadow .15s}
+.hq-search-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hq-search-btn kbd{font:600 10px 'Jost',sans-serif;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--muted);background:var(--paper)}
+.hq-search-btn:hover{border-color:#FFC800;box-shadow:0 0 0 3px rgba(255,200,0,.18);color:var(--ink)}
+@media (max-width:760px){.hq-search-btn span,.hq-search-btn kbd{display:none}}
+#hqsOver{position:fixed;inset:0;z-index:9600;background:rgba(13,14,26,.5);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:9vh 16px 16px}
+#hqsOver.on{display:flex}
+.hqs{width:min(640px,100%);background:#fff;border-radius:16px;box-shadow:0 40px 90px -30px rgba(0,0,0,.7),0 0 0 1px rgba(255,200,0,.35);overflow:hidden}
+.hqs-in{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.hqs-in svg{width:18px;height:18px;fill:none;stroke:#B8912E;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.hqs-in input{flex:1;border:0;outline:0;font:500 16px 'Jost',sans-serif;color:var(--ink);background:transparent}
+.hqs-in kbd{font:600 10px 'Jost',sans-serif;border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--muted)}
+.hqs-list{max-height:min(56vh,520px);overflow:auto;padding:6px}
+.hqs-g{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 10px 4px}
+.hqs-i{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;width:100%;text-align:left;border:0;background:transparent;border-radius:10px;padding:8px 10px;cursor:pointer;font:inherit}
+.hqs-i.on,.hqs-i:hover{background:#fffbe6;box-shadow:inset 3px 0 0 #FFC800}
+.hqs-ic{grid-row:1/3;width:30px;height:30px;border-radius:50%;background:#f4f2ec;display:grid;place-items:center;color:var(--muted)}
+.hqs-ic svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hqs-ic .av{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--gold);display:grid;place-items:center;font-size:11px;font-weight:700;position:relative;overflow:hidden}
+.hqs-t{font-size:14px;font-weight:600;color:var(--ink)}
+.hqs-m{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hqs-empty{padding:22px 14px;font-size:13px;color:var(--muted);text-align:center}
+.hqs-ft{display:flex;gap:16px;padding:9px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);background:var(--paper)}
+.hqs-ft kbd{font:600 10px 'Jost',sans-serif;border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-right:3px;background:#fff}
+.hqs-ft span:last-child{margin-left:auto}
+</style>
 <style id="favBarCss">/* FAVBAR_v1: Quick Actions ride the top bar like a browser bookmarks bar; the Home tile grid hides while the bar is showing */
 .favbar{display:none;align-items:center;gap:2px;min-width:0;flex:1;overflow:visible;margin-right:12px;position:relative;z-index:60}
 .topbar{position:relative;z-index:50}
@@ -6570,6 +6597,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       </div>
       <nav class="favbar" id="favBar" aria-label="Quick actions"></nav>
       <div class="right">
+        <button type="button" class="hq-search-btn" onclick="hqSearchOpen()" title="Search HQ (⌘K / Ctrl+K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Search</span><kbd>⌘K</kbd></button>
         <button type="button" class="help-pill" id="helpPill" onclick="hqHelpOpen()" aria-haspopup="dialog" title="Who do I ask?"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M4.9 4.9l4.6 4.6M14.5 14.5l4.6 4.6M19.1 4.9l-4.6 4.6M9.5 14.5l-4.6 4.6"/></svg><span>Need help?</span></button>
         <div class="notif-wrap">
           <button class="notif-btn" onclick="toggleNotif(event)" aria-label="Notifications">
@@ -6598,6 +6626,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
                 <div class="um-email" id="umEmail"></div>
               </div>
             </div>
+            <button class="um-action" id="umNotif" onclick="hqPushOpen()">Notifications</button>
             <button class="um-action" id="umInstall" onclick="hqInstallClick()" style="display:none;">Install the HQ app</button>
             <button class="um-action" id="umSignOut" onclick="userSignOut()">Log out</button>
             <button class="um-action um-signin" id="umSignIn" onclick="sbOpenAuth();closeUserMenu();">Sign in</button>
@@ -8387,6 +8416,9 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <button class="admin-subnav-item" data-admin-tab="traffic">
             <span>Where people go</span>
           </button>
+          <button class="admin-subnav-item" data-admin-tab="announcements">
+            <span>Announcements</span>
+          </button>
           <button class="admin-subnav-item" data-admin-tab="circuit-admin">
             <span>Circuit content</span>
           </button>
@@ -8396,6 +8428,42 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         <!-- HQ_ADMIN_TRIM_v1: Content&SOPs / Security / Billing stub buttons removed -->
         <div class="admin-content">
 
+          <!-- ANNOUNCE_v1 -->
+          <div class="admin-pane" data-admin-pane="announcements" style="display:none;">
+            <div class="admin-hero">
+              <div class="eyebrow">Content &middot; Announcements</div>
+              <h2>Announcements. <span style="color:var(--muted-light);">Pinned to the top of Home, with a &ldquo;Got it&rdquo; that records who read it.</span></h2>
+              <div class="dek">Use it for the handbook, open enrollment, policy changes. Turn on &ldquo;Requires acknowledgment&rdquo; to get a read / not-read list, and &ldquo;Send a push&rdquo; to notify everyone who installed the app.</div>
+            </div>
+            <div class="admin-section">
+              <div class="admin-section-head">
+                <h3>Live &amp; past</h3>
+                <div class="actions"><button class="btn-secondary" onclick="anLoad()">Refresh</button><button class="btn-primary" onclick="anEdit(null)">New announcement</button></div>
+              </div>
+              <div id="anStatus" style="font-size:12px;color:var(--muted-light);margin:0 0 10px;">Loading&hellip;</div>
+              <div id="anList" style="display:grid;gap:10px;"></div>
+              <div id="anForm" style="display:none;margin-top:16px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;">
+                <h3 id="anFormTitle" style="margin:0 0 12px;font-size:15px;">New announcement</h3>
+                <input type="hidden" id="an_id" />
+                <div style="display:grid;gap:10px 14px;">
+                  <label style="font-size:12px;color:var(--muted);">Title<input id="an_title" placeholder="Revised Team Member Handbook" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  <label style="font-size:12px;color:var(--muted);">Message<textarea id="an_body" rows="3" placeholder="What changed and what people need to do. Links are clickable." style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;resize:vertical;"></textarea></label>
+                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px 14px;">
+                    <label style="font-size:12px;color:var(--muted);">Link (optional)<input id="an_link" placeholder="https://" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                    <label style="font-size:12px;color:var(--muted);">Link label<input id="an_link_label" placeholder="Open the handbook" style="display:block;width:100%;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;box-sizing:border-box;" /></label>
+                  </div>
+                  <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink);">
+                    <label style="display:flex;align-items:center;gap:7px;"><input type="checkbox" id="an_pinned" checked /> Keep pinned after people confirm</label>
+                    <label style="display:flex;align-items:center;gap:7px;"><input type="checkbox" id="an_ack" checked /> Requires acknowledgment</label>
+                    <label style="display:flex;align-items:center;gap:7px;"><input type="checkbox" id="an_notify" /> Send a push notification</label>
+                  </div>
+                  <label style="font-size:12px;color:var(--muted);">Expires (optional)<input id="an_ends" type="date" style="display:block;margin-top:4px;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;" /></label>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:14px;align-items:center;"><button class="btn-primary" onclick="anSave()">Publish</button><button class="btn-secondary" onclick="document.getElementById('anForm').style.display='none'">Cancel</button><span id="anFormMsg" style="font-size:12px;color:var(--muted-light);"></span></div>
+              </div>
+              <div id="anAcks" style="display:none;margin-top:16px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:16px 18px;"></div>
+            </div>
+          </div>
           <!-- TRACK_v1 -->
           <div class="admin-pane" data-admin-pane="traffic" style="display:none;">
             <div class="admin-hero">
@@ -9839,7 +9907,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   (function(){
     var CLIENT_ID = window.HQ_GRAPH_CLIENT_ID || '';            // set in <head>: window.HQ_GRAPH_CLIENT_ID = '...'
     var TENANT = 'e806542a-6df6-46ee-84c7-2c03e625e391';
-    var SCOPES = ['User.Read', 'Mail.Read', 'Chat.Read'];
+    var SCOPES = ['User.Read', 'Mail.Read', 'Chat.Read', 'Files.Read']; /* RECENTS_v1 adds Files.Read for OneDrive recents */
     var msal = null, account = null, state = 'idle', data = null, timer = null, email = '';
     var list = document.getElementById('notifList'), badge = document.getElementById('notifBadge');
     var head = document.querySelector('.notif-head .ttl'), clearBtn = document.querySelector('.notif-head .clear');
@@ -9906,6 +9974,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         return m.loginPopup({ scopes: SCOPES, loginHint: email || undefined, prompt: accts.length ? undefined : 'select_account' }).then(function(r){ account = r.account; return r.accessToken; });
       });
     }
+    /* RECENTS_v1: let the Home page borrow a Graph token for the signed-in person (silent only; the bell handles the one-time consent) */
+    window.hqGraphToken = function(){ if (!CLIENT_ID || !email) return Promise.reject(new Error('not configured')); return ensureMsal().then(function(){ return token(false); }); };
     function refresh(interactive){
       if (!CLIENT_ID || !email) { render(); return; }
       state = 'loading'; render();
@@ -10023,6 +10093,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     if (tab === 'help-routes') { try { window.hrLoad(); } catch(e){} }
     if (tab === 'traffic') { try { window.tfLoad(); } catch(e){} }
     if (tab === 'overview') { try { window.ovLoad(); } catch(e){} }
+    if (tab === 'announcements') { try { window.anLoad(); } catch(e){} }
   };
   /* TRACK_v1: collect tab changes + tile clicks, batch to the worker; admin pane "Where people go" */
   (function(){
@@ -10101,7 +10172,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     /* ---- sub-nav regroup ---- */
     var btn = {}; sub.querySelectorAll('.admin-subnav-item').forEach(function(b){ btn[b.dataset.adminTab] = b; });
     var ov = document.createElement('button'); ov.className = 'admin-subnav-item'; ov.dataset.adminTab = 'overview'; ov.innerHTML = '<span>Overview</span>'; ov.addEventListener('click', function(){ switchAdminTab('overview'); }); btn.overview = ov;
-    var GROUPS = [[null, ['overview']], ['People & access', ['people-admin', 'signin-log', 'help-routes']], ['Content', ['training-admin', 'spark-standard-admin', 'career-paths', 'circuit-admin', 'home-branding']], ['Insights', ['traffic', 'team-progress']], ['Tools', ['tools-admin']]];
+    var GROUPS = [[null, ['overview']], ['People & access', ['people-admin', 'signin-log', 'help-routes']], ['Content', ['announcements', 'training-admin', 'spark-standard-admin', 'career-paths', 'circuit-admin', 'home-branding']], ['Insights', ['traffic', 'team-progress']], ['Tools', ['tools-admin']]];
     var RETIRED = ['agents', 'connections', 'knowledge', 'role'];
     var placed = {};
     sub.innerHTML = '';
@@ -10150,7 +10221,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         document.getElementById('ovAudit').innerHTML = audit.length ? audit.map(function(a){ var who = (a.actor || '').split('@')[0]; var act = String(a.action || '').replace(/[._]/g, ' '); var tgt = byId[a.target] || a.target || ''; return '<div class="ov-row"><span class="t">' + esc(fmt(a.ts || a.created_at)) + '</span><span><b>' + esc(who) + '</b> ' + esc(act) + (tgt ? ' &middot; ' + esc(tgt) : '') + '</span></div>'; }).join('') : 'No admin changes recorded yet.';
         var gapList = function(label, arr){ return arr.length ? '<div class="ov-row"><span class="t">' + label + '</span><span>' + arr.slice(0, 6).map(function(p){ return esc(p.name); }).join(', ') + (arr.length > 6 ? ' and ' + (arr.length - 6) + ' more' : '') + '</span></div>' : ''; };
         document.getElementById('ovGaps').innerHTML = (gapList('No manager', noMgr) + gapList('No company', noCo) + gapList('No title', noTitle) + gapList('No team', noDept)) || 'Every profile has a manager, company, title and team.';
-        document.getElementById('ovLinks').innerHTML = [['people-admin', 'People & roles'], ['help-routes', 'Edit Who to ask'], ['traffic', 'Where people go'], ['training-admin', 'Training'], ['spark-standard-admin', 'Spark Standard']].map(function(l){ return '<button type="button" data-go="' + l[0] + '">' + l[1] + '</button>'; }).join('') + '<button type="button" onclick="window.dirShow&&window.dirShow()">Open the Directory</button>';
+        document.getElementById('ovLinks').innerHTML = [['announcements', 'Post an announcement'], ['people-admin', 'People & roles'], ['help-routes', 'Edit Who to ask'], ['traffic', 'Where people go'], ['training-admin', 'Training'], ['spark-standard-admin', 'Spark Standard']].map(function(l){ return '<button type="button" data-go="' + l[0] + '">' + l[1] + '</button>'; }).join('') + '<button type="button" onclick="window.dirShow&&window.dirShow()">Open the Directory</button>';
       });
     };
     pane.addEventListener('click', function(e){ var g = e.target.closest('[data-go]'); if (g && g.dataset.go) switchAdminTab(g.dataset.go); });
@@ -10202,6 +10273,132 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
       f.addEventListener('load', function(){ built = false; tries = 0; setTimeout(build, 500); });
     }
     setTimeout(build, 1500);
+  })();
+  /* ANNOUNCE_v1: Admin → Announcements */
+  var AN_ROWS = [];
+  var anEsc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var anW = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+  var anFetch = function(path, opts){ return Promise.resolve(window.SPARK_SB.getToken()).then(function(t){ opts = opts || {}; opts.headers = Object.assign({ 'Authorization': 'Bearer ' + t }, opts.headers || {}); return fetch(anW + path, opts).then(function(r){ return r.json(); }); }); };
+  window.anLoad = function(){
+    var st = document.getElementById('anStatus'); st.textContent = 'Loading\u2026';
+    anFetch('/announcements').then(function(j){ if (!j.ok) throw new Error(j.error || 'Could not load'); AN_ROWS = j.rows || []; anRender(); }).catch(function(e){ st.textContent = 'Could not load: ' + (e.message || e); });
+  };
+  window.anRender = function(){
+    var st = document.getElementById('anStatus'); st.textContent = AN_ROWS.length ? AN_ROWS.length + ' announcement' + (AN_ROWS.length === 1 ? '' : 's') : 'Nothing published yet.';
+    document.getElementById('anList').innerHTML = AN_ROWS.map(function(r, i){ var d = new Date(r.created_at);
+      return '<div style="border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;">' +
+        '<div><div style="font-weight:600;color:var(--ink);font-size:14px;">' + anEsc(r.title) + (r.pinned ? ' <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#7a5d00;background:#fff6cc;padding:2px 7px;border-radius:999px;">PINNED</span>' : '') + (r.requires_ack ? ' <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#1d4ed8;background:#eff6ff;padding:2px 7px;border-radius:999px;">ACK</span>' : '') + '</div>' +
+        '<div style="font-size:12.5px;color:var(--muted);margin-top:3px;white-space:pre-wrap;">' + anEsc(r.body || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted-light);margin-top:6px;">' + (isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + (r.created_by ? ' \u00b7 ' + anEsc(r.created_by.split('@')[0]) : '') + (r.ends_at ? ' \u00b7 expires ' + anEsc(String(r.ends_at).slice(0, 10)) : '') + '</div></div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">' + (r.requires_ack ? '<button class="btn-secondary" onclick="anAcks(' + r.id + ')">Who read it</button>' : '') + '<button class="btn-secondary" onclick="anEdit(' + i + ')">Edit</button><button class="btn-secondary" style="color:#b42318;" onclick="anDelete(' + i + ')">Remove</button></div></div>';
+    }).join('');
+  };
+  window.anEdit = function(i){
+    var r = i == null ? { pinned: true, requires_ack: true } : AN_ROWS[i];
+    var v = function(id, val){ var el = document.getElementById(id); if (el) { if (el.type === 'checkbox') el.checked = !!val; else el.value = val == null ? '' : val; } };
+    v('an_id', r.id || ''); v('an_title', r.title); v('an_body', r.body); v('an_link', r.link_url); v('an_link_label', r.link_label); v('an_pinned', r.pinned); v('an_ack', r.requires_ack); v('an_notify', false); v('an_ends', r.ends_at ? String(r.ends_at).slice(0, 10) : '');
+    document.getElementById('anFormTitle').textContent = i == null ? 'New announcement' : 'Edit \u201c' + (r.title || '') + '\u201d';
+    document.getElementById('anFormMsg').textContent = i == null ? '' : 'Editing does not re-send a push.';
+    var f = document.getElementById('anForm'); f.style.display = ''; f.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); document.getElementById('an_title').focus();
+  };
+  window.anSave = function(){
+    var g = function(id){ var el = document.getElementById(id); return el ? (el.type === 'checkbox' ? el.checked : el.value.trim()) : ''; };
+    var msg = document.getElementById('anFormMsg');
+    var body = { id: g('an_id') || undefined, title: g('an_title'), body: g('an_body'), link_url: g('an_link'), link_label: g('an_link_label'), pinned: g('an_pinned'), requires_ack: g('an_ack'), notify: g('an_notify'), ends_at: g('an_ends') ? new Date(g('an_ends') + 'T23:59:59').toISOString() : null };
+    if (!body.title) { msg.textContent = 'Give it a title.'; return; }
+    msg.textContent = 'Publishing\u2026';
+    anFetch('/announcements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function(j){ if (!j.ok) throw new Error(j.error || 'Save failed'); msg.textContent = 'Published' + (j.pushed ? ' \u00b7 push sent to ' + j.pushed + ' device' + (j.pushed === 1 ? '' : 's') : '') + '.'; document.getElementById('anForm').style.display = 'none'; window.anLoad(); }).catch(function(e){ msg.textContent = 'Could not save: ' + (e.message || e); });
+  };
+  window.anDelete = function(i){ var r = AN_ROWS[i]; if (!r || !confirm('Remove \u201c' + r.title + '\u201d? Acknowledgments go with it.')) return; anFetch('/announcements?id=' + r.id, { method: 'DELETE' }).then(function(){ window.anLoad(); }); };
+  window.anAcks = function(id){
+    var box = document.getElementById('anAcks'); box.style.display = ''; box.innerHTML = '<div style="font-size:12px;color:var(--muted);">Loading\u2026</div>'; box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    anFetch('/announcements/acks?id=' + id).then(function(j){ if (!j.ok) throw new Error(j.error || 'Could not load');
+      var r = AN_ROWS.filter(function(x){ return x.id === id; })[0] || {};
+      var row = function(p, ts){ return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line-light);font-size:12.5px;"><span><b style="font-weight:600;color:var(--ink);">' + anEsc(p.name) + '</b> <span style="color:var(--muted);">' + anEsc(p.title || '') + '</span></span>' + (ts ? '<span style="color:var(--muted);white-space:nowrap;">' + anEsc(new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' \u00b7 ' + new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })) + '</span>' : '') + '</div>'; };
+      var total = (j.read || []).length + (j.unread || []).length;
+      box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;"><h3 style="margin:0;font-size:15px;">' + anEsc(r.title || 'Acknowledgments') + '</h3><button class="btn-secondary" onclick="document.getElementById(\'anAcks\').style.display=\'none\'">Close</button></div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;"><b style="color:#15803d;">' + (j.read || []).length + ' read</b> \u00b7 <b style="color:#b42318;">' + (j.unread || []).length + ' not yet</b> of ' + total + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;"><div><h4 style="margin:0 0 6px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b42318;">Not yet</h4>' + ((j.unread || []).map(function(p){ return row(p, null); }).join('') || '<div style="font-size:12.5px;color:var(--muted);">Everyone has confirmed.</div>') + '</div>' +
+        '<div><h4 style="margin:0 0 6px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#15803d;">Read</h4>' + ((j.read || []).map(function(p){ return row(p, p.ts); }).join('') || '<div style="font-size:12.5px;color:var(--muted);">Nobody yet.</div>') + '</div></div>';
+    }).catch(function(e){ box.innerHTML = '<div style="font-size:12px;color:#b42318;">' + anEsc(e.message || e) + '</div>'; });
+  };
+
+  /* PUSH_v1: account menu → Notifications (enable on this device, three preferences) */
+  (function(){
+    var W = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+    var PREF_KEY = 'hq_push_prefs';
+    function b64ToU8(s){ s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var bin = atob(s); var out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+    function prefs(){ try { return Object.assign({ whosOut: true, shoutouts: true, announcements: true }, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) { return { whosOut: true, shoutouts: true, announcements: true }; } }
+    function tok(){ return Promise.resolve(window.SPARK_SB && window.SPARK_SB.getToken ? window.SPARK_SB.getToken() : ''); }
+    function reg(){ return navigator.serviceWorker ? navigator.serviceWorker.ready : Promise.reject(new Error('No service worker')); }
+    function current(){ return reg().then(function(r){ return r.pushManager.getSubscription(); }).catch(function(){ return null; }); }
+    function sendSub(sub, p){ return tok().then(function(t){ return fetch(W + '/push/subscribe', { method: 'POST', headers: { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ sub: sub.toJSON ? sub.toJSON() : sub, prefs: p }) }).then(function(r){ return r.json(); }); }); }
+    window.hqPushEnable = function(){
+      var st = document.getElementById('pnStatus'); st.textContent = 'Asking your browser\u2026';
+      if (!('Notification' in window) || !('PushManager' in window)) { st.textContent = 'This browser does not support notifications' + (/iPhone|iPad/.test(navigator.userAgent) ? ' until HQ is added to your home screen (Share \u2192 Add to Home Screen).' : '.'); return; }
+      fetch(W + '/push/key').then(function(r){ return r.json(); }).then(function(k){ if (!k.ok || !k.key) throw new Error('Push keys are not set on the worker yet.'); return Notification.requestPermission().then(function(perm){ if (perm !== 'granted') throw new Error('Notifications were blocked for this site.'); return reg(); }).then(function(r){ return r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(k.key) }); }); })
+        .then(function(sub){ return sendSub(sub, prefs()); }).then(function(j){ if (!j.ok) throw new Error(j.error || 'Could not save'); st.textContent = 'On for this device.'; hqPushRender(); return tok().then(function(t){ return fetch(W + '/push/test', { method: 'POST', headers: { 'Authorization': 'Bearer ' + t } }); }); })
+        .catch(function(e){ st.textContent = String(e.message || e); });
+    };
+    window.hqPushDisable = function(){ current().then(function(sub){ if (!sub) return; var ep = sub.endpoint; return sub.unsubscribe().then(function(){ return tok(); }).then(function(t){ return fetch(W + '/push/unsubscribe', { method: 'POST', headers: { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: ep }) }); }); }).then(function(){ document.getElementById('pnStatus').textContent = 'Off on this device.'; hqPushRender(); }); };
+    window.hqPushPref = function(k, on){ var p = prefs(); p[k] = !!on; try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) {} current().then(function(sub){ if (sub) sendSub(sub, p); }); };
+    window.hqPushRender = function(){
+      var box = document.getElementById('pnBox'); if (!box) return;
+      current().then(function(sub){ var on = !!sub, p = prefs();
+        var row = function(k, label, sub2){ return '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line-light);font-size:13px;cursor:pointer;"><span><span style="display:block;color:var(--ink);">' + label + '</span><span style="display:block;font-size:11px;color:var(--muted);">' + sub2 + '</span></span><input type="checkbox" ' + (p[k] ? 'checked' : '') + ' onchange="hqPushPref(\'' + k + '\', this.checked)" style="accent-color:#FFC800;width:18px;height:18px;"></label>'; };
+        box.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;"><div style="font-weight:600;font-size:14px;color:var(--ink);">Notifications</div>' + (on ? '<button class="btn-secondary" onclick="hqPushDisable()">Turn off here</button>' : '<button class="btn-primary" onclick="hqPushEnable()">Turn on for this device</button>') + '</div><div id="pnStatus" style="font-size:12px;color:var(--muted);margin-bottom:6px;">' + (on ? 'On for this device.' : 'Off. Turn on to get who\u2019s out each morning, shout-outs about you, and announcements.') + '</div>' + row('whosOut', 'Who\u2019s out today', 'Weekday mornings, only when someone is out') + row('shoutouts', 'Shout-outs about me', 'When a teammate recognizes you in The Pulse') + row('announcements', 'Announcements', 'When admins publish something that matters');
+      });
+    };
+    window.hqPushOpen = function(){ var o = document.getElementById('pnOver'); if (!o) { o = document.createElement('div'); o.id = 'pnOver'; o.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(13,14,26,.45);display:grid;place-items:center;padding:16px;'; o.innerHTML = '<div id="pnBox" style="width:min(420px,100%);background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 30px 80px -30px rgba(0,0,0,.6);"></div>'; o.addEventListener('click', function(e){ if (e.target === o) o.remove(); }); document.body.appendChild(o); } hqPushRender(); try { closeUserMenu(); } catch (e) {} };
+  })();
+
+  /* HQ_SEARCH_v1: ⌘K command palette over people, help topics, quick actions, tabs, courses, handbook, announcements */
+  (function(){
+    var W = 'https://spark-hq-worker.sparkcompanies.workers.dev', IDX = null, building = null, sel = 0, items = [];
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+    var ini = function(n){ var p = String(n || '').trim().split(/\s+/); return ((p[0] || '')[0] || '').toUpperCase() + ((p.length > 1 ? p[p.length - 1] : '')[0] || '').toUpperCase(); };
+    function tok(){ return Promise.resolve(window.SPARK_SB && window.SPARK_SB.getToken ? window.SPARK_SB.getToken() : ''); }
+    function get(p){ return tok().then(function(t){ return fetch(W + p, { headers: { 'Authorization': 'Bearer ' + t } }).then(function(r){ return r.json(); }); }).catch(function(){ return {}; }); }
+    function build(){
+      if (building) return building;
+      building = Promise.all([get('/directory'), get('/help-routes'), get('/announcements')]).then(function(res){
+        var out = [];
+        document.querySelectorAll('.nav-item[data-tab]').forEach(function(b){ if (b.classList.contains('hide-for-role') || getComputedStyle(b).display === 'none') return; var c = b.cloneNode(true); c.querySelectorAll('.ico,.nav-live-dot,.badge-mini').forEach(function(n){ n.remove(); }); var t = (c.textContent || '').replace(/\s+/g, ' ').trim(); if (t) out.push({ g: 'Go to', t: t, m: 'Tab', k: t.toLowerCase(), run: function(){ b.click(); } }); });
+        document.querySelectorAll('#favBar > .fb-item').forEach(function(b){ var t = b.dataset.label; out.push({ g: 'Quick actions', t: t, m: 'Quick action', k: t.toLowerCase(), run: function(){ b.click(); } }); });
+        (res[1].rows || []).forEach(function(r){ var o = r.owner || {}; out.push({ g: 'Who do I ask?', t: r.topic, m: (o.name ? 'Ask ' + o.name : '') + (r.blurb ? ' \u00b7 ' + r.blurb : ''), k: (r.topic + ' ' + (r.blurb || '') + ' ' + (o.name || '') + ' ' + (r.note || '')).toLowerCase(), run: function(){ if (o.email && o.kind !== 'mailbox') window.open('https://teams.microsoft.com/l/chat/0/0?users=' + encodeURIComponent(o.email), '_blank', 'noopener'); else if (o.email) location.href = 'mailto:' + o.email; else hqHelpOpen(); } }); });
+        (res[0].people || []).forEach(function(p){ out.push({ g: 'People', t: p.name, m: [p.title, p.department, p.company].filter(Boolean).join(' \u00b7 '), k: (p.name + ' ' + p.email + ' ' + p.title + ' ' + p.department + ' ' + (p.company || '')).toLowerCase(), pe: p.email, run: function(){ if (window.dirShow) { window.dirShow(); setTimeout(function(){ var f = document.getElementById('dirFrame'); try { f.contentWindow.postMessage({ type: 'spark-dir-find', q: p.name, open: true }, '*'); } catch (e) {} }, 400); } } }); });
+        [['The Spark Standard', 'Course'], ['Career Paths', 'Course'], ['Sales Bootcamp', 'Course'], ['HR / Payroll', 'Course']].forEach(function(c){ out.push({ g: 'Spark Academy', t: c[0], m: c[1], k: c[0].toLowerCase() + ' training academy course', run: function(){ var b = document.querySelector('.nav-item[data-tab="training"]'); if (b) b.click(); } }); });
+        out.push({ g: 'Resources', t: 'Team Member Handbook', m: 'PDF in OneDrive', k: 'handbook policy pto benefits rules team member', run: function(){ window.open('https://sparktalent-my.sharepoint.com/:b:/g/personal/aspegel_sparkcompanies_com/IQBFzTVAe_HCSZwc8XUmxfdWATJCMiV6wfmUYtjOfT-8nSo?e=0QN11g', '_blank', 'noopener'); } });
+        (res[2].rows || []).forEach(function(a){ out.push({ g: 'Announcements', t: a.title, m: (a.body || '').slice(0, 80), k: (a.title + ' ' + (a.body || '')).toLowerCase(), run: function(){ var b = document.querySelector('.nav-item[data-tab="home"]'); if (b) b.click(); } }); });
+        document.querySelectorAll('.admin-subnav-item[data-admin-tab]').forEach(function(b){ if (b.classList.contains('hide-for-role') || b.classList.contains('asn-hide')) return; var t = (b.textContent || '').replace(/\s+/g, ' ').replace(/\d+$/, '').trim(); if (t) out.push({ g: 'Admin', t: t, m: 'Admin \u00b7 ' + t, k: ('admin ' + t).toLowerCase(), run: function(){ var a = document.querySelector('.nav-item[data-tab="admin"]'); if (a) a.click(); setTimeout(function(){ switchAdminTab(b.dataset.adminTab); }, 50); } }); });
+        IDX = out; return out;
+      });
+      return building;
+    }
+    function score(it, q){ var k = it.k, t = it.t.toLowerCase(); if (t === q) return 100; if (t.indexOf(q) === 0) return 80; if (t.indexOf(q) >= 0) return 60; var words = q.split(/\s+/).filter(Boolean); if (words.every(function(w){ return k.indexOf(w) >= 0; })) return 40; return 0; }
+    function render(q){
+      var list = document.getElementById('hqsList'); q = q.trim().toLowerCase();
+      if (!IDX) { list.innerHTML = '<div class="hqs-empty">Loading\u2026</div>'; return; }
+      var res = q ? IDX.map(function(it){ return { it: it, s: score(it, q) }; }).filter(function(x){ return x.s > 0; }).sort(function(a, b){ return b.s - a.s || a.it.t.localeCompare(b.it.t); }).slice(0, 14).map(function(x){ return x.it; }) : IDX.filter(function(it){ return it.g === 'Quick actions' || it.g === 'Go to'; }).slice(0, 12);
+      items = res; sel = 0;
+      if (!res.length) { list.innerHTML = '<div class="hqs-empty">Nothing for \u201c' + esc(q) + '\u201d. Try a first name, a tool, or a need like \u201cpassword\u201d.</div>'; return; }
+      var last = null; list.innerHTML = res.map(function(it, i){ var h = ''; if (it.g !== last) { h += '<div class="hqs-g">' + esc(it.g) + '</div>'; last = it.g; } h += '<button type="button" class="hqs-i' + (i === 0 ? ' on' : '') + '" data-i="' + i + '"><span class="hqs-ic">' + (it.pe ? '<span class="av" data-pe="' + esc(it.pe) + '">' + esc(ini(it.t)) + '</span>' : '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>') + '</span><span class="hqs-t">' + esc(it.t) + '</span><span class="hqs-m">' + esc(it.m || '') + '</span></button>'; return h; }).join('');
+      if (window.hqPhoto) list.querySelectorAll('.av[data-pe]').forEach(function(a){ window.hqPhoto(a.getAttribute('data-pe')).then(function(u){ if (u && !a.querySelector('img')) { var im = new Image(); im.alt = ''; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%'; im.src = u; a.appendChild(im); } }); });
+    }
+    function move(d){ if (!items.length) return; sel = (sel + d + items.length) % items.length; var all = document.querySelectorAll('#hqsList .hqs-i'); all.forEach(function(b, i){ b.classList.toggle('on', i === sel); }); var b = all[sel]; if (b) b.scrollIntoView({ block: 'nearest' }); }
+    function go(i){ var it = items[i]; if (!it) return; close(); try { it.run(); } catch (e) {} try { window.hqTrack && window.hqTrack('action', 'search:' + it.g.toLowerCase().replace(/[^a-z]+/g, '-'), 'Search \u2192 ' + it.t); } catch (e) {} }
+    function ensure(){ if (document.getElementById('hqsOver')) return; var o = document.createElement('div'); o.id = 'hqsOver'; o.innerHTML = '<div class="hqs"><div class="hqs-in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="hqsQ" type="text" placeholder="Search people, tools, help topics, courses\u2026" autocomplete="off" spellcheck="false"><kbd>Esc</kbd></div><div id="hqsList" class="hqs-list"></div><div class="hqs-ft"><span><kbd>\u2191</kbd><kbd>\u2193</kbd> move</span><span><kbd>Enter</kbd> open</span><span>Ask Jarvis is still there under the Jarvis tab</span></div></div>';
+      o.addEventListener('click', function(e){ if (e.target === o) close(); }); document.body.appendChild(o);
+      var q = document.getElementById('hqsQ'); q.addEventListener('input', function(){ render(q.value); });
+      q.addEventListener('keydown', function(e){ if (e.key === 'ArrowDown') { e.preventDefault(); move(1); } else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); } else if (e.key === 'Enter') { e.preventDefault(); go(sel); } else if (e.key === 'Escape') { close(); } });
+      document.getElementById('hqsList').addEventListener('click', function(e){ var b = e.target.closest('.hqs-i'); if (b) go(parseInt(b.dataset.i, 10)); });
+    }
+    function open(){ ensure(); var o = document.getElementById('hqsOver'); o.classList.add('on'); var q = document.getElementById('hqsQ'); q.value = ''; q.focus(); render(''); build().then(function(){ render(q.value); }); }
+    function close(){ var o = document.getElementById('hqsOver'); if (o) o.classList.remove('on'); }
+    window.hqSearchOpen = open; window.hqSearchClose = close;
+    document.addEventListener('keydown', function(e){ if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); var o = document.getElementById('hqsOver'); if (o && o.classList.contains('on')) close(); else open(); } });
+    /* refresh the index when the directory or help list may have changed */
+    setInterval(function(){ building = null; }, 10 * 60 * 1000);
   })();
   /* HELP_ROUTES_v1: Admin → Who to ask */
   var HR_ROWS = [];
@@ -14032,7 +14229,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       label: 'SUPER ADMIN', icon: '★', builtin: true,
       desc: 'Full access. Can manage agents, connections, users, billing. Sees Admin tab.',
       who: 'Allie · Aaron · Mary · Priyanka · Erica · Bedros',
-      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */, 'traffic' /* TRACK_v1 */, 'overview' /* ADMIN_LAYOUT_v1 */],
+      adminTabs: ['agents', 'connections', 'analytics', 'knowledge', 'role', 'people-admin', 'content', 'security', 'billing', 'training-admin', 'team-progress', /* ADMIN_PROGRESS_PERMS_v1 */ 'career-paths', 'spark-standard-admin', 'tools-admin', 'circuit-admin' /* CIRCUIT_ADMIN_v1 */, 'signin-log' /* ADMIN_SIGNIN_PANE_v1 */, 'help-routes' /* HELP_ROUTES_v1 */, 'traffic' /* TRACK_v1 */, 'overview' /* ADMIN_LAYOUT_v1 */, 'announcements' /* ANNOUNCE_v1 */],
       navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','leadership','admin']
     },
     manager: {
@@ -14167,7 +14364,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     ['team-progress','Team progress'], ['circuit-admin','Circuit content'],
     ['agents','Agents'], ['connections','Connections'], ['analytics','Usage analytics'],
     ['knowledge','Agent knowledge'], ['role','Your role'],
-    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['traffic','Where people go'], ['overview','Overview'], ['content','Content'], ['security','Security & access'],
+    ['people-admin','People & roles'], ['signin-log','Sign-in log'], ['help-routes','Who to ask'], ['traffic','Where people go'], ['overview','Overview'], ['announcements','Announcements'], ['content','Content'], ['security','Security & access'],
     ['billing','Billing & plan'], ['training-admin','Training admin'], ['career-paths','Career paths admin'],
     ['spark-standard-admin','Spark Standard admin'], ['tools-admin','Tools admin']
   ];
