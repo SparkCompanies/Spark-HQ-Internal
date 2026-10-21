@@ -1266,10 +1266,15 @@ async function greetingsRun(env, opts) {
       results.push({ to, name: p.name, kind: p.kind, years: p.years, on: p.on, subject: msg.subject, sent: ok, why: ok ? "" : (await r.text()).slice(0, 180) });
       if (ok && !opts.sendTo) {
         try { await sbService(env, "POST", "spark_hq_greetings", { person_id: p.id, kind: p.kind, year: +yearOf(p), name: p.name, email: p.email, years: p.years, sent_on: p.on }); } catch (e) {}
-        try {
-          const body = p.kind === "birthday" ? ("Happy birthday, " + p.first + "!") : (p.first + " hits " + p.years + " year" + (p.years === 1 ? "" : "s") + " at Spark today. #JWU");
-          await sbService(env, "POST", "spark_hq_pulse_posts", { kind: "milestone", who: p.name, value: p.kind === "birthday" ? "Birthday" : (p.years + " year" + (p.years === 1 ? "" : "s")), body, posted_by: from, ts: new Date().toISOString() });
-        } catch (e) {}
+        // Anniversaries go up on The Pulse so the team can pile on; birthdays stay a private
+        // note from Allie, because not everyone wants theirs announced to 68 people.
+        if (p.kind === "anniversary") {
+          try {
+            const yrs = p.years === 1 ? "one year" : p.years + " years";
+            const body = p.first + " hits " + yrs + " at Spark today. Drop a note if you've worked together. #JWU";
+            await sbService(env, "POST", "spark_hq_pulse_posts", { kind: "milestone", who: p.name, value: p.years + " year" + (p.years === 1 ? "" : "s"), body, posted_by: from, ts: new Date().toISOString() });
+          } catch (e) {}
+        }
       }
     } catch (e) { results.push({ to, name: p.name, kind: p.kind, sent: false, why: String(e && e.message).slice(0, 120) }); }
   }
