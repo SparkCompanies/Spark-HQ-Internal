@@ -229,6 +229,17 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 .scard .sb{padding:9px 11px 11px;display:flex;gap:6px;align-items:center}
 .scard .sb .btn{padding:5px 10px;font-size:11px}
 
+/* ---------- video backdrops ---------- */
+.bdgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:15px}
+.bdcard{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;
+  box-shadow:0 1px 2px rgba(20,18,10,.05),0 12px 26px -20px rgba(20,18,10,.4);transition:.15s}
+.bdcard:hover{transform:translateY(-2px);box-shadow:0 0 26px -2px rgba(255,213,19,.45)}
+.bdcard canvas{display:block;width:100%;height:auto;border-bottom:1px solid var(--line);background:#111}
+.bdcard .bb{padding:10px 12px 12px;display:flex;gap:8px;align-items:center}
+.bdcard .bn{font-size:13px;font-weight:600;color:var(--ink);margin-right:auto}
+.bdcard .bn small{display:block;font-weight:400;font-size:11px;color:var(--muted-light);margin-top:1px}
+.bdcard .bb .btn{padding:5px 11px;font-size:11px}
+
 
 /* ---------- preset gallery ---------- */
 .pmpre{margin:0 0 18px}
@@ -267,7 +278,7 @@ section{scroll-margin-top:18px;margin-bottom:54px}
     <p class="lede">Every logo, color and rule in one place, so nothing has to be rebuilt from memory or pulled off a website. Grab what you need and go.</p>
     <nav class="bjump">
       <a href="#logos">Logos</a><a href="#color">Color</a><a href="#type">Typography</a>
-      <a href="#posts">Make a post</a><a href="#social">Ready-made</a><a href="#templates">Templates</a><a href="#rules">The Standard</a>
+      <a href="#posts">Make a post</a><a href="#social">Ready-made</a><a href="#backdrops">Backdrops</a><a href="#templates">Templates</a><a href="#rules">The Standard</a>
     </nav>
   </div>
   <div class="bstrip"><div class="track" id="bTrack"></div></div>
@@ -444,6 +455,17 @@ section{scroll-margin-top:18px;margin-bottom:54px}
     <div class="tsw" id="ssw"></div>
     <div class="sgrid" id="sgrid"></div>
     <p class="note"><b>Before you post.</b> These carry the scripture reference from the handbook, the same as the printed copy. If a card is going somewhere client-facing rather than internal, use the post maker above instead and write your own line.</p>
+  </section>
+
+  <section id="backdrops">
+    <div class="shead">
+      <p class="k">VIDEO</p>
+      <h2>Backdrops for Teams and Zoom</h2>
+      <p>Five looks per brand, built the way a backdrop actually has to work &mdash; the middle stays quiet so your face is not competing with a logo, and the branding sits out at the edges where the frame crops least.</p>
+    </div>
+    <div class="tsw" id="bdsw"></div>
+    <div class="bdgrid" id="bdgrid"></div>
+    <p class="note"><b>Where it goes.</b> Teams: <i>More &rarr; Background effects &rarr; Add new</i>. Zoom: <i>Settings &rarr; Background &amp; effects &rarr; +</i>. They download at 1920&times;1080, which is what both apps want. Your own preview looks mirrored to you &mdash; everyone else sees it the right way round.</p>
   </section>
 
   <section id="templates">

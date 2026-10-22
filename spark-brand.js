@@ -231,6 +231,191 @@
     setTimeout(function () { paintSocial(sBrand.key); }, 1100);
   }
 
+
+  /* ---------------- video backdrops ---------------- */
+  /* Rules a backdrop has to obey, which is most of why these look the way they do:
+     the middle third stays quiet because a head sits there, contrast stays low so video
+     compression does not boil it, and nothing fine-grained survives a 720p call anyway. */
+  var BACKDROPS = [
+    { id:"studio",  name:"Studio",      note:"Dark, one light source" },
+    { id:"soft",    name:"Soft light",  note:"Cream, for bright rooms" },
+    { id:"planes",  name:"Planes",      note:"Angled, with depth" },
+    { id:"bokeh",   name:"Defocused",   note:"Reads like a real room" },
+    { id:"cool",    name:"Slate",       note:"Off the gold entirely" }
+  ];
+
+  function rgbOf(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return [255, 200, 0];
+    var n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  var rgba = function (hex, a) { var c = rgbOf(hex); return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + a + ")"; };
+
+  /* grain drawn once into a small tile and repeated - doing it per pixel at 1920 is slow
+     and, worse, it crawls when the video codec re-encodes it */
+  var grainTile = null;
+  function grain(x, W, H, alpha) {
+    if (!grainTile) {
+      var t = document.createElement("canvas"); t.width = t.height = 128;
+      var tc = t.getContext("2d"), im = tc.createImageData(128, 128);
+      for (var i = 0; i < im.data.length; i += 4) {
+        var v = 120 + Math.random() * 135;
+        im.data[i] = im.data[i+1] = im.data[i+2] = v; im.data[i+3] = 255;
+      }
+      tc.putImageData(im, 0, 0); grainTile = t;
+    }
+    x.save(); x.globalAlpha = alpha; x.globalCompositeOperation = "overlay";
+    var p = x.createPattern(grainTile, "repeat"); x.fillStyle = p; x.fillRect(0, 0, W, H);
+    x.restore();
+  }
+
+  function drawBackdrop(cv, b, style, side) {
+    var W = cv.width, H = cv.height, S = W / 1920, x = cv.getContext("2d");
+    var acc = b.gold || "#FFC800", dark = b.dark || "#0d0e1a";
+    var right = side !== "left";
+    x.clearRect(0, 0, W, H);
+
+    if (style === "soft") {
+      var g0 = x.createLinearGradient(0, 0, W, H);
+      g0.addColorStop(0, "#fffdf7"); g0.addColorStop(0.55, "#faf9f6"); g0.addColorStop(1, "#efece2");
+      x.fillStyle = g0; x.fillRect(0, 0, W, H);
+      var warm = x.createRadialGradient(W * 0.14, H * 0.1, 0, W * 0.14, H * 0.1, W * 0.75);
+      warm.addColorStop(0, rgba(acc, 0.3)); warm.addColorStop(0.5, rgba(acc, 0.07)); warm.addColorStop(1, rgba(acc, 0));
+      x.fillStyle = warm; x.fillRect(0, 0, W, H);
+      var cool = x.createRadialGradient(W * 0.9, H * 1.05, 0, W * 0.9, H * 1.05, W * 0.6);
+      cool.addColorStop(0, "rgba(120,130,150,.17)"); cool.addColorStop(1, "rgba(120,130,150,0)");
+      x.fillStyle = cool; x.fillRect(0, 0, W, H);
+    } else if (style === "planes") {
+      x.fillStyle = dark; x.fillRect(0, 0, W, H);
+      /* three angled planes, lit from the top left, pushed out of the centre third */
+      var plane = function (cx, w, tilt, a1, a2) {
+        var g = x.createLinearGradient(cx - w / 2, 0, cx + w / 2, H);
+        g.addColorStop(0, rgba(acc, a1)); g.addColorStop(1, rgba(acc, a2));
+        x.save(); x.beginPath();
+        x.moveTo(cx - w / 2 + tilt, -10); x.lineTo(cx + w / 2 + tilt, -10);
+        x.lineTo(cx + w / 2 - tilt, H + 10); x.lineTo(cx - w / 2 - tilt, H + 10);
+        x.closePath(); x.fillStyle = g; x.fill(); x.restore();
+      };
+      plane(W * 0.1,  W * 0.3,  W * 0.07, 0.17, 0.02);
+      plane(W * 0.26, W * 0.12, W * 0.06, 0.09, 0.01);
+      plane(W * 0.9,  W * 0.3,  -W * 0.07, 0.13, 0.02);
+      plane(W * 0.74, W * 0.1,  -W * 0.06, 0.07, 0.01);
+      var lift = x.createRadialGradient(W * 0.2, -H * 0.1, 0, W * 0.2, -H * 0.1, W * 0.8);
+      lift.addColorStop(0, rgba(acc, 0.18)); lift.addColorStop(1, rgba(acc, 0));
+      x.fillStyle = lift; x.fillRect(0, 0, W, H);
+    } else if (style === "bokeh") {
+      var gb = x.createLinearGradient(0, 0, W * 0.4, H);
+      gb.addColorStop(0, "#15161f"); gb.addColorStop(1, dark);
+      x.fillStyle = gb; x.fillRect(0, 0, W, H);
+      /* lights cluster at the edges and fall away from the middle third */
+      var seed = 7;
+      var rnd = function () { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+      for (var i = 0; i < 46; i++) {
+        var edge = rnd() < 0.5 ? rnd() * 0.3 : 0.7 + rnd() * 0.3;
+        var cx = edge * W, cy = rnd() * H, r = (24 + rnd() * 120) * S * 1.6;
+        var a = 0.05 + rnd() * 0.17;
+        var g2 = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g2.addColorStop(0, rgba(acc, a)); g2.addColorStop(0.65, rgba(acc, a * 0.35)); g2.addColorStop(1, rgba(acc, 0));
+        x.fillStyle = g2; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+      }
+    } else if (style === "cool") {
+      /* for the days when another gold backdrop is the last thing anyone wants */
+      var gc = x.createLinearGradient(0, 0, W, H);
+      gc.addColorStop(0, "#232a3b"); gc.addColorStop(0.55, "#161b27"); gc.addColorStop(1, "#0e1119");
+      x.fillStyle = gc; x.fillRect(0, 0, W, H);
+      var steel = x.createRadialGradient(W * 0.82, -H * 0.15, 0, W * 0.82, -H * 0.15, W * 0.8);
+      steel.addColorStop(0, "rgba(150,180,225,.22)"); steel.addColorStop(0.5, "rgba(150,180,225,.05)");
+      steel.addColorStop(1, "rgba(150,180,225,0)");
+      x.fillStyle = steel; x.fillRect(0, 0, W, H);
+      var edgeX = right ? W * 0.9 : W * 0.1;
+      var line = x.createLinearGradient(0, 0, 0, H);
+      line.addColorStop(0, rgba(acc, 0)); line.addColorStop(0.45, rgba(acc, 0.5)); line.addColorStop(1, rgba(acc, 0));
+      x.fillStyle = line; x.fillRect(edgeX, 0, Math.max(2, 4 * S), H);
+    } else {
+      x.fillStyle = dark; x.fillRect(0, 0, W, H);
+      var key = x.createRadialGradient(W * 0.17, -H * 0.12, 0, W * 0.17, -H * 0.12, W * 0.95);
+      key.addColorStop(0, rgba(acc, 0.38)); key.addColorStop(0.42, rgba(acc, 0.09)); key.addColorStop(1, rgba(acc, 0));
+      x.fillStyle = key; x.fillRect(0, 0, W, H);
+      var fill = x.createRadialGradient(W * 0.95, H * 1.1, 0, W * 0.95, H * 1.1, W * 0.6);
+      fill.addColorStop(0, "rgba(90,120,170,.2)"); fill.addColorStop(1, "rgba(90,120,170,0)");
+      x.fillStyle = fill; x.fillRect(0, 0, W, H);
+    }
+
+    /* vignette: pulls the eye off the corners and back to the person */
+    if (style !== "soft") {
+      var v = x.createRadialGradient(W / 2, H * 0.46, H * 0.3, W / 2, H * 0.5, W * 0.78);
+      v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.5)");
+      x.fillStyle = v; x.fillRect(0, 0, W, H);
+    }
+    grain(x, W, H, style === "soft" ? 0.05 : 0.07);
+
+    /* accent rule along the base, thin enough to survive compression */
+    x.fillStyle = acc; x.fillRect(0, H - Math.round(7 * S), W, Math.round(7 * S));
+
+    var pad = Math.round(78 * S);
+    return sLoad(style === "soft" ? (b.svg || b.png) : (b.rev || b.svg || b.png)).then(function (im) {
+      if (!im) return;
+      var boxH = Math.round(74 * S), boxW = boxH * (im.naturalWidth / im.naturalHeight);
+      var lx = right ? W - pad - boxW : pad;
+      x.drawImage(im, lx, H - pad - boxH - Math.round(14 * S), boxW, boxH);
+    });
+  }
+
+  var bdsw = document.getElementById("bdsw"), bdgrid = document.getElementById("bdgrid");
+  if (bdsw && bdgrid) {
+    var bdBrand = BRANDS[0], bdSide = "right";
+
+    bdsw.innerHTML = BRANDS.map(function (b) {
+      return '<button data-bd="' + b.key + '" style="--c:' + (b.gold || "#FFC800") + '">' +
+             '<span class="dot"></span>' + esc(b.name) + "</button>";
+    }).join("") + '<button data-bdside="1" style="--c:#0d0e1a"><span class="dot"></span>Logo: right</button>';
+
+    function bdDownload(style) {
+      var cv = document.createElement("canvas");
+      cv.width = 1920; cv.height = 1080;
+      sFonts().then(function () { return drawBackdrop(cv, bdBrand, style, bdSide); }).then(function () {
+        cv.toBlob(function (blob) {
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "spark-" + bdBrand.key + "-backdrop-" + style + ".jpg";
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+        }, "image/jpeg", 0.92);
+      });
+    }
+
+    function paintBackdrops() {
+      bdsw.querySelectorAll("button").forEach(function (el) {
+        if (el.hasAttribute("data-bd")) el.classList.toggle("on", el.getAttribute("data-bd") === bdBrand.key);
+        else el.textContent = "";
+      });
+      var sideBtn = bdsw.querySelector("[data-bdside]");
+      if (sideBtn) sideBtn.innerHTML = '<span class="dot"></span>Logo: ' + bdSide;
+      bdgrid.innerHTML = BACKDROPS.map(function (s) {
+        return '<div class="bdcard"><canvas width="576" height="324" data-bdc="' + s.id + '"></canvas>' +
+          '<div class="bb"><span class="bn">' + esc(s.name) + "<small>" + esc(s.note) + "</small></span>" +
+          '<button class="btn" data-bddl="' + s.id + '">' + dlIcon + "1920 × 1080</button></div></div>";
+      }).join("");
+      BACKDROPS.forEach(function (s) {
+        drawBackdrop(bdgrid.querySelector('canvas[data-bdc="' + s.id + '"]'), bdBrand, s.id, bdSide);
+      });
+    }
+
+    bdsw.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-bd]");
+      if (t) { bdBrand = BRANDS.filter(function (x) { return x.key === t.getAttribute("data-bd"); })[0] || BRANDS[0]; paintBackdrops(); return; }
+      if (e.target.closest("[data-bdside]")) { bdSide = bdSide === "right" ? "left" : "right"; paintBackdrops(); }
+    });
+    bdgrid.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-bddl]");
+      if (t) bdDownload(t.getAttribute("data-bddl"));
+    });
+
+    paintBackdrops();
+    setTimeout(paintBackdrops, 700);
+  }
+
   /* ---------------- templates, one set per brand ---------------- */
   var TPLS = [
     { slug:"deck-template", name:"Deck template", doc:false,
