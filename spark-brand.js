@@ -5,7 +5,7 @@
   var BRANDS = [
     { key:"companies", name:"Spark Companies", mark:"®", svg:"brand/spark-companies.svg", png:"brand/spark-companies-logo.png", rev:"brand/spark-companies-reversed.svg", revPng:"brand/spark-companies-reversed.png",
       gold:"#FFC800", logoGold:"#FBD20F", dark:"#0D0E1A", house:true,
-      note:"The house brand. Its gold is the portfolio colour — use it for anything that spans more than one entity." },
+      note:"The house brand. Its gold is the portfolio color — use it for anything that spans more than one entity." },
     { key:"talent", name:"Spark Talent Acquisition", mark:"™", svg:"brand/spark-talent.svg", png:"brand/spark-talent-logo.png", rev:"brand/spark-talent-reversed.svg", revPng:"brand/spark-talent-reversed.png",
       gold:"#FCD20E", dark:"#000000", note:"Staffing and direct hire. Carries ™, not ®." },
     { key:"ignite", name:"Ignite Search", mark:"", svg:"brand/ignite-search.svg", png:"brand/ignite-search-logo.png", rev:"brand/ignite-search-reversed.svg", revPng:"brand/ignite-search-reversed.png",
@@ -235,14 +235,22 @@
   var TPLS = [
     { slug:"deck-template", name:"Deck template", doc:false,
       copy:"Five layouts — title, section divider, content, big numbers, closing — with the theme and placeholders wired in, so new slides come out right without styling anything." },
-    { slug:"letterhead", name:"Letterhead", doc:true,
-      copy:"Header with the Inc. 5000 line, the entity strip across the footer, and heading, lede and pull-quote styles already in the Styles gallery." },
     { slug:"client-proposal", name:"Client proposal", doc:false,
       copy:"Six slides that argue a case: what they told us, how we would run it, proof, commercials, next step. The commercial table is there to be overwritten, not sent as-is." },
     { slug:"qbr", name:"QBR / business review", doc:false,
       copy:"The quarter in four numbers, what worked and what did not, a live chart of where the time actually went, and a commitments table with owners and dates." },
     { slug:"recruiting-pitch", name:"Recruiting pitch", doc:false,
-      copy:"For selling the role, not the company. Who we are, the numbers, and an honest read of the job including the hard part — which is what candidates actually trust." }
+      copy:"For selling the role, not the company. Who we are, the numbers, and an honest read of the job including the hard part — which is what candidates actually trust." },
+    { slug:"capability-sheet", name:"Capability one-pager", doc:false,
+      copy:"The leave-behind after a first conversation. What this brand does, the numbers, where we work, and one person to call. One page on purpose." },
+    { slug:"job-flyer", name:"Job flyer", doc:false,
+      copy:"Letter size, built for a break room wall or a job fair table: role, pay, shift, what the work is, and a slot for your apply code. Print it, do not email it." },
+    { slug:"rate-sheet", name:"Rate sheet", doc:true,
+      copy:"Roles, pay, bill, markup and OT in one table, what the bill rate actually covers, and the conversion tiers. Quote it from here rather than working out a markup in the car." },
+    { slug:"sow", name:"Statement of work", doc:true,
+      copy:"Parties block, scope, what is explicitly out of scope, deliverables with owners and dates, fees, and a signature page. Hangs off the signed service agreement \u2014 it does not replace it." },
+    { slug:"letterhead", name:"Letterhead", doc:true,
+      copy:"Header with the Inc. 5000 line, the entity strip across the footer, and heading, lede and pull-quote styles already in the Styles gallery." }
   ];
   // the generated files are named after the logo file, so one brand never needs its own lookup table
   function fileOf(b) { return (b.svg || "").replace(/^brand\//, "").replace(/\.svg$/, "") || b.key; }
@@ -281,7 +289,7 @@
     paintT(BRANDS[0].key);
   }
 
-  /* ---------------- colour ---------------- */
+  /* ---------------- color ---------------- */
   // Named explicitly: deriving from the brand name gave two "Spark gold"s and called Flex's orange gold.
   var SWNAME = { companies:"House gold", talent:"Spark Talent gold", ignite:"Ignite gold",
                  jjp:"JJP gold", flex:"Flex orange", packaging:"Packaging gold" };
@@ -456,8 +464,8 @@
       if (aspect > 1.15) topStart = Math.max(topStart, Math.round(H * (aspect > 1.5 ? 0.26 : 0.16)));
       var y = topStart;
 
-      function block(lines, font, lh, colour) {
-        ctx.font = font; ctx.fillStyle = colour;
+      function block(lines, font, lh, color) {
+        ctx.font = font; ctx.fillStyle = color;
         lines.forEach(function (ln) { ctx.fillText(ln, cx, y); y += lh; });
       }
 
@@ -611,11 +619,11 @@
     var PRESETS = [
       { id:"bold",   name:"Bold statement", note:"Night, left, large",
         set:{ pmKind:"statement", pmTheme:"night", pmAlign:"left", pmScale:"1.18", pmLogoPos:"tr", pmLogoSize:"1", pmBar:true } },
-      { id:"centre", name:"Centred", note:"Quiet and symmetrical",
+      { id:"centre", name:"Centered", note:"Quiet and symmetrical",
         set:{ pmKind:"statement", pmTheme:"night", pmAlign:"center", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } },
       { id:"photo",  name:"Photo hero", note:"Your image behind",
         set:{ pmKind:"statement", pmTheme:"photo", pmAlign:"center", pmScale:"1.18", pmLogoPos:"tr", pmLogoSize:"1", pmBar:false } },
-      { id:"block",  name:"Colour block", note:"Brand colour, loud",
+      { id:"block",  name:"Color block", note:"Brand color, loud",
         set:{ pmKind:"statement", pmTheme:"gold", pmAlign:"left", pmScale:"1.18", pmLogoPos:"br", pmLogoSize:"1", pmBar:false } },
       { id:"clean",  name:"Light & clean", note:"Cream, understated",
         set:{ pmKind:"statement", pmTheme:"light", pmAlign:"left", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } },
@@ -623,7 +631,7 @@
         set:{ pmKind:"hiring", pmTheme:"night", pmAlign:"left", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"1", pmBar:true } },
       { id:"hirep",  name:"Hiring on photo", note:"Role over an image",
         set:{ pmKind:"hiring", pmTheme:"photo", pmAlign:"left", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"1", pmBar:false } },
-      { id:"quote",  name:"Quote", note:"Client words, centred",
+      { id:"quote",  name:"Quote", note:"Client words, centered",
         set:{ pmKind:"quote", pmTheme:"night", pmAlign:"center", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } },
       { id:"story",  name:"Story", note:"Vertical for Reels",
         set:{ pmKind:"statement", pmTheme:"night", pmAlign:"center", pmScale:"1", pmFormat:"story", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } }
@@ -739,10 +747,10 @@
       a: ["Whichever gold you like", "The house gold, #FFC800", "Ignite’s #F2D216", "Mix them"], right: 1,
       why: "Entity golds are for work inside that one brand. Anything portfolio-wide uses the house gold." },
     { q: "You need the Ignite logo on a black background. What do you grab?",
-      a: ["The normal logo", "The normal logo with the background removed", "The reversed version from the hub", "Recolour it yourself"], right: 2,
-      why: "Every brand has a reversed version in the hub. Never recolour a logo by hand." },
+      a: ["The normal logo", "The normal logo with the background removed", "The reversed version from the hub", "Recolor it yourself"], right: 2,
+      why: "Every brand has a reversed version in the hub. Never recolor a logo by hand." },
     { q: "The Inc. 5000 badge needs to fit a tight space. What is allowed?",
-      a: ["Crop it", "Recolour it to gold", "Stretch it", "Scale it proportionally, nothing else"], right: 3,
+      a: ["Crop it", "Recolor it to gold", "Stretch it", "Scale it proportionally, nothing else"], right: 3,
       why: "The badge stays in its original, unmodified form." }
   ];
 
@@ -757,7 +765,7 @@
       '<p class="gl">The brand only holds together if everyone applies it the same way. Read these, answer four questions, and the hub opens — once, not every time.</p>' +
       '<div class="step"><h3><span class="n">1</span>The registered mark</h3><p><b>Spark Companies®</b> is the registered trademark, not <code>Spark</code> on its own. John Joseph Partners is registered too. Spark Talent carries <code>™</code>.</p></div>' +
       '<div class="step"><h3><span class="n">2</span>Which gold</h3><p>There are five. Use the house gold <code>#FFC800</code> for anything spanning more than one brand, and the entity’s own value when you are working inside that brand. Flex is orange and navy on purpose — do not “fix” it.</p></div>' +
-      '<div class="step"><h3><span class="n">3</span>Dark backgrounds</h3><p>Every brand has a reversed version in the hub. Use it rather than putting the normal logo on black or recolouring one yourself.</p></div>' +
+      '<div class="step"><h3><span class="n">3</span>Dark backgrounds</h3><p>Every brand has a reversed version in the hub. Use it rather than putting the normal logo on black or recoloring one yourself.</p></div>' +
       '<div class="step"><h3><span class="n">4</span>Leave the artwork alone</h3><p>No stretching, rotating, shadows, gradients or rebuilt wordmarks. The Inc. 5000 badge stays exactly as it is. Need a variant that is not here? Ask.</p></div>' +
       '<div style="height:26px"></div>' +
       QUIZ.map(function (q, i) {
