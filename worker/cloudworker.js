@@ -2393,7 +2393,14 @@ var worker_default = {
         if (!total || score < total) return json({ error: "Every question has to be right to finish." }, 400, origin);
         const row = { email: who.email, name: b.name || "", score, total, completed_at: new Date().toISOString() };
         const r = await sbService(env, "POST", "spark_hq_brand_training?on_conflict=email", row);
-        if (!r.ok) return json({ error: "Could not record it", detail: r.data }, 502, origin);
+        // Fail OPEN on a write error too. A missing table or a database blip must never leave
+        // someone stuck on the gate with no way into their own brand assets; they are let
+        // through and simply see the course again next time.
+        if (!r.ok) {
+          console.error("brand training not recorded", JSON.stringify(r.data || {}).slice(0, 200));
+          return json({ ok: true, complete: true, degraded: true,
+                        note: "Passed, but it could not be recorded - run brand_training.sql." }, 200, origin);
+        }
         try { await sbService(env, "POST", "spark_hq_audit", { actor: who.email, action: "brand_training.complete", target: who.email, detail: score + "/" + total }); } catch (e) {}
         return json({ ok: true, complete: true }, 200, origin);
       }
