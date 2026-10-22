@@ -72,7 +72,15 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 
 /* ---------- logos ---------- */
 .lgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
-.lcard{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.lcard{padding:0;overflow:hidden;display:flex;flex-direction:column;position:relative;
+  animation:bglow 3.8s ease-in-out infinite;animation-delay:calc(var(--i,0) * .28s)}
+/* the seven brands breathe in the house gold; hover locks it bright */
+@keyframes bglow{
+  0%,100%{box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(20,18,10,.05),0 14px 32px -20px rgba(20,18,10,.32),0 0 0 0 rgba(255,200,0,0)}
+  50%    {box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(20,18,10,.05),0 14px 32px -20px rgba(20,18,10,.32),0 0 30px 2px rgba(255,200,0,.5)}}
+.lcard:hover{animation:none;border-color:#f3d04a;
+  box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(20,18,10,.05),0 16px 34px -20px rgba(20,18,10,.32),0 0 40px 5px rgba(255,200,0,.68)}
+@media (prefers-reduced-motion:reduce){.lcard{animation:none}}
 .lstage{position:relative;height:168px;display:grid;place-items:center;padding:26px;background:
   linear-gradient(0deg,rgba(0,0,0,.02),rgba(0,0,0,.02)),
   repeating-conic-gradient(#f4f1e8 0% 25%,#fbfaf5 0% 50%) 0 0/18px 18px;
@@ -121,7 +129,7 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 .tuse{font-size:13px;color:var(--muted);line-height:1.6;margin:0 0 14px}
 .tfall{font:500 11.5px ui-monospace,Menlo,monospace;color:var(--muted);background:#f6f4ec;border:1px solid var(--line-light);border-radius:8px;padding:8px 10px;word-break:break-all}
 
-/* ---------- rules ---------- */
+/* ---------- the standard ---------- */
 .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:14px}
 .rule{padding:17px 19px}
 .rule h4{margin:0 0 7px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
@@ -190,6 +198,38 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 .tplc .b{padding:16px 18px 18px}
 .tplc h4{margin:0 0 5px;font-size:16px;font-weight:600}
 .tplc p{margin:0 0 13px;font-size:13px;color:var(--muted);line-height:1.55}
+.tsw{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 16px}
+.tsw button{font:600 12px 'Jost',sans-serif;letter-spacing:.02em;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;transition:.15s;
+  display:inline-flex;align-items:center;gap:7px}
+.tsw button:hover{border-color:#e8bb17;color:var(--ink)}
+.tsw button .dot{width:9px;height:9px;border-radius:50%;background:var(--c,#FFC800);box-shadow:0 0 0 2px #fff,0 0 0 3px rgba(0,0,0,.06)}
+.tsw button.on{background:var(--night);color:#fff;border-color:var(--night)}
+
+/* ---------- ready-made social cards ---------- */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.scard{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;
+  box-shadow:0 1px 2px rgba(20,18,10,.05),0 12px 26px -20px rgba(20,18,10,.4);transition:.15s}
+.scard:hover{transform:translateY(-2px);box-shadow:0 0 26px -2px rgba(255,200,0,.45)}
+.scard canvas{display:block;width:100%;height:auto;border-bottom:1px solid var(--line)}
+.scard .sb{padding:9px 11px 11px;display:flex;gap:6px;align-items:center}
+.scard .sb .btn{padding:5px 10px;font-size:11px}
+
+
+/* ---------- preset gallery ---------- */
+.pmpre{margin:0 0 18px}
+.pmpre h4{margin:0 0 9px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.pmrow{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}
+.pmrow::-webkit-scrollbar{display:none}
+.pre{flex:0 0 120px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0;cursor:pointer;
+  overflow:hidden;text-align:left;font:inherit;transition:.15s;
+  box-shadow:0 1px 2px rgba(20,18,10,.05),0 10px 22px -16px rgba(20,18,10,.4)}
+.pre:hover{transform:translateY(-2px);border-color:#e8bb17}
+.pre.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,200,0,.35)}
+.pre .mini{display:block;height:82px;position:relative;overflow:hidden}   /* block: a span ignores height */
+.pre .mini i{position:absolute;display:block;border-radius:2px}
+.pre .cap{display:block;padding:7px 9px 9px;font-size:11.5px;font-weight:600;color:var(--ink);line-height:1.25}
+.pre .cap small{display:block;font-weight:400;color:var(--muted-light);font-size:10.5px;margin-top:1px}
 
 /* ---------- post maker, richer form ---------- */
 .pmf .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -213,7 +253,7 @@ section{scroll-margin-top:18px;margin-bottom:54px}
     <p class="lede">Every logo, colour and rule in one place, so nothing has to be rebuilt from memory or pulled off a website. Grab what you need and go.</p>
     <nav class="bjump">
       <a href="#logos">Logos</a><a href="#colour">Colour</a><a href="#type">Typography</a>
-      <a href="#posts">Make a post</a><a href="#templates">Templates</a><a href="#rules">Rules</a>
+      <a href="#posts">Make a post</a><a href="#social">Ready-made</a><a href="#templates">Templates</a><a href="#rules">The Standard</a>
     </nav>
   </div>
   <div class="bstrip"><div class="track" id="bTrack"></div></div>
@@ -275,6 +315,10 @@ section{scroll-margin-top:18px;margin-bottom:54px}
       <p class="k">MAKE A POST</p>
       <h2>Build a graphic right here</h2>
       <p>Pick a brand, pick a size, type your words, download. Correct dimensions, correct colours, correct logo, no design tool needed.</p>
+    </div>
+    <div class="pmpre">
+      <h4>Start from a layout</h4>
+      <div class="pmrow" id="pmPresets"></div>
     </div>
     <div class="card pm">
       <div class="pmf">
@@ -377,82 +421,38 @@ section{scroll-margin-top:18px;margin-bottom:54px}
   </section>
 
 
+  <section id="social">
+    <div class="shead">
+      <p class="k">READY-MADE</p>
+      <h2>Core values, already designed</h2>
+      <p>The eight values from the handbook, drawn in whichever brand you are posting as. Nothing to fill in &mdash; pick a brand, pick a card, download the square for the feed or the story for Reels.</p>
+    </div>
+    <div class="tsw" id="ssw"></div>
+    <div class="sgrid" id="sgrid"></div>
+    <p class="note"><b>Before you post.</b> These carry the scripture reference from the handbook, the same as the printed copy. If a card is going somewhere client-facing rather than internal, use the post maker above instead and write your own line.</p>
+  </section>
+
   <section id="templates">
     <div class="shead">
       <p class="k">TEMPLATES</p>
       <h2>Start from these, not a blank page</h2>
       <p>Colours, fonts and logos already set. The template versions open a fresh copy so you cannot overwrite the master by accident; the plain versions are the same thing if you would rather just open and Save As.</p>
     </div>
-    <div class="tpl">
-      <div class="card tplc">
-        <div class="shot"><img src="brand/deck-preview.jpg" alt="Deck template preview" loading="lazy"></div>
-        <div class="b">
-          <h4>Deck template</h4>
-          <p>Five layouts &mdash; title, section divider, content, big numbers, closing &mdash; with the theme and placeholders wired in, so new slides come out right without styling anything.</p>
-          <div class="lrow">
-            <a class="btn" href="brand/spark-deck-template.potx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>POTX</a>
-            <a class="btn ghost" href="brand/spark-deck-template.pptx" download>PPTX</a>
-          </div>
-        </div>
-      </div>
-      <div class="card tplc">
-        <div class="shot"><img src="brand/letterhead-preview.jpg" alt="Letterhead preview" loading="lazy"></div>
-        <div class="b">
-          <h4>Letterhead</h4>
-          <p>Header with the Inc. 5000 line, the entity strip across the footer, and heading, lede and pull-quote styles already in the Styles gallery.</p>
-          <div class="lrow">
-            <a class="btn" href="brand/spark-letterhead.dotx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>DOTX</a>
-            <a class="btn ghost" href="brand/spark-letterhead.docx" download>DOCX</a>
-          </div>
-        </div>
-      </div>
-      <div class="card tplc">
-        <div class="shot"><img src="brand/client-proposal-preview.jpg" alt="Client proposal deck preview" loading="lazy"></div>
-        <div class="b">
-          <h4>Client proposal</h4>
-          <p>Six slides that argue a case: what they told us, how we would run it, proof, commercials, next step. The commercial table is there to be overwritten, not sent as-is.</p>
-          <div class="lrow">
-            <a class="btn" href="brand/spark-client-proposal.potx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>POTX</a>
-            <a class="btn ghost" href="brand/spark-client-proposal.pptx" download>PPTX</a>
-          </div>
-        </div>
-      </div>
-      <div class="card tplc">
-        <div class="shot"><img src="brand/qbr-preview.jpg" alt="QBR deck preview" loading="lazy"></div>
-        <div class="b">
-          <h4>QBR / business review</h4>
-          <p>The quarter in four numbers, what worked and what did not, a live chart of where the time actually went, and a commitments table with owners and dates.</p>
-          <div class="lrow">
-            <a class="btn" href="brand/spark-qbr.potx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>POTX</a>
-            <a class="btn ghost" href="brand/spark-qbr.pptx" download>PPTX</a>
-          </div>
-        </div>
-      </div>
-      <div class="card tplc">
-        <div class="shot"><img src="brand/recruiting-pitch-preview.jpg" alt="Recruiting pitch preview" loading="lazy"></div>
-        <div class="b">
-          <h4>Recruiting pitch</h4>
-          <p>For selling the role, not the company. Who we are, the numbers, and an honest read of the job including the hard part &mdash; which is what candidates actually trust.</p>
-          <div class="lrow">
-            <a class="btn" href="brand/spark-recruiting-pitch.potx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>POTX</a>
-            <a class="btn ghost" href="brand/spark-recruiting-pitch.pptx" download>PPTX</a>
-          </div>
-        </div>
-      </div>
-    </div>
-    <p class="note"><b>Fonts first.</b> Both templates call for Bebas Neue and Century Gothic. Century Gothic ships with Office so it is already there; install Bebas from the Typography section above or your headings will fall back to something generic.</p>
+    <div class="tsw" id="tsw"></div>
+    <div class="tpl" id="tplGrid"></div>
+    <p class="note"><b>Fonts first.</b> Every template calls for Bebas Neue and Century Gothic. Century Gothic ships with Office so it is already there; install Bebas from the Typography section above or your headings will fall back to something generic.</p>
   </section>
 
   <section id="rules">
     <div class="shead">
-      <p class="k">RULES</p>
+      <p class="k">THE SPARK STANDARD</p>
       <h2>The short list</h2>
       <p>Six things that keep the brand consistent. None of them are fussy and all of them get broken regularly.</p>
     </div>
     <div class="rgrid">
       <div class="card rule">
         <h4><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5V8.5h3a2.3 2.3 0 010 4.6h-3M13 13.1l2.2 2.4"/></svg>The registered mark</h4>
-        <p><b>Spark Companies&reg;</b> is the registered trademark, not &ldquo;Spark&rdquo; on its own. The mark belongs on the full name, on every video, site and document. John Joseph Partners is registered too. Spark Talent carries <code>&trade;</code>, not <code>&reg;</code>.</p>
+        <p><b>Spark Companies&reg;</b> is the registered trademark, not &ldquo;Spark&rdquo; on its own. The mark belongs on the full name, on every video, site and document. John Joseph Partners is registered too. Spark Talent, Flex and Spark Packaging carry <code>&trade;</code> while their marks are pending — not <code>&reg;</code>.</p>
       </div>
       <div class="card rule">
         <h4><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8h8v8H8z"/></svg>Clear space</h4>

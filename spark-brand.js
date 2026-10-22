@@ -14,15 +14,16 @@
       gold:"#FAD110", dark:"#000000", note:"IT staffing and search. Registered mark.",
       alts:[ {label:"Mark only", svg:"brand/jjp-mark.svg", png:"brand/jjp-mark-light.png"},
              {label:"Mark, reversed", png:"brand/jjp-mark-dark.png"} ] },
-    { key:"flex", name:"Flex Workforce Solutions", mark:"", svg:"brand/flex.svg", png:"brand/flex-logo.png", rev:"brand/flex-reversed.svg", revPng:"brand/flex-reversed.png",
+    { key:"flex", name:"Flex Workforce Solutions", mark:"\u2122", svg:"brand/flex.svg", png:"brand/flex-logo.png", rev:"brand/flex-reversed.svg", revPng:"brand/flex-reversed.png",
       gold:"#EC8F2F", dark:"#0C2745", orange:true,
       note:"The one brand that is deliberately not gold. Orange and navy, its own identity — do not “correct” it." },
-    { key:"packaging", name:"Spark Packaging", mark:"", svg:"brand/spark-packaging.svg", png:"brand/spark-packaging-wordmark.png", rev:"brand/spark-packaging-reversed.svg", revPng:"brand/spark-packaging-reversed.png",
-      gold:"#FFDD5F", dark:"#3D3D3D", note:"Packaging and co-manufacturing talent.",
+    { key:"packaging", name:"Spark Packaging", mark:"\u2122", svg:"brand/spark-packaging.svg", png:"brand/spark-packaging-wordmark.png", rev:"brand/spark-packaging-reversed.svg", revPng:"brand/spark-packaging-reversed.png",
+      gold:"#FFDD5F", dark:"#3D3D3D", note:"Packaging and co-manufacturing talent. Carries \u2122 while the mark is pending.",
       alts:[ {label:"Circle badge", png:"brand/spark-packaging-logo.png"},
              {label:"Reversed", png:"brand/spark-packaging-reversed.png"} ] },
-    { key:"bolt", name:"Bolt Creative", mark:"", png:"bolt-creative-logo.png",
-      gold:"#FFC800", dark:"#0D0E1A", note:"The in-house creative studio. Vector version still to come." }
+    { key:"bolt", name:"Bolt Creative", mark:"", svg:"brand/bolt-creative.svg", png:"bolt-creative-logo.png",
+      rev:"brand/bolt-creative-lime.svg",
+      gold:"#C6FF3D", dark:"#0D0E1A", note:"The in-house creative studio. Lime on dark, ink on light." }
   ];
 
   var esc = function (s) {
@@ -33,12 +34,12 @@
   var dlIcon = '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>';
 
   /* ---------------- logos ---------------- */
-  function logoCard(b) {
+  function logoCard(b, idx) {
     var main = b.svg || b.png;
     var alts = (b.alts || []).map(function (a, i) {
       return '<button class="btn ghost" data-alt="' + b.key + ':' + i + '">' + esc(a.label) + "</button>";
     }).join("");
-    return '<div class="card lcard" data-brand="' + b.key + '">' +
+    return '<div class="card lcard" data-brand="' + b.key + '" style="--i:' + (idx || 0) + ';--glow:' + (b.gold || "#FFC800") + '">' +
       '<div class="lstage" data-stage="' + b.key + '"><img src="' + esc(main) + '" alt="' + esc(b.name) + ' logo" loading="lazy"></div>' +
       '<div class="lbody">' +
         '<p class="lname">' + esc(b.name) + (b.mark ? '<span class="lmark">' + esc(b.mark) + "</span>" : "") + "</p>" +
@@ -81,6 +82,203 @@
         if (/revers/i.test(a.label)) grid.querySelector('[data-stage="' + q[0] + '"]').classList.add("dark");
       }
     });
+  }
+
+
+
+  /* ---------------- ready-made cards: the eight core values ---------------- */
+  var VALUES = [
+    ["01", "Leading by example isn’t just a way, it’s the ONLY way", "Titus 2:7"],
+    ["02", "Do the right thing", "Luke 6:31"],
+    ["03", "Conquering adversity is a recipe to success", "Proverbs 24:16"],
+    ["04", "Be humble. Crave improvement", "Proverbs 27:17"],
+    ["05", "We are people driven and service focused", "Galatians 5:13"],
+    ["06", "Dominate the day, don’t let the day dominate you", "Ephesians 5:15–16"],
+    ["07", "Find a way to deliver value", "Matthew 5:41"],
+    ["08", "Mindset is the foundation of excellence", "Romans 12:2"]
+  ];
+
+  function sFonts() {
+    if (!(document.fonts && document.fonts.load)) return Promise.resolve();
+    return Promise.all([ document.fonts.load("400 100px 'Bebas Neue'"),
+                         document.fonts.load("400 30px 'Jost'") ]).catch(function () {});
+  }
+
+  var sImg = {};
+  function sLoad(src) {
+    if (!src) return Promise.resolve(null);
+    if (sImg[src]) return Promise.resolve(sImg[src]);
+    return new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () { sImg[src] = im; res(im); };
+      im.onerror = function () { res(null); };
+      im.src = src;
+    });
+  }
+
+  /* one renderer, any pixel size - S scales every measurement off the 1080 design */
+  function drawValue(cv, b, val, tall) {
+    var W = cv.width, H = cv.height, S = W / 1080, x = cv.getContext("2d");
+    var acc = b.gold || "#FFC800", bg = b.dark || "#0d0e1a";
+    x.fillStyle = bg; x.fillRect(0, 0, W, H);
+    var rgb = (function (hx) {            // the wash should be the brand's own accent, not always gold
+      var m = /^#?([0-9a-f]{6})$/i.exec(hx || "");
+      if (!m) return "255,200,0";
+      var n = parseInt(m[1], 16);
+      return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255);
+    })(acc);
+    var g = x.createRadialGradient(W * 0.16, -H * 0.06, 0, W * 0.16, -H * 0.06, Math.max(W, H) * 1.05);
+    g.addColorStop(0, "rgba(" + rgb + ",.2)"); g.addColorStop(0.55, "rgba(" + rgb + ",0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+
+    var pad = Math.round(84 * S);
+    x.textBaseline = "top"; x.textAlign = "left";
+
+    // measure first, then centre the whole block: value 01 runs to four lines, 02 to one
+    var size = Math.round((tall ? 96 : 88) * S), lh = Math.round(size * 0.92), maxW = W - pad * 2;
+    x.font = "400 " + size + "px 'Bebas Neue', Impact, sans-serif";
+    var words = val[1].toUpperCase().split(/\s+/), lines = [], cur = "";
+    words.forEach(function (w) {
+      var t = cur ? cur + " " + w : w;
+      if (x.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t;
+    });
+    if (cur) lines.push(cur);
+
+    var numH = Math.round(104 * S), gap = Math.round(22 * S);
+    var tailH = Math.round(30 * S) + Math.round(5 * S) + Math.round(30 * S) + Math.round(34 * S);
+    var blockH = numH + gap + lines.length * lh + tailH;
+    var y = Math.max(Math.round(H * 0.26), Math.round((H - blockH) / 2));
+
+    x.font = "400 " + Math.round(132 * S) + "px 'Bebas Neue', Impact, sans-serif";
+    x.fillStyle = acc; x.fillText(val[0], pad, y);
+    y += numH + gap;
+
+    x.font = "400 " + size + "px 'Bebas Neue', Impact, sans-serif";
+    x.fillStyle = "#fff";
+    lines.forEach(function (ln) { x.fillText(ln, pad, y); y += lh; });
+
+    y += Math.round(30 * S);
+    x.fillStyle = acc; x.fillRect(pad, y, Math.round(92 * S), Math.round(5 * S));
+    y += Math.round(30 * S);
+    x.font = "400 " + Math.round(30 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+    x.fillStyle = "rgba(255,255,255,.72)";
+    x.fillText(val[2], pad, y);
+
+    x.font = "400 " + Math.round(44 * S) + "px 'Bebas Neue', Impact, sans-serif";
+    x.fillStyle = acc; x.textBaseline = "alphabetic";
+    x.fillText("#JWU", pad, H - pad);
+    x.textBaseline = "top";
+    x.fillStyle = acc; x.fillRect(0, H - Math.round(10 * S), W, Math.round(10 * S));
+
+    return sLoad(b.rev || b.svg || b.png).then(function (im) {
+      if (!im) return;
+      var boxW = Math.round(300 * S), boxH = Math.round(104 * S);
+      var r = Math.min(boxW / im.naturalWidth, boxH / im.naturalHeight);
+      var lw = im.naturalWidth * r, lh2 = im.naturalHeight * r;
+      x.drawImage(im, W - pad - lw, pad, lw, lh2);
+    });
+  }
+
+  var ssw = document.getElementById("ssw"), sgrid = document.getElementById("sgrid");
+  if (ssw && sgrid) {
+    ssw.innerHTML = BRANDS.map(function (b) {
+      return '<button data-sb="' + b.key + '" style="--c:' + (b.gold || "#FFC800") + '">' +
+             '<span class="dot"></span>' + esc(b.name) + "</button>";
+    }).join("");
+
+    function download(b, val, tall) {
+      var cv = document.createElement("canvas");
+      cv.width = 1080; cv.height = tall ? 1920 : 1080;
+      sFonts().then(function () { return drawValue(cv, b, val, tall); }).then(function () {
+        cv.toBlob(function (blob) {
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "spark-" + b.key + "-value-" + val[0] + (tall ? "-story" : "-square") + ".png";
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+        }, "image/png");
+      });
+    }
+
+    var sBrand = BRANDS[0];
+    function paintSocial(key) {
+      sBrand = BRANDS.filter(function (x) { return x.key === key; })[0] || BRANDS[0];
+      ssw.querySelectorAll("button").forEach(function (x) {
+        x.classList.toggle("on", x.getAttribute("data-sb") === sBrand.key);
+      });
+      sgrid.innerHTML = VALUES.map(function (v, i) {
+        return '<div class="scard"><canvas width="540" height="540" data-v="' + i + '"></canvas>' +
+          '<div class="sb"><button class="btn" data-dl="' + i + ':sq">' + dlIcon + "SQUARE</button>" +
+          '<button class="btn ghost" data-dl="' + i + ':st">STORY</button></div></div>';
+      }).join("");
+      // preview at half size; the download re-renders at full 1080 so nothing is upscaled
+      VALUES.forEach(function (v, i) {
+        drawValue(sgrid.querySelector('canvas[data-v="' + i + '"]'), sBrand, v, false);
+      });
+    }
+
+    ssw.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-sb]"); if (t) paintSocial(t.getAttribute("data-sb"));
+    });
+    sgrid.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-dl]"); if (!t) return;
+      var p = t.getAttribute("data-dl").split(":");
+      download(sBrand, VALUES[+p[0]], p[1] === "st");
+    });
+
+    paintSocial(BRANDS[0].key);
+    sFonts().then(function () { paintSocial(sBrand.key); });
+    setTimeout(function () { paintSocial(sBrand.key); }, 1100);
+  }
+
+  /* ---------------- templates, one set per brand ---------------- */
+  var TPLS = [
+    { slug:"deck-template", name:"Deck template", doc:false,
+      copy:"Five layouts — title, section divider, content, big numbers, closing — with the theme and placeholders wired in, so new slides come out right without styling anything." },
+    { slug:"letterhead", name:"Letterhead", doc:true,
+      copy:"Header with the Inc. 5000 line, the entity strip across the footer, and heading, lede and pull-quote styles already in the Styles gallery." },
+    { slug:"client-proposal", name:"Client proposal", doc:false,
+      copy:"Six slides that argue a case: what they told us, how we would run it, proof, commercials, next step. The commercial table is there to be overwritten, not sent as-is." },
+    { slug:"qbr", name:"QBR / business review", doc:false,
+      copy:"The quarter in four numbers, what worked and what did not, a live chart of where the time actually went, and a commitments table with owners and dates." },
+    { slug:"recruiting-pitch", name:"Recruiting pitch", doc:false,
+      copy:"For selling the role, not the company. Who we are, the numbers, and an honest read of the job including the hard part — which is what candidates actually trust." }
+  ];
+  // the generated files are named after the logo file, so one brand never needs its own lookup table
+  function fileOf(b) { return (b.svg || "").replace(/^brand\//, "").replace(/\.svg$/, "") || b.key; }
+
+  function tplCards(b) {
+    var base = "brand/" + fileOf(b) + "-";
+    return TPLS.map(function (t) {
+      var ext = t.doc ? ["dotx", "docx"] : ["potx", "pptx"];
+      return '<div class="card tplc">' +
+        '<div class="shot"><img src="' + base + t.slug + '-preview.jpg" alt="' + esc(b.name + " " + t.name) + ' preview" loading="lazy"></div>' +
+        '<div class="b"><h4>' + esc(t.name) + "</h4><p>" + esc(t.copy) + "</p>" +
+        '<div class="lrow">' +
+          '<a class="btn" href="' + base + t.slug + "." + ext[0] + '" download>' + dlIcon + ext[0].toUpperCase() + "</a>" +
+          '<a class="btn ghost" href="' + base + t.slug + "." + ext[1] + '" download>' + ext[1].toUpperCase() + "</a>" +
+        "</div></div></div>";
+    }).join("");
+  }
+
+  var tsw = document.getElementById("tsw"), tplGrid = document.getElementById("tplGrid");
+  if (tsw && tplGrid) {
+    tsw.innerHTML = BRANDS.map(function (b) {
+      return '<button data-tb="' + b.key + '" style="--c:' + (b.gold || "#FFC800") + '">' +
+             '<span class="dot"></span>' + esc(b.name) + "</button>";
+    }).join("");
+    var paintT = function (key) {
+      var b = BRANDS.filter(function (x) { return x.key === key; })[0] || BRANDS[0];
+      tplGrid.innerHTML = tplCards(b);
+      tsw.querySelectorAll("button").forEach(function (x) {
+        x.classList.toggle("on", x.getAttribute("data-tb") === key);
+      });
+    };
+    tsw.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-tb]");
+      if (t) paintT(t.getAttribute("data-tb"));
+    });
+    paintT(BRANDS[0].key);
   }
 
   /* ---------------- colour ---------------- */
@@ -407,6 +605,75 @@
         }, "image/png");
       }, 60);
     });
+
+
+    /* ---- layout presets: one click sets every control ---- */
+    var PRESETS = [
+      { id:"bold",   name:"Bold statement", note:"Night, left, large",
+        set:{ pmKind:"statement", pmTheme:"night", pmAlign:"left", pmScale:"1.18", pmLogoPos:"tr", pmLogoSize:"1", pmBar:true } },
+      { id:"centre", name:"Centred", note:"Quiet and symmetrical",
+        set:{ pmKind:"statement", pmTheme:"night", pmAlign:"center", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } },
+      { id:"photo",  name:"Photo hero", note:"Your image behind",
+        set:{ pmKind:"statement", pmTheme:"photo", pmAlign:"center", pmScale:"1.18", pmLogoPos:"tr", pmLogoSize:"1", pmBar:false } },
+      { id:"block",  name:"Colour block", note:"Brand colour, loud",
+        set:{ pmKind:"statement", pmTheme:"gold", pmAlign:"left", pmScale:"1.18", pmLogoPos:"br", pmLogoSize:"1", pmBar:false } },
+      { id:"clean",  name:"Light & clean", note:"Cream, understated",
+        set:{ pmKind:"statement", pmTheme:"light", pmAlign:"left", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } },
+      { id:"hire",   name:"Hiring card", note:"Role, pay, apply code",
+        set:{ pmKind:"hiring", pmTheme:"night", pmAlign:"left", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"1", pmBar:true } },
+      { id:"hirep",  name:"Hiring on photo", note:"Role over an image",
+        set:{ pmKind:"hiring", pmTheme:"photo", pmAlign:"left", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"1", pmBar:false } },
+      { id:"quote",  name:"Quote", note:"Client words, centred",
+        set:{ pmKind:"quote", pmTheme:"night", pmAlign:"center", pmScale:"1", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } },
+      { id:"story",  name:"Story", note:"Vertical for Reels",
+        set:{ pmKind:"statement", pmTheme:"night", pmAlign:"center", pmScale:"1", pmFormat:"story", pmLogoPos:"tr", pmLogoSize:"0.78", pmBar:true } }
+    ];
+    /* each thumbnail is drawn from the preset's own settings, so it previews the real thing */
+    function mini(pr) {
+      var b = BRANDS.filter(function (x) { return x.key === sel.value; })[0] || BRANDS[0];
+      var t = pr.set.pmTheme, bg, ink, acc;
+      if (t === "night") { bg = b.dark || "#0d0e1a"; ink = "#fff"; acc = b.gold; }
+      else if (t === "gold") { bg = b.gold; ink = "#17150d"; acc = "#0d0e1a"; }
+      else if (t === "light") { bg = "#faf9f6"; ink = "#16140e"; acc = b.gold; }
+      else { bg = "linear-gradient(145deg,#4a4a52,#1b1c24)"; ink = "#fff"; acc = b.gold; }
+      var ctr = pr.set.pmAlign === "center";
+      var bars = ctr
+        ? '<i style="left:18%;top:30%;width:64%;height:8px;background:' + ink + '"></i>' +
+          '<i style="left:26%;top:44%;width:48%;height:8px;background:' + ink + '"></i>' +
+          '<i style="left:33%;top:57%;width:34%;height:4px;background:' + acc + '"></i>'
+        : '<i style="left:12%;top:28%;width:62%;height:9px;background:' + ink + '"></i>' +
+          '<i style="left:12%;top:43%;width:44%;height:9px;background:' + ink + '"></i>' +
+          '<i style="left:12%;top:58%;width:26%;height:4px;background:' + acc + '"></i>';
+      var lg = pr.set.pmLogoPos, lx = /l$/.test(lg) ? "left:10%" : "right:10%", ly = /^t/.test(lg) ? "top:10%" : "bottom:14%";
+      var logo = '<i style="' + lx + ";" + ly + ';width:22%;height:7px;background:' + acc + ';opacity:.95"></i>';
+      var bar = pr.set.pmBar ? '<i style="left:0;bottom:0;width:100%;height:5px;background:' + acc + '"></i>' : "";
+      return '<span class="mini" style="background:' + bg + '">' + bars + logo + bar + "</span>";
+    }
+    function paintPresets() {
+      var host = document.getElementById("pmPresets"); if (!host) return;
+      host.innerHTML = PRESETS.map(function (p) {
+        return '<button class="pre" data-pre="' + p.id + '">' + mini(p) +
+          '<span class="cap">' + esc(p.name) + "<small>" + esc(p.note) + "</small></span></button>";
+      }).join("");
+    }
+    paintPresets();
+    document.getElementById("pmPresets").addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-pre]"); if (!btn) return;
+      var pr = PRESETS.filter(function (x) { return x.id === btn.getAttribute("data-pre"); })[0];
+      Object.keys(pr.set).forEach(function (id) {
+        var el = document.getElementById(id); if (!el) return;
+        if (el.type === "checkbox") el.checked = !!pr.set[id]; else el.value = pr.set[id];
+      });
+      var k = G("pmKind");
+      document.getElementById("pmStatementFields").style.display = k === "statement" ? "" : "none";
+      document.getElementById("pmQuoteFields").style.display = k === "quote" ? "" : "none";
+      document.getElementById("pmHiringFields").style.display = k === "hiring" ? "" : "none";
+      document.getElementById("pmPhotoWrap").style.display = G("pmTheme") === "photo" ? "" : "none";
+      [].forEach.call(document.querySelectorAll(".pre"), function (x) { x.classList.remove("on"); });
+      btn.classList.add("on");
+      draw();
+    });
+    sel.addEventListener("change", paintPresets);   // thumbnails follow the chosen brand
 
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw); else draw();
     setTimeout(draw, 900);
