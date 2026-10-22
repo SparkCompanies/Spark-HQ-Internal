@@ -1,3 +1,4 @@
+/* Brand Hub - backdrops served from real renders. build 2026-10-22b */
 /* Spark Brand Hub — logo grid, swatches, post maker, signature. No dependencies. */
 (function () {
   "use strict";
