@@ -130,10 +130,13 @@
   var C = document.getElementById("pmCanvas");
   if (C) {
     var ctx = C.getContext("2d");
-    var SIZES = { "li-link":[1200,627], square:[1080,1080], portrait:[1080,1350], story:[1080,1920] };
+    var SIZES = { "li-link":[1200,627], square:[1080,1080], portrait:[1080,1350], story:[1080,1920], wide:[1920,1080] };
     var sel = document.getElementById("pmBrand");
     sel.innerHTML = BRANDS.map(function (b) { return '<option value="' + b.key + '">' + esc(b.name) + "</option>"; }).join("");
     var G = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ""; };
+    var K = function (id) { var e = document.getElementById(id); return !!(e && e.checked); };
+    var photoImg = null;
+    var drawSeq = 0;   // async art (logo, recruiter photo) must not land on a later repaint
 
     var imgCache = {};
     function loadImg(src) {
@@ -146,7 +149,6 @@
         im.src = src;
       });
     }
-
     function wrap(text, maxW, font) {
       ctx.font = font;
       var words = String(text).split(/\s+/), lines = [], cur = "";
@@ -164,213 +166,246 @@
       ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
       ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
     }
-
-    /* QR, drawn from qrcode-generator if it loaded; silently absent if the CDN is blocked */
     function drawQR(text, x, y, size, fg, bg) {
       if (!window.qrcode) return false;
-      var q;
-      try { q = window.qrcode(0, "M"); q.addData(text); q.make(); } catch (e) { return false; }
+      var q; try { q = window.qrcode(0, "M"); q.addData(text); q.make(); } catch (e) { return false; }
       var n = q.getModuleCount(), cell = size / (n + 4), off = cell * 2;
       ctx.fillStyle = bg; roundRect(x, y, size, size, size * 0.07); ctx.fill();
       ctx.fillStyle = fg;
-      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++)
         if (q.isDark(r, c)) ctx.fillRect(Math.floor(x + off + c * cell), Math.floor(y + off + r * cell), Math.ceil(cell), Math.ceil(cell));
-      }
       return true;
     }
-
-    function paintBg(b, theme, W, H, S) {
-      var bgCol, fg, accent;
-      if (theme === "night") { bgCol = b.dark || "#0d0e1a"; fg = "#ffffff"; accent = b.gold; }
-      else if (theme === "gold") { bgCol = b.gold; fg = b.orange ? "#0C2745" : "#17150d"; accent = b.dark || "#0d0e1a"; }
-      else { bgCol = "#faf9f6"; fg = "#16140e"; accent = b.gold; }
-      ctx.fillStyle = bgCol; ctx.fillRect(0, 0, W, H);
-      if (theme === "night") {
-        var g = ctx.createRadialGradient(W * 0.14, -H * 0.08, 0, W * 0.14, -H * 0.08, Math.max(W, H) * 1.05);
-        g.addColorStop(0, "rgba(255,200,0,.22)"); g.addColorStop(0.55, "rgba(255,200,0,0)");
-        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-        var g2 = ctx.createRadialGradient(W * 0.92, H * 1.02, 0, W * 0.92, H * 1.02, Math.max(W, H) * 0.8);
-        g2.addColorStop(0, "rgba(255,213,19,.13)"); g2.addColorStop(1, "rgba(255,213,19,0)");
-        ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
-      }
-      ctx.fillStyle = accent; ctx.fillRect(0, H - 10 * S, W, 10 * S);
-      return { fg: fg, accent: accent, bg: bgCol };
+    /* cover-fit a photo, honouring a vertical focal point */
+    function drawCover(im, W, H, focal) {
+      var r = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+      var w = im.naturalWidth * r, h = im.naturalHeight * r;
+      ctx.drawImage(im, (W - w) / 2, (H - h) * focal, w, h);
     }
 
-    function placeLogo(b, theme, W, H, S, pad) {
-      var useRev = (theme === "night") && b.rev;
-      var src = useRev ? b.rev : (b.svg || b.png);
-      return loadImg(src).then(function (im) {
-        if (!im) return;
-        var maxW = Math.min(300 * S, W * 0.38), maxH = 78 * S;
-        var r = Math.min(maxW / im.naturalWidth, maxH / im.naturalHeight);
+    /* the logo is placed from a corner and never overlaps the text column, because the
+       text block is laid out inside a box that already excludes the logo's corner */
+    function logoBox(W, H, S, pad, pos, sizeMul) {
+      if (pos === "none") return null;
+      var maxW = Math.min(300 * S * sizeMul, W * 0.34), maxH = 84 * S * sizeMul;
+      var x = /l$/.test(pos) ? pad : W - pad - maxW;
+      var y = /^t/.test(pos) ? pad : H - pad - maxH;
+      return { x: x, y: y, w: maxW, h: maxH, top: /^t/.test(pos), left: /l$/.test(pos) };
+    }
+    function placeLogo(b, theme, box, seq) {
+      if (!box) return Promise.resolve();
+      var useRev = (theme === "night" || theme === "photo") && b.rev;
+      return loadImg(useRev ? b.rev : (b.svg || b.png)).then(function (im) {
+        if (!im || seq !== drawSeq) return;
+        var r = Math.min(box.w / im.naturalWidth, box.h / im.naturalHeight);
         var lw = im.naturalWidth * r, lh = im.naturalHeight * r;
-        var lx = W - pad - lw, ly = pad;
+        var lx = box.left ? box.x : box.x + box.w - lw;
+        var ly = box.top ? box.y : box.y + box.h - lh;
         if (!useRev && theme === "gold") {
           ctx.fillStyle = "rgba(255,255,255,.95)";
-          roundRect(lx - 16 * S, ly - 14 * S, lw + 32 * S, lh + 28 * S, 12 * S); ctx.fill();
+          roundRect(lx - 16, ly - 14, lw + 32, lh + 28, 12); ctx.fill();
         }
         ctx.drawImage(im, lx, ly, lw, lh);
       });
     }
 
     function draw() {
+      var seq = ++drawSeq;
       var b = BRANDS.filter(function (x) { return x.key === sel.value; })[0];
       var fmt = G("pmFormat"), kind = G("pmKind"), theme = G("pmTheme");
-      var jwu = document.getElementById("pmJwu").checked;
+      var align = G("pmAlign"), hScale = parseFloat(G("pmScale")) || 1;
+      var logoPos = G("pmLogoPos"), logoMul = parseFloat(G("pmLogoSize")) || 1;
       var d = SIZES[fmt]; C.width = d[0]; C.height = d[1];
-      var W = d[0], H = d[1], S = Math.min(W, H) / 1080, pad = 76 * S;
-      document.getElementById("pmDims").textContent = W + " × " + H + " px · " + b.name + (kind === "hiring" ? " · hiring" : "");
+      var W = d[0], H = d[1], S = Math.min(W, H) / 1080, pad = Math.round(76 * S);
+      document.getElementById("pmDims").textContent = W + " × " + H + " px · " + b.name + " · " + kind;
 
-      var col = paintBg(b, theme, W, H, S);
-      var fg = col.fg, accent = col.accent;
-      var dim = theme === "night" ? "rgba(255,255,255,.72)" : (theme === "gold" ? "rgba(0,0,0,.62)" : "#6f6a5d");
+      var fg, accent, dim;
+      if (theme === "night")      { ctx.fillStyle = b.dark || "#0d0e1a"; ctx.fillRect(0,0,W,H); fg = "#fff"; accent = b.gold; }
+      else if (theme === "gold")  { ctx.fillStyle = b.gold; ctx.fillRect(0,0,W,H); fg = b.orange ? "#0C2745" : "#17150d"; accent = b.dark || "#0d0e1a"; }
+      else if (theme === "light") { ctx.fillStyle = "#faf9f6"; ctx.fillRect(0,0,W,H); fg = "#16140e"; accent = b.gold; }
+      else                        { ctx.fillStyle = b.dark || "#0d0e1a"; ctx.fillRect(0,0,W,H); fg = "#fff"; accent = b.gold; }
+
+      if (theme === "photo" && photoImg) {
+        drawCover(photoImg, W, H, parseFloat(G("pmFocal")) || 0.5);
+        var sc = (parseInt(G("pmScrim"), 10) || 0) / 100;
+        if (sc > 0) {
+          var g = ctx.createLinearGradient(0, 0, 0, H);
+          g.addColorStop(0, "rgba(8,9,16," + (sc * 0.92).toFixed(3) + ")");
+          g.addColorStop(0.55, "rgba(8,9,16," + (sc * 0.62).toFixed(3) + ")");
+          g.addColorStop(1, "rgba(8,9,16," + (sc * 0.98).toFixed(3) + ")");
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        }
+      } else if (theme === "night") {
+        var rg = ctx.createRadialGradient(W*0.14, -H*0.08, 0, W*0.14, -H*0.08, Math.max(W,H)*1.05);
+        rg.addColorStop(0, "rgba(255,200,0,.22)"); rg.addColorStop(0.55, "rgba(255,200,0,0)");
+        ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+      }
+      dim = (theme === "gold") ? "rgba(0,0,0,.64)" : (theme === "light" ? "#6f6a5d" : "rgba(255,255,255,.76)");
+      if (K("pmBar")) { ctx.fillStyle = accent; ctx.fillRect(0, H - 10 * S, W, 10 * S); }
+
+      var box = logoBox(W, H, S, pad, logoPos, logoMul);
+      /* text column shrinks only on the side the logo actually occupies */
+      var colW = W - pad * 2;
+      if (box && box.top) colW = Math.min(colW, W - pad * 2 - box.w - 30 * S);
+
       ctx.textBaseline = "top";
+      var cx = align === "center" ? W / 2 : pad;
+      ctx.textAlign = align === "center" ? "center" : "left";
+      var textW = align === "center" ? W - pad * 2 : colW;
+      var topStart = pad + (box && box.top ? Math.max(0, box.h - 40 * S) + 34 * S : 26 * S);
+      // tall canvases (portrait, story) look wrong with everything pinned to the top edge
+      var aspect = H / W;
+      if (aspect > 1.15) topStart = Math.max(topStart, Math.round(H * (aspect > 1.5 ? 0.26 : 0.16)));
+      var y = topStart;
+
+      function block(lines, font, lh, colour) {
+        ctx.font = font; ctx.fillStyle = colour;
+        lines.forEach(function (ln) { ctx.fillText(ln, cx, y); y += lh; });
+      }
 
       if (kind === "statement") {
-        var y = pad + 26 * S;
-        var hFont = "400 " + Math.round((fmt === "li-link" ? 88 : 108) * S) + "px 'Bebas Neue', Impact, sans-serif";
-        ctx.font = hFont; ctx.fillStyle = fg;
-        var lh = (fmt === "li-link" ? 84 : 102) * S;
-        wrap(G("pmHead").toUpperCase() || " ", W - pad * 2, hFont).forEach(function (ln) { ctx.fillText(ln, pad, y); y += lh; });
+        var hf = "400 " + Math.round((fmt === "li-link" ? 88 : 106) * S * hScale) + "px 'Bebas Neue', Impact, sans-serif";
+        block(wrap((G("pmHead") || " ").toUpperCase(), textW, hf), hf, (fmt === "li-link" ? 84 : 100) * S * hScale, fg);
         var sub = G("pmSub");
-        if (sub) {
-          y += 18 * S;
-          var sFont = "400 " + Math.round(34 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
-          ctx.font = sFont; ctx.fillStyle = dim;
-          wrap(sub, W - pad * 2, sFont).forEach(function (ln) { ctx.fillText(ln, pad, y); y += 44 * S; });
-        }
+        if (sub) { y += 18 * S;
+          var sf = "400 " + Math.round(34 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+          block(wrap(sub, textW, sf), sf, 44 * S, dim); }
+      } else if (kind === "quote") {
+        ctx.font = "400 " + Math.round(150 * S) + "px 'Bebas Neue', Impact, sans-serif";
+        ctx.fillStyle = accent; ctx.fillText("“", cx, y - 36 * S);
+        y += 66 * S;
+        var qf = "400 " + Math.round(58 * S * hScale) + "px 'Century Gothic', Jost, Arial, sans-serif";
+        block(wrap(G("pmQuote") || " ", textW, qf), qf, 78 * S * hScale, fg);
+        var at = G("pmAttr");
+        if (at) { y += 22 * S;
+          var af = "400 " + Math.round(27 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+          block(wrap("— " + at, textW, af), af, 38 * S, dim); }
       } else {
-        /* hiring: the role leads, the pay is the hook, everything else is optional furniture */
         var role = G("pmRole") || "Open role", pay = G("pmPay"), shift = G("pmShift"),
             loc = G("pmLoc"), apply = G("pmApply"), recEmail = G("pmRec");
-        var bottomBand = !!(recEmail || apply);
-        var y2 = pad + (bottomBand ? 22 * S : Math.round(H * 0.11));
         ctx.font = "700 " + Math.round(26 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
         ctx.fillStyle = accent;
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = (7 * S) + "px";
-        ctx.fillText("NOW HIRING", pad, y2);
+        ctx.fillText("NOW HIRING", cx, y);
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "0px";
-        y2 += 56 * S;
-
-        var rFont = "400 " + Math.round((fmt === "li-link" ? 92 : 112) * S) + "px 'Bebas Neue', Impact, sans-serif";
-        ctx.font = rFont; ctx.fillStyle = fg;
-        var rlh = (fmt === "li-link" ? 86 : 104) * S;
-        wrap(role.toUpperCase(), W - pad * 2 - (120 * S), rFont).forEach(function (ln) { ctx.fillText(ln, pad, y2); y2 += rlh; });
-
+        y += 56 * S;
+        var rf = "400 " + Math.round((fmt === "li-link" ? 92 : 110) * S * hScale) + "px 'Bebas Neue', Impact, sans-serif";
+        block(wrap(role.toUpperCase(), textW, rf), rf, (fmt === "li-link" ? 86 : 102) * S * hScale, fg);
         var meta = [loc, shift].filter(Boolean).join("   ·   ");
-        if (meta) {
-          y2 += 10 * S;
-          ctx.font = "400 " + Math.round(31 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
-          ctx.fillStyle = dim; ctx.fillText(meta, pad, y2); y2 += 52 * S;
-        }
+        if (meta) { y += 10 * S;
+          var mf = "400 " + Math.round(31 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+          block([meta], mf, 52 * S, dim); }
         if (pay) {
-          y2 += 20 * S;
-          ctx.fillStyle = accent; ctx.fillRect(pad, y2, 76 * S, 5 * S);
-          y2 += 26 * S;
-          ctx.font = "400 " + Math.round(84 * S) + "px 'Bebas Neue', Impact, sans-serif";
-          ctx.fillStyle = accent; ctx.fillText(pay, pad, y2);
-          y2 += 96 * S;
+          y += 20 * S;
+          if (align !== "center") { ctx.fillStyle = accent; ctx.fillRect(pad, y, 76 * S, 5 * S); y += 26 * S; }
+          var pf = "400 " + Math.round(84 * S * hScale) + "px 'Bebas Neue', Impact, sans-serif";
+          block([pay], pf, 96 * S, accent);
         }
-        window.__pmJwuY = y2 + 46 * S;
-
-        /* recruiter chip, bottom left */
-        var chipY = H - pad - 92 * S;
+        ctx.textAlign = "left";
+        /* recruiter and apply code sit in the base band */
         if (recEmail) {
-          var rp = (window.__pmPeople || {})[recEmail] || {};
-          var ph = (window.__pmPhotos || {})[recEmail];
-          var cx = pad, cyc = chipY + 46 * S, rad = 44 * S;
+          var rp = (window.__pmPeople || {})[recEmail] || {}, ph = (window.__pmPhotos || {})[recEmail];
+          var rx = pad, rad = 44 * S, ry = H - pad - 48 * S;
           var after = function () {
+            ctx.textBaseline = "alphabetic";
             ctx.font = "700 " + Math.round(27 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
-            ctx.fillStyle = fg; ctx.textBaseline = "alphabetic";
-            ctx.fillText(rp.name || recEmail.split("@")[0], cx + rad * 2 + 20 * S, cyc - 2 * S);
+            ctx.fillStyle = fg; ctx.fillText(rp.name || recEmail.split("@")[0], rx + rad * 2 + 20 * S, ry - 2 * S);
             ctx.font = "400 " + Math.round(21 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
-            ctx.fillStyle = dim;
-            ctx.fillText(rp.title || "Talk to me about this role", cx + rad * 2 + 20 * S, cyc + 26 * S);
+            ctx.fillStyle = dim; ctx.fillText(rp.title || "Talk to me about this role", rx + rad * 2 + 20 * S, ry + 26 * S);
             ctx.textBaseline = "top";
           };
-          if (ph) {
-            loadImg(ph).then(function (im) {
-              if (im) {
-                ctx.save(); ctx.beginPath(); ctx.arc(cx + rad, cyc, rad, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
-                ctx.drawImage(im, cx, cyc - rad, rad * 2, rad * 2); ctx.restore();
-                ctx.beginPath(); ctx.arc(cx + rad, cyc, rad, 0, Math.PI * 2);
-                ctx.strokeStyle = accent; ctx.lineWidth = 3 * S; ctx.stroke();
-              }
-              after();
-            });
-          } else {
-            ctx.beginPath(); ctx.arc(cx + rad, cyc, rad, 0, Math.PI * 2);
-            ctx.fillStyle = accent; ctx.fill();
-            ctx.font = "700 " + Math.round(30 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
-            ctx.fillStyle = "#17150d"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.fillText(((rp.name || recEmail)[0] || "?").toUpperCase(), cx + rad, cyc);
-            ctx.textAlign = "left"; ctx.textBaseline = "top";
+          if (ph) loadImg(ph).then(function (im) {
+            if (seq !== drawSeq) return;
+            if (im) { ctx.save(); ctx.beginPath(); ctx.arc(rx + rad, ry, rad, 0, Math.PI*2); ctx.clip();
+              ctx.drawImage(im, rx, ry - rad, rad*2, rad*2); ctx.restore();
+              ctx.beginPath(); ctx.arc(rx + rad, ry, rad, 0, Math.PI*2); ctx.strokeStyle = accent; ctx.lineWidth = 3*S; ctx.stroke(); }
             after();
-          }
+          });
+          else { ctx.beginPath(); ctx.arc(rx + rad, ry, rad, 0, Math.PI*2); ctx.fillStyle = accent; ctx.fill(); after(); }
         }
-
-        /* apply code, bottom right */
-        var hasQR = false;
         if (apply) {
           var qs = 150 * S, qx = W - pad - qs, qy = H - pad - qs - 4 * S;
-          hasQR = drawQR(apply, qx, qy, qs, "#17150d", "#ffffff");
-          if (hasQR) {
-            ctx.font = "400 " + Math.round(19 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
-            ctx.fillStyle = dim; ctx.textAlign = "center";
-            ctx.fillText("Scan to apply", qx + qs / 2, qy + qs + 12 * S);
-            ctx.textAlign = "left";
-          } else {
-            // generator unavailable: show the link so the graphic still carries a way in
+          if (!drawQR(apply, qx, qy, qs, "#17150d", "#ffffff")) {
             ctx.font = "400 " + Math.round(22 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
             ctx.fillStyle = dim; ctx.textAlign = "right";
-            ctx.fillText(apply.replace(/^https?:\/\//, ""), W - pad, H - pad - 4 * S);
-            ctx.textAlign = "left";
+            ctx.fillText(apply.replace(/^https?:\/\//, ""), W - pad, H - pad - 4 * S); ctx.textAlign = "left";
+          } else {
+            ctx.font = "400 " + Math.round(19 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+            ctx.fillStyle = dim; ctx.textAlign = "center";
+            ctx.fillText("Scan to apply", qx + qs / 2, qy + qs + 12 * S); ctx.textAlign = "left";
           }
         }
         window.__pmSlots = { left: !!recEmail, right: !!apply };
       }
+      ctx.textAlign = "left";
 
-      if (jwu) {
+      if (K("pmJwu")) {
         var slots = (kind === "hiring" && window.__pmSlots) || { left: false, right: false };
+        var bottomLogo = box && !box.top;
         ctx.font = "400 " + Math.round(44 * S) + "px 'Bebas Neue', Impact, sans-serif";
         ctx.fillStyle = accent; ctx.textBaseline = "alphabetic";
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = (3 * S) + "px";
-        if (!slots.left) {                       // bottom left is free
-          ctx.fillText("#JWU", pad, H - pad - 6 * S);
-        } else if (!slots.right) {               // recruiter took the left, use the right
-          ctx.textAlign = "right"; ctx.fillText("#JWU", W - pad, H - pad - 6 * S); ctx.textAlign = "left";
-        } else if (window.__pmJwuY) {            // both corners taken: sit it under the pay block
-          ctx.fillText("#JWU", pad, window.__pmJwuY);
-        }
+        var leftTaken = slots.left || (bottomLogo && box.left), rightTaken = slots.right || (bottomLogo && !box.left);
+        if (!leftTaken) ctx.fillText("#JWU", pad, H - pad - 6 * S);
+        else if (!rightTaken) { ctx.textAlign = "right"; ctx.fillText("#JWU", W - pad, H - pad - 6 * S); ctx.textAlign = "left"; }
         if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "0px";
         ctx.textBaseline = "top";
       }
-      placeLogo(b, theme, W, H, S, pad);
+
+      if (K("pmSafe")) {
+        ctx.save(); ctx.strokeStyle = "rgba(255,0,110,.75)"; ctx.setLineDash([12, 10]); ctx.lineWidth = 2;
+        ctx.strokeRect(pad, pad, W - pad * 2, H - pad * 2);
+        if (fmt === "story") { ctx.strokeStyle = "rgba(255,0,110,.45)";
+          ctx.strokeRect(0, H * 0.14, W, H * 0.72); }
+        ctx.restore();
+      }
+      placeLogo(b, theme, box, seq);
     }
     window.__pmDraw = draw;
 
-    ["pmBrand","pmFormat","pmKind","pmTheme","pmJwu","pmHead","pmSub","pmRole","pmPay","pmShift","pmLoc","pmApply","pmRec"].forEach(function (id) {
+    var ids = ["pmBrand","pmFormat","pmKind","pmTheme","pmAlign","pmScale","pmLogoPos","pmLogoSize",
+               "pmJwu","pmBar","pmSafe","pmHead","pmSub","pmQuote","pmAttr","pmRole","pmPay","pmShift",
+               "pmLoc","pmApply","pmRec","pmScrim","pmFocal"];
+    ids.forEach(function (id) {
       var el = document.getElementById(id); if (!el) return;
-      el.addEventListener(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input", function () {
+      var ev = (el.tagName === "SELECT" || el.type === "checkbox" || el.type === "range") ? "change" : "input";
+      el.addEventListener(ev, function () {
         if (id === "pmKind") {
-          var hiring = G("pmKind") === "hiring";
-          document.getElementById("pmStatementFields").style.display = hiring ? "none" : "";
-          document.getElementById("pmHiringFields").style.display = hiring ? "" : "none";
+          var k = G("pmKind");
+          document.getElementById("pmStatementFields").style.display = k === "statement" ? "" : "none";
+          document.getElementById("pmQuoteFields").style.display = k === "quote" ? "" : "none";
+          document.getElementById("pmHiringFields").style.display = k === "hiring" ? "" : "none";
         }
+        if (id === "pmTheme") document.getElementById("pmPhotoWrap").style.display = G("pmTheme") === "photo" ? "" : "none";
         draw();
+      });
+      if (el.type === "range") el.addEventListener("input", function () {
+        document.getElementById("pmScrimV").textContent = el.value + "%"; draw();
       });
     });
 
+    document.getElementById("pmPhoto").addEventListener("change", function () {
+      var f = this.files && this.files[0]; if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () { var im = new Image(); im.onload = function () { photoImg = im; draw(); }; im.src = fr.result; };
+      fr.readAsDataURL(f);
+    });
+    document.getElementById("pmReset").addEventListener("click", function () { location.hash = "#posts"; location.reload(); });
+
     document.getElementById("pmDl").addEventListener("click", function () {
       var b = BRANDS.filter(function (x) { return x.key === sel.value; })[0];
-      C.toBlob(function (blob) {
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "spark-" + b.key + "-" + G("pmKind") + "-" + G("pmFormat") + ".png";
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-      }, "image/png");
+      var safe = document.getElementById("pmSafe"), was = safe.checked;
+      if (was) { safe.checked = false; draw(); }          // guides are for you, not the post
+      setTimeout(function () {
+        C.toBlob(function (blob) {
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "spark-" + b.key + "-" + G("pmKind") + "-" + G("pmFormat") + ".png";
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+          if (was) { safe.checked = true; draw(); }
+        }, "image/png");
+      }, 60);
     });
 
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw); else draw();
