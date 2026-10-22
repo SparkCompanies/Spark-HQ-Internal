@@ -36,9 +36,17 @@ a{color:inherit}
 .beyebrow svg{width:15px;height:15px;fill:var(--gold);filter:drop-shadow(0 0 9px rgba(255,200,0,.75))}
 .bhero h1{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:clamp(52px,9.2vw,112px);line-height:.86;
   letter-spacing:.012em;margin:0 0 18px;text-shadow:0 2px 0 rgba(0,0,0,.45),0 18px 50px rgba(0,0,0,.55)}
-.bhero h1 em{font-style:normal;background:linear-gradient(177deg,#FFF1AE 2%,#FFC800 42%,#E5A200 96%);
+/* lit the whole way down - the old gradient fell to dark amber by mid-letter, which read olive.
+   text-shadow off: with transparent text it paints a dark halo straight through the glow. */
+.bhero h1 em{font-style:normal;text-shadow:none;
+  background:linear-gradient(176deg,#FFFCE4 0%,#FFEE8A 22%,#FFE04A 46%,#FFD513 72%,#FFC800 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 3px 14px rgba(255,200,0,.42))}
+  filter:drop-shadow(0 0 18px rgba(255,213,19,.6)) drop-shadow(0 0 54px rgba(255,213,19,.32));
+  animation:bheroLit 5.2s ease-in-out infinite}
+@keyframes bheroLit{
+  0%,100%{filter:drop-shadow(0 0 16px rgba(255,213,19,.5)) drop-shadow(0 0 48px rgba(255,213,19,.26))}
+  50%    {filter:drop-shadow(0 0 26px rgba(255,213,19,.8)) drop-shadow(0 0 72px rgba(255,213,19,.42))}}
+@media(prefers-reduced-motion:reduce){.bhero h1 em{animation:none}}
 .bhero p.lede{max-width:610px;margin:0;color:#b9b2a2;font-size:16.5px;line-height:1.62}
 .bjump{display:flex;gap:9px;flex-wrap:wrap;margin:28px 0 40px}
 .bjump a{text-decoration:none;font-size:12.5px;font-weight:500;letter-spacing:.03em;padding:9px 17px;border-radius:999px;
