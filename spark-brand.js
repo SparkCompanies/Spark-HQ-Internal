@@ -241,9 +241,7 @@
     { id:"soft",    name:"Soft light",  note:"Cream, for bright rooms" },
     { id:"planes",  name:"Planes",      note:"Angled, with depth" },
     { id:"bokeh",   name:"Defocused",   note:"Reads like a real room" },
-    { id:"cool",    name:"Slate",       note:"Off the gold entirely" },
-    { id:"glass",   name:"Glass wall",   note:"Office partition, logo in vinyl" },
-    { id:"board",   name:"Boardroom",    note:"Backlit sign on a dark wall" }
+    { id:"cool",    name:"Slate",       note:"Off the gold entirely" }
   ];
 
   function rgbOf(hex) {
