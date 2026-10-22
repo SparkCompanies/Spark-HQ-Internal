@@ -148,10 +148,60 @@ section{scroll-margin-top:18px;margin-bottom:54px}
 #pmCanvas{max-width:100%;max-height:420px;box-shadow:0 18px 40px -22px rgba(20,18,10,.6);border-radius:4px}
 .pmacts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 
+
+/* ---------- training gate ---------- */
+#bGate{position:fixed;inset:0;z-index:9999;background:#06070f;overflow-y:auto;display:none}
+#bGate.on{display:block}
+#bGate .gwrap{max-width:780px;margin:0 auto;padding:54px 28px 80px;position:relative}
+#bGate .glow2{position:absolute;inset:-10% -20% 60%;background:radial-gradient(46% 60% at 18% 0%,rgba(255,200,0,.26),transparent 64%);pointer-events:none}
+#bGate .gin{position:relative}
+#bGate .gk{font-size:11px;letter-spacing:.3em;color:var(--gold);font-weight:600;margin:0 0 12px}
+#bGate h2{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:clamp(38px,6vw,64px);line-height:.92;margin:0 0 14px;color:#fff}
+#bGate h2 em{font-style:normal;color:var(--gold)}
+#bGate .gl{color:#b9b2a2;font-size:16px;line-height:1.62;margin:0 0 30px;max-width:620px}
+#bGate .step{border:1px solid rgba(255,255,255,.12);border-radius:15px;background:rgba(255,255,255,.035);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);padding:20px 22px;margin:0 0 13px}
+#bGate .step h3{margin:0 0 7px;font-size:16px;color:#fff;font-weight:600;display:flex;gap:10px;align-items:center}
+#bGate .step .n{width:25px;height:25px;border-radius:50%;background:var(--gold);color:#17150d;font-size:12.5px;font-weight:700;
+  display:grid;place-items:center;flex:none}
+#bGate .step p{margin:0;color:#aba494;font-size:14px;line-height:1.62}
+#bGate .step code{background:rgba(255,255,255,.1);padding:1px 6px;border-radius:4px;font-size:12.5px;color:#FFD513}
+#bGate .q{border:1px solid rgba(255,255,255,.12);border-radius:15px;background:rgba(255,255,255,.035);padding:19px 22px;margin:0 0 12px}
+#bGate .q p{margin:0 0 11px;font-size:15px;color:#fff;font-weight:500}
+#bGate .opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;color:#cfc8b8;font-size:14px;
+  border:1px solid transparent;transition:.14s}
+#bGate .opt:hover{background:rgba(255,255,255,.05)}
+#bGate .opt input{accent-color:var(--gold);width:16px;height:16px;flex:none}
+#bGate .opt.right{border-color:rgba(60,200,120,.55);background:rgba(60,200,120,.1);color:#d6f5e2}
+#bGate .opt.wrong{border-color:rgba(230,90,70,.55);background:rgba(230,90,70,.1);color:#f8d9d3}
+#bGate .gact{display:flex;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap}
+#bGate .gbtn{font:600 14px 'Jost',sans-serif;padding:13px 26px;border-radius:999px;border:0;cursor:pointer;
+  background:linear-gradient(177deg,#FFE27A,#FFC800 46%,#E5A200);color:#17150d;
+  box-shadow:0 10px 26px -12px rgba(255,200,0,.9)}
+#bGate .gbtn[disabled]{opacity:.42;cursor:not-allowed;box-shadow:none}
+#bGate .gmsg{font-size:13.5px;color:#aba494}
+#bGate .gmsg.bad{color:#f8b4a8}
+
+/* ---------- templates ---------- */
+.tpl{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px}
+.tplc{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.tplc .shot{height:188px;background:#f1eee5;display:grid;place-items:center;border-bottom:1px solid var(--line);overflow:hidden}
+.tplc .shot img{width:100%;height:100%;object-fit:cover;object-position:top center}
+.tplc .b{padding:16px 18px 18px}
+.tplc h4{margin:0 0 5px;font-size:16px;font-weight:600}
+.tplc p{margin:0 0 13px;font-size:13px;color:var(--muted);line-height:1.55}
+
+/* ---------- post maker, richer form ---------- */
+.pmf .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pmf .hint{font-size:11px;color:var(--muted-light);margin-top:4px;letter-spacing:0;text-transform:none;font-weight:400}
+.pmf fieldset{border:1px solid var(--line);border-radius:11px;padding:12px 13px 14px;margin:14px 0 0}
+.pmf legend{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0 6px}
+
 @media(max-width:820px){.pm{grid-template-columns:1fr}.sigwrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div id="bGate" aria-modal="true" role="dialog"><div class="gwrap"><div class="glow2"></div><div class="gin" id="bGateIn"></div></div></div>
 
 <header class="bhero">
   <div class="glow"></div>
@@ -163,7 +213,7 @@ section{scroll-margin-top:18px;margin-bottom:54px}
     <p class="lede">Every logo, colour and rule in one place, so nothing has to be rebuilt from memory or pulled off a website. Grab what you need and go.</p>
     <nav class="bjump">
       <a href="#logos">Logos</a><a href="#colour">Colour</a><a href="#type">Typography</a>
-      <a href="#posts">Make a post</a><a href="#rules">Rules</a>
+      <a href="#posts">Make a post</a><a href="#templates">Templates</a><a href="#rules">Rules</a>
     </nav>
   </div>
   <div class="bstrip"><div class="track" id="bTrack"></div></div>
@@ -230,6 +280,11 @@ section{scroll-margin-top:18px;margin-bottom:54px}
       <div class="pmf">
         <label for="pmBrand">Brand</label>
         <select id="pmBrand"></select>
+        <label for="pmKind">Type</label>
+        <select id="pmKind">
+          <option value="statement">Statement</option>
+          <option value="hiring">We&rsquo;re hiring</option>
+        </select>
         <label for="pmFormat">Format</label>
         <select id="pmFormat">
           <option value="li-link">LinkedIn link post &middot; 1200&times;627</option>
@@ -237,21 +292,38 @@ section{scroll-margin-top:18px;margin-bottom:54px}
           <option value="portrait">Instagram portrait &middot; 1080&times;1350</option>
           <option value="story">Story / Reel &middot; 1080&times;1920</option>
         </select>
-        <label for="pmKind">Type</label>
-        <select id="pmKind">
-          <option value="statement">Statement</option>
-          <option value="hiring">We're hiring</option>
-        </select>
-        <label for="pmHead">Headline</label>
-        <textarea id="pmHead" maxlength="90">We help people grow.</textarea>
-        <label for="pmSub" id="pmSubLbl">Supporting line</label>
-        <input id="pmSub" maxlength="70" value="Workforce solutions that actually work.">
         <label for="pmTheme">Background</label>
         <select id="pmTheme">
           <option value="night">Night</option>
           <option value="gold">Brand colour</option>
           <option value="light">Light</option>
         </select>
+
+        <div id="pmStatementFields">
+          <label for="pmHead">Headline</label>
+          <textarea id="pmHead" maxlength="90">We help people grow.</textarea>
+          <label for="pmSub">Supporting line</label>
+          <input id="pmSub" maxlength="70" value="Workforce solutions that actually work.">
+        </div>
+
+        <div id="pmHiringFields" style="display:none">
+          <label for="pmRole">Role</label>
+          <input id="pmRole" maxlength="48" value="CNC Machinist">
+          <fieldset>
+            <legend>Optional &mdash; leave blank to drop it</legend>
+            <div class="row2">
+              <div><label for="pmPay" style="margin-top:4px">Pay</label><input id="pmPay" maxlength="22" value="$26&ndash;32/hr"></div>
+              <div><label for="pmShift" style="margin-top:4px">Shift</label><input id="pmShift" maxlength="22" value="2nd shift"></div>
+            </div>
+            <label for="pmLoc">Location</label><input id="pmLoc" maxlength="34" value="Troy, MI">
+            <label for="pmApply">Apply link</label><input id="pmApply" maxlength="160" placeholder="https://&hellip;">
+            <p class="hint">A link turns into a scannable code on the graphic.</p>
+            <label for="pmRec">Recruiter</label>
+            <select id="pmRec"><option value="">None</option></select>
+            <p class="hint" id="pmRecHint">Pulls the photo from Microsoft 365.</p>
+          </fieldset>
+        </div>
+
         <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;margin-top:14px">
           <input type="checkbox" id="pmJwu" style="width:auto" checked> Include #JWU
         </label>
@@ -266,6 +338,39 @@ section{scroll-margin-top:18px;margin-bottom:54px}
     </div>
   </section>
 
+
+  <section id="templates">
+    <div class="shead">
+      <p class="k">TEMPLATES</p>
+      <h2>Start from these, not a blank page</h2>
+      <p>Colours, fonts and logos already set. The template versions open a fresh copy so you cannot overwrite the master by accident; the plain versions are the same thing if you would rather just open and Save As.</p>
+    </div>
+    <div class="tpl">
+      <div class="card tplc">
+        <div class="shot"><img src="brand/deck-preview.jpg" alt="Deck template preview" loading="lazy"></div>
+        <div class="b">
+          <h4>Deck template</h4>
+          <p>Five layouts &mdash; title, section divider, content, big numbers, closing &mdash; with the theme and placeholders wired in, so new slides come out right without styling anything.</p>
+          <div class="lrow">
+            <a class="btn" href="brand/spark-deck-template.potx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>POTX</a>
+            <a class="btn ghost" href="brand/spark-deck-template.pptx" download>PPTX</a>
+          </div>
+        </div>
+      </div>
+      <div class="card tplc">
+        <div class="shot"><img src="brand/letterhead-preview.jpg" alt="Letterhead preview" loading="lazy"></div>
+        <div class="b">
+          <h4>Letterhead</h4>
+          <p>Header with the Inc. 5000 line, the entity strip across the footer, and heading, lede and pull-quote styles already in the Styles gallery.</p>
+          <div class="lrow">
+            <a class="btn" href="brand/spark-letterhead.dotx" download><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>DOTX</a>
+            <a class="btn ghost" href="brand/spark-letterhead.docx" download>DOCX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note"><b>Fonts first.</b> Both templates call for Bebas Neue and Century Gothic. Century Gothic ships with Office so it is already there; install Bebas from the Typography section above or your headings will fall back to something generic.</p>
+  </section>
 
   <section id="rules">
     <div class="shead">
@@ -302,6 +407,7 @@ section{scroll-margin-top:18px;margin-bottom:54px}
   </section>
 
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="spark-brand.js"></script>
 </body>
 </html>

@@ -133,15 +133,18 @@
     var SIZES = { "li-link":[1200,627], square:[1080,1080], portrait:[1080,1350], story:[1080,1920] };
     var sel = document.getElementById("pmBrand");
     sel.innerHTML = BRANDS.map(function (b) { return '<option value="' + b.key + '">' + esc(b.name) + "</option>"; }).join("");
+    var G = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ""; };
 
     var imgCache = {};
-    function loadLogo(b, cb) {
-      var src = b.svg || b.png;
-      if (imgCache[src]) return cb(imgCache[src]);
-      var im = new Image();
-      im.onload = function () { imgCache[src] = im; cb(im); };
-      im.onerror = function () { cb(null); };
-      im.src = src;
+    function loadImg(src) {
+      if (!src) return Promise.resolve(null);
+      if (imgCache[src]) return Promise.resolve(imgCache[src]);
+      return new Promise(function (res) {
+        var im = new Image();
+        im.onload = function () { imgCache[src] = im; res(im); };
+        im.onerror = function () { res(null); };
+        im.src = src;
+      });
     }
 
     function wrap(text, maxW, font) {
@@ -154,95 +157,206 @@
       if (cur) lines.push(cur);
       return lines;
     }
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+    }
 
-    function draw() {
-      var b = BRANDS.filter(function (x) { return x.key === sel.value; })[0];
-      var fmt = document.getElementById("pmFormat").value;
-      var kind = document.getElementById("pmKind").value;
-      var theme = document.getElementById("pmTheme").value;
-      var head = document.getElementById("pmHead").value || " ";
-      var sub = document.getElementById("pmSub").value || "";
-      var jwu = document.getElementById("pmJwu").checked;
-      var d = SIZES[fmt]; C.width = d[0]; C.height = d[1];
-      var W = d[0], H = d[1], S = Math.min(W, H) / 1080;      // scale off the short edge
-      document.getElementById("pmDims").textContent = W + " × " + H + " px · " + b.name;
+    /* QR, drawn from qrcode-generator if it loaded; silently absent if the CDN is blocked */
+    function drawQR(text, x, y, size, fg, bg) {
+      if (!window.qrcode) return false;
+      var q;
+      try { q = window.qrcode(0, "M"); q.addData(text); q.make(); } catch (e) { return false; }
+      var n = q.getModuleCount(), cell = size / (n + 4), off = cell * 2;
+      ctx.fillStyle = bg; roundRect(x, y, size, size, size * 0.07); ctx.fill();
+      ctx.fillStyle = fg;
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) {
+        if (q.isDark(r, c)) ctx.fillRect(Math.floor(x + off + c * cell), Math.floor(y + off + r * cell), Math.ceil(cell), Math.ceil(cell));
+      }
+      return true;
+    }
 
-      var bgCol, fgCol, accent;
-      if (theme === "night") { bgCol = b.dark || "#0d0e1a"; fgCol = "#ffffff"; accent = b.gold; }
-      else if (theme === "gold") { bgCol = b.gold; fgCol = b.orange ? "#0C2745" : "#17150d"; accent = b.dark || "#0d0e1a"; }
-      else { bgCol = "#faf9f6"; fgCol = "#16140e"; accent = b.gold; }
-
+    function paintBg(b, theme, W, H, S) {
+      var bgCol, fg, accent;
+      if (theme === "night") { bgCol = b.dark || "#0d0e1a"; fg = "#ffffff"; accent = b.gold; }
+      else if (theme === "gold") { bgCol = b.gold; fg = b.orange ? "#0C2745" : "#17150d"; accent = b.dark || "#0d0e1a"; }
+      else { bgCol = "#faf9f6"; fg = "#16140e"; accent = b.gold; }
       ctx.fillStyle = bgCol; ctx.fillRect(0, 0, W, H);
       if (theme === "night") {
-        var g = ctx.createRadialGradient(W * 0.14, -H * 0.1, 0, W * 0.14, -H * 0.1, Math.max(W, H) * 1.05);
-        g.addColorStop(0, "rgba(255,200,0,.20)"); g.addColorStop(0.55, "rgba(255,200,0,0)");
+        var g = ctx.createRadialGradient(W * 0.14, -H * 0.08, 0, W * 0.14, -H * 0.08, Math.max(W, H) * 1.05);
+        g.addColorStop(0, "rgba(255,200,0,.22)"); g.addColorStop(0.55, "rgba(255,200,0,0)");
         ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        var g2 = ctx.createRadialGradient(W * 0.92, H * 1.02, 0, W * 0.92, H * 1.02, Math.max(W, H) * 0.8);
+        g2.addColorStop(0, "rgba(255,213,19,.13)"); g2.addColorStop(1, "rgba(255,213,19,0)");
+        ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
       }
       ctx.fillStyle = accent; ctx.fillRect(0, H - 10 * S, W, 10 * S);
+      return { fg: fg, accent: accent, bg: bgCol };
+    }
 
-      var pad = 78 * S;
-      var y = pad + 20 * S;
-
-      if (kind === "hiring") {
-        ctx.font = "700 " + (30 * S) + "px Jost, Arial, sans-serif";
-        ctx.fillStyle = accent;
-        ctx.letterSpacing = (6 * S) + "px";
-        ctx.fillText("WE'RE HIRING", pad, y);
-        ctx.letterSpacing = "0px";
-        y += 46 * S;
-      }
-
-      var hFont = "400 " + (Math.round((fmt === "li-link" ? 88 : 108) * S)) + "px 'Bebas Neue', Impact, sans-serif";
-      var lines = wrap(head.toUpperCase(), W - pad * 2, hFont);
-      ctx.font = hFont; ctx.fillStyle = fgCol; ctx.textBaseline = "top";
-      var lh = (fmt === "li-link" ? 84 : 102) * S;
-      lines.forEach(function (ln) { ctx.fillText(ln, pad, y); y += lh; });
-
-      if (sub) {
-        y += 18 * S;
-        var sFont = "400 " + Math.round(34 * S) + "px Jost, Arial, sans-serif";
-        var slines = wrap(sub, W - pad * 2, sFont);
-        ctx.font = sFont; ctx.fillStyle = theme === "night" ? "rgba(255,255,255,.76)" : (theme === "gold" ? "rgba(0,0,0,.66)" : "#6f6a5d");
-        slines.forEach(function (ln) { ctx.fillText(ln, pad, y); y += 44 * S; });
-      }
-
-      if (jwu) {
-        ctx.font = "400 " + Math.round(44 * S) + "px 'Bebas Neue', Impact, sans-serif";
-        ctx.fillStyle = accent; ctx.textBaseline = "alphabetic";
-        ctx.letterSpacing = (3 * S) + "px";
-        ctx.fillText("#JWU", pad, H - pad + 6 * S);
-        ctx.letterSpacing = "0px";
-      }
-
-      loadLogo(b, function (im) {
+    function placeLogo(b, theme, W, H, S, pad) {
+      var useRev = (theme === "night") && b.rev;
+      var src = useRev ? b.rev : (b.svg || b.png);
+      return loadImg(src).then(function (im) {
         if (!im) return;
-        var maxW = Math.min(340 * S, W * 0.42), maxH = 92 * S;
+        var maxW = Math.min(300 * S, W * 0.38), maxH = 78 * S;
         var r = Math.min(maxW / im.naturalWidth, maxH / im.naturalHeight);
-        var lw = im.naturalWidth * r, lh2 = im.naturalHeight * r;
-        var lx = W - pad - lw, ly = H - pad - lh2 + 10 * S;
-        var needsPlate = (theme === "night" && b.key !== "jjp") || theme === "gold";
-        if (needsPlate) {
-          var px = 20 * S;
-          ctx.fillStyle = theme === "gold" ? "rgba(255,255,255,.96)" : "rgba(255,255,255,.95)";
-          var rr = 14 * S, x0 = lx - px, y0 = ly - px, w0 = lw + px * 2, h0 = lh2 + px * 2;
-          ctx.beginPath();
-          ctx.moveTo(x0 + rr, y0); ctx.lineTo(x0 + w0 - rr, y0); ctx.quadraticCurveTo(x0 + w0, y0, x0 + w0, y0 + rr);
-          ctx.lineTo(x0 + w0, y0 + h0 - rr); ctx.quadraticCurveTo(x0 + w0, y0 + h0, x0 + w0 - rr, y0 + h0);
-          ctx.lineTo(x0 + rr, y0 + h0); ctx.quadraticCurveTo(x0, y0 + h0, x0, y0 + h0 - rr);
-          ctx.lineTo(x0, y0 + rr); ctx.quadraticCurveTo(x0, y0, x0 + rr, y0); ctx.closePath(); ctx.fill();
+        var lw = im.naturalWidth * r, lh = im.naturalHeight * r;
+        var lx = W - pad - lw, ly = pad;
+        if (!useRev && theme === "gold") {
+          ctx.fillStyle = "rgba(255,255,255,.95)";
+          roundRect(lx - 16 * S, ly - 14 * S, lw + 32 * S, lh + 28 * S, 12 * S); ctx.fill();
         }
-        ctx.drawImage(im, lx, ly, lw, lh2);
+        ctx.drawImage(im, lx, ly, lw, lh);
       });
     }
 
-    ["pmBrand","pmFormat","pmKind","pmHead","pmSub","pmTheme","pmJwu"].forEach(function (id) {
-      var el = document.getElementById(id);
+    function draw() {
+      var b = BRANDS.filter(function (x) { return x.key === sel.value; })[0];
+      var fmt = G("pmFormat"), kind = G("pmKind"), theme = G("pmTheme");
+      var jwu = document.getElementById("pmJwu").checked;
+      var d = SIZES[fmt]; C.width = d[0]; C.height = d[1];
+      var W = d[0], H = d[1], S = Math.min(W, H) / 1080, pad = 76 * S;
+      document.getElementById("pmDims").textContent = W + " × " + H + " px · " + b.name + (kind === "hiring" ? " · hiring" : "");
+
+      var col = paintBg(b, theme, W, H, S);
+      var fg = col.fg, accent = col.accent;
+      var dim = theme === "night" ? "rgba(255,255,255,.72)" : (theme === "gold" ? "rgba(0,0,0,.62)" : "#6f6a5d");
+      ctx.textBaseline = "top";
+
+      if (kind === "statement") {
+        var y = pad + 26 * S;
+        var hFont = "400 " + Math.round((fmt === "li-link" ? 88 : 108) * S) + "px 'Bebas Neue', Impact, sans-serif";
+        ctx.font = hFont; ctx.fillStyle = fg;
+        var lh = (fmt === "li-link" ? 84 : 102) * S;
+        wrap(G("pmHead").toUpperCase() || " ", W - pad * 2, hFont).forEach(function (ln) { ctx.fillText(ln, pad, y); y += lh; });
+        var sub = G("pmSub");
+        if (sub) {
+          y += 18 * S;
+          var sFont = "400 " + Math.round(34 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+          ctx.font = sFont; ctx.fillStyle = dim;
+          wrap(sub, W - pad * 2, sFont).forEach(function (ln) { ctx.fillText(ln, pad, y); y += 44 * S; });
+        }
+      } else {
+        /* hiring: the role leads, the pay is the hook, everything else is optional furniture */
+        var role = G("pmRole") || "Open role", pay = G("pmPay"), shift = G("pmShift"),
+            loc = G("pmLoc"), apply = G("pmApply"), recEmail = G("pmRec");
+        var bottomBand = !!(recEmail || apply);
+        var y2 = pad + (bottomBand ? 22 * S : Math.round(H * 0.11));
+        ctx.font = "700 " + Math.round(26 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+        ctx.fillStyle = accent;
+        if (ctx.letterSpacing !== undefined) ctx.letterSpacing = (7 * S) + "px";
+        ctx.fillText("NOW HIRING", pad, y2);
+        if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "0px";
+        y2 += 56 * S;
+
+        var rFont = "400 " + Math.round((fmt === "li-link" ? 92 : 112) * S) + "px 'Bebas Neue', Impact, sans-serif";
+        ctx.font = rFont; ctx.fillStyle = fg;
+        var rlh = (fmt === "li-link" ? 86 : 104) * S;
+        wrap(role.toUpperCase(), W - pad * 2 - (120 * S), rFont).forEach(function (ln) { ctx.fillText(ln, pad, y2); y2 += rlh; });
+
+        var meta = [loc, shift].filter(Boolean).join("   ·   ");
+        if (meta) {
+          y2 += 10 * S;
+          ctx.font = "400 " + Math.round(31 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+          ctx.fillStyle = dim; ctx.fillText(meta, pad, y2); y2 += 52 * S;
+        }
+        if (pay) {
+          y2 += 20 * S;
+          ctx.fillStyle = accent; ctx.fillRect(pad, y2, 76 * S, 5 * S);
+          y2 += 26 * S;
+          ctx.font = "400 " + Math.round(84 * S) + "px 'Bebas Neue', Impact, sans-serif";
+          ctx.fillStyle = accent; ctx.fillText(pay, pad, y2);
+          y2 += 96 * S;
+        }
+        window.__pmJwuY = y2 + 46 * S;
+
+        /* recruiter chip, bottom left */
+        var chipY = H - pad - 92 * S;
+        if (recEmail) {
+          var rp = (window.__pmPeople || {})[recEmail] || {};
+          var ph = (window.__pmPhotos || {})[recEmail];
+          var cx = pad, cyc = chipY + 46 * S, rad = 44 * S;
+          var after = function () {
+            ctx.font = "700 " + Math.round(27 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+            ctx.fillStyle = fg; ctx.textBaseline = "alphabetic";
+            ctx.fillText(rp.name || recEmail.split("@")[0], cx + rad * 2 + 20 * S, cyc - 2 * S);
+            ctx.font = "400 " + Math.round(21 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+            ctx.fillStyle = dim;
+            ctx.fillText(rp.title || "Talk to me about this role", cx + rad * 2 + 20 * S, cyc + 26 * S);
+            ctx.textBaseline = "top";
+          };
+          if (ph) {
+            loadImg(ph).then(function (im) {
+              if (im) {
+                ctx.save(); ctx.beginPath(); ctx.arc(cx + rad, cyc, rad, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+                ctx.drawImage(im, cx, cyc - rad, rad * 2, rad * 2); ctx.restore();
+                ctx.beginPath(); ctx.arc(cx + rad, cyc, rad, 0, Math.PI * 2);
+                ctx.strokeStyle = accent; ctx.lineWidth = 3 * S; ctx.stroke();
+              }
+              after();
+            });
+          } else {
+            ctx.beginPath(); ctx.arc(cx + rad, cyc, rad, 0, Math.PI * 2);
+            ctx.fillStyle = accent; ctx.fill();
+            ctx.font = "700 " + Math.round(30 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+            ctx.fillStyle = "#17150d"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(((rp.name || recEmail)[0] || "?").toUpperCase(), cx + rad, cyc);
+            ctx.textAlign = "left"; ctx.textBaseline = "top";
+            after();
+          }
+        }
+
+        /* apply code, bottom right */
+        var hasQR = false;
+        if (apply) {
+          var qs = 150 * S, qx = W - pad - qs, qy = H - pad - qs - 4 * S;
+          hasQR = drawQR(apply, qx, qy, qs, "#17150d", "#ffffff");
+          if (hasQR) {
+            ctx.font = "400 " + Math.round(19 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+            ctx.fillStyle = dim; ctx.textAlign = "center";
+            ctx.fillText("Scan to apply", qx + qs / 2, qy + qs + 12 * S);
+            ctx.textAlign = "left";
+          } else {
+            // generator unavailable: show the link so the graphic still carries a way in
+            ctx.font = "400 " + Math.round(22 * S) + "px 'Century Gothic', Jost, Arial, sans-serif";
+            ctx.fillStyle = dim; ctx.textAlign = "right";
+            ctx.fillText(apply.replace(/^https?:\/\//, ""), W - pad, H - pad - 4 * S);
+            ctx.textAlign = "left";
+          }
+        }
+        window.__pmSlots = { left: !!recEmail, right: !!apply };
+      }
+
+      if (jwu) {
+        var slots = (kind === "hiring" && window.__pmSlots) || { left: false, right: false };
+        ctx.font = "400 " + Math.round(44 * S) + "px 'Bebas Neue', Impact, sans-serif";
+        ctx.fillStyle = accent; ctx.textBaseline = "alphabetic";
+        if (ctx.letterSpacing !== undefined) ctx.letterSpacing = (3 * S) + "px";
+        if (!slots.left) {                       // bottom left is free
+          ctx.fillText("#JWU", pad, H - pad - 6 * S);
+        } else if (!slots.right) {               // recruiter took the left, use the right
+          ctx.textAlign = "right"; ctx.fillText("#JWU", W - pad, H - pad - 6 * S); ctx.textAlign = "left";
+        } else if (window.__pmJwuY) {            // both corners taken: sit it under the pay block
+          ctx.fillText("#JWU", pad, window.__pmJwuY);
+        }
+        if (ctx.letterSpacing !== undefined) ctx.letterSpacing = "0px";
+        ctx.textBaseline = "top";
+      }
+      placeLogo(b, theme, W, H, S, pad);
+    }
+    window.__pmDraw = draw;
+
+    ["pmBrand","pmFormat","pmKind","pmTheme","pmJwu","pmHead","pmSub","pmRole","pmPay","pmShift","pmLoc","pmApply","pmRec"].forEach(function (id) {
+      var el = document.getElementById(id); if (!el) return;
       el.addEventListener(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input", function () {
         if (id === "pmKind") {
-          var hiring = document.getElementById("pmKind").value === "hiring";
-          document.getElementById("pmSubLbl").textContent = hiring ? "Role and location" : "Supporting line";
-          if (hiring && !/,/.test(document.getElementById("pmSub").value))
-            document.getElementById("pmSub").value = "Recruiter · Troy, MI";
+          var hiring = G("pmKind") === "hiring";
+          document.getElementById("pmStatementFields").style.display = hiring ? "none" : "";
+          document.getElementById("pmHiringFields").style.display = hiring ? "" : "none";
         }
         draw();
       });
@@ -253,7 +367,7 @@
       C.toBlob(function (blob) {
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "spark-" + b.key + "-" + document.getElementById("pmFormat").value + ".png";
+        a.download = "spark-" + b.key + "-" + G("pmKind") + "-" + G("pmFormat") + ".png";
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
       }, "image/png");
@@ -271,4 +385,132 @@
     }).join("");
     trk.innerHTML = marks + marks;   // duplicated so the -50% drift loops seamlessly
   }
+})();
+
+/* ---------------- BRAND_TRAINING_v1: the hub is gated behind a short course ---------------- */
+(function () {
+  "use strict";
+  var W = "https://spark-hq-worker.sparkcompanies.workers.dev";
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; }); };
+
+  function tok() {
+    try { if (window.parent && window.parent !== window && window.parent.SPARK_SB && window.parent.SPARK_SB.getToken)
+      return Promise.resolve(window.parent.SPARK_SB.getToken()); } catch (e) {}
+    try { var a = JSON.parse(localStorage.getItem("spark_hq_sb_auth") || "{}");
+      return Promise.resolve(a.access_token || (a.currentSession && a.currentSession.access_token) || (a.session && a.session.access_token) || ""); }
+    catch (e) { return Promise.resolve(""); }
+  }
+  var api = function (path, opts) {
+    return tok().then(function (t) {
+      if (!t) throw new Error("no session");
+      opts = opts || {}; opts.headers = Object.assign({ Authorization: "Bearer " + t }, opts.headers || {});
+      return fetch(W + path, opts).then(function (r) { return r.json(); });
+    });
+  };
+
+  /* recruiter picker + photos, only useful once the gate is open */
+  function loadPeople() {
+    var selR = document.getElementById("pmRec"); if (!selR) return;
+    api("/directory").then(function (j) {
+      var people = j.people || j || [];
+      if (!people.length) return;
+      window.__pmPeople = {};
+      people.forEach(function (p) { if (p.email) window.__pmPeople[p.email] = p; });
+      selR.innerHTML = '<option value="">None</option>' + people
+        .slice().sort(function (a, b) { return (a.name || "").localeCompare(b.name || ""); })
+        .map(function (p) { return '<option value="' + esc(p.email) + '">' + esc(p.name) + "</option>"; }).join("");
+      return api("/photos");
+    }).then(function (j) {
+      if (j && j.photos) { window.__pmPhotos = j.photos; try { window.__pmDraw && window.__pmDraw(); } catch (e) {} }
+    }).catch(function () {
+      var h = document.getElementById("pmRecHint");
+      if (h) h.textContent = "Directory unavailable, so photos are off — the rest still works.";
+    });
+  }
+
+  var QUIZ = [
+    { q: "Which is the registered trademark?",
+      a: ["Spark Companies®", "Spark®", "SPARK™", "All of them"], right: 0,
+      why: "The mark sits on the full name. “Spark” alone is not registered." },
+    { q: "You are building a slide that shows all seven brands together. Which gold do you use for the slide itself?",
+      a: ["Whichever gold you like", "The house gold, #FFC800", "Ignite’s #F2D416", "Mix them"], right: 1,
+      why: "Entity golds are for work inside that one brand. Anything portfolio-wide uses the house gold." },
+    { q: "You need the Ignite logo on a black background. What do you grab?",
+      a: ["The normal logo", "The normal logo with the background removed", "The reversed version from the hub", "Recolour it yourself"], right: 2,
+      why: "Every brand has a reversed version in the hub. Never recolour a logo by hand." },
+    { q: "The Inc. 5000 badge needs to fit a tight space. What is allowed?",
+      a: ["Crop it", "Recolour it to gold", "Stretch it", "Scale it proportionally, nothing else"], right: 3,
+      why: "The badge stays in its original, unmodified form." }
+  ];
+
+  var gate = document.getElementById("bGate"), gin = document.getElementById("bGateIn");
+  if (!gate || !gin) return;
+  var answers = {};
+
+  function render() {
+    gin.innerHTML =
+      '<p class="gk">BEFORE YOU USE THE BRAND</p>' +
+      '<h2>Four questions.<br><em>Then it is yours.</em></h2>' +
+      '<p class="gl">The brand only holds together if everyone applies it the same way. Read these, answer four questions, and the hub opens — once, not every time.</p>' +
+      '<div class="step"><h3><span class="n">1</span>The registered mark</h3><p><b>Spark Companies®</b> is the registered trademark, not <code>Spark</code> on its own. John Joseph Partners is registered too. Spark Talent carries <code>™</code>.</p></div>' +
+      '<div class="step"><h3><span class="n">2</span>Which gold</h3><p>There are five. Use the house gold <code>#FFC800</code> for anything spanning more than one brand, and the entity’s own value when you are working inside that brand. Flex is orange and navy on purpose — do not “fix” it.</p></div>' +
+      '<div class="step"><h3><span class="n">3</span>Dark backgrounds</h3><p>Every brand has a reversed version in the hub. Use it rather than putting the normal logo on black or recolouring one yourself.</p></div>' +
+      '<div class="step"><h3><span class="n">4</span>Leave the artwork alone</h3><p>No stretching, rotating, shadows, gradients or rebuilt wordmarks. The Inc. 5000 badge stays exactly as it is. Need a variant that is not here? Ask.</p></div>' +
+      '<div style="height:26px"></div>' +
+      QUIZ.map(function (q, i) {
+        return '<div class="q" data-q="' + i + '"><p>' + (i + 1) + ". " + esc(q.q) + "</p>" +
+          q.a.map(function (a, j) {
+            return '<label class="opt" data-opt="' + i + ":" + j + '"><input type="radio" name="bq' + i + '" value="' + j + '"><span>' + esc(a) + "</span></label>";
+          }).join("") + "</div>";
+      }).join("") +
+      '<div class="gact"><button class="gbtn" id="bGateGo" disabled>Unlock the Brand hub</button>' +
+      '<span class="gmsg" id="bGateMsg">Answer all four to continue.</span></div>';
+
+    gin.addEventListener("change", function (e) {
+      var inp = e.target.closest('input[type="radio"]'); if (!inp) return;
+      var lab = inp.closest(".opt"), p = lab.getAttribute("data-opt").split(":");
+      answers[+p[0]] = +p[1];
+      var done = QUIZ.every(function (_, i) { return answers[i] !== undefined; });
+      document.getElementById("bGateGo").disabled = !done;
+      var m = document.getElementById("bGateMsg");
+      m.className = "gmsg"; m.textContent = done ? "Ready." : "Answer all four to continue.";
+    });
+
+    document.getElementById("bGateGo").addEventListener("click", function () {
+      var btn = this, msg = document.getElementById("bGateMsg");
+      var wrong = [];
+      QUIZ.forEach(function (q, i) {
+        var chosen = answers[i];
+        var lab = gin.querySelector('[data-opt="' + i + ":" + chosen + '"]');
+        if (chosen === q.right) { lab.classList.add("right"); lab.classList.remove("wrong"); }
+        else { lab.classList.add("wrong"); wrong.push(i); }
+      });
+      if (wrong.length) {
+        msg.className = "gmsg bad";
+        msg.textContent = wrong.length === 1
+          ? "One to look at again. " + QUIZ[wrong[0]].why
+          : wrong.length + " to look at again — the explanation is in the numbered points above.";
+        return;
+      }
+      btn.disabled = true; msg.className = "gmsg"; msg.textContent = "Saving…";
+      api("/brand-training", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score: QUIZ.length, total: QUIZ.length }) })
+        .then(function (j) {
+          if (!j || !j.ok) throw new Error((j && j.error) || "Could not record it");
+          gate.classList.remove("on"); document.body.style.overflow = "";
+          loadPeople();
+        })
+        .catch(function (e) { btn.disabled = false; msg.className = "gmsg bad"; msg.textContent = "Could not save that: " + (e.message || e); });
+    });
+  }
+
+  api("/brand-training").then(function (j) {
+    if (j && j.complete) { loadPeople(); return; }
+    render(); gate.classList.add("on"); document.body.style.overflow = "hidden";
+  }).catch(function () {
+    // No session reachable (opened outside the shell): leave the hub open rather than
+    // locking someone out of their own logos over an auth hiccup.
+    loadPeople();
+  });
 })();

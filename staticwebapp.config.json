@@ -4,7 +4,7 @@
     "exclude": [
       "/assets/*",
       "/icons/*",
-      "*.{css,scss,js,mjs,json,webmanifest,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf,mp4,mov,webm,mp3,wav,pdf}",
+      "*.{css,scss,js,mjs,json,webmanifest,png,svg,jpg,jpeg,gif,ico,woff,woff2,ttf,mp4,mov,webm,mp3,wav,pdf,pptx,potx,docx,dotx,xlsx,zip}",
       "/spark-*.html",
       "/sparkline.html"
     ]
@@ -17,7 +17,12 @@
     ".svg": "image/svg+xml",
     ".woff": "font/woff",
     ".woff2": "font/woff2",
-    ".webmanifest": "application/manifest+json"
+    ".webmanifest": "application/manifest+json",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".potx": "application/vnd.openxmlformats-officedocument.presentationml.template",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".dotx": "application/vnd.openxmlformats-officedocument.wordprocessingml.template",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   },
   "responseOverrides": {
     "404": {
