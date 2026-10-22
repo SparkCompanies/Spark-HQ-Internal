@@ -2361,6 +2361,44 @@ var worker_default = {
         return json({ ok: true, as, status: r.status, denied, verdict: denied ? "Denied - the policy is holding for this mailbox" : (r.status === 400 ? "ALLOWED - this app could send as " + as : "Inconclusive (" + r.status + ")"), detail: txt }, 200, origin);
       } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
     }
+    if (url.pathname === "/brand-training" || url.pathname === "/brand-training/report") {
+      // BRAND_TRAINING_v1: the Brand hub is gated behind a short brand course. Completion is
+      // recorded per person so the gate survives a new browser, and admins bypass it.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const admin = await verifyAdmin(request, env);
+
+      if (url.pathname === "/brand-training/report") {
+        if (!admin.ok) return json({ error: admin.reason || "Unauthorized" }, 401, origin);
+        try {
+          const r = await sbService(env, "GET", "spark_hq_brand_training?select=email,name,score,total,completed_at&order=completed_at.desc&limit=500");
+          const done = {}; (r.data || []).forEach((x) => { done[(x.email || "").toLowerCase()] = x; });
+          const token = await getGraphToken(env);
+          const people = directoryPeople(await fetchDirectory(token));
+          const outstanding = people.filter((p) => !done[p.email]).map((p) => ({ name: p.name, email: p.email, title: p.title }));
+          return json({ ok: true, completed: r.data || [], outstanding, total: people.length }, 200, origin);
+        } catch (e) { return json({ error: String(e && e.message || e).slice(0, 180) }, 502, origin); }
+      }
+
+      if (request.method === "GET") {
+        const r = await sbService(env, "GET", "spark_hq_brand_training?select=completed_at,score,total&email=eq." + encodeURIComponent(who.email) + "&limit=1");
+        // Fail OPEN on a read error: a database hiccup should not lock the whole company out of its own logos.
+        if (!r.ok) return json({ ok: true, complete: true, admin: admin.ok, degraded: true }, 200, origin);
+        const row = (r.data || [])[0];
+        return json({ ok: true, complete: !!row || admin.ok, completedAt: row ? row.completed_at : null, admin: admin.ok }, 200, origin);
+      }
+      if (request.method === "POST") {
+        let b = {}; try { b = await request.json(); } catch (e) {}
+        const score = parseInt(b.score, 10) || 0, total = parseInt(b.total, 10) || 0;
+        if (!total || score < total) return json({ error: "Every question has to be right to finish." }, 400, origin);
+        const row = { email: who.email, name: b.name || "", score, total, completed_at: new Date().toISOString() };
+        const r = await sbService(env, "POST", "spark_hq_brand_training?on_conflict=email", row);
+        if (!r.ok) return json({ error: "Could not record it", detail: r.data }, 502, origin);
+        try { await sbService(env, "POST", "spark_hq_audit", { actor: who.email, action: "brand_training.complete", target: who.email, detail: score + "/" + total }); } catch (e) {}
+        return json({ ok: true, complete: true }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
     if (url.pathname === "/greetings/preview" || url.pathname === "/greetings/run") {
       // GREETINGS_v1: admin only. preview = never sends; run honours ?dry, GREETINGS_ENABLED, and
       // sendTo (a single test recipient, which is never recorded or posted to The Pulse).
