@@ -241,7 +241,9 @@
     { id:"soft",    name:"Soft light",  note:"Cream, for bright rooms" },
     { id:"planes",  name:"Planes",      note:"Angled, with depth" },
     { id:"bokeh",   name:"Defocused",   note:"Reads like a real room" },
-    { id:"cool",    name:"Slate",       note:"Off the gold entirely" }
+    { id:"cool",    name:"Slate",       note:"Off the gold entirely" },
+    { id:"glass",   name:"Glass wall",   note:"Office partition, logo in vinyl" },
+    { id:"board",   name:"Boardroom",    note:"Backlit sign on a dark wall" }
   ];
 
   function rgbOf(hex) {
@@ -268,6 +270,98 @@
     x.save(); x.globalAlpha = alpha; x.globalCompositeOperation = "overlay";
     var p = x.createPattern(grainTile, "repeat"); x.fillStyle = p; x.fillRect(0, 0, W, H);
     x.restore();
+  }
+
+
+  /* The two room looks are drawn sharp into an offscreen canvas and then composited
+     through a blur, which is what a real lens does to anything behind you. Drawing
+     them blurred directly gives you mush; blurring a sharp scene gives you depth. */
+  function roomScene(b, style, W, H, side) {
+    var o = document.createElement("canvas"); o.width = W; o.height = H;
+    var x = o.getContext("2d"), S = W / 1920, acc = b.gold || "#FFC800";
+    var right = side !== "left";
+
+    if (style === "glass") {
+      var g = x.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#f2f3f5"); g.addColorStop(0.46, "#e4e6ea"); g.addColorStop(1, "#cfd3d9");
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+
+      /* ceiling run, in perspective, with the panels that actually light these rooms */
+      x.fillStyle = "#e9ebee"; x.beginPath();
+      x.moveTo(0, 0); x.lineTo(W, 0); x.lineTo(W * 0.86, H * 0.27); x.lineTo(W * 0.14, H * 0.27);
+      x.closePath(); x.fill();
+      for (var i = 0; i < 4; i++) {
+        var t = i / 3, y0 = H * (0.03 + t * 0.17), inset = W * (0.1 + t * 0.07), hh = H * 0.028 * (1 - t * 0.35);
+        var lg = x.createLinearGradient(0, y0, 0, y0 + hh);
+        lg.addColorStop(0, "rgba(255,255,255,.98)"); lg.addColorStop(1, "rgba(255,255,255,.72)");
+        x.fillStyle = lg; x.fillRect(inset, y0, W - inset * 2, hh);
+        var hal = x.createRadialGradient(W / 2, y0 + hh / 2, 0, W / 2, y0 + hh / 2, W * 0.5);
+        hal.addColorStop(0, "rgba(255,255,255,.3)"); hal.addColorStop(1, "rgba(255,255,255,0)");
+        x.fillStyle = hal; x.fillRect(0, y0 - hh * 3, W, hh * 7);
+      }
+
+      /* glass partition: panels, mullions, and the sheen that gives glass away */
+      var top = H * 0.27, panels = 5, pw = W / panels;
+      for (var p = 0; p < panels; p++) {
+        var px = p * pw;
+        var pg = x.createLinearGradient(px, top, px + pw, H);
+        pg.addColorStop(0, "rgba(255,255,255,.34)"); pg.addColorStop(0.4, "rgba(246,248,250,.14)");
+        pg.addColorStop(1, "rgba(210,216,224,.3)");
+        x.fillStyle = pg; x.fillRect(px, top, pw, H - top);
+        x.fillStyle = "rgba(150,158,170,.5)"; x.fillRect(px, top, Math.max(2, 3 * S), H - top);
+      }
+      x.fillStyle = "rgba(150,158,170,.55)"; x.fillRect(0, top, W, Math.max(2, 4 * S));
+      var sheen = x.createLinearGradient(W * 0.1, top, W * 0.62, H);
+      sheen.addColorStop(0, "rgba(255,255,255,.4)"); sheen.addColorStop(0.5, "rgba(255,255,255,.05)");
+      sheen.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = sheen; x.fillRect(0, top, W, H - top);
+      /* floor beyond the glass */
+      x.fillStyle = "rgba(186,192,200,.55)"; x.fillRect(0, H * 0.88, W, H * 0.12);
+    } else {
+      var gw = x.createLinearGradient(0, 0, W, H);
+      gw.addColorStop(0, "#2a2a30"); gw.addColorStop(0.5, "#1d1e24"); gw.addColorStop(1, "#141519");
+      x.fillStyle = gw; x.fillRect(0, 0, W, H);
+      /* wall panels - vertical seams catch the wash and give the surface a direction */
+      for (var w = 0; w < 7; w++) {
+        var wx = w * (W / 7);
+        x.fillStyle = w % 2 ? "rgba(255,255,255,.016)" : "rgba(0,0,0,.05)";
+        x.fillRect(wx, 0, W / 7, H);
+        x.fillStyle = "rgba(255,255,255,.035)"; x.fillRect(wx, 0, Math.max(1, 2 * S), H);
+      }
+      var wash = x.createRadialGradient(W * 0.5, -H * 0.3, 0, W * 0.5, -H * 0.3, W * 0.72);
+      wash.addColorStop(0, "rgba(255,240,200,.22)"); wash.addColorStop(1, "rgba(255,240,200,0)");
+      x.fillStyle = wash; x.fillRect(0, 0, W, H);
+      x.fillStyle = "rgba(0,0,0,.4)"; x.fillRect(0, H * 0.9, W, H * 0.1);   /* floor shadow */
+    }
+    return o;
+  }
+
+  function roomLogo(x, im, b, style, W, H, side) {
+    var S = W / 1920, right = side !== "left";
+    var boxH = H * (style === "glass" ? 0.3 : 0.26);
+    var boxW = boxH * (im.naturalWidth / im.naturalHeight);
+    var max = W * 0.4;
+    if (boxW > max) { boxW = max; boxH = boxW * (im.naturalHeight / im.naturalWidth); }
+    var lx = right ? W * 0.52 : W * 0.48 - boxW;
+    /* keep the whole mark on the canvas - a logo running off the edge reads as a mistake,
+       and Teams crops a little more off the sides again */
+    var edge = W * 0.07;
+    if (lx + boxW > W - edge) lx = W - edge - boxW;
+    if (lx < edge) lx = edge;
+    var ly = H * (style === "glass" ? 0.4 : 0.34);
+    if (style === "glass") {
+      x.save(); x.globalAlpha = 0.9; x.drawImage(im, lx, ly, boxW, boxH); x.restore();
+    } else {
+      /* backlit: the halo behind the sign, then the sign, then a faint wall bounce */
+      var cx = lx + boxW / 2, cy = ly + boxH / 2;
+      var halo = x.createRadialGradient(cx, cy, 0, cx, cy, boxW * 0.95);
+      halo.addColorStop(0, rgba(b.gold || "#FFC800", 0.5));
+      halo.addColorStop(0.45, rgba(b.gold || "#FFC800", 0.14));
+      halo.addColorStop(1, rgba(b.gold || "#FFC800", 0));
+      x.fillStyle = halo; x.fillRect(cx - boxW, cy - boxH * 1.6, boxW * 2, boxH * 3.2);
+      x.save(); x.globalAlpha = 0.5; x.drawImage(im, lx + 3 * S, ly + 5 * S, boxW, boxH); x.restore();
+      x.drawImage(im, lx, ly, boxW, boxH);
+    }
   }
 
   function drawBackdrop(cv, b, style, side) {
@@ -319,6 +413,25 @@
         g2.addColorStop(0, rgba(acc, a)); g2.addColorStop(0.65, rgba(acc, a * 0.35)); g2.addColorStop(1, rgba(acc, 0));
         x.fillStyle = g2; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
       }
+    } else if (style === "glass" || style === "board") {
+      var scene = roomScene(b, style, W, H, side);
+      var art = style === "glass" ? (b.svg || b.png) : (b.rev || b.svg || b.png);
+      return sLoad(art).then(function (im) {
+        var sx = scene.getContext("2d");
+        if (im) roomLogo(sx, im, b, style, W, H, side);
+        x.save();
+        x.filter = "blur(" + Math.max(2, Math.round(7 * S)) + "px)";
+        /* overdraw the edges so the blur does not pull the page background in at the sides */
+        x.drawImage(scene, -W * 0.03, -H * 0.03, W * 1.06, H * 1.06);
+        x.restore();
+        if (style === "board") {
+          var v2 = x.createRadialGradient(W / 2, H * 0.46, H * 0.3, W / 2, H * 0.5, W * 0.8);
+          v2.addColorStop(0, "rgba(0,0,0,0)"); v2.addColorStop(1, "rgba(0,0,0,.45)");
+          x.fillStyle = v2; x.fillRect(0, 0, W, H);
+        }
+        grain(x, W, H, 0.05);
+        x.fillStyle = acc; x.fillRect(0, H - Math.round(7 * S), W, Math.round(7 * S));
+      });
     } else if (style === "cool") {
       /* for the days when another gold backdrop is the last thing anyone wants */
       var gc = x.createLinearGradient(0, 0, W, H);
