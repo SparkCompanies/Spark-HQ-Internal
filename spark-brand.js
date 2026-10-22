@@ -9,7 +9,7 @@
     { key:"talent", name:"Spark Talent Acquisition", mark:"™", svg:"brand/spark-talent.svg", png:"brand/spark-talent-logo.png", rev:"brand/spark-talent-reversed.svg", revPng:"brand/spark-talent-reversed.png",
       gold:"#FCD20E", dark:"#000000", note:"Staffing and direct hire. Carries ™, not ®." },
     { key:"ignite", name:"Ignite Search", mark:"", svg:"brand/ignite-search.svg", png:"brand/ignite-search-logo.png", rev:"brand/ignite-search-reversed.svg", revPng:"brand/ignite-search-reversed.png",
-      gold:"#F2D416", dark:"#000000", note:"Executive search and strategy, and IT staffing." },
+      gold:"#F2D216", dark:"#000000", note:"Executive search and strategy, and IT staffing." },
     { key:"jjp", name:"John Joseph Partners", mark:"®", svg:"brand/jjp.svg", png:"brand/jjp-logo.png", rev:"brand/jjp-reversed.svg", revPng:"brand/jjp-reversed.png",
       gold:"#FAD110", dark:"#000000", note:"IT staffing and search. Registered mark.",
       alts:[ {label:"Mark only", svg:"brand/jjp-mark.svg", png:"brand/jjp-mark-light.png"},
@@ -18,7 +18,7 @@
       gold:"#EC8F2F", dark:"#0C2745", orange:true,
       note:"The one brand that is deliberately not gold. Orange and navy, its own identity — do not “correct” it." },
     { key:"packaging", name:"Spark Packaging", mark:"\u2122", svg:"brand/spark-packaging.svg", png:"brand/spark-packaging-wordmark.png", rev:"brand/spark-packaging-reversed.svg", revPng:"brand/spark-packaging-reversed.png",
-      gold:"#FFDD5F", dark:"#3D3D3D", note:"Packaging and co-manufacturing talent. Carries \u2122 while the mark is pending.",
+      gold:"#FFDE59", dark:"#3E3E3E", note:"Packaging and co-manufacturing talent. Carries \u2122 while the mark is pending.",
       alts:[ {label:"Circle badge", png:"brand/spark-packaging-logo.png"},
              {label:"Reversed", png:"brand/spark-packaging-reversed.png"} ] },
     { key:"bolt", name:"Bolt Creative", mark:"", svg:"brand/bolt-creative.svg", png:"bolt-creative-logo.png",
@@ -292,7 +292,7 @@
   });
   SW.push({ nm:"Night", hex:"#0D0E1A", who:"Spark Companies, Spark HQ", dark:true });
   SW.push({ nm:"Flex navy", hex:"#0C2745", who:"Flex Workforce Solutions", dark:true });
-  SW.push({ nm:"Packaging charcoal", hex:"#3D3D3D", who:"Spark Packaging", dark:true });
+  SW.push({ nm:"Packaging charcoal", hex:"#3E3E3E", who:"Spark Packaging", dark:true });
   SW.push({ nm:"Cream", hex:"#FAF9F6", who:"Backgrounds, everywhere", dark:false });
 
   var swEl = document.getElementById("swatches");
@@ -321,7 +321,7 @@
   }
   var gn = document.getElementById("goldNote");
   if (gn) gn.innerHTML = "<b>Why five golds?</b> Each entity logo was drawn at a different time, so each carries its own value — " +
-    "<code>#FFC800</code>, <code>#FCD20E</code>, <code>#F2D416</code>, <code>#FAD110</code>, <code>#FFDD5F</code>. " +
+    "<code>#FFC800</code>, <code>#FCD20E</code>, <code>#F2D216</code>, <code>#FAD110</code>, <code>#FFDE59</code>. " +
     "Side by side on one slide the difference shows. Use the house gold for anything portfolio-wide, and the entity value when you are working inside a single brand.";
 
   /* ---------------- post maker ---------------- */
@@ -736,7 +736,7 @@
       a: ["Spark Companies®", "Spark®", "SPARK™", "All of them"], right: 0,
       why: "The mark sits on the full name. “Spark” alone is not registered." },
     { q: "You are building a slide that shows all seven brands together. Which gold do you use for the slide itself?",
-      a: ["Whichever gold you like", "The house gold, #FFC800", "Ignite’s #F2D416", "Mix them"], right: 1,
+      a: ["Whichever gold you like", "The house gold, #FFC800", "Ignite’s #F2D216", "Mix them"], right: 1,
       why: "Entity golds are for work inside that one brand. Anything portfolio-wide uses the house gold." },
     { q: "You need the Ignite logo on a black background. What do you grab?",
       a: ["The normal logo", "The normal logo with the background removed", "The reversed version from the hub", "Recolour it yourself"], right: 2,
