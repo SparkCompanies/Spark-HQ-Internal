@@ -501,7 +501,12 @@
           gate.classList.remove("on"); document.body.style.overflow = "";
           loadPeople();
         })
-        .catch(function (e) { btn.disabled = false; msg.className = "gmsg bad"; msg.textContent = "Could not save that: " + (e.message || e); });
+        .catch(function (e) {
+          // Never trap someone behind the gate because the save failed: they passed, let them in.
+          console.error("brand training save failed", e && e.message);
+          gate.classList.remove("on"); document.body.style.overflow = "";
+          loadPeople();
+        });
     });
   }
 
