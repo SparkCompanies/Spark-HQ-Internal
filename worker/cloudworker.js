@@ -1282,6 +1282,204 @@ async function greetingsRun(env, opts) {
 }
 __name(greetingsRun, "greetingsRun");
 
+// CAREER_XLSX_v1 parser
+// CAREER_XLSX_v1 parser: turns the free-form career path worksheets into HQ's career path shape.
+// Input: 2D arrays of displayed cell text (Graph usedRange "text").
+function cpClean(s) { return String(s == null ? "" : s).replace(/ /g, " ").replace(/\s+/g, " ").trim(); }
+function cpMoney(s) {
+  s = cpClean(s);
+  if (!s) return "";
+  const one = (t) => {
+    t = t.replace(/[$,\s]/g, "");
+    let m = /^(\d+(?:\.\d+)?)(k)?$/i.exec(t);
+    if (!m) return null;
+    let n = parseFloat(m[1]); if (m[2] || n < 1000) n = n * 1000;
+    return "$" + Math.round(n).toLocaleString("en-US");
+  };
+  const parts = s.split(/\s*[-–]\s*/);
+  if (parts.length === 2) {
+    const hasK = /k\s*$/i.test(parts[1]);
+    const a = one(parts[0] + (hasK && !/k$/i.test(parts[0]) ? "K" : "")), b = one(parts[1]);
+    if (a && b) return a + " - " + b;
+  }
+  return one(s) || s;
+}
+function cpNum(s) { const n = parseFloat(cpClean(s).replace(/[$,]/g, "")); return isNaN(n) ? 0 : Math.round(n); }
+function cpCommLine(rest) {
+  if (rest.length >= 2 && /^\d+(\.\d+)?%$/.test(rest[1])) {
+    const tail = rest.slice(2).join(" ");
+    return rest[0].replace(/:$/, "") + ": " + rest[1] + (tail ? " " + (/^\(/.test(tail) ? tail : "(" + tail + ")") : "");
+  }
+  return rest.join(" ");
+}
+const CP_TYPOS = [[/Acheiv/g, "Achiev"], [/acheiv/g, "achiev"], [/Sucessful/g, "Successful"], [/minimun/g, "minimum"], [/\btoal\b/g, "total"], [/(\d)(months?)\b/gi, "$1 $2"]];
+function cpTidy(s) {
+  s = cpClean(s).replace(/\*([^*]+)\*/g, "($1)").replace(/\*+/g, "").replace(/\s*!+\s*$/, "").replace(/\s+\./g, ".");
+  CP_TYPOS.forEach((t) => { s = s.replace(t[0], t[1]); });
+  return s.trim();
+}
+function cpNote(s) {
+  return cpClean(s).split(/\*{2,}|!/).map((p) => cpTidy(p)).filter(Boolean).map((p) => /[.?]$/.test(p) ? p : p + ".").join(" ");
+}
+const CP_COMM_IN_PROMO = /^(\$[\d,]+ a quarter to break commission floor|full desk|split\b|recruiting\s*=|no commission floor|see .*bonus structure)/i;
+
+// One vertical ladder: rows are [label, v1, v2, v3...]
+function cpParseLadder(rows) {
+  const levels = [], metrics = [];
+  let cur = null, field = "", inMetrics = false;
+  rows.forEach((r) => {
+    const cells = (r || []).map(cpClean);
+    const a = cells[0] || "", rest = cells.slice(1).filter(Boolean);
+    if (/^job title/i.test(a)) {
+      cur = { title: rest.join(" "), baseSalary: "", commission: [], promo: [] };
+      levels.push(cur); field = "title"; return;
+    }
+    if (!cur) {
+      if (/key metrics/i.test(a)) { inMetrics = true; return; }
+      if (inMetrics && a && !rest.length) metrics.push(a);
+      return;
+    }
+    if (/^base salary/i.test(a) || (!cur.baseSalary && rest.length && /^\$?[\d,.]+\s*k?(\s*[-–]\s*\$?[\d,.]+\s*k?)?$/i.test(rest[0]) && !/commission|promotion|contest/i.test(a))) {
+      cur.baseSalary = cpMoney(rest[0]); field = "salary"; return;
+    }
+    if (/^commission/i.test(a)) { field = "commission"; if (rest.length) cur.commission.push(cpCommLine(rest)); return; }
+    if (/^contest/i.test(a)) { field = "contest"; return; }
+    if (/^promotion/i.test(a)) { field = "promo"; if (rest.length) cur.promo.push(rest.join(" ")); return; }
+    if (a && /:$/.test(a)) { field = ""; return; }
+    // Continuation rows: label column empty, text in the value columns.
+    if (!a && rest.length) {
+      const line = cpCommLine(rest);
+      if (field === "commission" || (field === "promo" && CP_COMM_IN_PROMO.test(line)) || (field === "contest" && CP_COMM_IN_PROMO.test(line))) cur.commission.push(line);
+      else if (field === "promo") cur.promo.push(line);
+    }
+  });
+  return {
+    keyMetrics: metrics.map(cpTidy),
+    levels: levels.map((l) => {
+      let promo = l.promo.map(cpTidy).filter(Boolean);
+      // "o $45,000 Base Salary jump- ... o $47,000 ..." packed into one cell -> separate lines
+      promo = [].concat.apply([], promo.map((p) => /^o\s/.test(p) ? p.replace(/^o\s+/, "").split(/\s+o\s+(?=[$A-Z])|\s+(?=Contest \d+ to move)/) : [p]));
+      promo = promo.map((p) => p.replace(/^(\$[\d,]+) Base Salary jump-?\s*What must be achieved\?\s*(\$[\d,]+) in cumulative charge\.?$/i, "$1 base at $2 cumulative charge"));
+      return {
+        title: cpTidy(l.title).replace(/\s*:\s*/g, ": ").replace(/\s{2,}/g, " "),
+        baseSalary: l.baseSalary,
+        commission: l.commission.map(cpTidy).filter((c) => c && !/^see .*(tab|structure)$/i.test(c)),
+        promotionCriteria: promo.join(" ").trim(),
+        promotionSteps: promo.length > 1 ? promo : undefined
+      };
+    })
+  };
+}
+
+// Side-by-side ladders (Client Success): each lane starts at a column holding "Job Title:".
+function cpParseLanes(rows) {
+  const width = rows.reduce((m, r) => Math.max(m, (r || []).length), 0);
+  const laneCols = [];
+  rows.forEach((r) => (r || []).forEach((c, i) => { if (/^job title/i.test(cpClean(c)) && laneCols.indexOf(i) === -1) laneCols.push(i); }));
+  laneCols.sort((x, y) => x - y);
+  return laneCols.map((c, li) => {
+    const end = li + 1 < laneCols.length ? laneCols[li + 1] : width;
+    const sub = rows.map((r) => (r || []).slice(c, end));
+    // Lane name = the header text sitting in this column above the first "Job Title:".
+    let name = "";
+    for (let i = 0; i < sub.length; i++) {
+      const v = cpClean(sub[i][0]);
+      if (/^job title/i.test(v)) break;
+      if (v && !/:$/.test(v)) name = v;
+    }
+    const p = cpParseLadder(sub);
+    return { name: cpTidy(name), levels: p.levels };
+  }).filter((l) => l.levels.length);
+}
+
+function cpParseBonus(rows, displayName) {
+  let q = null, a = null, sect = null, note = "", grabNote = false;
+  rows.forEach((r) => {
+    const cells = (r || []).map(cpClean), first = cells.find(Boolean) || "";
+    if (/quarterly bonus schedule/i.test(first)) { q = { title: first, tiers: [] }; sect = q; return; }
+    if (/annual bonus schedule/i.test(first)) { a = { title: first, tiers: [] }; sect = a; return; }
+    if (/^contest level\s*\d+/i.test(first) && sect) {
+      const i = cells.indexOf(first), rest = cells.slice(i + 1);
+      const t = { level: "Contest Level " + (first.match(/\d+/) || [""])[0], charge: cpNum(rest[0]), bonus: cpNum(rest[1]) };
+      const ex = cpTidy(rest.slice(2).filter(Boolean).join(" ")).replace(/^&\s*/, "+ ");
+      if (ex) t.extras = ex;
+      sect.tiers.push(t); return;
+    }
+    if (/^uars?$/i.test(first)) { grabNote = true; return; }
+    if (grabNote && first) { note = cpNote(first); grabNote = false; }
+  });
+  return { name: displayName, quarterly: q && q.tiers.length ? q : null, annual: a && a.tiers.length ? a : null, note };
+}
+
+// CAREER_XLSX_v1: Career Paths read straight from the production workbooks in SharePoint.
+const CP_SOURCE = {
+  drive: "b!p25RkG9mpk6J1P9Ee8hIspk-xRHMimRApiDKhaHpTP2tZxoeIFHTR6hGBgTLeyxn", // Spark Companies site, Shared Documents
+  folder: "Career Paths/2026 Production Career Paths"
+};
+const CP_TRACKS = [
+  { id: "recruiter", career: /^recruiter career path/i, bonus: /^recruiter bonus/i, bonusId: "recruiter_bonus", titleStrip: /^Technical\/Skilled Trades\/Light Industrial\s*-?\s*/i },
+  { id: "arm", career: /^arm career path/i, bonus: /^arm bonus/i, bonusId: "arm_bonus" },
+  { id: "sales", career: /^(sales|business development) career path/i, bonus: /^(sales|business development) bonus/i, bonusId: "sales_bonus", renameSales: true },
+  { id: "client_success", career: /^client success career path/i, bonus: /^client success bonus/i, bonusId: "cs_bonus", lanes: true },
+  { id: "onsite", career: /^onsite career path/i, bonus: /^onsite bonus/i, bonusId: "onsite_bonus" }
+];
+async function careerPathsFromExcel(env) {
+  const token = await getGraphToken(env);
+  const H = { "Authorization": "Bearer " + token, "Accept": "application/json" };
+  const G = "https://graph.microsoft.com/v1.0/drives/" + CP_SOURCE.drive;
+  const folderPath = CP_SOURCE.folder.split("/").map(encodeURIComponent).join("/");
+  const lr = await fetch(G + "/root:/" + folderPath + ":/children?$select=id,name,webUrl,lastModifiedDateTime,lastModifiedBy", { headers: H });
+  const ld = await lr.json();
+  if (!lr.ok) throw new Error("Career Paths folder: " + ((ld.error && ld.error.message) || lr.status));
+  const files = (ld.value || []).filter((f) => /\.xlsx$/i.test(f.name) && !/^~\$/.test(f.name));
+  const sheets = []; // { file, name, values }
+  await Promise.all(files.map(async (f) => {
+    const B = G + "/items/" + f.id + "/workbook/worksheets";
+    const wr = await fetch(B + "?$select=name,visibility", { headers: H });
+    const wd = await wr.json();
+    if (!wr.ok) throw new Error(f.name + ": " + ((wd.error && wd.error.message) || wr.status));
+    const wanted = (wd.value || []).filter((w) => w.visibility === "Visible" && CP_TRACKS.some((t) => t.career.test(w.name) || t.bonus.test(w.name)));
+    await Promise.all(wanted.map(async (w) => {
+      const safe = encodeURIComponent(w.name.replace(/'/g, "''"));
+      const rr = await fetch(B + "('" + safe + "')/usedRange(valuesOnly=true)?$select=text", { headers: H });
+      const rd = await rr.json();
+      if (!rr.ok) throw new Error(f.name + " / " + w.name + ": " + ((rd.error && rd.error.message) || rr.status));
+      sheets.push({ file: f, name: w.name, values: rd.text || [] });
+    }));
+  }));
+  const bd = (s) => String(s || "").replace(/\bSales\b/g, "Business Development");
+  const tracks = [], bonusStructures = {};
+  CP_TRACKS.forEach((t) => {
+    const cs = sheets.find((s) => t.career.test(s.name));
+    const bs = sheets.find((s) => t.bonus.test(s.name));
+    if (cs) {
+      const out = { id: t.id, source: { file: cs.file.name, sheet: cs.name, webUrl: cs.file.webUrl, lastModified: cs.file.lastModifiedDateTime } };
+      const fix = (l) => {
+        if (t.titleStrip) l.title = l.title.replace(t.titleStrip, "");
+        l.title = l.title.charAt(0).toUpperCase() + l.title.slice(1);
+        if (t.renameSales) l.title = bd(l.title);
+        return l;
+      };
+      if (t.lanes) out.lanes = cpParseLanes(cs.values).map((ln) => ({ name: ln.name, levels: ln.levels.map(fix) }));
+      else { const p = cpParseLadder(cs.values); out.levels = p.levels.map(fix); out.keyMetrics = p.keyMetrics; }
+      out.bonusStructure = bs ? t.bonusId : null;
+      tracks.push(out);
+    }
+    if (bs) {
+      const b = cpParseBonus(bs.values, bs.name.replace(/\s+tab$/i, "").trim());
+      if (t.renameSales) { b.name = bd(b.name); if (b.quarterly) b.quarterly.title = bd(b.quarterly.title); if (b.annual) b.annual.title = bd(b.annual.title); }
+      bonusStructures[t.bonusId] = b;
+    }
+  });
+  return {
+    ok: true, asOf: new Date().toISOString(),
+    folder: CP_SOURCE.folder,
+    sources: files.map((f) => ({ name: f.name, webUrl: f.webUrl, lastModified: f.lastModifiedDateTime, lastModifiedBy: f.lastModifiedBy && f.lastModifiedBy.user && f.lastModifiedBy.user.displayName || "" })),
+    tracks, bonusStructures
+  };
+}
+__name(careerPathsFromExcel, "careerPathsFromExcel");
+
 async function getGraphToken(env) {
   const body = new URLSearchParams({
     client_id: env.AZ_CLIENT_ID,
@@ -2290,6 +2488,23 @@ var worker_default = {
         return json({ ok: true, row: saved, pushed }, 200, origin);
       }
       return json({ error: "Method not allowed" }, 405, origin);
+    }
+    if (url.pathname === "/career-paths") {
+      // CAREER_XLSX_v1: parsed career paths from the production Excel workbooks. Cached 10 minutes; ?fresh=1 skips the cache.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/career-paths-v1");
+      if (url.searchParams.get("fresh") !== "1") {
+        const hit = await cache.match(ck);
+        if (hit) { const h = new Headers(hit.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v)); return new Response(hit.body, { status: 200, headers: h }); }
+      }
+      try {
+        const body = JSON.stringify(await careerPathsFromExcel(env));
+        const resp = new Response(body, { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=600" } });
+        try { await cache.put(ck, resp.clone()); } catch (e) {}
+        const h = new Headers(resp.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => h.set(k, v));
+        return new Response(body, { status: 200, headers: h });
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 300) }, 502, origin); }
     }
     if (url.pathname === "/presence") {
       // PRESENCE_v1: Teams presence for everyone in the directory (needs Presence.Read.All application permission). Cached 60s.
