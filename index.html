@@ -2177,6 +2177,190 @@ body {
 .test-result .ttl { font-weight: 600; margin-bottom: 3px; }
 
 
+/* ==================== CAREER_XLSX_v1 — Career Paths redesign (cpx-*) ==================== */
+.cpx { --t-green:#22c55e; --t-blue:#38bdf8; --t-purple:#a78bfa; --t-gold:#F5C518; padding: 28px 0 56px; }
+.cpx .t-green { --tier:var(--t-green); --tier-ink:#15803d; --tier-soft:#ecfdf5; }
+.cpx .t-blue { --tier:var(--t-blue); --tier-ink:#0369a1; --tier-soft:#e0f2fe; }
+.cpx .t-purple { --tier:var(--t-purple); --tier-ink:#6d28d9; --tier-soft:#f3efff; }
+.cpx .t-gold { --tier:var(--t-gold); --tier-ink:#92400e; --tier-soft:#fef6d8; }
+.cpx-ico { flex-shrink: 0; vertical-align: -3px; }
+
+/* Track picker */
+.cpx-tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 22px; }
+.cpx-track { display: flex; align-items: center; gap: 10px; text-align: left; padding: 12px 14px; border-radius: 14px;
+  border: 1px solid var(--line); background: linear-gradient(180deg, #fff 0%, #fbfaf6 100%); cursor: pointer; font-family: inherit;
+  box-shadow: 0 1px 2px rgba(26,26,46,0.05); transition: transform .15s, box-shadow .15s, border-color .15s; color: var(--ink); }
+.cpx-track:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(26,26,46,0.08); border-color: color-mix(in srgb, var(--tc) 45%, var(--line)); }
+.cpx-track-ico { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
+  color: var(--tc); background: color-mix(in srgb, var(--tc) 14%, #fff); }
+.cpx-track-txt { display: flex; flex-direction: column; min-width: 0; }
+.cpx-track-txt b { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.cpx-track-txt small { font-size: 11px; color: var(--muted); }
+.cpx-track.active { background: radial-gradient(120% 140% at 0% 0%, #2a2a4a 0%, #1a1a2e 60%); color: #fff; border-color: transparent;
+  box-shadow: 0 10px 26px rgba(26,26,46,0.28), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1.5px var(--gold); }
+.cpx-track.active .cpx-track-txt small { color: rgba(255,255,255,0.6); }
+.cpx-track.active .cpx-track-ico { background: rgba(255,255,255,0.08); color: var(--gold); }
+
+/* Hero */
+.cpx-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px;
+  padding: 30px 32px 22px; border-radius: 22px; color: #fff; margin-bottom: 28px;
+  background: radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--tc) 30%, transparent) 0%, transparent 55%),
+              radial-gradient(70% 90% at 0% 100%, rgba(245,197,24,0.16) 0%, transparent 60%),
+              linear-gradient(160deg, #23233f 0%, #1a1a2e 55%, #12121f 100%);
+  box-shadow: 0 24px 50px -18px rgba(26,26,46,0.55), inset 0 1px 0 rgba(255,255,255,0.08); }
+.cpx-hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 18px 18px;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 70%); -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 70%); }
+.cpx-hero-main { position: relative; z-index: 1; min-width: 0; }
+.cpx-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700; color: var(--gold); }
+.cpx-hero h2 { font-family: var(--font-display); font-size: 34px; line-height: 1.1; font-weight: 600; margin: 8px 0 6px; letter-spacing: -0.5px; }
+.cpx-sub { margin: 0 0 18px; color: rgba(255,255,255,0.68); font-size: 13.5px; }
+.cpx-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.cpx-stat { padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(4px); min-width: 112px; }
+.cpx-stat span { display: block; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 3px; }
+.cpx-stat b { font-size: 18px; font-weight: 600; color: #fff; }
+.cpx-metrics { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.cpx-metrics-lbl { font-size: 10px; letter-spacing: 1.3px; text-transform: uppercase; color: rgba(255,255,255,0.5); font-weight: 700; }
+.cpx-metric { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: rgba(245,197,24,0.14); color: #ffe08a; border: 1px solid rgba(245,197,24,0.25); }
+
+/* Climb chart */
+.cpx-climb { position: relative; z-index: 1; display: flex; align-items: flex-end; gap: 8px; height: 190px; padding-top: 22px; }
+.cpx-step { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 6px;
+  background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; color: #fff; min-width: 0; }
+.cpx-step i { position: relative; display: block; height: var(--h); border-radius: 10px 10px 4px 4px; font-style: normal;
+  background: linear-gradient(180deg, var(--tier) 0%, color-mix(in srgb, var(--tier) 55%, #1a1a2e) 100%);
+  box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--tier) 70%, transparent), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition: transform .2s, filter .2s; transform-origin: bottom; animation: cpxRise .6s cubic-bezier(.2,.8,.2,1) both; }
+.cpx-step:nth-child(2) i { animation-delay: .05s } .cpx-step:nth-child(3) i { animation-delay: .1s } .cpx-step:nth-child(4) i { animation-delay: .15s }
+.cpx-step:nth-child(5) i { animation-delay: .2s } .cpx-step:nth-child(6) i { animation-delay: .25s } .cpx-step:nth-child(7) i { animation-delay: .3s }
+.cpx-step i em { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-style: normal; font-size: 11px; font-weight: 700; color: rgba(26,26,46,0.75); }
+.cpx-step:hover i { filter: brightness(1.08); transform: scaleY(1.03); }
+.cpx-step-pay { font-size: 11.5px; font-weight: 600; text-align: center; color: rgba(255,255,255,0.85); white-space: nowrap; }
+@keyframes cpxRise { from { transform: scaleY(0.05); opacity: .2 } to { transform: scaleY(1); opacity: 1 } }
+
+.cpx-source { grid-column: 1 / -1; position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; color: rgba(255,255,255,0.62); padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+.cpx-source a { color: #ffe08a; text-decoration: none; border-bottom: 1px dotted rgba(255,224,138,0.5); }
+.cpx-source.is-loading .cpx-ico { animation: cpxPulse 1.2s ease-in-out infinite; }
+.cpx-source.is-error { color: #fecaca; }
+.cpx-source button { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; font-size: 11.5px;
+  padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #fff; cursor: pointer; }
+@keyframes cpxPulse { 50% { opacity: .35 } }
+
+/* Ladder */
+.cpx-ladder { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.cpx-ladder::before { content: ""; position: absolute; left: 21px; top: 24px; bottom: 24px; width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, var(--t-green), var(--t-blue) 35%, var(--t-purple) 65%, var(--t-gold)); opacity: .45; }
+.cpx-level { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 14px; scroll-margin-top: 90px; }
+.cpx-node { position: relative; z-index: 1; width: 44px; height: 44px; margin-top: 18px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, var(--tier) 45%, color-mix(in srgb, var(--tier) 70%, #1a1a2e) 100%);
+  box-shadow: 0 0 0 4px var(--paper), 0 8px 18px -6px color-mix(in srgb, var(--tier) 80%, transparent); }
+.cpx-node span { font-size: 12px; font-weight: 800; color: #1a1a2e; letter-spacing: .5px; }
+.cpx-card { position: relative; background: linear-gradient(180deg, #fff 0%, #fdfcf8 100%); border: 1px solid var(--line); border-radius: 18px;
+  padding: 20px 22px; overflow: hidden; box-shadow: 0 1px 2px rgba(26,26,46,0.04), 0 10px 30px -18px rgba(26,26,46,0.18);
+  transition: box-shadow .2s, transform .2s, border-color .2s; }
+.cpx-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--tier); }
+.cpx-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--tier) 40%, var(--line)); box-shadow: 0 18px 40px -20px rgba(26,26,46,0.28); }
+.cpx-flash .cpx-card, .cpx-lane.cpx-flash { animation: cpxFlash 1.4s ease; }
+@keyframes cpxFlash { 0%, 100% { box-shadow: 0 1px 2px rgba(26,26,46,0.04) } 30% { box-shadow: 0 0 0 3px var(--tier), 0 18px 40px -18px rgba(26,26,46,0.3) } }
+.cpx-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 14px; }
+.cpx-card-titles { min-width: 0; }
+.cpx-tier { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--tier-ink);
+  background: var(--tier-soft); padding: 3px 8px; border-radius: 6px; margin-bottom: 7px; }
+.cpx-card h3 { font-family: var(--font-display); font-size: 19px; font-weight: 600; margin: 0; line-height: 1.25; color: var(--ink); }
+.cpx-scope { margin: 5px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.cpx-pay { text-align: right; flex-shrink: 0; }
+.cpx-pay span { display: block; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted-light); }
+.cpx-pay b { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--ink); white-space: nowrap; }
+.cpx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cpx-block { border-radius: 12px; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line-light); }
+.cpx-block h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 9px; font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.cpx-block p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink); }
+.cpx-next { background: linear-gradient(180deg, var(--tier-soft) 0%, #fff 140%); border-color: color-mix(in srgb, var(--tier) 25%, transparent); }
+.cpx-next h4 { color: var(--tier-ink); }
+.cpx-steps { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.6; }
+.cpx-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.cpx-chips li { font-size: 12px; line-height: 1.35; padding: 6px 10px; border-radius: 9px; background: #fff; border: 1px solid var(--line); color: var(--ink);
+  box-shadow: 0 1px 0 rgba(26,26,46,0.03); }
+
+/* Client Success stages */
+.cpx-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; align-items: start; }
+.cpx-lane { border-radius: 18px; background: #fff; border: 1px solid var(--line); overflow: hidden; scroll-margin-top: 90px;
+  box-shadow: 0 10px 30px -18px rgba(26,26,46,0.2); }
+.cpx-lane-head { padding: 16px 16px 14px; background: linear-gradient(160deg, var(--tier-soft) 0%, #fff 100%); border-bottom: 1px solid var(--line-light); position: relative; }
+.cpx-lane-head::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--tier); }
+.cpx-lane-num { font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--tier-ink); }
+.cpx-lane-head h3 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin: 4px 0 2px; color: var(--ink); }
+.cpx-lane-range { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.cpx-lane-steps { list-style: none; margin: 0; padding: 6px 0; counter-reset: ls; }
+.cpx-lane-steps > li { position: relative; padding: 10px 16px 10px 40px; border-bottom: 1px solid var(--line-light); counter-increment: ls; }
+.cpx-lane-steps > li:last-child { border-bottom: 0; }
+.cpx-lane-steps > li::before { content: counter(ls); position: absolute; left: 14px; top: 11px; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 10px; font-weight: 700; background: var(--tier-soft); color: var(--tier-ink); }
+.cpx-ls-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.cpx-ls-top b { font-weight: 600; color: var(--ink); }
+.cpx-ls-top span { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.cpx-ls-promo { margin: 4px 0 0; padding: 0; list-style: none; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+.cpx-ls-promo li::before { content: "\2191  "; color: var(--tier-ink); }
+.cpx-lane-steps .cpx-chips { margin-top: 6px; }
+
+/* Bonus table */
+.cpx-bonus { margin-top: 30px; border-radius: 20px; background: #fff; border: 1px solid var(--line); padding: 22px 24px;
+  box-shadow: 0 16px 40px -24px rgba(26,26,46,0.25); }
+.cpx-bonus-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.cpx-bonus .cpx-eyebrow { color: var(--gold-dark); }
+.cpx-bonus h3 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 6px 0 2px; color: var(--ink); }
+.cpx-bonus-title { margin: 0; font-size: 12.5px; color: var(--muted); }
+.cpx-seg { display: inline-flex; padding: 4px; border-radius: 12px; background: var(--paper); border: 1px solid var(--line); }
+.cpx-seg button { font-family: inherit; font-size: 12px; font-weight: 600; padding: 7px 14px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+.cpx-seg button.on { background: #1a1a2e; color: #fff; box-shadow: 0 4px 10px -4px rgba(26,26,46,0.5); }
+.cpx-table-wrap { overflow-x: auto; }
+.cpx-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 520px; }
+.cpx-table th { text-align: left; font-size: 10px; letter-spacing: 1.3px; text-transform: uppercase; color: var(--muted-light); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.cpx-table td { padding: 9px 10px; border-bottom: 1px solid var(--line-light); color: var(--ink); vertical-align: middle; }
+.cpx-table tr:last-child td { border-bottom: 0; }
+.cpx-table tbody tr:hover td { background: #fcfbf6; }
+.cpx-table .lvl { font-weight: 600; white-space: nowrap; }
+.cpx-lvl-num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; margin-right: 8px; font-size: 11px;
+  background: linear-gradient(135deg, #FFD43B, #D4A017); color: #1a1a2e; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5); }
+.cpx-table .charge { width: 38%; }
+.cpx-bar { position: relative; height: 26px; border-radius: 8px; background: var(--paper); overflow: hidden; }
+.cpx-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 8px; background: linear-gradient(90deg, rgba(245,197,24,0.25), rgba(245,197,24,0.55)); }
+.cpx-bar span { position: relative; display: block; line-height: 26px; padding-left: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cpx-table .bonus { font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cpx-table .extras { color: var(--muted); font-size: 12px; }
+.cpx-note { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--paper-warm); border: 1px solid rgba(245,197,24,0.35); font-size: 12px; line-height: 1.55; color: var(--ink); }
+
+/* Admin source panel */
+.cpx-admin .cpx-source { color: var(--muted); border-top: 0; padding: 0 0 12px; }
+.cpx-admin .cpx-source a { color: var(--gold-dark); }
+.cpx-admin .cpx-source.is-error { color: #b91c1c; }
+.cpx-files { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.cpx-file { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; }
+.cpx-file:hover { border-color: var(--gold-dark); }
+.cpx-file .cpx-ico { color: #15803d; }
+.cpx-file b { display: block; font-size: 13px; } .cpx-file small { font-size: 11.5px; color: var(--muted); }
+.cpx-admin-map { list-style: none; padding: 0; margin: 16px 0 0; border-top: 1px solid var(--line); }
+.cpx-admin-map li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-light); font-size: 12.5px; }
+.cpx-admin-map span { color: var(--muted); text-align: right; }
+
+@media (max-width: 900px) {
+  .cpx-hero { grid-template-columns: 1fr; padding: 24px 20px 18px; }
+  .cpx-climb { height: 150px; }
+  .cpx-hero h2 { font-size: 28px; }
+}
+@media (max-width: 640px) {
+  .cpx-grid { grid-template-columns: 1fr; }
+  .cpx-card-head { flex-direction: column; gap: 8px; }
+  .cpx-pay { text-align: left; }
+  .cpx-level { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; }
+  .cpx-node { width: 34px; height: 34px; }
+  .cpx-ladder::before { left: 16px; }
+  .cpx-step-pay { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .cpx-step i, .cpx-card, .cpx-track { animation: none !important; transition: none !important; } }
+
 /* ==================== V8B — CAREER PATHS ==================== */
 /* ==================== V8B — CAREER PATHS ==================== */
 
@@ -6590,6 +6774,12 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
     <div class="footer">
       <span class="ver-dot"></span><span>Spark HQ · v56</span>
     </div>
+    <script>/* HALLOWEEN_v1: sidebar footer nod, Oct 24-31 only */
+    (function(){try{var d=new Date();if(!(/[?&]halloween=1/.test(location.search)||(d.getMonth()===9&&d.getDate()>=24)))return;
+      var f=document.currentScript.previousElementSibling;var sp=document.createElement('span');sp.className='hw-side';
+      sp.innerHTML='<svg width="15" height="14" viewBox="0 0 64 60" aria-hidden="true"><path d="M30 10c0-5 3-8 7-9l1 3c-3 1-4 3-4 6z" fill="#3f6212"/><ellipse cx="18" cy="35" rx="15" ry="22" fill="#ea580c"/><ellipse cx="46" cy="35" rx="15" ry="22" fill="#ea580c"/><ellipse cx="32" cy="35" rx="16" ry="24" fill="#f97316"/><path d="M20 30l6-6 4 6zM34 30l6-6 4 6zM18 40q14 12 28 0l-4 2-3-3-4 3-3-3-4 3-3-3-3 3z" fill="#ffd36b"/></svg>Happy Halloween';
+      sp.style.cssText='margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#c2410c';
+      f.appendChild(sp);}catch(e){}})();</script>
   </aside>
 
   <!-- ==================== MAIN ==================== -->
@@ -9032,19 +9222,14 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
           <div class="admin-pane" data-admin-pane="career-paths" style="display: none;">
             <div class="admin-hero">
               <div class="eyebrow">Content · Career paths</div>
-              <h2>Career path editor. <span style="color: var(--muted-light);">Track levels, comp, promotion criteria.</span></h2>
-              <div class="dek">Edit all six tracks (Recruiter, ARM, Sales, Client Success, Onsite, RPO) and their levels. Changes propagate immediately to the Career Paths tab. Loaded from the spreadsheets — edit here without touching Excel.</div>
+              <h2>Career paths come from Excel. <span style="color: var(--muted-light);">Edit the workbook, HQ follows.</span></h2>
+              <div class="dek">The Career Paths tab reads the 2026 Production Career Paths workbooks in the Spark Companies SharePoint (Shared Documents &rsaquo; Career Paths). Change a title, salary, or bonus level in Excel and everyone sees it in HQ within 10 minutes, or right away with Pull from Excel now. RPO isn't in the workbooks yet, so it still lives in HQ.</div>
             </div>
 
             <div class="admin-section">
               <div class="admin-section-head">
-                <h3>All tracks</h3>
-                <div class="actions">
-                  <button class="btn-secondary" onclick="exportCareerPathsJson()">Export JSON</button>
-                  <button class="btn-secondary" onclick="resetCareerPaths()">Reset to default</button>
-                </div>
+                <h3>Source workbooks</h3>
               </div>
-              <div style="font-size: 11px; color: var(--muted); margin-bottom: 12px;">Click a track to edit its levels below.</div>
               <div id="careerPathsAdminBody"></div>
             </div>
           </div>
@@ -15331,8 +15516,8 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     },
     {
       "id": "sales",
-      "name": "Sales",
-      "subtitle": "Sales Manager track",
+      "name": "Business Development",
+      "subtitle": "Business Development Manager track",
       "color": "#F5C518",
       "bonusStructure": "sales_bonus",
       "levels": [
@@ -15340,9 +15525,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "id": "sales_1",
           "tier": "I",
           "tierColor": "Green",
-          "ideasName": "Sales I",
+          "ideasName": "BD Manager I",
           "ideasScope": "Entry-level. Building activity, learning systems, mastering process.",
-          "title": "Sales Manager: Level I",
+          "title": "Business Development Manager: Level I",
           "baseSalary": "$50,000",
           "commission": [
             "Split: 6% (12% of your raw total)",
@@ -15354,9 +15539,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "id": "sales_2",
           "tier": "II",
           "tierColor": "Blue",
-          "ideasName": "Sales II",
+          "ideasName": "BD Manager II",
           "ideasScope": "Independent contributor. Carries pipeline reliably.",
-          "title": "Sales Manager: Level II",
+          "title": "Business Development Manager: Level II",
           "baseSalary": "$60,000",
           "commission": [
             "Split: 8% (16% of your raw total)",
@@ -15368,9 +15553,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "id": "sales_3",
           "tier": "III",
           "tierColor": "Purple",
-          "ideasName": "Sales III",
+          "ideasName": "BD Manager III",
           "ideasScope": "Senior IC. Larger book, strategic accounts.",
-          "title": "Sales Executive",
+          "title": "Business Development Executive",
           "baseSalary": "$60,000",
           "commission": [
             "Split: 10% (20% of your raw total)",
@@ -15382,9 +15567,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "id": "sales_4",
           "tier": "III",
           "tierColor": "Purple",
-          "ideasName": "Sales III (advanced)",
+          "ideasName": "BD Manager III (advanced)",
           "ideasScope": "Senior executive, top-end of IC track.",
-          "title": "Sr. Sales Executive",
+          "title": "Sr. Business Development Executive",
           "baseSalary": "$70,000",
           "commission": [
             "Split: 10% (20% of your raw total)",
@@ -15396,9 +15581,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "id": "sales_5",
           "tier": "IV",
           "tierColor": "Gold",
-          "ideasName": "Sales IV",
+          "ideasName": "BD Manager IV",
           "ideasScope": "Principal. Multi-contest winner, Presidents Club tier.",
-          "title": "Sr. Sales Executive: Presidents Club",
+          "title": "Sr. Business Development Executive: Presidents Club",
           "baseSalary": "$70,000",
           "commission": [
             "Split: 10% (20% of your raw total)",
@@ -15410,9 +15595,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           "id": "sales_6",
           "tier": "IV",
           "tierColor": "Gold",
-          "ideasName": "Sales IV (PC top)",
+          "ideasName": "BD Manager IV (PC top)",
           "ideasScope": "Principal-level, top Presidents Club tier.",
-          "title": "Sr. Sales Executive: Presidents Club",
+          "title": "Sr. Business Development Executive: Presidents Club",
           "baseSalary": "$80,000",
           "commission": [
             "Split: 12% (24% of your raw total)",
@@ -15727,9 +15912,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       "note": "UARS Details will be included in the notice agreements that are sent annually. Must achieve $10,000 in UARS before becoming eligible for IIP."
     },
     "sales_bonus": {
-      "name": "Sales Bonus Structure",
+      "name": "Business Development Bonus Structure",
       "quarterly": {
-        "title": "Sales Quarterly Bonus Schedule (Uncapped)",
+        "title": "Business Development Quarterly Bonus Schedule (Uncapped)",
         "tiers": [
           { "level": "Contest Level 1", "charge": 87000, "bonus": 1250 },
           { "level": "Contest Level 2", "charge": 90000, "bonus": 1500 },
@@ -15743,7 +15928,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
         ]
       },
       "annual": {
-        "title": "Sales Annual Bonus Schedule (Capped at Contest Level)",
+        "title": "Business Development Annual Bonus Schedule (Capped at Contest Level)",
         "tiers": [
           { "level": "Contest Level 1", "charge": 286000, "bonus": 4500, "extras": "+ $1,000 towards UARS & Company Trip OR payout" },
           { "level": "Contest Level 2", "charge": 312000, "bonus": 5000, "extras": "+ $1,500 towards UARS & Company Trip OR payout" },
@@ -15916,22 +16101,74 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
 }
 ;
 
-  // Load from localStorage if present, else use default
-  let CAREER_PATHS = (function() {
-    try {
-      const stored = localStorage.getItem('spark_hq_career_paths');
-      if (stored) return JSON.parse(stored);
-    } catch(e) {}
-    return JSON.parse(JSON.stringify(CAREER_PATHS_DEFAULT));
-  })();
+  // CAREER_XLSX_v1: Career Paths now come from the production Excel workbooks in SharePoint
+  // (Spark Companies > Shared Documents > Career Paths > 2026 Production Career Paths), read by the
+  // worker's /career-paths endpoint. CAREER_PATHS_DEFAULT is only the fallback when Excel can't be reached.
+  // Old per-browser edits saved under spark_hq_career_paths are dropped so they can't hide the live data.
+  try { localStorage.removeItem('spark_hq_career_paths'); } catch(e) {}
+  let CAREER_PATHS = JSON.parse(JSON.stringify(CAREER_PATHS_DEFAULT));
+  const CP_WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+  const CP_TIERS = [['I', 'Green'], ['II', 'Blue'], ['III', 'Purple'], ['IV', 'Gold']];
+  let cpLive = { state: 'idle', error: '', at: 0, meta: null };
 
-  function persistCareerPaths() {
-    try { localStorage.setItem('spark_hq_career_paths', JSON.stringify(CAREER_PATHS)); } catch(e) {}
-  }
+  function persistCareerPaths() { /* edits now live in Excel; kept so the legacy editor code still runs */ }
 
   function escapeCp(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
+
+  function cpMergeLive(live) {
+    const base = JSON.parse(JSON.stringify(CAREER_PATHS_DEFAULT));
+    (live.tracks || []).forEach(lt => {
+      const t = base.tracks.find(x => x.id === lt.id);
+      if (!t) return;
+      const meta = t.levels || [];
+      if (lt.levels) {
+        const n = lt.levels.length, sameShape = meta.length === n;
+        t.levels = lt.levels.map((l, i) => {
+          const m = sameShape ? meta[i] : null;
+          const pos = CP_TIERS[Math.min(3, Math.floor(i * 4 / Math.max(n, 1)))];
+          return Object.assign({
+            id: t.id + '_' + (i + 1),
+            tier: m ? m.tier : pos[0],
+            tierColor: m ? m.tierColor : pos[1],
+            ideasScope: m ? m.ideasScope : ''
+          }, l);
+        });
+        delete t.lanes;
+      }
+      if (lt.lanes) {
+        t.lanes = lt.lanes.map((ln, i) => ({ name: ln.name, tier: CP_TIERS[Math.min(3, i)][0], tierColor: CP_TIERS[Math.min(3, i)][1], levels: ln.levels }));
+        t.levels = [];
+      }
+      if (lt.keyMetrics && lt.keyMetrics.length) t.keyMetrics = lt.keyMetrics;
+      t.source = lt.source;
+      if (lt.bonusStructure) t.bonusStructure = lt.bonusStructure;
+    });
+    Object.assign(base.bonusStructures, live.bonusStructures || {});
+    base.live = { asOf: live.asOf, folder: live.folder, sources: live.sources || [] };
+    return base;
+  }
+
+  function cpLoadLive(fresh) {
+    if (cpLive.state === 'loading') return Promise.resolve();
+    if (!window.SPARK_SB || !window.SPARK_SB.getToken) { cpLive.state = 'error'; cpLive.error = 'Sign-in is not ready yet.'; return Promise.resolve(); }
+    cpLive.state = 'loading'; cpLive.at = Date.now();
+    try { renderCareerPathsTab(); } catch(e) {}
+    return window.SPARK_SB.getToken()
+      .then(tok => {
+        if (!tok) throw new Error('Sign in to load the live career paths.');
+        return fetch(CP_WORKER + '/career-paths' + (fresh ? '?fresh=1' : ''), { headers: { 'Authorization': 'Bearer ' + tok } });
+      })
+      .then(r => r.json().then(j => { if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }))
+      .then(j => { CAREER_PATHS = cpMergeLive(j); cpLive.state = 'ok'; cpLive.error = ''; cpLive.meta = CAREER_PATHS.live; })
+      .catch(e => { cpLive.state = 'error'; cpLive.error = String(e && e.message || e); })
+      .then(() => {
+        try { renderCareerPathsTab(); } catch(e) {}
+        try { if (document.getElementById('careerPathsAdminBody')) renderCareerPathsAdmin(); } catch(e) {}
+      });
+  }
+  window.cpRefreshFromExcel = function() { return cpLoadLive(true); };
 
   // Helper for tier color class
   function tierClass(tierColor) {
@@ -15949,85 +16186,215 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   let cpBonusView = 'annual'; // 'quarterly' | 'annual'
 
   // ==================== VIEWER RENDERING ====================
+  const CP_ICON = {
+    recruiter: '<circle cx="11" cy="8" r="4"/><path d="M3 21v-1a6 6 0 0 1 10.5-4"/><circle cx="17.5" cy="17.5" r="3"/><path d="m21 21-1.4-1.4"/>',
+    arm: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>',
+    sales: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    client_success: '<circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/>',
+    onsite: '<path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/>',
+    rpo: '<path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/>',
+    sheet: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.6-4.5L3 9"/><path d="M3 4v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L21 15"/><path d="M21 20v-5h-5"/>',
+    coins: '<circle cx="9" cy="9" r="6"/><path d="M15.5 9.5a6 6 0 1 1-6 6"/><path d="M9 6.5v5M7.5 8h3"/>',
+    arrowUp: '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+    trophy: '<path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+    alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/>'
+  };
+  function cpIcon(name, size) {
+    return `<svg class="cpx-ico" width="${size || 16}" height="${size || 16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CP_ICON[name] || CP_ICON.sales}</svg>`;
+  }
+  function cpSalaryNum(s) {
+    const m = String(s || '').replace(/,/g, '').match(/\d+(\.\d+)?/g);
+    if (!m) return 0;
+    return Math.max.apply(null, m.map(Number).map(n => n < 1000 ? n * 1000 : n));
+  }
+  function cpShortMoney(s) {
+    const nums = (String(s || '').replace(/,/g, '').match(/\d+(\.\d+)?/g) || []).map(Number).map(n => n < 1000 ? n * 1000 : n);
+    if (!nums.length) return '';
+    const k = n => Math.round(n / 1000);
+    return nums.length > 1 ? '$' + k(nums[0]) + '-' + k(nums[nums.length - 1]) + 'K' : '$' + k(nums[0]) + 'K';
+  }
+  function cpFmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function cpAllLevels(track) {
+    if (track.lanes) return [].concat.apply([], track.lanes.map(l => l.levels));
+    return track.levels || [];
+  }
+  function cpTopSplit(levels) {
+    let best = 0;
+    levels.forEach(l => (l.commission || []).forEach(c => {
+      const m = /^(split|recruiting|signed accounts)\b[^0-9]*(\d+(?:\.\d+)?)%/i.exec(c);
+      if (m) best = Math.max(best, parseFloat(m[2]));
+    }));
+    return best;
+  }
+
   function renderCareerPathsTab() {
     const view = document.getElementById('view-careers');
     if (!view) return;
+    if (cpLive.state === 'idle' || (cpLive.state === 'error' && Date.now() - cpLive.at > 60000)) { setTimeout(() => cpLoadLive(false), 0); }
 
-    // Find or create the body container
     let body = view.querySelector('.tab-body');
-    if (!body) {
-      body = document.createElement('div');
-      body.className = 'tab-body';
-      view.appendChild(body);
-    }
+    if (!body) { body = document.createElement('div'); body.className = 'tab-body'; view.appendChild(body); }
 
     const tracks = CAREER_PATHS.tracks || [];
     const activeTrack = tracks.find(t => t.id === cpActiveTrack) || tracks[0];
     if (!activeTrack) { body.innerHTML = '<div style="padding: 32px; color: var(--muted);">No career paths configured.</div>'; return; }
 
-    // Track pills
-    let html_out = '<div class="cp-track-pills">';
+    let html_out = '<div class="cpx">';
+    html_out += '<nav class="cpx-tracks" aria-label="Career tracks">';
     tracks.forEach(t => {
-      html_out += `<button class="cp-track-pill ${t.id === activeTrack.id ? 'active' : ''}" style="--track-color: ${escapeCp(t.color)};" onclick="setCareerTrack('${escapeCp(t.id)}')">
-        <span class="dot"></span>
-        <span>${escapeCp(t.name)}</span>
-        ${t.subtitle ? `<span class="sub">${escapeCp(t.subtitle)}</span>` : ''}
+      const n = t.lanes ? t.lanes.length : (t.levels || []).length;
+      const count = t.id === 'rpo' ? 'Commission model' : (t.lanes ? n + ' stages' : n + ' levels');
+      html_out += `<button class="cpx-track ${t.id === activeTrack.id ? 'active' : ''}" style="--tc:${escapeCp(t.color)}" onclick="setCareerTrack('${escapeCp(t.id)}')">
+        <span class="cpx-track-ico">${cpIcon(t.id, 18)}</span>
+        <span class="cpx-track-txt"><b>${escapeCp(t.name)}</b><small>${escapeCp(count)}</small></span>
       </button>`;
     });
-    html_out += '</div>';
+    html_out += '</nav>';
 
-    // Key metrics banner (if present)
-    if (activeTrack.keyMetrics && activeTrack.keyMetrics.length > 0) {
-      html_out += '<div class="cp-metrics-banner"><span class="lbl">Key metrics</span>';
-      activeTrack.keyMetrics.forEach(m => { html_out += `<span class="met">${escapeCp(m)}</span>`; });
-      html_out += '</div>';
-    }
+    html_out += renderCpHero(activeTrack);
 
-    // RPO special case
-    if (activeTrack.id === 'rpo' && activeTrack.rpoModel) {
-      html_out += renderRpoBlock(activeTrack);
-    } else {
-      // Standard track: render levels
-      html_out += renderTrackLevels(activeTrack);
-    }
+    if (activeTrack.id === 'rpo' && activeTrack.rpoModel) html_out += renderRpoBlock(activeTrack);
+    else if (activeTrack.lanes) html_out += renderCpLanes(activeTrack);
+    else html_out += renderTrackLevels(activeTrack);
 
-    // Bonus structure
     if (activeTrack.bonusStructure && CAREER_PATHS.bonusStructures && CAREER_PATHS.bonusStructures[activeTrack.bonusStructure]) {
       html_out += renderBonusStructure(activeTrack.bonusStructure);
     }
-
+    html_out += '</div>';
     body.innerHTML = html_out;
   }
 
+  function renderCpSource(track) {
+    if (cpLive.state === 'loading' || cpLive.state === 'idle') {
+      return `<div class="cpx-source is-loading">${cpIcon('sheet', 14)}<span>Pulling the latest from Excel&hellip;</span></div>`;
+    }
+    if (cpLive.state === 'error') {
+      return `<div class="cpx-source is-error">${cpIcon('alert', 14)}<span>Showing the saved copy. Excel couldn't be reached: ${escapeCp(cpLive.error)}</span><button onclick="cpRefreshFromExcel()">${cpIcon('refresh', 13)}Try again</button></div>`;
+    }
+    const s = track.source;
+    if (!s) return `<div class="cpx-source">${cpIcon('sheet', 14)}<span>Not in the Excel workbooks. Managed in HQ.</span></div>`;
+    return `<div class="cpx-source">${cpIcon('sheet', 14)}<span>From <a href="${escapeCp(s.webUrl)}" target="_blank" rel="noopener">${escapeCp(s.file)}</a> &middot; ${escapeCp(s.sheet)} &middot; updated ${escapeCp(cpFmtDate(s.lastModified))}</span></div>`;
+  }
+
+  function renderCpHero(track) {
+    const levels = cpAllLevels(track);
+    let stats = [], steps = '';
+    if (track.id === 'rpo' && track.rpoModel) {
+      const sp = track.rpoModel.salaryProgression || [], ct = track.rpoModel.commissionTiers || [];
+      if (sp.length) { stats.push(['Starting base', sp[0].base]); stats.push(['Target base', sp[sp.length - 1].base]); }
+      const topRate = ct.reduce((m, c) => Math.max(m, parseFloat(c.rate) || 0), 0);
+      if (topRate) stats.push(['Commission up to', topRate + '%']);
+      const nums = sp.map(s => cpSalaryNum(s.base)), max = Math.max.apply(null, nums.concat([1])), min = Math.min.apply(null, nums.concat([max]));
+      steps = sp.map((s, i) => {
+        const h = 30 + (max === min ? 70 : 70 * (nums[i] - min) / (max - min));
+        const t = CP_TIERS[Math.min(3, Math.floor(i * 4 / sp.length))];
+        return `<div class="cpx-step t-${tierClass(t[1])}" style="--h:${h}%"><span class="cpx-step-pay">${escapeCp(cpShortMoney(s.base))}</span><i></i></div>`;
+      }).join('');
+    } else {
+      const nums = levels.map(l => cpSalaryNum(l.baseSalary)).filter(Boolean);
+      if (levels.length) { stats.push(['Starting base', levels[0].baseSalary]); }
+      if (nums.length) stats.push(['Top base', '$' + Math.max.apply(null, nums).toLocaleString('en-US')]);
+      const split = cpTopSplit(levels);
+      if (split) stats.push([track.id === 'client_success' ? 'Top commission' : 'Top split', split + '%']);
+      const max = Math.max.apply(null, nums.concat([1])), min = Math.min.apply(null, nums.concat([max]));
+      const stepSrc = track.lanes
+        ? track.lanes.map((ln, i) => ({ label: 'Stage ' + (i + 1), pay: ln.levels[0] && ln.levels[0].baseSalary, tc: ln.tierColor, target: 'cpx-lane-' + i }))
+        : levels.map((l, i) => ({ label: l.tier, pay: l.baseSalary, tc: l.tierColor, target: 'cpx-l-' + i }));
+      steps = stepSrc.map(s => {
+        const v = cpSalaryNum(s.pay);
+        const h = 30 + (max === min ? 70 : 70 * Math.max(0, v - min) / (max - min));
+        return `<button class="cpx-step t-${tierClass(s.tc)}" style="--h:${h}%" onclick="cpJump('${s.target}')" title="${escapeCp(s.label)}"><span class="cpx-step-pay">${escapeCp(cpShortMoney(s.pay))}</span><i><em>${escapeCp(s.label)}</em></i></button>`;
+      }).join('');
+    }
+    const metrics = (track.keyMetrics || []).map(m => `<span class="cpx-metric">${escapeCp(m)}</span>`).join('');
+    return `<section class="cpx-hero" style="--tc:${escapeCp(track.color)}">
+      <div class="cpx-hero-main">
+        <div class="cpx-eyebrow">${cpIcon(track.id, 14)} Career path</div>
+        <h2>${escapeCp(track.name)}</h2>
+        ${track.subtitle ? `<p class="cpx-sub">${escapeCp(track.subtitle)}</p>` : ''}
+        <div class="cpx-stats">${stats.map(s => `<div class="cpx-stat"><span>${escapeCp(s[0])}</span><b>${escapeCp(s[1])}</b></div>`).join('')}</div>
+        ${metrics ? `<div class="cpx-metrics"><span class="cpx-metrics-lbl">Key metrics</span>${metrics}</div>` : ''}
+      </div>
+      <div class="cpx-climb" aria-hidden="true">${steps}</div>
+      ${renderCpSource(track)}
+    </section>`;
+  }
+  window.cpJump = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('cpx-flash'); void el.offsetWidth; el.classList.add('cpx-flash');
+  };
+
+  function renderCpPromo(level, isLast) {
+    const steps = level.promotionSteps && level.promotionSteps.length > 1 ? level.promotionSteps : null;
+    const txt = level.promotionCriteria || '';
+    const head = isLast ? cpIcon('trophy', 14) + ' Top of the track' : cpIcon('arrowUp', 14) + ' To move up';
+    const content = steps
+      ? '<ol class="cpx-steps">' + steps.map(s => `<li>${escapeCp(s)}</li>`).join('') + '</ol>'
+      : `<p>${escapeCp(txt || 'Not yet defined.')}</p>`;
+    return `<div class="cpx-block cpx-next"><h4>${head}</h4>${content}</div>`;
+  }
+
   function renderTrackLevels(track) {
-    let html_out = '<div class="cp-levels">';
-    (track.levels || []).forEach(level => {
+    const levels = track.levels || [];
+    let html_out = '<div class="cpx-ladder">';
+    levels.forEach((level, i) => {
       const tcls = tierClass(level.tierColor);
-      html_out += `<div class="cp-level">
-        <div class="tier-marker ${tcls}">${escapeCp(level.tier || '')}</div>
-        <div class="head">
-          <div class="titles">
-            <div class="ttl">
-              ${level.tier ? `<span class="ideas-tag ${tcls}">${escapeCp(level.tierColor || '').toUpperCase()} ${escapeCp(level.tier || '')}</span>` : ''}
-              ${escapeCp(level.title || '')}
+      html_out += `<article class="cpx-level t-${tcls}" id="cpx-l-${i}">
+        <div class="cpx-node"><span>${escapeCp(level.tier || '')}</span></div>
+        <div class="cpx-card">
+          <header class="cpx-card-head">
+            <div class="cpx-card-titles">
+              <span class="cpx-tier">${escapeCp(level.tierColor || '')} &middot; Tier ${escapeCp(level.tier || '')}</span>
+              <h3>${escapeCp(level.title || '')}</h3>
+              ${level.ideasScope ? `<p class="cpx-scope">${escapeCp(level.ideasScope)}</p>` : ''}
             </div>
-          </div>
-          <div class="salary">${escapeCp(level.baseSalary || '')}</div>
-        </div>
-        ${level.ideasScope ? `<div class="ideas-scope">${escapeCp(level.ideasName || '')} — ${escapeCp(level.ideasScope)}</div>` : ''}
-        <div class="details-grid">
-          <div class="det-block">
-            <div class="lbl">Commission</div>
-            <ul class="commission-list">
-              ${(level.commission || []).map(c => `<li>${escapeCp(c)}</li>`).join('')}
-            </ul>
-          </div>
-          <div class="det-block">
-            <div class="lbl">Promotion criteria</div>
-            <div class="promo">${escapeCp(level.promotionCriteria || 'Not yet defined.')}</div>
+            <div class="cpx-pay"><span>Base salary</span><b>${escapeCp(level.baseSalary || '')}</b></div>
+          </header>
+          <div class="cpx-grid">
+            <div class="cpx-block"><h4>${cpIcon('coins', 14)} Commission</h4>
+              <ul class="cpx-chips">${(level.commission || []).map(c => `<li>${escapeCp(c)}</li>`).join('') || '<li>None at this level</li>'}</ul>
+            </div>
+            ${renderCpPromo(level, i === levels.length - 1)}
           </div>
         </div>
-      </div>`;
+      </article>`;
+    });
+    html_out += '</div>';
+    return html_out;
+  }
+
+  function renderCpLanes(track) {
+    let html_out = '<div class="cpx-lanes">';
+    track.lanes.forEach((ln, li) => {
+      const tcls = tierClass(ln.tierColor);
+      const comm = (ln.levels[0] && ln.levels[0].commission) || [];
+      const sameComm = ln.levels.every(l => JSON.stringify(l.commission) === JSON.stringify(comm));
+      const nums = ln.levels.map(l => cpSalaryNum(l.baseSalary)).filter(Boolean);
+      const range = ln.levels.length ? (ln.levels[0].baseSalary + (ln.levels.length > 1 ? ' to ' + ln.levels[ln.levels.length - 1].baseSalary : '')) : '';
+      html_out += `<section class="cpx-lane t-${tcls}" id="cpx-lane-${li}">
+        <header class="cpx-lane-head">
+          <span class="cpx-lane-num">Stage ${li + 1}</span>
+          <h3>${escapeCp(ln.name)}</h3>
+          <div class="cpx-lane-range">${escapeCp(range)}</div>
+          ${sameComm && comm.length ? `<ul class="cpx-chips">${comm.map(c => `<li>${escapeCp(c)}</li>`).join('')}</ul>` : ''}
+        </header>
+        <ol class="cpx-lane-steps">
+          ${ln.levels.map((l, i) => `<li>
+            <div class="cpx-ls-top"><b>${escapeCp(l.title)}</b><span>${escapeCp(l.baseSalary)}</span></div>
+            ${!sameComm ? `<ul class="cpx-chips">${(l.commission || []).map(c => `<li>${escapeCp(c)}</li>`).join('')}</ul>` : ''}
+            ${(l.promotionSteps && l.promotionSteps.length > 1)
+              ? '<ul class="cpx-ls-promo">' + l.promotionSteps.map(s => `<li>${escapeCp(s)}</li>`).join('') + '</ul>'
+              : (l.promotionCriteria ? `<div class="cpx-ls-promo">${cpIcon('arrowUp', 12)} ${escapeCp(l.promotionCriteria)}</div>` : '')}
+          </li>`).join('')}
+        </ol>
+      </section>`;
     });
     html_out += '</div>';
     return html_out;
@@ -16056,44 +16423,40 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   function renderBonusStructure(bonusId) {
     const bs = CAREER_PATHS.bonusStructures[bonusId];
     if (!bs) return '';
-    const showQuarterly = cpBonusView === 'quarterly' && bs.quarterly;
-    const showAnnual = cpBonusView === 'annual' && bs.annual;
-    const hasQuarterly = !!bs.quarterly;
-    const hasAnnual = !!bs.annual;
-
-    // If quarterly is not available, fall back to annual
+    const hasQuarterly = !!bs.quarterly, hasAnnual = !!bs.annual;
     let activeView = cpBonusView;
-    if (cpBonusView === 'quarterly' && !hasQuarterly) activeView = 'annual';
-    if (cpBonusView === 'annual' && !hasAnnual && hasQuarterly) activeView = 'quarterly';
+    if (activeView === 'quarterly' && !hasQuarterly) activeView = 'annual';
+    if (activeView === 'annual' && !hasAnnual && hasQuarterly) activeView = 'quarterly';
     const tier_data = activeView === 'quarterly' ? bs.quarterly : bs.annual;
-    if (!tier_data) return '';
+    if (!tier_data || !tier_data.tiers) return '';
+    const maxCharge = tier_data.tiers.reduce((m, t) => Math.max(m, t.charge || 0), 1);
+    const hasExtras = tier_data.tiers.some(t => t.extras);
+    const money = n => '$' + Math.round(n || 0).toLocaleString('en-US');
 
-    let html_out = '<div class="cp-bonus"><h3>' + escapeCp(bs.name) + '</h3>';
-    html_out += '<div class="bonus-sub">Bonus & contest structure</div>';
-
-    // Tabs (only if both views available)
+    let html_out = `<section class="cpx-bonus">
+      <header class="cpx-bonus-head">
+        <div><div class="cpx-eyebrow">${cpIcon('trophy', 14)} Bonus &amp; contests</div><h3>${escapeCp(bs.name)}</h3>
+        <p class="cpx-bonus-title">${escapeCp(tier_data.title || '')}</p></div>`;
     if (hasQuarterly && hasAnnual) {
-      html_out += '<div class="cp-bonus-tabs">';
-      html_out += `<button class="cp-bonus-tab ${activeView === 'quarterly' ? 'active' : ''}" onclick="setCareerBonusView('quarterly')">Quarterly</button>`;
-      html_out += `<button class="cp-bonus-tab ${activeView === 'annual' ? 'active' : ''}" onclick="setCareerBonusView('annual')">Annual</button>`;
-      html_out += '</div>';
+      html_out += `<div class="cpx-seg" role="tablist">
+        <button class="${activeView === 'quarterly' ? 'on' : ''}" onclick="setCareerBonusView('quarterly')">Quarterly</button>
+        <button class="${activeView === 'annual' ? 'on' : ''}" onclick="setCareerBonusView('annual')">Annual</button>
+      </div>`;
     }
-
-    html_out += '<table class="cp-bonus-table"><thead><tr>';
-    html_out += '<th>Level</th><th>Charge</th><th>Bonus</th>';
-    if (tier_data.tiers.some(t => t.extras)) html_out += '<th>Extras</th>';
-    html_out += '</tr></thead><tbody>';
-    tier_data.tiers.forEach(t => {
+    html_out += `</header>
+      <div class="cpx-table-wrap"><table class="cpx-table">
+        <thead><tr><th>Level</th><th>${activeView === 'quarterly' ? 'Quarterly charge' : 'Annual charge'}</th><th>Bonus</th>${hasExtras ? '<th>Extras</th>' : ''}</tr></thead><tbody>`;
+    tier_data.tiers.forEach((t, i) => {
       html_out += `<tr>
-        <td class="lvl">${escapeCp(t.level)}</td>
-        <td class="charge">$${(t.charge || 0).toLocaleString()}</td>
-        <td class="bonus">$${(t.bonus || 0).toLocaleString()}</td>
-        ${t.extras ? `<td class="extras">${escapeCp(t.extras)}</td>` : ''}
+        <td class="lvl"><span class="cpx-lvl-num">${i + 1}</span>${escapeCp(t.level)}</td>
+        <td class="charge"><div class="cpx-bar"><i style="width:${Math.max(6, Math.round(100 * (t.charge || 0) / maxCharge))}%"></i><span>${money(t.charge)}</span></div></td>
+        <td class="bonus">${money(t.bonus)}</td>
+        ${hasExtras ? `<td class="extras">${escapeCp(t.extras || '')}</td>` : ''}
       </tr>`;
     });
-    html_out += '</tbody></table>';
-    if (bs.note) html_out += `<div class="cp-bonus-note">${escapeCp(bs.note)}</div>`;
-    html_out += '</div>';
+    html_out += '</tbody></table></div>';
+    if (bs.note) html_out += `<div class="cpx-note">${escapeCp(bs.note)}</div>`;
+    html_out += '</section>';
     return html_out;
   }
 
@@ -16154,7 +16517,28 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   let cpEditingTrackId = null;
   let cpEditingLevelDraft = null;
 
+  // CAREER_XLSX_v1: the admin pane now points at the Excel source instead of a per-browser editor.
   function renderCareerPathsAdmin() {
+    const pane = document.getElementById('careerPathsAdminBody');
+    if (!pane) return;
+    if (cpLive.state === 'idle') { setTimeout(() => cpLoadLive(false), 0); }
+    const meta = cpLive.meta;
+    let status;
+    if (cpLive.state === 'loading' || cpLive.state === 'idle') status = `<div class="cpx-source is-loading">${cpIcon('sheet', 14)}<span>Reading the workbooks&hellip;</span></div>`;
+    else if (cpLive.state === 'error') status = `<div class="cpx-source is-error">${cpIcon('alert', 14)}<span>${escapeCp(cpLive.error)}</span></div>`;
+    else status = `<div class="cpx-source">${cpIcon('sheet', 14)}<span>Last pulled ${escapeCp(new Date(meta.asOf).toLocaleString())}. HQ re-reads Excel every 10 minutes.</span></div>`;
+    const files = meta && meta.sources ? meta.sources.map(s => `<a class="cpx-file" href="${escapeCp(s.webUrl)}" target="_blank" rel="noopener">
+        ${cpIcon('sheet', 18)}<span><b>${escapeCp(s.name)}</b><small>Updated ${escapeCp(cpFmtDate(s.lastModified))}${s.lastModifiedBy ? ' by ' + escapeCp(s.lastModifiedBy) : ''}</small></span></a>`).join('') : '';
+    const tracks = (CAREER_PATHS.tracks || []).map(t => `<li><b>${escapeCp(t.name)}</b><span>${t.source ? escapeCp(t.source.file) + ' &middot; ' + escapeCp(t.source.sheet) : 'Managed in HQ (not in Excel)'}</span></li>`).join('');
+    pane.innerHTML = `<div class="cpx-admin">
+      ${status}
+      <div class="cpx-files">${files}</div>
+      <button class="btn-secondary" onclick="cpRefreshFromExcel()">Pull from Excel now</button>
+      <ul class="cpx-admin-map">${tracks}</ul>
+    </div>`;
+  }
+
+  function renderCareerPathsAdminLegacy() {
     const pane = document.getElementById('careerPathsAdminBody');
     if (!pane) return;
 
@@ -16428,6 +16812,11 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
   setTimeout(() => {
     try { renderCareerPathsTab(); } catch(e) { console.error('Career paths viewer error:', e); }
   }, 400);
+  // CAREER_XLSX_v1: re-render (and pull from Excel if needed) whenever someone opens the tab.
+  document.addEventListener('click', (e) => {
+    const n = e.target && e.target.closest && e.target.closest('.nav-item[data-tab="careers"]');
+    if (n) setTimeout(() => { try { renderCareerPathsTab(); } catch(err) {} }, 30);
+  });
 
   // Wire admin sub-tab click to lazy-render
   setTimeout(() => {

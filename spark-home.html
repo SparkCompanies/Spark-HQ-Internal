@@ -2910,5 +2910,87 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
  var fr=document.querySelector('#pulse .feeds'); if(fr && window.MutationObserver){ new MutationObserver(tidyFeeds).observe(fr,{childList:true,subtree:true}); }
 })();
 </script>
+<!-- HALLOWEEN_v1: seasonal layer on the home hero. Shows Oct 24-31 only (viewer's local date), then removes itself.
+     Preview any day with ?halloween=1. Decorative only: pointer-events off, hidden from screen readers. -->
+<style>
+.hw-layer{position:absolute !important;inset:0;z-index:0 !important;pointer-events:none;overflow:hidden}
+.hero.hw-on{background:radial-gradient(60% 70% at 85% 0%,rgba(255,122,24,.22) 0%,transparent 60%),radial-gradient(55% 60% at 5% 100%,rgba(124,58,237,.24) 0%,transparent 65%),radial-gradient(ellipse at 50% 30%,#1a1430 0%,#0b0a14 70%) !important}
+.hw-moon{position:absolute;right:6%;top:-70px;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle at 38% 36%,#ffe7b3 0%,#ffb347 38%,#ff7a18 72%,#c2410c 100%);
+  box-shadow:0 0 80px 20px rgba(255,122,24,.35),0 0 180px 60px rgba(255,122,24,.12);opacity:.55;animation:hwGlow 6s ease-in-out infinite}
+.hw-moon::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 62% 58%,rgba(0,0,0,.18) 0 9%,transparent 10%),radial-gradient(circle at 30% 70%,rgba(0,0,0,.12) 0 6%,transparent 7%)}
+@keyframes hwGlow{50%{opacity:.75;box-shadow:0 0 110px 30px rgba(255,122,24,.45),0 0 220px 80px rgba(255,122,24,.16)}}
+.hw-bat{position:absolute;left:-60px;width:44px;color:#241a3a;filter:drop-shadow(0 0 2px rgba(255,170,90,.9)) drop-shadow(0 0 10px rgba(255,122,24,.55));animation:hwFly linear infinite}
+.hw-bat svg{width:100%;height:auto;display:block;animation:hwFlap .28s ease-in-out infinite alternate;transform-origin:50% 40%}
+@keyframes hwFlap{to{transform:scaleY(.55) scaleX(1.08)}}
+@keyframes hwFly{0%{transform:translate(0,0) rotate(-4deg)}25%{transform:translate(28vw,-26px) rotate(6deg)}50%{transform:translate(55vw,14px) rotate(-6deg)}75%{transform:translate(82vw,-18px) rotate(4deg)}100%{transform:translate(115vw,6px) rotate(0)}}
+.hw-ghost{position:absolute;bottom:-90px;width:46px;opacity:0;color:rgba(255,255,255,.85);filter:drop-shadow(0 0 12px rgba(190,170,255,.55));animation:hwRise ease-in-out infinite}
+@keyframes hwRise{0%{transform:translate(0,0);opacity:0}15%{opacity:.5}50%{transform:translate(26px,-260px)}85%{opacity:.35}100%{transform:translate(-14px,-520px);opacity:0}}
+.hw-spider{position:absolute;top:0;width:2px;background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.08));animation:hwDrop 7s ease-in-out infinite;transform-origin:top}
+.hw-spider svg{position:absolute;left:-13px;bottom:-22px;width:28px;color:#0a0812;filter:drop-shadow(0 0 4px rgba(255,140,40,.5))}
+@keyframes hwDrop{0%,100%{height:40px}50%{height:120px}}
+.hw-web{position:absolute;left:0;top:0;width:150px;opacity:.16;color:#fff}
+.hw-pumpkins{position:absolute;right:40px;bottom:120px;display:flex;align-items:flex-end;gap:6px}
+.hw-pumpkins svg{filter:drop-shadow(0 6px 14px rgba(255,122,24,.45))}
+.hw-pumpkins .hw-face{animation:hwFlicker 2.4s steps(1) infinite}
+@keyframes hwFlicker{0%,100%{fill:#ffd36b}30%{fill:#ffb02e}32%{fill:#fff1b8}60%{fill:#ffc44d}}
+.hw-pill{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;pointer-events:none;
+  padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.3px;color:#ffe2c2;white-space:nowrap;
+  background:linear-gradient(135deg,rgba(255,122,24,.22),rgba(124,58,237,.22));border:1px solid rgba(255,160,80,.35);backdrop-filter:blur(6px);
+  box-shadow:0 6px 20px -6px rgba(255,122,24,.5)}
+.hw-pill svg{width:16px;height:16px}
+.hw-foot{position:relative;overflow:hidden;margin:36px 0 0;padding:44px 28px 40px;border-radius:22px;color:#fff;text-align:center;
+  background:radial-gradient(60% 90% at 50% 120%,rgba(255,122,24,.35) 0%,transparent 60%),radial-gradient(50% 80% at 0% 0%,rgba(124,58,237,.28) 0%,transparent 60%),linear-gradient(180deg,#1a1430 0%,#0b0a14 100%);
+  box-shadow:0 24px 50px -20px rgba(11,10,20,.6),inset 0 1px 0 rgba(255,255,255,.08)}
+.hw-foot .hw-layer{z-index:0 !important}
+.hw-foot-in{position:relative;z-index:1}
+.hw-foot h3{margin:10px 0 6px;font-size:28px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(90deg,#ffd36b,#ff7a18 55%,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hw-foot p{margin:0;color:rgba(255,255,255,.7);font-size:14px}
+.hw-foot-row{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin-top:18px}
+.hw-foot-row svg{filter:drop-shadow(0 8px 16px rgba(255,122,24,.45));animation:hwBob 3s ease-in-out infinite}
+.hw-foot-row svg:nth-child(2){animation-delay:.4s}.hw-foot-row svg:nth-child(3){animation-delay:.8s}
+@keyframes hwBob{50%{transform:translateY(-6px)}}
+@media (max-width:760px){.hw-moon{width:140px;height:140px;top:-50px}.hw-pumpkins{display:none}.hw-pill{top:auto;bottom:10px}}
+@media (prefers-reduced-motion:reduce){.hw-layer *{animation:none !important}.hw-bat,.hw-ghost{display:none}}
+</style>
+<script>
+(function(){
+  try{
+    var now=new Date(), q=/[?&]halloween=1/.test(location.search);
+    var on=q||(now.getMonth()===9&&now.getDate()>=24);
+    if(!on) return;
+    var hero=document.querySelector('.hero'); if(!hero) return;
+    hero.classList.add('hw-on');
+    var BAT='<svg viewBox="0 0 64 32" fill="currentColor"><path d="M32 10c-2-4-3-6-3-6l-1 4c-6-6-15-7-28-2 7 2 11 6 12 12 3-3 7-3 9 0 2-4 6-4 8-1 1-2 2-3 3-3s2 1 3 3c2-3 6-3 8 1 2-3 6-3 9 0 1-6 5-10 12-12-13-5-22-4-28 2l-1-4s-1 2-3 6z"/></svg>';
+    var GHOST='<svg viewBox="0 0 40 48" fill="currentColor"><path d="M20 2C10 2 4 10 4 20v24l6-5 5 5 5-5 5 5 5-5 6 5V20C36 10 30 2 20 2z"/><circle cx="14" cy="19" r="2.6" fill="#1a1430"/><circle cx="26" cy="19" r="2.6" fill="#1a1430"/><ellipse cx="20" cy="28" rx="3" ry="4" fill="#1a1430"/></svg>';
+    var SPIDER='<svg viewBox="0 0 32 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="16" cy="16" rx="6" ry="7" fill="currentColor"/><circle cx="16" cy="7" r="4" fill="currentColor"/><path d="M10 13 3 8M10 16H2M10 19l-7 5M22 13l7-5M22 16h8M22 19l7 5"/><circle cx="14.5" cy="7" r="1" fill="#ff7a18" stroke="none"/><circle cx="17.5" cy="7" r="1" fill="#ff7a18" stroke="none"/></svg>';
+    var WEB='<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width=".8"><path d="M0 0 100 30M0 0 80 80M0 0 30 100M0 0 100 0M0 0 0 100"/><path d="M20 0Q18 8 23 6Q20 13 8 18Q6 20 0 20"/><path d="M45 0Q42 16 50 13Q44 30 26 37Q18 41 0 45"/><path d="M70 0Q66 25 77 21Q68 48 41 58Q28 64 0 70"/></svg>';
+    function pumpkin(w,big){return '<svg width="'+w+'" viewBox="0 0 64 60"><path d="M30 10c0-5 3-8 7-9l1 3c-3 1-4 3-4 6z" fill="#3f6212"/><ellipse cx="18" cy="35" rx="15" ry="22" fill="#ea580c"/><ellipse cx="46" cy="35" rx="15" ry="22" fill="#ea580c"/><ellipse cx="32" cy="35" rx="16" ry="24" fill="#f97316"/><path d="M32 12v46M20 15c-3 12-3 28 0 40M44 15c3 12 3 28 0 40" stroke="#c2410c" stroke-width="1.4" fill="none" opacity=".6"/>'+(big?'<g class="hw-face"><path d="M20 30l6-6 4 6zM34 30l6-6 4 6z"/><path d="M18 40q14 12 28 0l-4 2-3-3-4 3-3-3-4 3-3-3-3 3z"/></g>':'')+'</svg>';}
+    var layer=document.createElement('div'); layer.className='hw-layer'; layer.setAttribute('aria-hidden','true');
+    var h='<div class="hw-moon"></div><div class="hw-web">'+WEB+'</div>';
+    [[18,'14s','0s',1],[34,'19s','4s',.8],[12,'23s','9s',.6],[52,'17s','12s',.7]].forEach(function(b){h+='<div class="hw-bat" style="top:'+b[0]+'%;animation-duration:'+b[1]+';animation-delay:'+b[2]+';transform:scale('+b[3]+');width:'+(44*b[3])+'px">'+BAT+'</div>';});
+    [['12%','11s','1s'],['46%','14s','6s'],['74%','12s','3s']].forEach(function(g){h+='<div class="hw-ghost" style="left:'+g[0]+';animation-duration:'+g[1]+';animation-delay:'+g[2]+'">'+GHOST+'</div>';});
+    h+='<div class="hw-spider" style="left:38%">'+SPIDER+'</div><div class="hw-spider" style="left:62%;animation-delay:2.5s;animation-duration:9s">'+SPIDER+'</div>';
+    h+='<div class="hw-pumpkins">'+pumpkin(46,false)+pumpkin(70,true)+'</div>';
+    var days=31-now.getDate();
+    var msg=(now.getMonth()===9&&now.getDate()===31)?'Happy Halloween, Spark':(days===1?'1 day to Halloween':days+' days to Halloween');
+    h+='<div class="hw-pill"><svg viewBox="0 0 64 60">'+pumpkin(16,true).replace(/^<svg[^>]*>|<\/svg>$/g,'')+'</svg>'+msg+'</div>';
+    layer.innerHTML=h;
+    hero.insertBefore(layer,hero.firstChild);
+    // Halloween footer band at the bottom of Home, same dates.
+    var main=document.querySelector('.main');
+    if(main){
+      var foot=document.createElement('section'); foot.className='hw-foot'; foot.setAttribute('aria-label','Happy Halloween');
+      var fl='';
+      [[20,'16s','2s',.8],[58,'21s','7s',.6]].forEach(function(b){fl+='<div class="hw-bat" style="top:'+b[0]+'%;animation-duration:'+b[1]+';animation-delay:'+b[2]+';width:'+(44*b[3])+'px">'+BAT+'</div>';});
+      [['8%','12s','0s'],['88%','13s','5s']].forEach(function(g){fl+='<div class="hw-ghost" style="left:'+g[0]+';animation-duration:'+g[1]+';animation-delay:'+g[2]+'">'+GHOST+'</div>';});
+      fl+='<div class="hw-web">'+WEB+'</div><div class="hw-web" style="left:auto;right:0;transform:scaleX(-1)">'+WEB+'</div>';
+      var line=(now.getMonth()===9&&now.getDate()===31)?'Have a safe and happy Halloween tonight.':'Halloween is '+(days===1?'tomorrow':days+' days out')+'. Costumes encouraged, candy mandatory.';
+      foot.innerHTML='<div class="hw-layer" aria-hidden="true">'+fl+'</div><div class="hw-foot-in"><div class="hw-pill" style="position:static;transform:none">'+'<svg viewBox="0 0 64 60">'+pumpkin(16,true).replace(/^<svg[^>]*>|<\/svg>$/g,'')+'</svg>Spark after dark</div><h3>Happy Halloween from all of us at Spark</h3><p>'+line+'</p><div class="hw-foot-row" aria-hidden="true">'+pumpkin(40,false)+pumpkin(64,true)+pumpkin(40,false)+'</div></div>';
+      main.appendChild(foot);
+    }
+  }catch(e){}
+})();
+</script>
 </body>
 </html>
