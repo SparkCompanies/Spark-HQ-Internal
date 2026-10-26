@@ -2996,5 +2996,76 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   }catch(e){}
 })();
 </script>
+<!-- HALLOWEEN_v2: layers spooky details below the hero (v1 already owns the hero + footer banner).
+     Same rules as v1: shows Oct 24-31 (viewer's local date), preview any day with ?halloween=1.
+     Runs after load so live sections (champion card, celebrations) exist. Decorative only:
+     pointer-events off, aria-hidden, honors prefers-reduced-motion. -->
+<script>
+/* HALLOWEEN_v2 */
+window.addEventListener('load',function(){setTimeout(function(){try{
+  var now=new Date(), q=/[?&]halloween=1/.test(location.search);
+  if(!q && !(now.getMonth()===9 && now.getDate()>=24)) return;
+  var d=document; if(d.getElementById('hw2-style')) return;
+
+  var css=`
+  .hw2{pointer-events:none}
+  .hero.hw-on{position:relative}
+  .hw2-fog{position:absolute;left:-10%;right:-10%;bottom:-40px;height:170px;z-index:1;overflow:hidden;filter:blur(18px);opacity:.75}
+  .hw2-fog i{position:absolute;bottom:0;width:60%;height:120px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(196,181,253,.55) 0%,rgba(124,58,237,.18) 45%,transparent 70%);animation:hw2Drift 28s linear infinite}
+  .hw2-fog i:nth-child(2){left:30%;animation-duration:36s;animation-delay:-12s;opacity:.8}
+  .hw2-fog i:nth-child(3){left:60%;animation-duration:44s;animation-delay:-20s;opacity:.6}
+  @keyframes hw2Drift{0%{transform:translateX(-30%)}100%{transform:translateX(60%)}}
+  .hw2-pk{width:14px;height:14px;vertical-align:-2px;margin-right:2px;filter:drop-shadow(0 0 4px rgba(255,122,24,.6));animation:hw2Flicker 3.2s ease-in-out infinite}
+  @keyframes hw2Flicker{0%,100%{filter:drop-shadow(0 0 3px rgba(255,122,24,.5))}45%{filter:drop-shadow(0 0 7px rgba(255,140,40,.9))}50%{filter:drop-shadow(0 0 2px rgba(255,122,24,.35))}}
+  .hw2-host{position:relative}
+  .hw2-web{position:absolute;top:0;right:0;width:150px;height:150px;opacity:.22;z-index:0}
+  .hw2-web.l{left:0;right:auto;transform:scaleX(-1)}
+  .hw2-spider{position:absolute;top:0;width:2px;z-index:2;animation:hw2Drop 7s ease-in-out infinite}
+  .hw2-spider::before{content:"";position:absolute;left:0;top:0;width:1px;height:100%;background:linear-gradient(rgba(40,30,60,.05),rgba(40,30,60,.45))}
+  .hw2-spider svg{position:absolute;left:-11px;bottom:-18px;width:24px;height:24px}
+  @keyframes hw2Drop{0%,100%{height:28px}50%{height:96px}}
+  .hw2-ghost{position:absolute;right:-6px;top:36%;width:64px;z-index:3;opacity:0;animation:hw2Peek 14s ease-in-out infinite}
+  @keyframes hw2Peek{0%,62%,100%{transform:translateX(70px) rotate(8deg);opacity:0}70%,86%{transform:translateX(0) rotate(-6deg);opacity:.92}}
+  .hw2-glow{box-shadow:0 0 0 1px rgba(255,140,40,.45),0 0 36px 4px rgba(255,122,24,.28) !important;animation:hw2Card 4s ease-in-out infinite}
+  @keyframes hw2Card{50%{box-shadow:0 0 0 1px rgba(255,140,40,.6),0 0 54px 10px rgba(255,122,24,.38) !important}}
+  .hw2-flock{position:fixed;left:-160px;top:22%;z-index:50;width:150px;opacity:0;animation:hw2Fly 26s linear infinite;animation-delay:6s}
+  @keyframes hw2Fly{0%{transform:translate(0,0);opacity:0}2%{opacity:.85}22%{transform:translate(calc(100vw + 320px),-120px);opacity:.85}23%,100%{transform:translate(calc(100vw + 320px),-120px);opacity:0}}
+  .hw2-flock svg{width:100%;height:auto}
+  .hw2-flock .w{animation:hw2Flap .28s ease-in-out infinite alternate;transform-origin:center}
+  @keyframes hw2Flap{to{transform:scaleY(.45)}}
+  @media (prefers-reduced-motion:reduce){
+    .hw2-fog i,.hw2-pk,.hw2-spider,.hw2-ghost,.hw2-glow,.hw2-flock,.hw2-flock .w{animation:none !important}
+    .hw2-flock,.hw2-ghost{display:none}
+    .hw2-spider{height:60px}
+  }`;
+  var st=d.createElement('style'); st.id='hw2-style'; st.textContent=css; d.head.appendChild(st);
+
+  var pumpkin='<svg class="hw2-pk" viewBox="0 0 64 60" aria-hidden="true"><path d="M30 10q2-8 9-9" stroke="#3f6212" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="20" cy="34" rx="14" ry="20" fill="#ea580c"/><ellipse cx="44" cy="34" rx="14" ry="20" fill="#ea580c"/><ellipse cx="32" cy="34" rx="15" ry="22" fill="#f97316"/><path d="M20 28l6 6h-8z M44 28l-6 6h8z" fill="#1c1917"/><path d="M18 42q14 10 28 0l-4 2-3-3-4 3-3-3-4 3-3-3-3 3z" fill="#1c1917"/></svg>';
+  var web='<svg class="hw2-web hw2" viewBox="0 0 150 150" aria-hidden="true" fill="none" stroke="#2e1f47" stroke-width="1.1"><path d="M150 0 L0 150 M150 0 L60 150 M150 0 L0 60 M150 0 L110 150 M150 0 L0 110"/><path d="M150 24 Q138 26 126 24 Q125 12 126 0"/><path d="M150 52 Q128 56 104 52 Q100 30 98 0"/><path d="M150 84 Q118 90 80 82 Q72 46 70 0"/><path d="M150 118 Q108 126 56 112 Q44 62 40 0"/></svg>';
+  var spider='<svg viewBox="0 0 24 24" aria-hidden="true"><g stroke="#1c1917" stroke-width="1.4" stroke-linecap="round" fill="none"><path d="M12 12 4 7M12 12 3 12M12 12 4 17M12 12 20 7M12 12 21 12M12 12 20 17"/></g><ellipse cx="12" cy="13" rx="4" ry="5" fill="#1c1917"/><circle cx="12" cy="8" r="2.6" fill="#1c1917"/><circle cx="11" cy="7.6" r=".6" fill="#f97316"/><circle cx="13" cy="7.6" r=".6" fill="#f97316"/></svg>';
+  var ghost='<svg viewBox="0 0 64 80" aria-hidden="true"><path d="M32 4C16 4 6 16 6 34v40l8-7 9 7 9-7 9 7 9-7 8 7V34C58 16 48 4 32 4z" fill="#f8f7ff" stroke="#c4b5fd" stroke-width="1.5"/><ellipse cx="24" cy="32" rx="4" ry="6" fill="#1e1b2e"/><ellipse cx="40" cy="32" rx="4" ry="6" fill="#1e1b2e"/><ellipse cx="32" cy="48" rx="5" ry="6" fill="#1e1b2e"/></svg>';
+  var bat=function(x,y,s){return '<g transform="translate('+x+' '+y+') scale('+s+')"><g class="w"><path d="M0 8 Q6 0 12 6 Q15 2 18 6 Q21 2 24 6 Q30 0 36 8 Q28 6 24 12 Q21 9 18 13 Q15 9 12 12 Q8 6 0 8z" fill="#1c1430"/></g></g>'};
+  function el(tag,cls,html){var e=d.createElement(tag);e.className=cls;e.setAttribute('aria-hidden','true');if(html)e.innerHTML=html;return e}
+
+  // 1. fog under the hero
+  var hero=d.querySelector('.hero.hw-on')||d.querySelector('.hero');
+  if(hero){hero.appendChild(el('div','hw2 hw2-fog','<i></i><i></i><i></i>'))}
+  // 2. section eyebrow bolts become jack-o-lanterns
+  d.querySelectorAll('.v2-eyebrow .v2-eb-bolt, .bnr-eyebrow .v2-eb-bolt').forEach(function(b){var w=d.createElement('span');w.innerHTML=pumpkin;b.replaceWith(w.firstChild)});
+  // 3. cobwebs + a couple of spiders on the cream sections, alternating sides
+  [].slice.call(d.querySelectorAll('section.v2-wrap, section.qa, section.celebs, section.pulse')).forEach(function(s,i){
+    if(i%2) return; s.classList.add('hw2-host');
+    var w=d.createElement('div');w.innerHTML=web;var svg=w.firstChild;if((i/2)%2)svg.classList.add('l');s.appendChild(svg);
+    if(i%4===0){var sp=el('div','hw2 hw2-spider',spider);sp.style[(i/2)%2?'left':'right']=(90+(i*13)%60)+'px';s.appendChild(sp)}
+  });
+  // 4. ghost peeking in at "Who do I ask?"
+  var qa=d.querySelector('section.qa');
+  if(qa){qa.classList.add('hw2-host');qa.style.overflowX='clip';qa.appendChild(el('div','hw2 hw2-ghost',ghost))}
+  // 5. Charge Leaders champion card glows like a jack-o-lantern
+  [].slice.call(d.querySelectorAll('div,article')).some(function(n){if(n.children.length&&/^\s*CHAMPION\s*$/i.test((n.firstElementChild||{}).textContent||'')){n.classList.add('hw2-glow');return true}});
+  // 6. a small bat flock crosses the screen now and then
+  d.body.appendChild(el('div','hw2 hw2-flock','<svg viewBox="0 0 150 70">'+bat(0,30,1.4)+bat(52,8,1)+bat(92,36,.8)+bat(118,14,.6)+'</svg>'));
+}catch(e){}},1200)});
+</script>
 </body>
 </html>
