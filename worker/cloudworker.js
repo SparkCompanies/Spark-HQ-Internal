@@ -5608,6 +5608,96 @@ var worker_default = {
       // SRLEAD_v4: tell the group when a meeting posts. HQ push goes to anyone who turned notifications on;
       // one email (BCC) goes to everyone with access. The email links back to HQ and carries no meeting content.
       const hEsc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      // SRLEAD_v6: email (and HQ push) an action item's owners when they're assigned. Owners are typed as first
+      // names, so they're matched against people who have Sr Leadership access only; anyone else is reported back, never emailed.
+      const groupEmails = async () => {
+        const [ovr, roles] = await Promise.all([
+          sb("permission_overrides?select=email,grant_perm&perm_key=eq.tab:srleadership"),
+          sb("app_roles?select=id,permissions")
+        ]);
+        const roleIds = (roles || []).filter((r) => r.permissions && r.permissions["tab:srleadership"] === true).map((r) => r.id);
+        const fromRoles = roleIds.length ? await sb("user_app_role?select=email&role_id=in.(" + roleIds.join(",") + ")") : [];
+        const deny = new Set((ovr || []).filter((o) => o.grant_perm === false).map((o) => String(o.email || "").toLowerCase()));
+        const all = new Set();
+        (ovr || []).filter((o) => o.grant_perm === true).forEach((o) => all.add(String(o.email || "").toLowerCase()));
+        (fromRoles || []).forEach((u) => all.add(String(u.email || "").toLowerCase()));
+        return [...all].filter((e) => /@/.test(e) && !deny.has(e));
+      };
+      const OWNER_HINTS = { allie: "aspegel@sparkcompanies.com", aaron: "aopalewski@sparkcompanies.com", fletcher: "fkundtz@sparktalentinc.com", fletch: "fkundtz@sparktalentinc.com",
+        dave: "dveres@sparkcompanies.com", bedros: "bnaama@sparkcompanies.com", jamie: "jplatt@sparktalentinc.com", alex: "agorman@sparkcompanies.com", gorman: "agorman@sparkcompanies.com",
+        mary: "mpatrico@sparkcompanies.com", ryan: "raymen@sparkcompanies.com" };
+      const ownerTokens = (str) => String(str || "").split(/\s*(?:,|&|\band\b|\/)\s*/i).map((x) => x.trim()).filter(Boolean);
+      const nameCache = globalThis.__srlNameCache || (globalThis.__srlNameCache = { at: 0, byEmail: {} });
+      const resolveOwners = async (tokens) => {
+        const out = { people: [], unknown: [] };
+        if (!tokens.length) return out;
+        const emails = await groupEmails();
+        // first names for people on the list who aren't in the built-in hints (cached 6 hours)
+        const missing = emails.filter((e) => !Object.values(OWNER_HINTS).includes(e) && (!nameCache.byEmail[e] || Date.now() - nameCache.at > 216e5));
+        if (missing.length && typeof getGraphToken === "function") {
+          try {
+            const gt = await getGraphToken(env);
+            await Promise.all(missing.map(async (e) => {
+              const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(e) + "?$select=givenName,displayName", { headers: { "Authorization": "Bearer " + gt } });
+              if (r.ok) { const u = await r.json(); nameCache.byEmail[e] = { first: String(u.givenName || "").toLowerCase(), full: String(u.displayName || "").toLowerCase() }; }
+            }));
+            nameCache.at = Date.now();
+          } catch (e) {}
+        }
+        for (const tk of tokens) {
+          const t = tk.toLowerCase();
+          let hit = OWNER_HINTS[t] && emails.includes(OWNER_HINTS[t]) ? OWNER_HINTS[t] : null;
+          if (!hit) hit = emails.find((e) => { const n = nameCache.byEmail[e]; return e.split("@")[0] === t || e === t || (n && (n.first === t || n.full === t)); }) || null;
+          if (hit) { if (!out.people.some((p) => p.email === hit)) out.people.push({ name: tk, email: hit }); }
+          else out.unknown.push(tk);
+        }
+        return out;
+      };
+      const emailOwners = async (actionRow, tokens) => {
+        const res = await resolveOwners(tokens);
+        const me = String(who.email || "").toLowerCase();
+        const targets = res.people.filter((p) => p.email !== me);
+        const report = { emailed: [], self: res.people.filter((p) => p.email === me).map((p) => p.name), unknown: res.unknown };
+        if (!targets.length) return report;
+        let mt = null, folder = "";
+        if (actionRow.meeting_id) {
+          const mr = await sb("sr_meetings?select=id,title,series_id&id=eq." + actionRow.meeting_id);
+          mt = mr && mr[0];
+          if (mt && mt.series_id) { const sr = await sb("sr_series?select=name&id=eq." + mt.series_id); folder = sr && sr[0] ? sr[0].name : ""; }
+        }
+        const du = String(actionRow.due || "");
+        const dueTxt = /^\d{4}-\d{2}-\d{2}$/.test(du) ? new Date(du + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }) : du;
+        const link = (env.HQ_URL || "https://hq.sparktalentinc.com") + "/#srlead" + (mt ? "/" + mt.id : "");
+        const by = me.split("@")[0];
+        let gtok = null;
+        try { gtok = await getGraphToken(env); } catch (e) {}
+        const from = env.SRLEAD_FROM_MAILBOX || env.PROFILE_FROM_MAILBOX || "hq@sparkcompanies.com";
+        for (const p of targets) {
+          if (typeof pushToEmails === "function") {
+            try { await pushToEmails(env, [p.email], null, { title: "New action item for you", body: actionRow.text + (dueTxt ? " · due " + dueTxt : ""), url: "/#srlead" + (mt ? "/" + mt.id : ""), tag: "srlead-act-" + actionRow.id }); } catch (e) {}
+          }
+          if (!gtok) continue;
+          const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F6F3;padding:32px 16px"><tr><td align="center">'
+            + '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #ECE9E0">'
+            + '<tr><td style="background:#14142b;padding:26px 32px"><p style="margin:0 0 10px;font:700 11px/1.4 Jost,Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#FFD43B">Sr Leadership &middot; action item for you</p>'
+            + '<p style="margin:0;font:800 22px/1.3 Jost,Arial,sans-serif;color:#ffffff">' + hEsc(actionRow.text) + '</p>'
+            + (dueTxt ? '<p style="margin:12px 0 0;font:700 13px/1.4 Jost,Arial,sans-serif;color:#FFD43B">Due ' + hEsc(dueTxt) + '</p>' : '') + '</td></tr>'
+            + '<tr><td style="padding:24px 32px 6px;font:400 15px/1.6 Jost,Arial,sans-serif;color:#1a1a2e">Hi ' + hEsc(p.name) + ', ' + hEsc(by) + ' put you down as an owner'
+            + (mt ? ' from <strong>' + hEsc(mt.title) + '</strong>' + (folder ? ' (' + hEsc(folder) + ')' : '') : '') + '. Check it off in HQ when it&rsquo;s done.</td></tr>'
+            + '<tr><td style="padding:18px 32px 28px"><a href="' + hEsc(link) + '" style="display:inline-block;background:#F5C518;color:#1a1a2e;text-decoration:none;font:700 14px/1 Jost,Arial,sans-serif;padding:14px 22px;border-radius:10px">Open in Spark HQ</a></td></tr>'
+            + '<tr><td style="padding:0 32px 24px"><div style="border-top:1px solid #EDEBE6;padding-top:14px;font:400 12px/1.5 Jost,Arial,sans-serif;color:#A8A5A0">Sent by Spark HQ because you were assigned an action item in Sr Leadership.</div></td></tr>'
+            + '</table></td></tr></table>';
+          try {
+            const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(from) + "/sendMail", {
+              method: "POST", headers: { "Authorization": "Bearer " + gtok, "Content-Type": "application/json" },
+              body: JSON.stringify({ message: { subject: "Action item for you: " + String(actionRow.text).slice(0, 90), body: { contentType: "HTML", content: html },
+                toRecipients: [{ emailAddress: { address: p.email } }] }, saveToSentItems: false })
+            });
+            if (r.status === 202) report.emailed.push(p.name);
+          } catch (e) {}
+        }
+        return report;
+      };
       const notifyGroup = async (mid) => {
         const rows = await sb("sr_meetings?select=id,title,meeting_date,series_id,decisions&id=eq." + mid);
         const m = rows && rows[0];
@@ -5885,13 +5975,26 @@ var worker_default = {
           }
           if (body.id) {
             if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+            const before = row.owner !== undefined ? ((await sb("sr_actions?select=*&id=eq." + body.id)) || [])[0] : null;
             await sb("sr_actions?id=eq." + body.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify(row) });
-            return json({ ok: true }, 200, origin);
+            let owners = null;
+            if (before) {
+              const had = new Set(ownerTokens(before.owner).map((x) => x.toLowerCase()));
+              const added = ownerTokens(row.owner).filter((x) => !had.has(x.toLowerCase()));
+              if (added.length && !(row.done === true || (row.done === undefined && before.done))) {
+                try { owners = await emailOwners(Object.assign({}, before, row), added); } catch (e) { owners = { error: String(e.message || e).slice(0, 120) }; }
+              }
+            }
+            return json({ ok: true, owners }, 200, origin);
           }
           if (!row.text) return json({ error: "Action needs text." }, 400, origin);
           row.created_by = who.email;
           const out = await sb("sr_actions", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
-          return json({ ok: true, action: out && out[0] }, 200, origin);
+          let owners = null;
+          if (out && out[0] && ownerTokens(row.owner).length) {
+            try { owners = await emailOwners(out[0], ownerTokens(row.owner)); } catch (e) { owners = { error: String(e.message || e).slice(0, 120) }; }
+          }
+          return json({ ok: true, action: out && out[0], owners }, 200, origin);
         }
 
         if (a === "delete_action") {
