@@ -5559,7 +5559,7 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
-    // ===== SRLEAD_v1 — Sr Leadership meeting map =====
+    // ===== SRLEAD_v1 — Sr Leadership meeting map (v3: hub with summaries, decisions, action items, next meeting) =====
     // Access: HQ admins, or anyone whose role/exception grants tab:srleadership (same rule the HQ sidebar uses).
     // Data: sr_series + sr_meetings in Supabase, read/written with the service key only (RLS on, no client policies).
     if (url.pathname === "/srlead" || url.pathname === "/srlead/upload") {
@@ -5639,12 +5639,43 @@ var worker_default = {
           return json({ ok: true, attachment: out && out[0] }, 200, origin);
         }
         if (request.method === "GET") {
-          const [series, meetings, attachments] = await Promise.all([
+          const [series, meetings, attachments, actions] = await Promise.all([
             loadSeries(),
             sb("sr_meetings?select=*&order=meeting_date.desc.nullslast,created_at.desc&limit=2000"),
-            sb("sr_attachments?select=id,meeting_id,series_id,file_name,content_type,size_bytes,created_by,created_at&order=created_at.asc&limit=5000")
+            sb("sr_attachments?select=id,meeting_id,series_id,file_name,content_type,size_bytes,created_by,created_at&order=created_at.asc&limit=5000"),
+            sb("sr_actions?select=*&order=created_at.asc&limit=5000")
           ]);
-          return json({ ok: true, series, meetings, attachments }, 200, origin);
+          // SRLEAD_v3: next occurrence of any calendar-linked folder, read live from the organizer's Outlook
+          let next = null;
+          const linked = (series || []).filter((x) => x.calendar_match);
+          if (linked.length && typeof getGraphToken === "function") {
+            try {
+              const gtok = await getGraphToken(env);
+              const mbox = env.SRLEAD_CAL_MAILBOX || "aspegel@sparkcompanies.com";
+              const from = new Date(), to = new Date(Date.now() + 60 * 864e5);
+              const qs = "startDateTime=" + encodeURIComponent(from.toISOString()) + "&endDateTime=" + encodeURIComponent(to.toISOString())
+                + "&$select=subject,start,end,attendees,onlineMeeting,webLink,isCancelled&$orderby=start/dateTime&$top=250";
+              const cr = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(mbox) + "/calendarView?" + qs,
+                { headers: { "Authorization": "Bearer " + gtok, "Prefer": 'outlook.timezone="Eastern Standard Time"' } });
+              if (cr.ok) {
+                const cd = await cr.json();
+                for (const ev of (cd.value || [])) {
+                  if (ev.isCancelled) continue;
+                  const subj = String(ev.subject || "");
+                  const hit = linked.find((x) => subj.toLowerCase().includes(String(x.calendar_match).toLowerCase()));
+                  if (!hit) continue;
+                  next = {
+                    series_id: hit.id, subject: subj,
+                    start: ev.start && ev.start.dateTime, end: ev.end && ev.end.dateTime,
+                    attendees: (ev.attendees || []).map((a) => ({ name: a.emailAddress && a.emailAddress.name || "", email: String(a.emailAddress && a.emailAddress.address || "").toLowerCase() })),
+                    joinUrl: ev.onlineMeeting && ev.onlineMeeting.joinUrl || "", webLink: ev.webLink || ""
+                  };
+                  break;
+                }
+              } else { next = { error: "calendar " + cr.status }; }
+            } catch (e) { next = { error: String(e.message || e).slice(0, 120) }; }
+          }
+          return json({ ok: true, series, meetings, attachments, actions, next }, 200, origin);
         }
         if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
         let body;
@@ -5660,6 +5691,8 @@ var worker_default = {
           if (body.color !== undefined) row.color = /^#[0-9a-f]{6}$/i.test(body.color) ? body.color : "#94a3b8";
           if (body.keywords !== undefined) row.keywords = (Array.isArray(body.keywords) ? body.keywords : []).map((k) => clip(k, 60).trim()).filter(Boolean).slice(0, 25);
           if (body.sort_order !== undefined && Number.isFinite(+body.sort_order)) row.sort_order = Math.round(+body.sort_order);
+          if (body.kind !== undefined) row.kind = body.kind === "event" ? "event" : "recurring";
+          if (body.subtitle !== undefined) row.subtitle = clip(body.subtitle, 140).trim() || null;
           if (body.id) {
             if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
             await sb("sr_series?id=eq." + body.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify(row) });
@@ -5723,7 +5756,9 @@ var worker_default = {
             if (u && !/^https:\/\//i.test(u)) return json({ error: "Links need to start with https://" }, 400, origin);
             row.url = u || null;
           }
-          if (body.notes !== undefined) row.notes = clip(body.notes, 5000);
+          if (body.notes !== undefined) row.notes = clip(body.notes, 20000);
+          if (body.summary !== undefined) row.summary = clip(body.summary, 20000);
+          if (body.decisions !== undefined) row.decisions = (Array.isArray(body.decisions) ? body.decisions : []).map((d) => clip(d, 500).trim()).filter(Boolean).slice(0, 60);
           if (body.series_id !== undefined) {
             if (body.series_id === "auto") {
               const t = row.title !== undefined ? row.title : (body.id && isId(body.id) ? ((await sb("sr_meetings?select=title&id=eq." + body.id))[0] || {}).title : "");
@@ -5764,6 +5799,38 @@ var worker_default = {
             mapped++;
           }
           return json({ ok: true, mapped }, 200, origin);
+        }
+
+        if (a === "save_action") {
+          const row = {};
+          if (body.text !== undefined) { row.text = clip(body.text, 500).trim(); if (!row.text) return json({ error: "Action needs text." }, 400, origin); }
+          if (body.owner !== undefined) row.owner = clip(body.owner, 120).trim() || null;
+          if (body.due !== undefined) row.due = clip(body.due, 40).trim() || null;
+          if (body.meeting_id !== undefined) {
+            if (body.meeting_id === null || body.meeting_id === "") row.meeting_id = null;
+            else if (isId(body.meeting_id)) row.meeting_id = body.meeting_id;
+            else return json({ error: "bad meeting id" }, 400, origin);
+          }
+          if (body.done !== undefined) {
+            row.done = body.done === true;
+            row.done_by = row.done ? who.email : null;
+            row.done_at = row.done ? new Date().toISOString() : null;
+          }
+          if (body.id) {
+            if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+            await sb("sr_actions?id=eq." + body.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify(row) });
+            return json({ ok: true }, 200, origin);
+          }
+          if (!row.text) return json({ error: "Action needs text." }, 400, origin);
+          row.created_by = who.email;
+          const out = await sb("sr_actions", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
+          return json({ ok: true, action: out && out[0] }, 200, origin);
+        }
+
+        if (a === "delete_action") {
+          if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          await sb("sr_actions?id=eq." + body.id, { method: "DELETE", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }) });
+          return json({ ok: true }, 200, origin);
         }
 
         return json({ error: "unknown action" }, 400, origin);
