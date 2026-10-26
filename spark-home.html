@@ -3066,6 +3066,28 @@ window.addEventListener('load',function(){setTimeout(function(){try{
   [].slice.call(d.querySelectorAll('div,article')).some(function(n){if(n.children.length&&/^\s*CHAMPION\s*$/i.test((n.firstElementChild||{}).textContent||'')){n.classList.add('hw2-glow');return true}});
   // 6. a small bat flock crosses the screen now and then
   d.body.appendChild(el('div','hw2 hw2-flock','<svg viewBox="0 0 150 70">'+bat(0,30,1.4)+bat(52,8,1)+bat(92,36,.8)+bat(118,14,.6)+'</svg>'));
+  // 7. Outlook calendar band: dark purple header with bats, pumpkin date chip, faint cobweb, pumpkin on the 31st
+  var uri=function(s){return 'url("data:image/svg+xml,'+encodeURIComponent(s)+'")'};
+  var pk2=pumpkin.replace(' class="hw2-pk"',' xmlns="http://www.w3.org/2000/svg"').replace(' aria-hidden="true"','');
+  var bp='M0 18 Q8 6 16 14 Q20 9 24 14 Q28 9 32 14 Q40 6 48 18 Q37 14 32 22 Q28 17 24 23 Q20 17 16 22 Q11 14 0 18z';
+  var bats='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 50"><g fill="#0b0712"><path d="'+bp+'"/><path transform="translate(62 2) scale(.7)" d="'+bp+'"/><path transform="translate(104 20) scale(.5)" d="'+bp+'"/></g></svg>';
+  var cweb='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" fill="none" stroke="#5b4a7a" stroke-opacity=".3" stroke-width="1.1"><path d="M0 0 L150 150 M0 0 L90 150 M0 0 L150 90 M0 0 L40 150 M0 0 L150 40"/><path d="M0 24 Q12 26 24 24 Q25 12 24 0"/><path d="M0 52 Q22 56 46 52 Q50 30 52 0"/><path d="M0 84 Q32 90 70 82 Q78 46 80 0"/><path d="M0 118 Q42 126 94 112 Q106 62 110 0"/></svg>';
+  var cst=d.createElement('style'); cst.id='hw2-cal'; cst.textContent=
+    '.calband .cb2head{position:relative;background:radial-gradient(160px 90px at 80% 40%,rgba(255,150,40,.42),transparent 70%),linear-gradient(135deg,#140c22,#22123a 55%,#2b1608) !important}'
+   +'.calband .cb2head::after{content:"";position:absolute;left:70% !important;right:auto !important;top:12px;width:130px;height:44px;background:'+uri(bats)+' no-repeat center/contain;pointer-events:none}'
+   +'.calband .cb2cube{background:linear-gradient(160deg,#fdba74,#f97316 60%,#c2410c) !important;box-shadow:0 0 18px rgba(249,115,22,.55) !important}'
+   +'.calband .cb2body{background:'+uri(cweb)+' no-repeat left top/110px,transparent !important}'
+   +'.calband .cb2rail{background:linear-gradient(#f4eeff,#fff 60%) !important}'
+   +'.calband td.td{background:#1a1028 !important;box-shadow:0 0 0 2px #f97316 !important}'
+   +'.calband .hw2-31{position:relative}'
+   +'.calband .hw2-31::after{content:"";position:absolute;right:4px;top:4px;width:14px;height:14px;background:'+uri(pk2)+' center/contain no-repeat;pointer-events:none}'
+   +'.calband td.hw2-31::after{right:-8px;top:50%;margin-top:-5px;width:10px;height:10px}';
+  d.head.appendChild(cst);
+  var mark=function(){var cb=d.querySelector('section.calband');if(!cb||!/OCTOBER/i.test(cb.textContent))return;
+    cb.querySelectorAll('.cb2strip .cb2day, td').forEach(function(n){var t=(n.matches('td')?n.textContent:((n.querySelector('.n')||{}).textContent||'')).trim();n.classList.toggle('hw2-31',t==='31')})};
+  mark();
+  var cbx=d.querySelector('section.calband');
+  if(cbx){new MutationObserver(function(){clearTimeout(cbx.__hw2t);cbx.__hw2t=setTimeout(mark,80)}).observe(cbx,{childList:true,subtree:true})}
 }catch(e){}},1200)});
 </script>
 </body>
