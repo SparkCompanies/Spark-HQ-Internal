@@ -8581,7 +8581,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     <!-- ==================== SR LEADERSHIP (SRLEAD_v1) ==================== -->
     <div id="view-srlead" class="tab-page cream" style="display: none;">
       <div class="tab-hero">
-        <div class="eyebrow">Sr Leadership <span class="lead-restricted">Restricted · Sr Leadership role</span></div>
+        <div class="eyebrow">Sr Leadership <span class="lead-restricted">Restricted · invite only</span></div>
         <h1>Every leadership meeting, mapped. <span class="dim">Notes, recordings, one place.</span></h1>
         <div class="dek">Drop in a Granola note, a Teams recording, or any link. Series rules file it automatically. Anything the rules can't place lands in Unmapped until you sort it.</div>
       </div>
@@ -11841,7 +11841,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   function gateRender() {
     // nav tabs
     Object.keys(GATE_TAB_PERM).forEach(function(tab){
-      var allowed = permAllowed(GATE_TAB_PERM[tab]);
+      /* SRLEAD_v2: Sr Leadership needs an explicit grant (role or exception); admin status alone doesn't unlock it */
+      var allowed = (tab === 'srlead') ? !!(MY_PERMS && MY_PERMS[GATE_TAB_PERM[tab]] === true) : permAllowed(GATE_TAB_PERM[tab]);
       document.querySelectorAll('.nav-item[data-tab="' + tab + '"]').forEach(function(btn){
         btn.style.display = allowed ? '' : 'none';
       });
