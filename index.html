@@ -23800,7 +23800,7 @@ window.addEventListener("message",function(e){
 /* ===== end LMS_LANDING_v1 ===== */
 </script>
 
-<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3) */
+<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3, notify v4) */
 #view-srlead{--sl-ink:#1a1a2e;--sl-violet:#4b45a8;--sl-teal:#0e7490;--sl-green:#15803d}
 #view-srlead .sl-wrap{max-width:1180px;margin:0 auto;padding:30px 32px 70px}
 #view-srlead .sl-eyebrow{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:6px}
@@ -23957,6 +23957,8 @@ window.addEventListener("message",function(e){
 #view-srlead .sl-f input,#view-srlead .sl-f textarea,#view-srlead .sl-f select,#view-srlead .sl-select{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:14px var(--font-display);color:var(--sl-ink);text-transform:none;letter-spacing:0;font-weight:400;background:#fff}
 #view-srlead .sl-f textarea{resize:vertical;line-height:1.5}
 #view-srlead .sl-f .hint{text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted-light);font-size:11.5px}
+#view-srlead .sl-notify{grid-column:1/-1;display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--sl-ink);background:var(--paper-warm);border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.4}
+#view-srlead .sl-notify input{margin-top:2px}
 #view-srlead .sl-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
 #view-srlead .sl-ser{display:grid;grid-template-columns:42px minmax(0,1fr) 120px;gap:8px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
 #view-srlead .sl-ser input[type=color]{width:40px;height:36px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
@@ -24283,6 +24285,7 @@ window.addEventListener("message",function(e){
       + '<label class="sl-f full">Summary <span class="hint">One point per line</span><textarea id="slFSummary" rows="6">' + esc(m.summary || '') + '</textarea></label>'
       + '<label class="sl-f full">Decisions <span class="hint">One per line</span><textarea id="slFDecisions" rows="4">' + esc(decisionsOf(m).join('\n')) + '</textarea></label>'
       + '<label class="sl-f full">Notes <span class="hint">Anything else worth keeping</span><textarea id="slFNotes" rows="4">' + esc(m.notes || '') + '</textarea></label>'
+      + (isNew ? '<label class="sl-notify"><input type="checkbox" id="slFNotify" checked> Notify the Sr Leadership group when I save (HQ notification + email with a link, no notes in the email)</label>' : '')
       + '</div><div class="sl-foot"><button class="sl-btn" data-sl="' + (isNew ? 'close' : 'cancel-edit') + '">Cancel</button><button class="sl-btn sl-btn-ink" data-sl="save-meeting">' + (isNew ? 'Save meeting' : 'Save changes') + '</button></div>'
       + (isNew ? '<div style="font-size:12.5px;color:var(--muted);margin-top:12px">Action items and files can be added once it’s saved.</div>' : '') + '</div>';
   }
@@ -24293,7 +24296,10 @@ window.addEventListener("message",function(e){
       + '<div class="sl-k" style="color:#c9cbe0">' + (s ? esc(s.name) : 'Unmapped') + '</div><h2>' + esc(m.title) + '</h2>'
       + '<div class="sl-when"><span>' + I.cal + fmtDate(m.meeting_date, true) + '</span><span>' + esc(SRC[m.source] || m.source) + '</span>' + (m.created_by ? '<span>added by ' + esc(String(m.created_by).split('@')[0]) + '</span>' : '') + '</div>'
       + '<div class="sl-cta" style="margin-top:14px">' + (url ? '<a class="sl-btn sl-btn-gold" href="' + esc(url) + '" target="_blank" rel="noopener">Open ' + (m.source === 'granola' ? 'in Granola' : m.source === 'teams' ? 'recording' : 'link') + I.ext + '</a>' : '')
-      + '<button class="sl-btn sl-btn-ghost" data-sl="edit">Edit</button></div></div><div class="sl-d-body">';
+      + '<button class="sl-btn sl-btn-ghost" data-sl="edit">Edit</button>'
+      + '<button class="sl-btn sl-btn-ghost" data-sl="notify" data-id="' + esc(m.id) + '">' + svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>') + (m.notified_at ? 'Notify again' : 'Notify group') + '</button></div>'
+      + (m.notified_at ? '<div style="margin-top:10px;font-size:12px;color:#9a9cb8">Group notified ' + esc(fmtDate(String(m.notified_at).slice(0,10), true)) + (m.notified_by ? ' by ' + esc(String(m.notified_by).split('@')[0]) : '') + '</div>' : '')
+      + '</div><div class="sl-d-body">';
     if (!m.series_id && S.series.length) {
       h += '<div class="sl-mapbar"><span>File under</span><select class="sl-select" id="slMapSeries"><option value="">Pick a folder…</option>' + S.series.map(function(x){ return '<option value="' + esc(x.id) + '">' + esc(x.name) + '</option>'; }).join('') + '</select>'
         + '<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="slMapRule" checked> and route future titles containing</label><input type="text" id="slMapKw" maxlength="60" value="' + esc(String(m.title || '').replace(/[—–\-|:()]/g, ' ').split(/\s+/).filter(function(w){ return w && !/\d/.test(w); }).slice(0, 3).join(' ')) + '">'
@@ -24344,7 +24350,16 @@ window.addEventListener("message",function(e){
     var body = { action: 'save_meeting', title: title, meeting_date: $('slFDate').value || null, source: $('slFSource').value, url: url,
       series_id: $('slFSeries').value, summary: $('slFSummary').value, decisions: lines($('slFDecisions').value), notes: $('slFNotes').value };
     if (!isNew) body.id = S.open;
-    run(api('POST', body).then(function(d){ if (isNew && d.meeting) { S.open = d.meeting.id; } S.editing = false; return d; }), isNew ? 'Meeting saved.' : 'Changes saved.');
+    if (isNew && $('slFNotify') && $('slFNotify').checked) body.notify = true;
+    run(api('POST', body).then(function(d){ if (isNew && d.meeting) { S.open = d.meeting.id; } S.editing = false; return d; }), function(d){
+      if (!isNew) return 'Changes saved.';
+      return d && d.notified ? 'Saved. ' + notifiedMsg(d.notified) : 'Meeting saved.';
+    });
+  }
+  function notifiedMsg(n){
+    if (!n || n.error) return 'Couldn\u2019t notify the group' + (n && n.error ? ': ' + n.error : '') + '.';
+    if (!n.recipients) return 'No one else on the list to notify.';
+    return 'Sent to ' + n.recipients + (n.recipients === 1 ? ' person' : ' people') + (n.emailError ? ' (push only; email failed)' : '') + '.';
   }
   function addAction(btn){
     var row = btn.closest('.sl-addrow'), t = row.querySelector('.t').value.trim();
@@ -24395,6 +24410,11 @@ window.addEventListener("message",function(e){
     if (act === 'edit') { S.editing = true; renderDrawer(); return; }
     if (act === 'cancel-edit') { S.editing = false; renderDrawer(); return; }
     if (act === 'save-meeting') { saveMeeting(); return; }
+    if (act === 'notify') {
+      var nm0 = meetingById(id);
+      if (nm0 && confirm('Send an HQ notification and an email to the Sr Leadership group about "' + nm0.title + '"?')) run(api('POST', { action: 'notify_meeting', id: id }), function(d){ return notifiedMsg(d && d.notified); });
+      return;
+    }
     if (act === 'show-done') { S.showDone = !S.showDone; render(); return; }
     if (act === 'toggle') { toggleAction(id); return; }
     if (act === 'add-action') { addAction(b); return; }
@@ -24440,7 +24460,20 @@ window.addEventListener("message",function(e){
     v.addEventListener('drop', function(e){ var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z) return; e.preventDefault(); z.classList.remove('sl-dragover');
       if (e.dataTransfer && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files, { kind: z.getAttribute('data-drop-kind'), id: z.getAttribute('data-drop-id') }); });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+  // Deep link from notifications: #srlead or #srlead/<meeting id>. Waits for the permission gate to show the tab.
+  function deepLink(){
+    var mtch = /^#srlead(?:\/([0-9a-f-]{36}))?$/i.exec(location.hash || ''); if (!mtch) return;
+    var tries = 0;
+    var t = setInterval(function(){
+      var nav = document.querySelector('.nav-item[data-tab="srlead"]');
+      if (nav && nav.style.display !== 'none' && nav.offsetParent !== null) {
+        clearInterval(t); nav.click();
+        if (mtch[1]) { var w8 = 0, t2 = setInterval(function(){ if (meetingById(mtch[1])) { clearInterval(t2); openDrawer(mtch[1]); } else if (++w8 > 40) clearInterval(t2); }, 250); }
+      } else if (++tries > 60) clearInterval(t);
+    }, 250);
+  }
+  window.addEventListener('hashchange', deepLink);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ wire(); deepLink(); }); else { wire(); deepLink(); }
 })();
 </script>
 
