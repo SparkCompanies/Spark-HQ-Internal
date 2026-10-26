@@ -2413,7 +2413,7 @@ footer#v2Footer .fi,footer#v2Footer .fb{position:relative;z-index:1}
   var sf=document.createElement('div'); sf.className='qab'; sf.id='v2Salesforce'; sf.setAttribute('role','link'); sf.setAttribute('tabindex','0');
   sf.innerHTML='<svg viewBox="0 0 24 24"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a3.5 3.5 0 01.5 6.96V15.5A3 3 0 0114.5 18z"></path></svg>Salesforce';
   var pbn=document.getElementById('v2PluginBoard'); qg2.insertBefore(sf, pbn ? pbn.nextSibling : qg2.firstChild);
-  var goSF=function(){ if(typeof hqNav==='function') hqNav('salesforce'); };
+  var goSF=function(){ window.open('https://spark-companies.my.salesforce.com/','_blank','noopener'); }; /* opens Salesforce sign-in in a new tab (was: HQ Salesforce tab) */
   sf.addEventListener('click',goSF); sf.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); goSF(); } });
  }
 
@@ -3060,7 +3060,7 @@ window.addEventListener('load',function(){setTimeout(function(){try{
     if(i%4===0){var sp=el('div','hw2 hw2-spider',spider);sp.style[(i/2)%2?'left':'right']=(90+(i*13)%60)+'px';s.appendChild(sp)}
   });
   // 4. ghost peeking in at "Who do I ask?"
-  var qa=d.querySelector('section.qa');
+  var qa=[].slice.call(d.querySelectorAll('section')).filter(function(s){var e=s.querySelector('.v2-eyebrow');return e&&/who do i ask/i.test(e.textContent)})[0];
   if(qa){qa.classList.add('hw2-host');qa.style.overflowX='clip';qa.appendChild(el('div','hw2 hw2-ghost',ghost))}
   // 5. Charge Leaders champion card glows like a jack-o-lantern
   [].slice.call(d.querySelectorAll('div,article')).some(function(n){if(n.children.length&&/^\s*CHAMPION\s*$/i.test((n.firstElementChild||{}).textContent||'')){n.classList.add('hw2-glow');return true}});
