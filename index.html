@@ -8578,77 +8578,16 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     </div>
 
 
-    <!-- ==================== SR LEADERSHIP (SRLEAD_v1) ==================== -->
+    <!-- ==================== SR LEADERSHIP (SRLEAD_v1, hub layout v3) ==================== -->
     <div id="view-srlead" class="tab-page cream" style="display: none;">
-      <div class="tab-hero">
-        <div class="eyebrow">Sr Leadership <span class="lead-restricted">Restricted · invite only</span></div>
-        <h1>Every leadership meeting, mapped. <span class="dim">Notes, recordings, one place.</span></h1>
-        <div class="dek">Drop in a Granola note, a Teams recording, or any link. Series rules file it automatically. Anything the rules can't place lands in Unmapped until you sort it.</div>
+      <div class="sl-wrap">
+        <div class="sl-eyebrow">Sr Leadership <span class="lead-restricted">Restricted · invite only</span></div>
+        <div id="slRoot"><div class="sl-loading">Loading the leadership hub…</div></div>
       </div>
-      <div class="tab-body">
-        <div class="srl-toolbar">
-          <button class="srl-btn srl-btn-primary" data-srl="open-add">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            Add meeting
-          </button>
-          <button class="srl-btn" data-srl="open-series">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
-            Manage series
-          </button>
-          <div class="srl-search">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-            <input id="srlSearch" type="search" placeholder="Search titles and notes" autocomplete="off">
-          </div>
-          <select id="srlSourceFilter" class="srl-select" aria-label="Filter by source">
-            <option value="">All sources</option>
-            <option value="granola">Granola</option>
-            <option value="teams">Teams recording</option>
-            <option value="link">Other link</option>
-          </select>
-        </div>
-
-        <div id="srlStatus" class="srl-status" role="status"></div>
-
-        <div id="srlAddPanel" class="srl-panel" style="display:none">
-          <div class="srl-panel-head"><span id="srlAddTitle">Add a meeting</span><button class="srl-x" data-srl="close-add" aria-label="Close">&times;</button></div>
-          <div class="srl-form">
-            <label class="srl-f srl-f-wide">Title<input id="srlFTitle" type="text" maxlength="200" placeholder="e.g. Sr Leadership L10 — Oct 27"></label>
-            <label class="srl-f">Date<input id="srlFDate" type="date"></label>
-            <label class="srl-f">Source
-              <select id="srlFSource" class="srl-select">
-                <option value="granola">Granola</option>
-                <option value="teams">Teams recording</option>
-                <option value="link">Other link</option>
-              </select>
-            </label>
-            <label class="srl-f srl-f-wide">Link<input id="srlFUrl" type="url" placeholder="https://"></label>
-            <label class="srl-f">Series
-              <select id="srlFSeries" class="srl-select"></select>
-            </label>
-            <label class="srl-f srl-f-full">Notes<textarea id="srlFNotes" rows="3" maxlength="5000" placeholder="Decisions, follow-ups, anything worth finding later"></textarea></label>
-          </div>
-          <div class="srl-panel-foot">
-            <button class="srl-btn" data-srl="close-add">Cancel</button>
-            <button class="srl-btn srl-btn-primary" data-srl="save-meeting">Save</button>
-          </div>
-        </div>
-
-        <div id="srlSeriesPanel" class="srl-panel" style="display:none">
-          <div class="srl-panel-head"><span>Meeting series &amp; rules</span><button class="srl-x" data-srl="close-series" aria-label="Close">&times;</button></div>
-          <div class="srl-help">A meeting goes into the first series (top to bottom) whose keyword shows up in its title as a whole word or phrase. Capitals don't matter. Separate them with commas.</div>
-          <div id="srlSeriesEdit"></div>
-          <div class="srl-panel-foot">
-            <button class="srl-btn" data-srl="add-series-row">+ New series</button>
-            <button class="srl-btn" data-srl="apply-rules">Re-run rules on Unmapped</button>
-          </div>
-        </div>
-
-        <div class="srl-layout">
-          <aside id="srlSeriesNav" class="srl-nav" aria-label="Series"></aside>
-          <section id="srlList" class="srl-list"></section>
-          <input type="file" id="srlFileInput" multiple style="display:none" aria-hidden="true">
-        </div>
-      </div>
+      <div id="slToast" class="sl-toast" role="status" aria-live="polite"></div>
+      <div class="sl-scrim" data-sl="close"></div>
+      <aside id="slDrawer" class="sl-drawer" aria-label="Meeting detail"></aside>
+      <input type="file" id="slFileInput" multiple style="display:none" aria-hidden="true">
     </div>
 
     <!-- ==================== ADMIN ==================== -->
@@ -23861,111 +23800,234 @@ window.addEventListener("message",function(e){
 /* ===== end LMS_LANDING_v1 ===== */
 </script>
 
-<style>/* SRLEAD_v1 — Sr Leadership meeting map */
-#view-srlead .srl-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-#view-srlead .srl-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 13px var(--font-display);cursor:pointer;box-shadow:0 1px 2px rgba(26,26,46,.06)}
-#view-srlead .srl-btn:hover{border-color:var(--gold-deep)}
-#view-srlead .srl-btn-primary{background:var(--ink);color:var(--gold);border-color:var(--ink);box-shadow:0 6px 16px rgba(26,26,46,.18),inset 0 1px 0 rgba(255,255,255,.08)}
-#view-srlead .srl-btn-primary:hover{filter:brightness(1.15)}
-#view-srlead .srl-btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
-#view-srlead .srl-btn-danger{color:#b42318}
-#view-srlead .srl-search{flex:1 1 220px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 12px;color:var(--muted)}
-#view-srlead .srl-search input{flex:1;border:0;outline:0;padding:9px 0;font:14px var(--font-display);background:transparent;color:var(--ink)}
-#view-srlead .srl-select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;font:13px var(--font-display);color:var(--ink)}
-#view-srlead .srl-status{min-height:18px;font-size:12px;color:var(--muted);margin-bottom:8px}
-#view-srlead .srl-status.err{color:#b42318}
-#view-srlead .srl-panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 12px 30px rgba(26,26,46,.08)}
-#view-srlead .srl-panel-head{display:flex;justify-content:space-between;align-items:center;font:700 15px var(--font-display);margin-bottom:12px}
-#view-srlead .srl-x{border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted)}
-#view-srlead .srl-help{font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
-#view-srlead .srl-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-#view-srlead .srl-f{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-#view-srlead .srl-f-wide{grid-column:span 2}
-#view-srlead .srl-f-full{grid-column:1/-1}
-#view-srlead .srl-f input,#view-srlead .srl-f textarea{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:14px var(--font-display);color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400;background:var(--paper)}
-#view-srlead .srl-f textarea{resize:vertical}
-#view-srlead .srl-panel-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}
-#view-srlead .srl-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
-#view-srlead .srl-nav{display:flex;flex-direction:column;gap:6px;position:sticky;top:16px}
-#view-srlead .srl-nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;font:600 13.5px var(--font-display);color:var(--ink)}
-#view-srlead .srl-nav-item:hover{background:#fff;border-color:var(--line)}
-#view-srlead .srl-nav-item.on{background:#fff;border-color:var(--line);box-shadow:inset 3px 0 0 var(--gold),0 4px 14px rgba(26,26,46,.06)}
-#view-srlead .srl-dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.2)}
-#view-srlead .srl-nav-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#view-srlead .srl-count{font-size:11px;font-weight:700;color:var(--muted);background:var(--line-light);border-radius:99px;padding:2px 8px}
-#view-srlead .srl-count.warn{background:var(--amber-bg);color:var(--gold-dark)}
-#view-srlead .srl-nav-sep{height:1px;background:var(--line);margin:6px 4px}
-#view-srlead .srl-row{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:14px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 0 rgba(26,26,46,.03),0 8px 20px -14px rgba(26,26,46,.25)}
-#view-srlead .srl-date{font:700 12px var(--font-display);color:var(--muted);letter-spacing:.04em;padding-top:2px}
-#view-srlead .srl-title{font:700 15px var(--font-display);color:var(--ink);word-break:break-word}
-#view-srlead .srl-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
-#view-srlead .srl-pill{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--line-light);color:var(--muted)}
-#view-srlead .srl-pill.granola{background:#e8f5ec;color:#15803d}
-#view-srlead .srl-pill.teams{background:#ecebfa;color:#4b45a8}
-#view-srlead .srl-notes{font-size:13px;color:#475569;margin-top:8px;line-height:1.5;white-space:pre-wrap}
-#view-srlead .srl-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-#view-srlead .srl-open{display:inline-flex;align-items:center;gap:6px;font:700 12px var(--font-display);color:var(--ink);text-decoration:none;padding:6px 10px;border-radius:8px;background:var(--gold-grad);box-shadow:0 4px 10px rgba(212,160,23,.3)}
-#view-srlead .srl-map{margin-top:10px;padding:10px;border-radius:10px;background:var(--paper-warm);border:1px dashed var(--gold-deep);display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
-#view-srlead .srl-map input[type=text]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:13px var(--font-display);min-width:140px}
-#view-srlead .srl-empty{padding:40px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px;background:#fff}
-/* SRLEAD_ATT_v1 attachments */
-#view-srlead .srl-atts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-#view-srlead .srl-att{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 6px 5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--paper);font:600 12px var(--font-display);color:var(--ink)}
-#view-srlead .srl-att button{border:0;background:none;cursor:pointer;color:inherit;font:inherit;padding:0;display:inline-flex;align-items:center;gap:6px;min-width:0}
-#view-srlead .srl-att .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
-#view-srlead .srl-att .sz{color:var(--muted-light);font-weight:500}
-#view-srlead .srl-att .srl-att-x{color:var(--muted);font-size:15px;line-height:1;padding:0 3px}
-#view-srlead .srl-att .srl-att-x:hover{color:#b42318}
-#view-srlead .srl-att:hover{border-color:var(--gold-deep)}
-#view-srlead .srl-folder{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
-#view-srlead .srl-folder-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font:700 13px var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-#view-srlead .srl-folder .srl-atts:empty::before{content:'No files yet. Drop decks, PDFs, or spreadsheets here.';font-size:12.5px;color:var(--muted-light)}
-#view-srlead .srl-drop{outline:2px dashed var(--gold-deep);outline-offset:3px;background:var(--paper-warm)}
-#view-srlead .srl-ser-row{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,2fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-light)}
-#view-srlead .srl-ser-row input[type=text]{padding:8px 9px;border:1px solid var(--line);border-radius:8px;font:13.5px var(--font-display);width:100%}
-#view-srlead .srl-ser-row input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
-@media (max-width: 860px){
-  #view-srlead .srl-layout{grid-template-columns:1fr}
-  #view-srlead .srl-nav{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}
-  #view-srlead .srl-nav-item{width:auto;flex:none}
-  #view-srlead .srl-nav-sep{display:none}
-  #view-srlead .srl-form{grid-template-columns:1fr 1fr}
-  #view-srlead .srl-row{grid-template-columns:1fr}
-  #view-srlead .srl-actions{flex-direction:row;align-items:center}
-  #view-srlead .srl-ser-row{grid-template-columns:44px minmax(0,1fr) auto auto}
-  #view-srlead .srl-ser-row [data-role=kw]{grid-column:1/-1;order:5}
+<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3) */
+#view-srlead{--sl-ink:#1a1a2e;--sl-violet:#4b45a8;--sl-teal:#0e7490;--sl-green:#15803d}
+#view-srlead .sl-wrap{max-width:1180px;margin:0 auto;padding:30px 32px 70px}
+#view-srlead .sl-eyebrow{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:6px}
+#view-srlead .sl-loading{padding:60px 0;text-align:center;color:var(--muted)}
+#view-srlead svg{flex:none}
+#view-srlead button{font-family:var(--font-display)}
+/* hero */
+#view-srlead .sl-hero{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;color:#fff;padding:30px 32px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:28px;
+  background:radial-gradient(900px 340px at 82% -20%,rgba(255,212,59,.28),transparent 60%),radial-gradient(600px 300px at 0% 120%,rgba(75,69,168,.38),transparent 60%),linear-gradient(135deg,#1d1d36 0%,#14142b 55%,#0e0e20 100%);
+  box-shadow:0 30px 60px -28px rgba(20,20,43,.55),inset 0 1px 0 rgba(255,255,255,.05)}
+#view-srlead .sl-hero::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.07;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#view-srlead .sl-hero > *{position:relative;z-index:1}
+#view-srlead .sl-k{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#FFD43B;display:flex;align-items:center;gap:8px}
+#view-srlead .sl-pulse{width:8px;height:8px;border-radius:50%;background:#FFD43B;animation:slp 2s infinite}
+@keyframes slp{0%{box-shadow:0 0 0 0 rgba(255,212,59,.6)}70%{box-shadow:0 0 0 9px rgba(255,212,59,0)}100%{box-shadow:0 0 0 0 rgba(255,212,59,0)}}
+#view-srlead .sl-hero h1{font-size:34px;line-height:1.08;margin:12px 0 10px;font-weight:800;letter-spacing:-.01em;color:#fff}
+#view-srlead .sl-when{display:flex;flex-wrap:wrap;gap:8px 16px;color:#c9cbe0;font-size:14px;margin-bottom:18px}
+#view-srlead .sl-when span{display:inline-flex;align-items:center;gap:7px}
+#view-srlead .sl-avs{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+#view-srlead .sl-av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#1a1a2e;border:2px solid #17172f;margin-left:-8px;box-shadow:0 4px 10px rgba(0,0,0,.3)}
+#view-srlead .sl-av:first-child{margin-left:0}
+#view-srlead .sl-av-more{font-size:12px;color:#c9cbe0;margin-left:10px}
+#view-srlead .sl-cta{display:flex;gap:10px;flex-wrap:wrap}
+#view-srlead .sl-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:12px;font:700 13.5px var(--font-display);border:1px solid var(--line);background:#fff;color:var(--sl-ink);cursor:pointer;text-decoration:none;box-shadow:0 1px 2px rgba(26,26,46,.06)}
+#view-srlead .sl-btn:hover{border-color:var(--gold-deep)}
+#view-srlead .sl-btn-gold{background:linear-gradient(180deg,#FFD84F,#F0BE12);border-color:transparent;color:#1a1a2e;box-shadow:0 10px 22px -8px rgba(245,197,24,.7),inset 0 1px 0 rgba(255,255,255,.6)}
+#view-srlead .sl-btn-ink{background:var(--sl-ink);border-color:var(--sl-ink);color:#FFD43B;box-shadow:0 8px 18px -10px rgba(26,26,46,.6)}
+#view-srlead .sl-btn-ghost{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.16)}
+#view-srlead .sl-btn-ghost:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.3)}
+#view-srlead .sl-btn-sm{padding:6px 10px;font-size:12px;border-radius:9px}
+#view-srlead .sl-btn-danger{color:#b42318}
+#view-srlead .sl-carry{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:18px 18px 8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+#view-srlead .sl-carry h3{margin:0 0 4px;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:#c9cbe0}
+#view-srlead .sl-carry .sub{font-size:12.5px;color:#9a9cb8;margin-bottom:10px}
+#view-srlead .sl-carry-item{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(255,255,255,.07);font-size:13.5px;line-height:1.4;color:#eef0fa;cursor:pointer}
+#view-srlead .sl-carry-item:first-of-type{border-top:0}
+#view-srlead .sl-carry-item .who{margin-left:auto;font-size:11px;font-weight:700;color:#FFD43B;white-space:nowrap}
+#view-srlead .sl-carry-empty{font-size:13px;color:#9a9cb8;padding:8px 0 14px}
+/* stats */
+#view-srlead .sl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 28px}
+#view-srlead .sl-stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 1px 0 rgba(26,26,46,.03),0 14px 28px -20px rgba(26,26,46,.35);text-align:left}
+#view-srlead .sl-stat::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:var(--c)}
+#view-srlead .sl-stat .n{font-size:30px;font-weight:800;line-height:1;color:var(--sl-ink)}
+#view-srlead .sl-stat .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
+/* folders */
+#view-srlead .sl-sec{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;gap:10px}
+#view-srlead .sl-sec h2{margin:0;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700}
+#view-srlead .sl-link{border:0;background:none;font:700 13px var(--font-display);color:var(--sl-ink);cursor:pointer;padding:4px}
+#view-srlead .sl-folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:30px}
+#view-srlead .sl-folder{position:relative;display:flex;flex-direction:column;align-items:stretch;border-radius:18px;padding:18px;color:#fff;min-height:150px;cursor:pointer;overflow:hidden;text-align:left;border:0;
+  background:linear-gradient(150deg,var(--a),var(--b));box-shadow:0 18px 34px -22px var(--a),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .16s,box-shadow .16s}
+#view-srlead .sl-folder:hover{transform:translateY(-3px)}
+#view-srlead .sl-folder.on{box-shadow:0 0 0 3px #fff,0 0 0 6px var(--a),0 18px 34px -18px var(--a)}
+#view-srlead .sl-folder::after{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),transparent 65%)}
+#view-srlead .sl-folder .tag{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
+#view-srlead .sl-folder h3{margin:8px 0 6px;font-size:19px;line-height:1.2;color:#fff;font-weight:800}
+#view-srlead .sl-folder .meta{font-size:12.5px;opacity:.85}
+#view-srlead .sl-folder .foot{margin-top:auto;padding-top:14px;display:flex;gap:14px;font-size:12px;font-weight:600;flex-wrap:wrap}
+#view-srlead .sl-folder.add{background:rgba(255,255,255,.6);color:var(--muted);border:1.5px dashed var(--line);box-shadow:none;display:grid;place-items:center;text-align:center;font-weight:700}
+#view-srlead .sl-folder.add::after{display:none}
+/* main */
+#view-srlead .sl-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:22px;align-items:start}
+#view-srlead .sl-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+#view-srlead .sl-tabs{display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 6px 16px -12px rgba(26,26,46,.3);overflow-x:auto;max-width:100%}
+#view-srlead .sl-tab{border:0;background:none;padding:8px 14px;border-radius:9px;font:700 13px var(--font-display);color:var(--muted);cursor:pointer;white-space:nowrap}
+#view-srlead .sl-tab.on{background:var(--sl-ink);color:#FFD43B}
+#view-srlead .sl-search{flex:1 1 180px;display:flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:0 14px;color:var(--muted)}
+#view-srlead .sl-search input{flex:1;border:0;outline:0;padding:10px 0;font:14px var(--font-display);background:transparent;color:var(--sl-ink);min-width:0}
+#view-srlead .sl-filter{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 8px 6px 12px;font-size:12.5px;font-weight:700;margin-bottom:14px}
+#view-srlead .sl-filter button{border:0;background:var(--line-light);border-radius:99px;width:22px;height:22px;cursor:pointer;color:var(--muted)}
+#view-srlead .sl-month{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-light);margin:8px 0 10px;display:flex;align-items:center;gap:10px}
+#view-srlead .sl-month::after{content:'';flex:1;height:1px;background:var(--line)}
+#view-srlead .sl-card{background:#fff;border:1px solid var(--line);border-radius:18px;margin-bottom:14px;box-shadow:0 18px 34px -26px rgba(26,26,46,.4);overflow:hidden}
+#view-srlead .sl-card-h{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--line-light);background:linear-gradient(180deg,#fff,var(--paper))}
+#view-srlead .sl-card-h h3{margin:0;font-size:17px;color:var(--sl-ink)}
+#view-srlead .sl-card-h .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+#view-srlead .sl-cal{width:52px;border-radius:12px;overflow:hidden;text-align:center;box-shadow:0 6px 14px -8px rgba(26,26,46,.4);border:1px solid var(--line);flex:none;background:#fff}
+#view-srlead .sl-cal b{display:block;background:var(--cc,var(--sl-violet));color:#fff;font-size:10px;letter-spacing:.14em;padding:3px 0}
+#view-srlead .sl-cal i{display:block;font-style:normal;font-size:20px;font-weight:800;padding:4px 0 5px;color:var(--sl-ink)}
+#view-srlead .sl-sess{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;padding:14px 18px;border-top:1px solid var(--line-light);cursor:pointer;transition:background .15s}
+#view-srlead .sl-sess:first-child{border-top:0}
+#view-srlead .sl-sess:hover{background:var(--paper)}
+#view-srlead .sl-sess h4{margin:0 0 6px;font-size:14.5px;color:var(--sl-ink)}
+#view-srlead .sl-sess ul,#view-srlead .sl-d-sec ul{margin:0;padding-left:18px;font-size:13px;color:#475569;line-height:1.55}
+#view-srlead .sl-sess .go{align-self:center;color:var(--muted-light)}
+#view-srlead .sl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+#view-srlead .sl-chip{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--line-light);color:var(--muted);display:inline-flex;align-items:center;gap:5px}
+#view-srlead .sl-chip.granola{background:#e8f5ec;color:var(--sl-green)}
+#view-srlead .sl-chip.teams{background:#ecebfa;color:var(--sl-violet)}
+#view-srlead .sl-chip.y{background:#fef3c7;color:var(--gold-dark)}
+#view-srlead .sl-chip.f{background:#e0f2f7;color:var(--sl-teal)}
+#view-srlead .sl-upcoming{padding:16px 18px;border:1.5px dashed var(--line);border-radius:18px;color:var(--muted);font-size:13.5px;display:flex;align-items:center;gap:14px;margin-bottom:14px;background:#fff}
+#view-srlead .sl-upcoming strong{color:var(--sl-ink)}
+#view-srlead .sl-empty{padding:40px 20px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:18px;background:#fff;font-size:14px}
+#view-srlead .sl-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin-bottom:18px;box-shadow:0 18px 34px -26px rgba(26,26,46,.4)}
+#view-srlead .sl-panel h3{margin:0 0 6px;font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+#view-srlead .sl-panel h3 small{letter-spacing:0;text-transform:none;font-size:12px;color:var(--muted-light);font-weight:600}
+#view-srlead .sl-act{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line-light);font-size:13.5px;line-height:1.4}
+#view-srlead .sl-act:first-of-type{border-top:0}
+#view-srlead .sl-chk{width:19px;height:19px;border-radius:6px;border:1.5px solid #cbd5e1;flex:none;margin-top:1px;cursor:pointer;display:grid;place-items:center;background:#fff;padding:0}
+#view-srlead .sl-chk:hover{border-color:var(--sl-green)}
+#view-srlead .sl-act.done .sl-chk{background:var(--sl-green);border-color:var(--sl-green)}
+#view-srlead .sl-act.done .txt{text-decoration:line-through;color:var(--muted-light)}
+#view-srlead .sl-act .body{flex:1;min-width:0}
+#view-srlead .sl-own{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:11.5px;color:var(--muted)}
+#view-srlead .sl-own .src{cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:2px}
+#view-srlead .sl-mini{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:800;color:#1a1a2e}
+#view-srlead .sl-due{font-size:11px;font-weight:700;color:var(--gold-dark);background:#fef3c7;border-radius:6px;padding:2px 7px;white-space:nowrap;align-self:flex-start}
+#view-srlead .sl-x{border:0;background:none;color:var(--muted-light);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;align-self:flex-start}
+#view-srlead .sl-x:hover{color:#b42318}
+#view-srlead .sl-dec{padding:10px 0 10px 16px;border-top:1px solid var(--line-light);font-size:13.5px;line-height:1.45;position:relative;color:var(--sl-ink)}
+#view-srlead .sl-dec:first-of-type{border-top:0}
+#view-srlead .sl-dec::before{content:'';position:absolute;left:1px;top:16px;width:6px;height:6px;border-radius:2px;background:var(--gold-deep);transform:rotate(45deg)}
+#view-srlead .sl-dec .src{display:block;font-size:11.5px;color:var(--muted-light);margin-top:2px;cursor:pointer}
+#view-srlead .sl-more{border:0;background:none;font:700 12.5px var(--font-display);color:var(--sl-ink);cursor:pointer;padding:8px 0 0}
+#view-srlead .sl-addrow{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+#view-srlead .sl-addrow input{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:13.5px var(--font-display);background:var(--paper);min-width:0}
+#view-srlead .sl-addrow input.t{flex:2 1 220px}
+#view-srlead .sl-addrow input.o{flex:1 1 110px}
+#view-srlead .sl-addrow input.d{flex:0 1 100px}
+/* files */
+#view-srlead .sl-atts{display:flex;flex-wrap:wrap;gap:8px}
+#view-srlead .sl-att{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:6px 6px 6px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;font:600 12.5px var(--font-display);color:var(--sl-ink);box-shadow:0 6px 14px -10px rgba(26,26,46,.35)}
+#view-srlead .sl-att > button{border:0;background:none;cursor:pointer;color:inherit;font:inherit;padding:0;display:inline-flex;align-items:center;gap:6px;min-width:0}
+#view-srlead .sl-att .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+#view-srlead .sl-att .sz{color:var(--muted-light);font-weight:500}
+#view-srlead .sl-att:hover{border-color:var(--gold-deep)}
+#view-srlead .sl-folderfiles{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px}
+#view-srlead .sl-folderfiles .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#view-srlead .sl-drop{border:1.5px dashed var(--gold-deep);background:var(--paper-warm);border-radius:12px;padding:14px;text-align:center;font-size:13px;color:var(--gold-dark);font-weight:600;margin-top:10px;cursor:pointer}
+#view-srlead .sl-dragover{outline:2px dashed var(--gold-deep);outline-offset:3px;background:var(--paper-warm)}
+#view-srlead .sl-fileline{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line-light);font-size:13px}
+#view-srlead .sl-fileline:first-child{border-top:0}
+#view-srlead .sl-fileline .where{margin-left:auto;color:var(--muted);font-size:12px;cursor:pointer}
+/* drawer */
+#view-srlead .sl-scrim{position:fixed;inset:0;background:rgba(14,14,32,.45);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900}
+#view-srlead .sl-drawer{position:fixed;top:0;right:0;height:100%;width:min(580px,100%);background:var(--paper);box-shadow:-30px 0 60px -20px rgba(14,14,32,.5);transform:translateX(105%);transition:transform .25s ease;overflow:auto;z-index:901}
+#view-srlead.sl-open .sl-scrim{opacity:1;pointer-events:auto}
+#view-srlead.sl-open .sl-drawer{transform:none}
+#view-srlead .sl-d-top{background:radial-gradient(500px 200px at 90% -40%,rgba(255,212,59,.22),transparent 60%),linear-gradient(135deg,#1d1d36,#14142b);color:#fff;padding:22px 24px}
+#view-srlead .sl-d-close{float:right;background:rgba(255,255,255,.08);border:0;color:#fff;width:34px;height:34px;border-radius:10px;font-size:20px;cursor:pointer}
+#view-srlead .sl-d-top h2{margin:10px 0 6px;font-size:22px;color:#fff;line-height:1.2}
+#view-srlead .sl-d-top .sl-when{margin:0}
+#view-srlead .sl-d-body{padding:20px 24px 40px}
+#view-srlead .sl-d-sec{margin-bottom:24px}
+#view-srlead .sl-d-sec h4{margin:0 0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+#view-srlead .sl-d-sec ul{font-size:14px;color:#334155;line-height:1.6}
+#view-srlead .sl-d-sec .notes{white-space:pre-wrap;font-size:13.5px;color:#475569;line-height:1.55;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+#view-srlead .sl-mapbar{background:var(--paper-warm);border:1px dashed var(--gold-deep);border-radius:12px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;margin-bottom:20px}
+#view-srlead .sl-mapbar input[type=text]{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font:13px var(--font-display);min-width:140px}
+#view-srlead .sl-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#view-srlead .sl-f{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#view-srlead .sl-f.full{grid-column:1/-1}
+#view-srlead .sl-f input,#view-srlead .sl-f textarea,#view-srlead .sl-f select,#view-srlead .sl-select{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:14px var(--font-display);color:var(--sl-ink);text-transform:none;letter-spacing:0;font-weight:400;background:#fff}
+#view-srlead .sl-f textarea{resize:vertical;line-height:1.5}
+#view-srlead .sl-f .hint{text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted-light);font-size:11.5px}
+#view-srlead .sl-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap}
+#view-srlead .sl-ser{display:grid;grid-template-columns:42px minmax(0,1fr) 120px;gap:8px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+#view-srlead .sl-ser input[type=color]{width:40px;height:36px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
+#view-srlead .sl-ser input[type=text]{padding:8px 9px;border:1px solid var(--line);border-radius:8px;font:13.5px var(--font-display);width:100%}
+#view-srlead .sl-ser .wide{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#view-srlead .sl-ser .wide input{flex:1 1 200px}
+#view-srlead .sl-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--sl-ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:600;box-shadow:0 18px 40px -16px rgba(14,14,32,.7);opacity:0;pointer-events:none;transition:all .2s;z-index:950;max-width:calc(100% - 32px)}
+#view-srlead .sl-toast.show{opacity:1;transform:translateX(-50%)}
+#view-srlead .sl-toast.err{background:#b42318}
+@media (max-width:900px){
+  #view-srlead .sl-wrap{padding:18px 16px 56px}
+  #view-srlead .sl-hero{grid-template-columns:1fr;padding:22px}
+  #view-srlead .sl-hero h1{font-size:26px}
+  #view-srlead .sl-stats{grid-template-columns:repeat(2,1fr)}
+  #view-srlead .sl-grid{grid-template-columns:1fr}
+  #view-srlead .sl-form{grid-template-columns:1fr}
 }
 </style>
 <script>
-/* SRLEAD_v1 — Sr Leadership meeting map. Data lives in Supabase (sr_series, sr_meetings) and is only reachable
-   through the worker's /srlead route, which re-checks tab:srleadership server-side. */
+/* SRLEAD_v1 — Sr Leadership hub (layout v3). Data lives in Supabase and is only reachable through the
+   worker's /srlead route, which re-checks tab:srleadership on every call. */
 (function(){
-  var SRL_WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
-  var S = { series: [], meetings: [], attachments: [], attTarget: null, sel: '__all', q: '', src: '', editId: null, loaded: false, busy: false };
-  var SRL_MAX_FILE = 25 * 1024 * 1024;
-  var SRL_FILE_ICO = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
-  var SRL_CLIP_ICO = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg>';
-  function fmtSize(n){ n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n/1024) + ' KB'; return (n/1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
-  function attsFor(kind, id){ return S.attachments.filter(function(a){ return kind === 'meeting' ? a.meeting_id === id : a.series_id === id; }); }
-  function attChips(list){
-    return list.map(function(a){
-      return '<span class="srl-att"><button data-srl="att-open" data-id="' + esc(a.id) + '" title="Open ' + esc(a.file_name) + '">' + SRL_FILE_ICO + '<span class="nm">' + esc(a.file_name) + '</span><span class="sz">' + fmtSize(a.size_bytes) + '</span></button>'
-        + '<button class="srl-att-x" data-srl="att-del" data-id="' + esc(a.id) + '" aria-label="Remove ' + esc(a.file_name) + '">&times;</button></span>';
-    }).join('');
-  }
-  var SRC_LABEL = { granola: 'Granola', teams: 'Teams recording', link: 'Link' };
+  var W = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+  var S = { series: [], meetings: [], actions: [], attachments: [], next: null, loaded: false, busy: false,
+            folder: '', tab: 'timeline', q: '', open: null, editing: false, attTarget: null, showDone: false };
+  var MAX_FILE = 25 * 1024 * 1024;
+  var SRC = { granola: 'Granola', teams: 'Teams recording', link: 'Link' };
+  var PAL = ['#FFD43B','#a5b4fc','#86efac','#fda4af','#67e8f9','#fdba74','#c4b5fd','#fde68a','#f9a8d4','#99f6e4'];
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var MONTH = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function svg(d, w){ return '<svg viewBox="0 0 24 24" width="' + (w||15) + '" height="' + (w||15) + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
+  var I = {
+    cal: svg('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>'),
+    clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+    video: svg('<path d="M15 10l5-3v10l-5-3z"/><rect x="3" y="6" width="12" height="12" rx="2"/>'),
+    doc: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', 14),
+    plus: svg('<path d="M12 5v14M5 12h14"/>'),
+    clip: svg('<path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/>', 14),
+    chev: svg('<path d="M9 6l6 6-6 6"/>', 18),
+    ext: svg('<path d="M7 17L17 7M9 7h8v8"/>', 13),
+    search: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>', 14),
+    check: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>'
+  };
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-  function status(msg, isErr){ var el = $('srlStatus'); if (!el) return; el.textContent = msg || ''; el.className = 'srl-status' + (isErr ? ' err' : ''); }
   function safeUrl(u){ return /^https:\/\//i.test(String(u || '')) ? u : ''; }
-  function fmtDate(d){
-    if (!d) return 'No date';
-    var p = String(d).slice(0,10).split('-'); if (p.length !== 3) return esc(d);
-    var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]-1] || '';
-    return m + ' ' + (+p[2]) + ', ' + p[0];
-  }
-  function seriesById(id){ for (var i=0;i<S.series.length;i++) if (S.series[i].id === id) return S.series[i]; return null; }
+  function hash(s){ var h = 0; s = String(s || '').toLowerCase(); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+  function initials(n){ n = String(n || '').trim(); if (n.indexOf('@') > 0) n = n.split('@')[0]; var p = n.split(/[\s._-]+/).filter(Boolean); if (!p.length) return '?'; return (p.length > 1 ? p[0][0] + p[p.length-1][0] : p[0][0]).toUpperCase(); }
+  function avatar(n, cls){ return '<span class="' + (cls || 'sl-mini') + '" style="background:' + PAL[hash(n) % PAL.length] + '" title="' + esc(n) + '">' + esc(initials(n)) + '</span>'; }
+  function owners(s){ return String(s || '').split(/\s*(?:,|&|\band\b|\/)\s*/i).filter(Boolean); }
+  function fmtSize(n){ n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n/1024) + ' KB'; return (n/1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
+  function ymd(d){ var p = String(d || '').slice(0,10).split('-'); return p.length === 3 ? { y: +p[0], m: +p[1], d: +p[2] } : null; }
+  function dateObj(d){ var x = ymd(d); return x ? new Date(x.y, x.m - 1, x.d) : null; }
+  function fmtDate(d, withDow){ var x = ymd(d); if (!x) return 'No date'; var o = dateObj(d); return (withDow ? DOW[o.getDay()] + ', ' : '') + MON[x.m-1] + ' ' + x.d + (withDow ? '' : ', ' + x.y); }
+  function wall(s){ var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); return m ? { y:+m[1], mo:+m[2], d:+m[3], h:+m[4], mi:+m[5] } : null; }
+  function fmtTime(w){ if (!w) return ''; var h = w.h % 12 || 12; return h + ':' + (w.mi < 10 ? '0' : '') + w.mi + ' ' + (w.h < 12 ? 'AM' : 'PM'); }
+  function lines(t){ return String(t || '').split(/\r?\n/).map(function(l){ return l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim(); }).filter(Boolean); }
+  function shade(hex, amt){ var m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#14142b'; var n = parseInt(m[1],16), r = n>>16, g = (n>>8)&255, b = n&255;
+    var f = function(c){ return Math.max(0, Math.min(255, Math.round(c * (1 + amt)))); }; return '#' + ((1<<24) + (f(r)<<16) + (f(g)<<8) + f(b)).toString(16).slice(1); }
+  function seriesById(id){ for (var i = 0; i < S.series.length; i++) if (S.series[i].id === id) return S.series[i]; return null; }
+  function meetingById(id){ for (var i = 0; i < S.meetings.length; i++) if (S.meetings[i].id === id) return S.meetings[i]; return null; }
+  function decisionsOf(m){ return Array.isArray(m && m.decisions) ? m.decisions : []; }
+  function actionsOf(mid){ return S.actions.filter(function(a){ return a.meeting_id === mid; }); }
+  function attsFor(kind, id){ return S.attachments.filter(function(a){ return kind === 'meeting' ? a.meeting_id === id : a.series_id === id; }); }
+  function openActions(){ return S.actions.filter(function(a){ return !a.done; }); }
+  function byDateDesc(a, b){ return String(b.meeting_date || '').localeCompare(String(a.meeting_date || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')); }
+
+  var toastT;
+  function toast(msg, err){ var t = $('slToast'); if (!t) return; t.textContent = msg; t.className = 'sl-toast show' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function(){ t.className = 'sl-toast'; }, err ? 6000 : 2600); }
 
   function api(method, body){
     if (!window.SPARK_SB || !window.SPARK_SB.getToken) return Promise.reject(new Error('Sign in first.'));
@@ -23973,254 +24035,347 @@ window.addEventListener("message",function(e){
       if (!tok) throw new Error('Sign in first.');
       var init = { method: method, headers: { 'Authorization': 'Bearer ' + tok } };
       if (body) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
-      return fetch(SRL_WORKER + '/srlead', init);
+      return fetch(W + '/srlead', init);
     }).then(function(r){
-      return r.json().catch(function(){ return {}; }).then(function(d){
-        if (!r.ok) throw new Error(d.error || ('Request failed (' + r.status + ')'));
-        return d;
-      });
+      return r.json().catch(function(){ return {}; }).then(function(d){ if (!r.ok) throw new Error(d.error || ('Request failed (' + r.status + ')')); return d; });
     });
   }
 
   window.srlLoad = function(){
-    status(S.loaded ? '' : 'Loading…');
     return api('GET').then(function(d){
-      S.series = d.series || []; S.meetings = d.meetings || []; S.attachments = d.attachments || []; S.loaded = true;
-      status(''); render();
-    }).catch(function(e){ status(e.message, true); render(); });
-  };
-
-  function filtered(){
-    var q = S.q.toLowerCase();
-    return S.meetings.filter(function(m){
-      if (S.sel === '__unmapped' && m.series_id) return false;
-      if (S.sel !== '__all' && S.sel !== '__unmapped' && m.series_id !== S.sel) return false;
-      if (S.src && m.source !== S.src) return false;
-      if (q && (String(m.title||'') + ' ' + String(m.notes||'')).toLowerCase().indexOf(q) === -1) return false;
-      return true;
+      S.series = d.series || []; S.meetings = (d.meetings || []).slice().sort(byDateDesc); S.attachments = d.attachments || [];
+      S.actions = d.actions || []; S.next = (d.next && !d.next.error) ? d.next : null; S.loaded = true;
+      render();
+    }).catch(function(e){
+      if (!S.loaded) { var r = $('slRoot'); if (r) r.innerHTML = '<div class="sl-empty">' + esc(e.message) + '</div>'; }
+      else toast(e.message, true);
     });
-  }
-
-  function seriesOptions(selected, includeAuto){
-    var h = includeAuto ? '<option value="auto"' + (selected === 'auto' ? ' selected' : '') + '>Auto (use rules)</option>' : '';
-    h += '<option value=""' + (selected === '' ? ' selected' : '') + '>Unmapped</option>';
-    S.series.forEach(function(s){ h += '<option value="' + esc(s.id) + '"' + (selected === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; });
-    return h;
-  }
-
-  function renderNav(){
-    var nav = $('srlSeriesNav'); if (!nav) return;
-    var counts = {}, unm = 0;
-    S.meetings.forEach(function(m){ if (m.series_id) counts[m.series_id] = (counts[m.series_id]||0)+1; else unm++; });
-    var item = function(id, name, color, n, warn){
-      return '<button class="srl-nav-item' + (S.sel === id ? ' on' : '') + '" data-srl="sel" data-id="' + esc(id) + '">'
-        + '<span class="srl-dot" style="background:' + esc(color) + '"></span><span class="srl-nav-name">' + esc(name) + '</span>'
-        + '<span class="srl-count' + (warn && n ? ' warn' : '') + '">' + n + '</span></button>';
-    };
-    var h = item('__all', 'All meetings', 'var(--ink)', S.meetings.length);
-    h += item('__unmapped', 'Unmapped', '#D4A017', unm, true);
-    h += '<div class="srl-nav-sep"></div>';
-    S.series.forEach(function(s){ h += item(s.id, s.name, s.color || '#94a3b8', counts[s.id] || 0); });
-    nav.innerHTML = h;
-  }
-
-  function renderList(){
-    var box = $('srlList'); if (!box) return;
-    var rows = filtered();
-    if (!S.loaded) { box.innerHTML = ''; return; }
-    var folder = '';
-    var selSeries = seriesById(S.sel);
-    if (selSeries) {
-      folder = '<div class="srl-folder" data-drop-kind="series" data-drop-id="' + esc(selSeries.id) + '"><div class="srl-folder-head"><span>' + esc(selSeries.name) + ' \u00b7 folder files</span>'
-        + '<button class="srl-btn srl-btn-sm" data-srl="attach" data-kind="series" data-id="' + esc(selSeries.id) + '">' + SRL_CLIP_ICO + 'Add files</button></div>'
-        + '<div class="srl-atts">' + attChips(attsFor('series', selSeries.id)) + '</div></div>';
-    }
-    if (!rows.length) {
-      var msg = S.sel === '__unmapped' ? 'Nothing waiting. Every meeting has a home.' : (S.meetings.length ? 'No meetings match.' : 'No meetings yet. Use Add meeting to drop in your first note or recording.');
-      box.innerHTML = folder + '<div class="srl-empty">' + msg + '</div>'; return;
-    }
-    box.innerHTML = folder + rows.map(function(m){
-      var s = m.series_id ? seriesById(m.series_id) : null;
-      var url = safeUrl(m.url);
-      var h = '<div class="srl-row" data-id="' + esc(m.id) + '" data-drop-kind="meeting" data-drop-id="' + esc(m.id) + '">'
-        + '<div class="srl-date">' + fmtDate(m.meeting_date) + '</div>'
-        + '<div><div class="srl-title">' + esc(m.title) + '</div><div class="srl-meta">'
-        + '<span class="srl-pill ' + esc(m.source) + '">' + esc(SRC_LABEL[m.source] || m.source) + '</span>'
-        + (s ? '<span class="srl-pill"><span class="srl-dot" style="display:inline-block;width:7px;height:7px;margin-right:5px;background:' + esc(s.color || '#94a3b8') + '"></span>' + esc(s.name) + '</span>' : '<span class="srl-pill" style="background:var(--amber-bg);color:var(--gold-dark)">Unmapped</span>')
-        + (m.created_by ? '<span style="font-size:11px;color:var(--muted-light)">added by ' + esc(String(m.created_by).split('@')[0]) + '</span>' : '')
-        + '</div>'
-        + (m.notes ? '<div class="srl-notes">' + esc(m.notes) + '</div>' : '');
-      var ma = attsFor('meeting', m.id);
-      if (ma.length) h += '<div class="srl-atts">' + attChips(ma) + '</div>';
-      if (!m.series_id && S.series.length) {
-        h += '<div class="srl-map"><span>File under</span><select class="srl-select" data-role="map-series">' + seriesOptions('', false).replace('<option value="" selected>Unmapped</option>', '<option value="" selected>Pick a series…</option>') + '</select>'
-          + '<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" data-role="map-rule" checked> and route future titles containing</label>'
-          + '<input type="text" data-role="map-kw" maxlength="60" value="' + esc(suggestKeyword(m.title)) + '">'
-          + '<button class="srl-btn srl-btn-sm srl-btn-primary" data-srl="map" data-id="' + esc(m.id) + '">File it</button></div>';
-      }
-      h += '</div><div class="srl-actions">'
-        + (url ? '<a class="srl-open" href="' + esc(url) + '" target="_blank" rel="noopener">Open<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '')
-        + '<button class="srl-btn srl-btn-sm" data-srl="attach" data-kind="meeting" data-id="' + esc(m.id) + '">' + SRL_CLIP_ICO + 'Attach</button>'
-        + '<button class="srl-btn srl-btn-sm" data-srl="edit" data-id="' + esc(m.id) + '">Edit</button>'
-        + '<button class="srl-btn srl-btn-sm srl-btn-danger" data-srl="del" data-id="' + esc(m.id) + '">Delete</button>'
-        + '</div></div>';
-      return h;
-    }).join('');
-  }
-
-  // First few words of the title, minus dates/numbers, as a starting keyword the user can edit.
-  function suggestKeyword(t){
-    var words = String(t || '').replace(/[—–\-|:()]/g,' ').split(/\s+/).filter(function(w){ return w && !/\d/.test(w); });
-    return words.slice(0, 3).join(' ');
-  }
-
-  function renderSeriesEditor(){
-    var box = $('srlSeriesEdit'); if (!box) return;
-    if (!S.series.length) { box.innerHTML = '<div class="srl-help">No series yet. Add one below.</div>'; return; }
-    box.innerHTML = S.series.map(function(s, i){
-      return '<div class="srl-ser-row" data-id="' + esc(s.id) + '">'
-        + '<input type="color" data-role="color" value="' + esc(s.color || '#94a3b8') + '" aria-label="Color">'
-        + '<input type="text" data-role="name" maxlength="80" value="' + esc(s.name) + '" aria-label="Series name">'
-        + '<input type="text" data-role="kw" value="' + esc((s.keywords || []).join(', ')) + '" placeholder="Keywords, comma separated" aria-label="Keywords">'
-        + '<button class="srl-btn srl-btn-sm srl-btn-primary" data-srl="save-series" data-id="' + esc(s.id) + '">Save</button>'
-        + '<button class="srl-btn srl-btn-sm srl-btn-danger" data-srl="del-series" data-id="' + esc(s.id) + '">Delete</button>'
-        + '</div>';
-    }).join('');
-  }
-
-  function render(){
-    renderNav(); renderList();
-    if ($('srlSeriesPanel') && $('srlSeriesPanel').style.display !== 'none') renderSeriesEditor();
-  }
-
-  function openAdd(m){
-    S.editId = m ? m.id : null;
-    $('srlAddTitle').textContent = m ? 'Edit meeting' : 'Add a meeting';
-    $('srlFTitle').value = m ? (m.title || '') : '';
-    $('srlFDate').value = m ? String(m.meeting_date || '').slice(0,10) : new Date().toISOString().slice(0,10);
-    $('srlFSource').value = m ? (m.source || 'link') : 'granola';
-    $('srlFUrl').value = m ? (m.url || '') : '';
-    $('srlFNotes').value = m ? (m.notes || '') : '';
-    $('srlFSeries').innerHTML = seriesOptions(m ? (m.series_id || '') : 'auto', !m || !m.series_id);
-    $('srlAddPanel').style.display = '';
-    $('srlFTitle').focus();
-  }
-  function closeAdd(){ $('srlAddPanel').style.display = 'none'; S.editId = null; }
+  };
 
   function run(p, okMsg){
     if (S.busy) return Promise.resolve();
-    S.busy = true; status('Saving…');
-    var res;
-    return p.then(function(d){ res = d; S.busy = false; return srlLoad(); }).then(function(){ var m = typeof okMsg === 'function' ? okMsg(res) : okMsg; if (m) status(m); })
-      .catch(function(e){ S.busy = false; status(e.message, true); });
+    S.busy = true; var res;
+    return p.then(function(d){ res = d; S.busy = false; return srlLoad(); })
+      .then(function(){ var m = typeof okMsg === 'function' ? okMsg(res) : okMsg; if (m) toast(m); })
+      .catch(function(e){ S.busy = false; toast(e.message, true); });
   }
 
+  /* ---------- hero ---------- */
+  function heroHtml(){
+    var n = S.next, left;
+    var cta = '<button class="sl-btn sl-btn-ghost" data-sl="new">' + I.plus + 'Log a meeting</button>';
+    if (n) {
+      var st = wall(n.start), en = wall(n.end);
+      var today = new Date(); today.setHours(0,0,0,0);
+      var days = st ? Math.round((new Date(st.y, st.mo - 1, st.d) - today) / 864e5) : null;
+      var rel = days === 0 ? 'today' : days === 1 ? 'tomorrow' : (days != null ? 'in ' + days + ' days' : '');
+      var att = (n.attendees || []).filter(function(a){ return a.name || a.email; });
+      var inner = att.filter(function(a){ return /@spark/i.test(a.email); });
+      var outside = att.filter(function(a){ return !/@spark/i.test(a.email); });
+      var shown = inner.slice(0, 10);
+      var join = safeUrl(n.joinUrl), web = safeUrl(n.webLink);
+      left = '<div><div class="sl-k"><span class="sl-pulse"></span>Next up' + (rel ? ' · ' + rel : '') + '</div>'
+        + '<h1>' + esc(n.subject) + '</h1>'
+        + '<div class="sl-when">'
+        + (st ? '<span>' + I.cal + DOW[new Date(st.y, st.mo - 1, st.d).getDay()] + ', ' + MON[st.mo - 1] + ' ' + st.d + '</span>' : '')
+        + (st ? '<span>' + I.clock + fmtTime(st) + (en ? ' – ' + fmtTime(en) : '') + '</span>' : '')
+        + (join ? '<span>' + I.video + 'Teams</span>' : '') + '</div>'
+        + (shown.length ? '<div class="sl-avs">' + shown.map(function(a){ return avatar(a.name || a.email, 'sl-av'); }).join('')
+            + (inner.length > shown.length ? '<span class="sl-av-more">+' + (inner.length - shown.length) + '</span>' : '')
+            + (outside.length ? '<span class="sl-av-more">+ ' + esc(outside.map(function(a){ return a.name || a.email; }).join(', ')) + '</span>' : '') + '</div>' : '')
+        + '<div class="sl-cta">'
+        + (join ? '<a class="sl-btn sl-btn-gold" href="' + esc(join) + '" target="_blank" rel="noopener">' + I.video + 'Join in Teams</a>' : '')
+        + (web ? '<a class="sl-btn sl-btn-ghost" href="' + esc(web) + '" target="_blank" rel="noopener">' + I.cal + 'Open in Outlook</a>' : '')
+        + cta + '</div></div>';
+    } else {
+      left = '<div><div class="sl-k">Leadership hub</div><h1>Every leadership meeting,<br>one place.</h1>'
+        + '<div class="sl-when"><span>Notes, recordings, decisions and follow-ups from the meetings that run the company.</span></div>'
+        + '<div class="sl-cta">' + cta + '</div></div>';
+    }
+    var open = openActions().slice().sort(function(a, b){ return String(a.created_at || '').localeCompare(String(b.created_at || '')); });
+    var carry = '<div class="sl-carry"><h3>Carry into the next meeting</h3><div class="sub">' + (open.length ? open.length + ' open item' + (open.length === 1 ? '' : 's') + ', oldest first' : 'Nothing open') + '</div>'
+      + (open.length ? open.slice(0, 5).map(function(a){
+          return '<div class="sl-carry-item" data-sl="tab" data-tab="actions"><span>' + esc(a.text) + '</span><span class="who">' + esc(a.owner || 'Unassigned') + '</span></div>';
+        }).join('') : '<div class="sl-carry-empty">Every follow-up is checked off.</div>')
+      + '</div>';
+    return '<section class="sl-hero">' + left + carry + '</section>';
+  }
+
+  function statsHtml(){
+    var decs = 0; S.meetings.forEach(function(m){ decs += decisionsOf(m).length; });
+    var st = function(n, l, c, tab){ return '<button class="sl-stat" style="--c:' + c + '" data-sl="tab" data-tab="' + tab + '"><div class="n">' + n + '</div><div class="l">' + l + '</div></button>'; };
+    return '<section class="sl-stats">' + st(openActions().length, 'Open action items', 'var(--gold-deep)', 'actions')
+      + st(decs, 'Decisions logged', 'var(--sl-violet)', 'decisions')
+      + st(S.meetings.length, 'Meetings captured', 'var(--sl-green)', 'timeline')
+      + st(S.attachments.length, 'Files', 'var(--sl-teal)', 'files') + '</section>';
+  }
+
+  function inFolder(m){ return !S.folder || (S.folder === '__unmapped' ? !m.series_id : m.series_id === S.folder); }
+
+  function foldersHtml(){
+    var cards = S.series.map(function(s){
+      var ms = S.meetings.filter(function(m){ return m.series_id === s.id; });
+      var dec = 0, files = attsFor('series', s.id).length; ms.forEach(function(m){ dec += decisionsOf(m).length; files += attsFor('meeting', m.id).length; });
+      var col = s.color || '#4b45a8';
+      var tag = s.kind === 'event' ? 'Event' : 'Recurring';
+      var nextTxt = (S.next && S.next.series_id === s.id && wall(S.next.start)) ? (function(w){ return 'next ' + MON[w.mo - 1] + ' ' + w.d; })(wall(S.next.start)) : '';
+      return '<button class="sl-folder' + (S.folder === s.id ? ' on' : '') + '" style="--a:' + esc(shade(col, -0.05)) + ';--b:' + esc(shade(col, -0.55)) + '" data-sl="folder" data-id="' + esc(s.id) + '">'
+        + '<div class="tag">' + tag + (nextTxt ? ' · ' + nextTxt : '') + '</div><h3>' + esc(s.name) + '</h3>'
+        + (s.subtitle ? '<div class="meta">' + esc(s.subtitle) + '</div>' : '')
+        + '<div class="foot"><span>' + ms.length + ' meeting' + (ms.length === 1 ? '' : 's') + '</span>' + (dec ? '<span>' + dec + ' decisions</span>' : '') + (files ? '<span>' + files + ' file' + (files === 1 ? '' : 's') + '</span>' : '') + '</div></button>';
+    }).join('');
+    var unm = S.meetings.filter(function(m){ return !m.series_id; }).length;
+    if (unm) cards += '<button class="sl-folder' + (S.folder === '__unmapped' ? ' on' : '') + '" style="--a:#D4A017;--b:#7a5a06" data-sl="folder" data-id="__unmapped"><div class="tag">Needs a home</div><h3>Unmapped</h3><div class="meta">Meetings the rules couldn’t place</div><div class="foot"><span>' + unm + ' meeting' + (unm === 1 ? '' : 's') + '</span></div></button>';
+    cards += '<button class="sl-folder add" data-sl="folders">' + I.plus + ' New folder</button>';
+    return '<div class="sl-sec"><h2>Folders</h2><button class="sl-link" data-sl="folders">Manage</button></div><section class="sl-folders">' + cards + '</section>';
+  }
+
+  function chipsFor(m){
+    var na = actionsOf(m.id).length, nd = decisionsOf(m).length, nf = attsFor('meeting', m.id).length;
+    return '<div class="sl-chips"><span class="sl-chip ' + esc(m.source) + '">' + esc(SRC[m.source] || m.source) + '</span>'
+      + (nf ? '<span class="sl-chip f">' + nf + ' file' + (nf === 1 ? '' : 's') + '</span>' : '')
+      + (nd ? '<span class="sl-chip">' + nd + ' decision' + (nd === 1 ? '' : 's') + '</span>' : '')
+      + (na ? '<span class="sl-chip y">' + na + ' action' + (na === 1 ? '' : 's') + '</span>' : '') + '</div>';
+  }
+  function sessionHtml(m, title){
+    var pts = lines(m.summary).slice(0, 3);
+    if (!pts.length && m.notes) pts = [String(m.notes).slice(0, 180) + (String(m.notes).length > 180 ? '…' : '')];
+    return '<div class="sl-sess" data-sl="open" data-id="' + esc(m.id) + '" data-drop-kind="meeting" data-drop-id="' + esc(m.id) + '"><div><h4>' + esc(title || m.title) + '</h4>'
+      + (pts.length ? '<ul>' + pts.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '')
+      + chipsFor(m) + '</div><span class="go">' + I.chev + '</span></div>';
+  }
+  function calBadge(d, color){ var x = ymd(d); return '<div class="sl-cal" style="--cc:' + esc(color || '#4b45a8') + '"><b>' + (x ? MON[x.m-1].toUpperCase() : '—') + '</b><i>' + (x ? x.d : '?') + '</i></div>'; }
+
+  function timelineHtml(){
+    var q = S.q.toLowerCase();
+    var ms = S.meetings.filter(inFolder).filter(function(m){
+      if (!q) return true;
+      return (m.title + ' ' + (m.summary || '') + ' ' + (m.notes || '') + ' ' + decisionsOf(m).join(' ')).toLowerCase().indexOf(q) !== -1;
+    });
+    var h = '';
+    if (S.folder && S.folder !== '__unmapped') {
+      var fs = seriesById(S.folder);
+      if (fs) h += '<div class="sl-folderfiles" data-drop-kind="series" data-drop-id="' + esc(fs.id) + '"><div class="hd"><span>' + esc(fs.name) + ' · folder files</span><button class="sl-btn sl-btn-sm" data-sl="attach" data-kind="series" data-id="' + esc(fs.id) + '">' + I.clip + 'Add files</button></div>'
+        + (attsFor('series', fs.id).length ? '<div class="sl-atts">' + attChips(attsFor('series', fs.id)) + '</div>' : '<div style="font-size:12.5px;color:var(--muted-light)">Drop decks, PDFs, or spreadsheets that belong to the whole folder.</div>') + '</div>';
+    }
+    var n = S.next, nw = n && wall(n.start);
+    if (n && nw && !q && (!S.folder || S.folder === n.series_id)) {
+      h += '<div class="sl-month">' + MONTH[nw.mo - 1] + ' ' + nw.y + ' · upcoming</div><div class="sl-upcoming">' + calBadge(nw.y + '-' + (nw.mo < 10 ? '0' : '') + nw.mo + '-' + (nw.d < 10 ? '0' : '') + nw.d, '#D4A017')
+        + '<div><strong>' + esc(n.subject) + '</strong><br>Notes and the recording drop in here after the meeting.</div></div>';
+    }
+    if (!ms.length) return h + '<div class="sl-empty">' + (q ? 'Nothing matches that search.' : 'No meetings here yet. Use Log a meeting to add notes, a recording link, or files.') + '</div>';
+    // group by month, then fold event-type folders into one card per folder
+    var months = [], byMonth = {};
+    ms.forEach(function(m){ var k = String(m.meeting_date || 'none').slice(0, 7); if (!byMonth[k]) { byMonth[k] = []; months.push(k); } byMonth[k].push(m); });
+    months.forEach(function(k){
+      var x = ymd(k + '-01');
+      h += '<div class="sl-month">' + (x ? MONTH[x.m - 1] + ' ' + x.y : 'Undated') + '</div>';
+      var done = {};
+      byMonth[k].forEach(function(m){
+        var s = m.series_id ? seriesById(m.series_id) : null;
+        if (s && s.kind === 'event') {
+          if (done[s.id]) return; done[s.id] = true;
+          var group = byMonth[k].filter(function(o){ return o.series_id === s.id; }).slice().reverse();
+          var first = group[0], last = group[group.length - 1];
+          var fx = ymd(first.meeting_date), lx = ymd(last.meeting_date);
+          var range = fx ? MON[fx.m - 1] + ' ' + fx.d + (lx && (lx.d !== fx.d || lx.m !== fx.m) ? '–' + (lx.m !== fx.m ? MON[lx.m - 1] + ' ' : '') + lx.d : '') : '';
+          h += '<article class="sl-card"><div class="sl-card-h">' + calBadge(first.meeting_date, s.color) + '<div><h3>' + esc(s.name) + '</h3><div class="sub">' + range + ' · ' + group.length + ' session' + (group.length === 1 ? '' : 's') + (s.subtitle ? ' · ' + esc(s.subtitle) : '') + '</div></div></div>'
+            + group.map(function(o){ return sessionHtml(o); }).join('') + '</article>';
+        } else {
+          h += '<article class="sl-card"><div class="sl-card-h">' + calBadge(m.meeting_date, s ? s.color : '#D4A017') + '<div><h3>' + esc(m.title) + '</h3><div class="sub">' + fmtDate(m.meeting_date, true) + ' · ' + (s ? esc(s.name) : 'Unmapped') + '</div></div></div>'
+            + sessionHtml(m, 'Summary') + '</article>';
+        }
+      });
+    });
+    return h;
+  }
+
+  function actionRow(a, mode){ /* mode: 'side' | 'tab' | 'drawer' */
+    var compact = mode === 'side';
+    var m = a.meeting_id ? meetingById(a.meeting_id) : null;
+    var os = owners(a.owner);
+    return '<div class="sl-act' + (a.done ? ' done' : '') + '"><button class="sl-chk" data-sl="toggle" data-id="' + esc(a.id) + '" aria-label="' + (a.done ? 'Reopen' : 'Mark done') + '">' + (a.done ? I.check : '') + '</button>'
+      + '<div class="body"><div class="txt">' + esc(a.text) + '</div><div class="sl-own">'
+      + (os.length ? os.map(function(o){ return avatar(o) + esc(o); }).join(' ') : '<span>Unassigned</span>')
+      + (mode === 'tab' && m ? '<span>·</span><span class="src" data-sl="open" data-id="' + esc(m.id) + '">' + esc(m.title) + '</span>' : '')
+      + '</div></div>' + (a.due ? '<span class="sl-due">' + esc(a.due) + '</span>' : '')
+      + (!compact ? '<button class="sl-x" data-sl="del-action" data-id="' + esc(a.id) + '" aria-label="Delete">&times;</button>' : '') + '</div>';
+  }
+  function addActionRow(mid){
+    return '<div class="sl-addrow" data-mid="' + esc(mid || '') + '"><input class="t" type="text" maxlength="500" placeholder="New action item"><input class="o" type="text" maxlength="120" placeholder="Owner"><input class="d" type="text" maxlength="40" placeholder="Due"><button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="add-action">Add</button></div>';
+  }
+  function actionsTabHtml(){
+    var list = S.actions.filter(function(a){ var m = a.meeting_id ? meetingById(a.meeting_id) : null; return !S.folder || (m && inFolder(m)) || (!m && !S.folder); });
+    var open = list.filter(function(a){ return !a.done; }), done = list.filter(function(a){ return a.done; });
+    return '<div class="sl-panel">' + addActionRow('') + (open.length ? open.map(function(a){ return actionRow(a, 'tab'); }).join('') : '<div style="color:var(--muted);font-size:13.5px;padding:8px 0">No open items.</div>')
+      + (done.length ? '<button class="sl-more" data-sl="show-done">' + (S.showDone ? 'Hide' : 'Show') + ' ' + done.length + ' done</button>' + (S.showDone ? done.map(function(a){ return actionRow(a, 'tab'); }).join('') : '') : '') + '</div>';
+  }
+  function decisionsTabHtml(){
+    var rows = [];
+    S.meetings.filter(inFolder).forEach(function(m){ decisionsOf(m).forEach(function(d){ rows.push({ d: d, m: m }); }); });
+    if (!rows.length) return '<div class="sl-empty">No decisions logged yet.</div>';
+    return '<div class="sl-panel">' + rows.map(function(r){ return '<div class="sl-dec">' + esc(r.d) + '<span class="src" data-sl="open" data-id="' + esc(r.m.id) + '">' + esc(r.m.title) + ' · ' + fmtDate(r.m.meeting_date) + '</span></div>'; }).join('') + '</div>';
+  }
+  function filesTabHtml(){
+    var list = S.attachments.filter(function(a){
+      if (!S.folder) return true;
+      if (a.series_id) return a.series_id === S.folder;
+      var m = meetingById(a.meeting_id); return m && inFolder(m);
+    });
+    if (!list.length) return '<div class="sl-empty">No files yet. Open a meeting or folder and drop files in.</div>';
+    return '<div class="sl-panel">' + list.map(function(a){
+      var where = a.series_id ? (seriesById(a.series_id) || {}).name : (meetingById(a.meeting_id) || {}).title;
+      return '<div class="sl-fileline">' + attChips([a]) + '<span class="where"' + (a.meeting_id ? ' data-sl="open" data-id="' + esc(a.meeting_id) + '"' : '') + '>' + esc(where || '') + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function attChips(list){
+    return list.map(function(a){
+      return '<span class="sl-att"><button data-sl="att-open" data-id="' + esc(a.id) + '" title="Open ' + esc(a.file_name) + '">' + I.doc + '<span class="nm">' + esc(a.file_name) + '</span><span class="sz">' + fmtSize(a.size_bytes) + '</span></button>'
+        + '<button class="sl-x" data-sl="att-del" data-id="' + esc(a.id) + '" aria-label="Remove ' + esc(a.file_name) + '">&times;</button></span>';
+    }).join('');
+  }
+
+  function sideHtml(){
+    var open = openActions().slice(0, 7);
+    var decs = []; S.meetings.forEach(function(m){ decisionsOf(m).forEach(function(d){ decs.push({ d: d, m: m }); }); });
+    return '<aside><div class="sl-panel"><h3>Action items <small>' + openActions().length + ' open</small></h3>'
+      + (open.length ? open.map(function(a){ return actionRow(a, 'side'); }).join('') : '<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Nothing open.</div>')
+      + '<button class="sl-more" data-sl="tab" data-tab="actions">All action items</button></div>'
+      + '<div class="sl-panel"><h3>Decision log <small>latest</small></h3>'
+      + (decs.length ? decs.slice(0, 6).map(function(r){ return '<div class="sl-dec">' + esc(r.d) + '<span class="src" data-sl="open" data-id="' + esc(r.m.id) + '">' + esc(r.m.title) + '</span></div>'; }).join('') : '<div style="color:var(--muted);font-size:13.5px;padding:6px 0">No decisions yet.</div>')
+      + (decs.length > 6 ? '<button class="sl-more" data-sl="tab" data-tab="decisions">All decisions</button>' : '') + '</div></aside>';
+  }
+
+  function mainHtml(){
+    var tabs = [['timeline','Timeline'],['actions','Action items'],['decisions','Decisions'],['files','Files']];
+    var fname = S.folder === '__unmapped' ? 'Unmapped' : (seriesById(S.folder) || {}).name;
+    var body = S.tab === 'actions' ? actionsTabHtml() : S.tab === 'decisions' ? decisionsTabHtml() : S.tab === 'files' ? filesTabHtml() : timelineHtml();
+    return '<section class="sl-grid"><div><div class="sl-bar"><div class="sl-tabs">' + tabs.map(function(t){ return '<button class="sl-tab' + (S.tab === t[0] ? ' on' : '') + '" data-sl="tab" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>'
+      + '<label class="sl-search"><input id="slSearch" type="search" placeholder="Search notes and decisions" value="' + esc(S.q) + '" autocomplete="off"></label></div>'
+      + (fname ? '<div class="sl-filter">Showing: ' + esc(fname) + '<button data-sl="folder" data-id="' + esc(S.folder) + '" aria-label="Show all">&times;</button></div>' : '')
+      + '<div id="slMainBody">' + body + '</div></div>' + sideHtml() + '</section>';
+  }
+
+  function render(){
+    var root = $('slRoot'); if (!root || !S.loaded) return;
+    var focus = document.activeElement && document.activeElement.id === 'slSearch';
+    root.innerHTML = heroHtml() + statsHtml() + foldersHtml() + mainHtml();
+    if (focus) { var si = $('slSearch'); si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+    renderDrawer();
+  }
+
+  /* ---------- drawer ---------- */
+  function seriesOptions(sel, auto){
+    return (auto ? '<option value="auto"' + (sel === 'auto' ? ' selected' : '') + '>Auto (use folder rules)</option>' : '')
+      + '<option value=""' + (sel === '' ? ' selected' : '') + '>Unmapped</option>'
+      + S.series.map(function(s){ return '<option value="' + esc(s.id) + '"' + (sel === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('');
+  }
+  function drawerEditHtml(m){
+    var isNew = !m;
+    m = m || { title: '', meeting_date: new Date().toISOString().slice(0,10), source: 'granola', url: '', notes: '', summary: '', decisions: [], series_id: S.folder && S.folder !== '__unmapped' ? S.folder : 'auto' };
+    return '<div class="sl-d-top"><button class="sl-d-close" data-sl="close" aria-label="Close">&times;</button><div class="sl-k" style="color:#c9cbe0">' + (isNew ? 'Log a meeting' : 'Edit meeting') + '</div><h2>' + (isNew ? 'New meeting' : esc(m.title)) + '</h2></div>'
+      + '<div class="sl-d-body"><div class="sl-form">'
+      + '<label class="sl-f full">Title<input id="slFTitle" type="text" maxlength="200" value="' + esc(m.title) + '" placeholder="Executive Meeting with SR Leaders"></label>'
+      + '<label class="sl-f">Date<input id="slFDate" type="date" value="' + esc(String(m.meeting_date || '').slice(0,10)) + '"></label>'
+      + '<label class="sl-f">Source<select id="slFSource">' + ['granola','teams','link'].map(function(s){ return '<option value="' + s + '"' + (m.source === s ? ' selected' : '') + '>' + SRC[s] + '</option>'; }).join('') + '</select></label>'
+      + '<label class="sl-f full">Link<input id="slFUrl" type="url" value="' + esc(m.url || '') + '" placeholder="https:// (Granola note, Teams recording, SharePoint)"></label>'
+      + '<label class="sl-f full">Folder<select id="slFSeries">' + seriesOptions(isNew ? m.series_id : (m.series_id || ''), isNew) + '</select></label>'
+      + '<label class="sl-f full">Summary <span class="hint">One point per line</span><textarea id="slFSummary" rows="6">' + esc(m.summary || '') + '</textarea></label>'
+      + '<label class="sl-f full">Decisions <span class="hint">One per line</span><textarea id="slFDecisions" rows="4">' + esc(decisionsOf(m).join('\n')) + '</textarea></label>'
+      + '<label class="sl-f full">Notes <span class="hint">Anything else worth keeping</span><textarea id="slFNotes" rows="4">' + esc(m.notes || '') + '</textarea></label>'
+      + '</div><div class="sl-foot"><button class="sl-btn" data-sl="' + (isNew ? 'close' : 'cancel-edit') + '">Cancel</button><button class="sl-btn sl-btn-ink" data-sl="save-meeting">' + (isNew ? 'Save meeting' : 'Save changes') + '</button></div>'
+      + (isNew ? '<div style="font-size:12.5px;color:var(--muted);margin-top:12px">Action items and files can be added once it’s saved.</div>' : '') + '</div>';
+  }
+  function drawerViewHtml(m){
+    var s = m.series_id ? seriesById(m.series_id) : null, url = safeUrl(m.url);
+    var sum = lines(m.summary), dec = decisionsOf(m), acts = actionsOf(m.id), files = attsFor('meeting', m.id);
+    var h = '<div class="sl-d-top"><button class="sl-d-close" data-sl="close" aria-label="Close">&times;</button>'
+      + '<div class="sl-k" style="color:#c9cbe0">' + (s ? esc(s.name) : 'Unmapped') + '</div><h2>' + esc(m.title) + '</h2>'
+      + '<div class="sl-when"><span>' + I.cal + fmtDate(m.meeting_date, true) + '</span><span>' + esc(SRC[m.source] || m.source) + '</span>' + (m.created_by ? '<span>added by ' + esc(String(m.created_by).split('@')[0]) + '</span>' : '') + '</div>'
+      + '<div class="sl-cta" style="margin-top:14px">' + (url ? '<a class="sl-btn sl-btn-gold" href="' + esc(url) + '" target="_blank" rel="noopener">Open ' + (m.source === 'granola' ? 'in Granola' : m.source === 'teams' ? 'recording' : 'link') + I.ext + '</a>' : '')
+      + '<button class="sl-btn sl-btn-ghost" data-sl="edit">Edit</button></div></div><div class="sl-d-body">';
+    if (!m.series_id && S.series.length) {
+      h += '<div class="sl-mapbar"><span>File under</span><select class="sl-select" id="slMapSeries"><option value="">Pick a folder…</option>' + S.series.map(function(x){ return '<option value="' + esc(x.id) + '">' + esc(x.name) + '</option>'; }).join('') + '</select>'
+        + '<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="slMapRule" checked> and route future titles containing</label><input type="text" id="slMapKw" maxlength="60" value="' + esc(String(m.title || '').replace(/[—–\-|:()]/g, ' ').split(/\s+/).filter(function(w){ return w && !/\d/.test(w); }).slice(0, 3).join(' ')) + '">'
+        + '<button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="map" data-id="' + esc(m.id) + '">File it</button></div>';
+    }
+    h += '<div class="sl-d-sec"><h4>Summary</h4>' + (sum.length ? '<ul>' + sum.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '<div style="color:var(--muted-light);font-size:13.5px">No summary yet. Use Edit to add one.</div>') + '</div>';
+    h += '<div class="sl-d-sec"><h4>Decisions</h4>' + (dec.length ? '<ul>' + dec.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '<div style="color:var(--muted-light);font-size:13.5px">None logged.</div>') + '</div>';
+    h += '<div class="sl-d-sec"><h4>Action items <span style="letter-spacing:0;text-transform:none;font-weight:600;color:var(--muted-light)">' + acts.filter(function(a){ return !a.done; }).length + ' open</span></h4>'
+      + acts.map(function(a){ return actionRow(a, 'drawer'); }).join('') + addActionRow(m.id) + '</div>';
+    h += '<div class="sl-d-sec" data-drop-kind="meeting" data-drop-id="' + esc(m.id) + '"><h4>Files <button class="sl-btn sl-btn-sm" data-sl="attach" data-kind="meeting" data-id="' + esc(m.id) + '">' + I.clip + 'Attach</button></h4>'
+      + (files.length ? '<div class="sl-atts">' + attChips(files) + '</div>' : '') + '<div class="sl-drop" data-sl="attach" data-kind="meeting" data-id="' + esc(m.id) + '">Drop files here or click to attach (25 MB max each)</div></div>';
+    if (m.notes) h += '<div class="sl-d-sec"><h4>Notes</h4><div class="notes">' + esc(m.notes) + '</div></div>';
+    h += '<div class="sl-foot" style="justify-content:flex-start"><button class="sl-btn sl-btn-sm sl-btn-danger" data-sl="del-meeting" data-id="' + esc(m.id) + '">Delete meeting</button></div></div>';
+    return h;
+  }
+  function drawerFoldersHtml(){
+    return '<div class="sl-d-top"><button class="sl-d-close" data-sl="close" aria-label="Close">&times;</button><div class="sl-k" style="color:#c9cbe0">Folders</div><h2>Folders &amp; filing rules</h2>'
+      + '<div class="sl-when"><span>A new meeting lands in the first folder (top to bottom) whose keyword shows up in its title.</span></div></div><div class="sl-d-body">'
+      + S.series.map(function(s){
+        return '<div class="sl-ser" data-id="' + esc(s.id) + '"><input type="color" data-role="color" value="' + esc(s.color || '#4b45a8') + '" aria-label="Color">'
+          + '<input type="text" data-role="name" maxlength="80" value="' + esc(s.name) + '" aria-label="Folder name">'
+          + '<select class="sl-select" data-role="kind"><option value="recurring"' + (s.kind !== 'event' ? ' selected' : '') + '>Recurring</option><option value="event"' + (s.kind === 'event' ? ' selected' : '') + '>Event</option></select>'
+          + '<div class="wide"><input type="text" data-role="subtitle" maxlength="140" value="' + esc(s.subtitle || '') + '" placeholder="Subtitle, e.g. Mondays 9:45 AM"></div>'
+          + '<div class="wide"><input type="text" data-role="kw" value="' + esc((s.keywords || []).join(', ')) + '" placeholder="Filing keywords, comma separated">'
+          + '<button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="save-series" data-id="' + esc(s.id) + '">Save</button><button class="sl-btn sl-btn-sm sl-btn-danger" data-sl="del-series" data-id="' + esc(s.id) + '">Delete</button></div></div>';
+      }).join('')
+      + '<div class="sl-foot" style="justify-content:space-between"><button class="sl-btn" data-sl="apply-rules">Re-run rules on Unmapped</button><button class="sl-btn sl-btn-ink" data-sl="add-series">' + I.plus + 'New folder</button></div></div>';
+  }
+  function renderDrawer(){
+    var d = $('slDrawer'), v = $('view-srlead'); if (!d || !v) return;
+    if (!S.open) { v.classList.remove('sl-open'); return; }
+    var m = (S.open !== '__new' && S.open !== '__folders') ? meetingById(S.open) : null;
+    if (S.open !== '__new' && S.open !== '__folders' && !m) { S.open = null; v.classList.remove('sl-open'); return; }
+    var keep = d.scrollTop;
+    d.innerHTML = S.open === '__folders' ? drawerFoldersHtml() : (S.open === '__new' ? drawerEditHtml(null) : (S.editing ? drawerEditHtml(m) : drawerViewHtml(m)));
+    d.scrollTop = keep;
+    v.classList.add('sl-open');
+  }
+  function openDrawer(id){ S.open = id; S.editing = false; var d = $('slDrawer'); if (d) d.scrollTop = 0; renderDrawer(); }
+  function closeDrawer(){ S.open = null; S.editing = false; renderDrawer(); }
+
+  /* ---------- actions ---------- */
   function saveMeeting(){
-    var title = $('srlFTitle').value.trim();
-    var url = $('srlFUrl').value.trim();
-    if (!title) { status('Give it a title.', true); return; }
-    if (url && !/^https:\/\//i.test(url)) { status('Links need to start with https://', true); return; }
-    var body = { action: 'save_meeting', id: S.editId || undefined, title: title, meeting_date: $('srlFDate').value || null,
-      source: $('srlFSource').value, url: url, notes: $('srlFNotes').value, series_id: $('srlFSeries').value };
-    run(api('POST', body).then(function(d){
-      closeAdd();
-      return d;
-    }), 'Saved.');
+    var title = $('slFTitle').value.trim(), url = $('slFUrl').value.trim();
+    if (!title) { toast('Give it a title.', true); return; }
+    if (url && !/^https:\/\//i.test(url)) { toast('Links need to start with https://', true); return; }
+    var isNew = S.open === '__new';
+    var body = { action: 'save_meeting', title: title, meeting_date: $('slFDate').value || null, source: $('slFSource').value, url: url,
+      series_id: $('slFSeries').value, summary: $('slFSummary').value, decisions: lines($('slFDecisions').value), notes: $('slFNotes').value };
+    if (!isNew) body.id = S.open;
+    run(api('POST', body).then(function(d){ if (isNew && d.meeting) { S.open = d.meeting.id; } S.editing = false; return d; }), isNew ? 'Meeting saved.' : 'Changes saved.');
   }
-
-  function onClick(e){
-    var b = e.target.closest('[data-srl]'); if (!b || !$('view-srlead').contains(b)) return;
-    var act = b.getAttribute('data-srl'), id = b.getAttribute('data-id');
-    if (act === 'sel') { S.sel = id; render(); return; }
-    if (act === 'open-add') { openAdd(null); return; }
-    if (act === 'close-add') { closeAdd(); return; }
-    if (act === 'save-meeting') { saveMeeting(); return; }
-    if (act === 'open-series') { var p = $('srlSeriesPanel'); p.style.display = p.style.display === 'none' ? '' : 'none'; renderSeriesEditor(); return; }
-    if (act === 'close-series') { $('srlSeriesPanel').style.display = 'none'; return; }
-    if (act === 'edit') { var m = S.meetings.filter(function(x){ return x.id === id; })[0]; if (m) { openAdd(m); window.scrollTo({ top: 0, behavior: 'smooth' }); } return; }
-    if (act === 'del') {
-      var mm = S.meetings.filter(function(x){ return x.id === id; })[0];
-      if (mm && confirm('Delete "' + mm.title + '"? This removes it from HQ only, not from Granola or Teams.')) run(api('POST', { action: 'delete_meeting', id: id }), 'Deleted.');
-      return;
-    }
-    if (act === 'map') {
-      var wrap = b.closest('.srl-map');
-      var sid = wrap.querySelector('[data-role="map-series"]').value;
-      var mk = wrap.querySelector('[data-role="map-rule"]').checked;
-      var kw = wrap.querySelector('[data-role="map-kw"]').value.trim();
-      if (!sid) { status('Pick a series first.', true); return; }
-      var p2 = api('POST', { action: 'save_meeting', id: id, series_id: sid });
-      if (mk && kw) p2 = p2.then(function(){ return api('POST', { action: 'add_rule', series_id: sid, keyword: kw }); });
-      run(p2, mk && kw ? 'Filed, and future "' + kw + '" meetings will route there.' : 'Filed.');
-      return;
-    }
-    if (act === 'add-series-row') {
-      var name = prompt('Name the new series (e.g. L10, Offsite, 1:1s):');
-      if (name && name.trim()) run(api('POST', { action: 'save_series', name: name.trim(), keywords: [name.trim()], sort_order: S.series.length * 10 + 10 }), 'Series added. Edit its keywords below.');
-      return;
-    }
-    if (act === 'save-series') {
-      var row = b.closest('.srl-ser-row');
-      var s = seriesById(id) || {};
-      run(api('POST', { action: 'save_series', id: id,
-        name: row.querySelector('[data-role="name"]').value.trim(),
-        color: row.querySelector('[data-role="color"]').value,
-        keywords: row.querySelector('[data-role="kw"]').value.split(',').map(function(k){ return k.trim(); }).filter(Boolean),
-        sort_order: s.sort_order }), 'Series saved.');
-      return;
-    }
-    if (act === 'del-series') {
-      var ss = seriesById(id);
-      if (ss && confirm('Delete the "' + ss.name + '" series? Its meetings move to Unmapped; nothing else is deleted.')) {
-        if (S.sel === id) S.sel = '__all';
-        run(api('POST', { action: 'delete_series', id: id }), 'Series deleted.');
-      }
-      return;
-    }
-    if (act === 'attach') {
-      S.attTarget = { kind: b.getAttribute('data-kind'), id: id };
-      var fi = $('srlFileInput'); fi.value = ''; fi.click();
-      return;
-    }
-    if (act === 'att-open') {
-      var win = window.open('', '_blank');
-      api('POST', { action: 'file_url', id: id }).then(function(d){
-        if (win && !win.closed) win.location = d.url; else window.location.href = d.url;
-      }).catch(function(e){ if (win) win.close(); status(e.message, true); });
-      return;
-    }
-    if (act === 'att-del') {
-      var at = S.attachments.filter(function(x){ return x.id === id; })[0];
-      if (at && confirm('Remove "' + at.file_name + '"? This deletes the file from HQ.')) run(api('POST', { action: 'delete_attachment', id: id }), 'File removed.');
-      return;
-    }
-    if (act === 'apply-rules') {
-      run(api('POST', { action: 'apply_rules' }), function(d){ var n = (d && d.mapped) || 0; return n ? 'Rules filed ' + n + ' meeting' + (n === 1 ? '' : 's') + '.' : 'No Unmapped meetings matched a rule.'; });
-      return;
-    }
+  function addAction(btn){
+    var row = btn.closest('.sl-addrow'), t = row.querySelector('.t').value.trim();
+    if (!t) { row.querySelector('.t').focus(); return; }
+    var mid = row.getAttribute('data-mid') || null;
+    run(api('POST', { action: 'save_action', text: t, owner: row.querySelector('.o').value.trim(), due: row.querySelector('.d').value.trim(), meeting_id: mid }), 'Action added.');
+  }
+  function toggleAction(id){
+    var a = S.actions.filter(function(x){ return x.id === id; })[0]; if (!a) return;
+    a.done = !a.done; render();
+    api('POST', { action: 'save_action', id: id, done: a.done }).catch(function(e){ a.done = !a.done; render(); toast(e.message, true); });
   }
 
   function uploadFiles(fileList, target){
     var files = [].slice.call(fileList);
-    var big = files.filter(function(f){ return f.size > SRL_MAX_FILE; });
-    files = files.filter(function(f){ return f.size > 0 && f.size <= SRL_MAX_FILE; });
-    if (big.length) status(big.map(function(f){ return f.name; }).join(', ') + ' is over 25 MB. For recordings, paste the SharePoint or Stream link instead.', true);
+    var big = files.filter(function(f){ return f.size > MAX_FILE; });
+    files = files.filter(function(f){ return f.size > 0 && f.size <= MAX_FILE; });
+    if (big.length) toast(big.map(function(f){ return f.name; }).join(', ') + ' is over 25 MB. For recordings, paste the SharePoint link instead.', true);
     if (!files.length || S.busy) return;
     S.busy = true;
     var done = 0, failed = [];
     var next = function(){
       if (!files.length) {
         S.busy = false;
-        return srlLoad().then(function(){
-          if (failed.length) status('Could not upload: ' + failed.join('; '), true);
-          else status(done === 1 ? 'File added.' : done + ' files added.');
-        });
+        return srlLoad().then(function(){ if (failed.length) toast('Could not upload: ' + failed.join('; '), true); else toast(done === 1 ? 'File added.' : done + ' files added.'); });
       }
       var f = files.shift();
-      status('Uploading ' + f.name + '\u2026');
+      toast('Uploading ' + f.name + '…');
       return window.SPARK_SB.getToken().then(function(tok){
         var q = (target.kind === 'series' ? 'series_id=' : 'meeting_id=') + encodeURIComponent(target.id) + '&name=' + encodeURIComponent(f.name);
-        return fetch(SRL_WORKER + '/srlead/upload?' + q, { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': f.type || 'application/octet-stream' }, body: f });
+        return fetch(W + '/srlead/upload?' + q, { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': f.type || 'application/octet-stream' }, body: f });
       }).then(function(r){
         return r.json().catch(function(){ return {}; }).then(function(d){ if (!r.ok) throw new Error(d.error || ('upload failed (' + r.status + ')')); done++; });
       }).catch(function(e){ failed.push(f.name + ' (' + e.message + ')'); }).then(next);
@@ -24228,22 +24383,62 @@ window.addEventListener("message",function(e){
     next();
   }
 
+  function onClick(e){
+    var b = e.target.closest('[data-sl]'); var v = $('view-srlead'); if (!b || !v.contains(b)) return;
+    var act = b.getAttribute('data-sl'), id = b.getAttribute('data-id');
+    if (act === 'tab') { S.tab = b.getAttribute('data-tab'); render(); var g = v.querySelector('.sl-grid'); if (g && b.classList.contains('sl-stat')) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (act === 'folder') { S.folder = (S.folder === id) ? '' : id; render(); return; }
+    if (act === 'open') { openDrawer(id); return; }
+    if (act === 'close') { closeDrawer(); return; }
+    if (act === 'new') { openDrawer('__new'); return; }
+    if (act === 'folders') { openDrawer('__folders'); return; }
+    if (act === 'edit') { S.editing = true; renderDrawer(); return; }
+    if (act === 'cancel-edit') { S.editing = false; renderDrawer(); return; }
+    if (act === 'save-meeting') { saveMeeting(); return; }
+    if (act === 'show-done') { S.showDone = !S.showDone; render(); return; }
+    if (act === 'toggle') { toggleAction(id); return; }
+    if (act === 'add-action') { addAction(b); return; }
+    if (act === 'del-action') { var ac = S.actions.filter(function(x){ return x.id === id; })[0]; if (ac && confirm('Delete "' + ac.text + '"?')) run(api('POST', { action: 'delete_action', id: id }), 'Action deleted.'); return; }
+    if (act === 'del-meeting') { var mm = meetingById(id); if (mm && confirm('Delete "' + mm.title + '" and its files? This only removes it from HQ, not from Granola or Teams.')) { closeDrawer(); run(api('POST', { action: 'delete_meeting', id: id }), 'Meeting deleted.'); } return; }
+    if (act === 'map') {
+      var sid = $('slMapSeries').value, kw = $('slMapKw').value.trim(), mk = $('slMapRule').checked;
+      if (!sid) { toast('Pick a folder first.', true); return; }
+      var p = api('POST', { action: 'save_meeting', id: id, series_id: sid });
+      if (mk && kw) p = p.then(function(){ return api('POST', { action: 'add_rule', series_id: sid, keyword: kw }); });
+      run(p, mk && kw ? 'Filed. Future "' + kw + '" meetings will route there too.' : 'Filed.');
+      return;
+    }
+    if (act === 'attach') { S.attTarget = { kind: b.getAttribute('data-kind'), id: id }; var fi = $('slFileInput'); fi.value = ''; fi.click(); return; }
+    if (act === 'att-open') {
+      var win = window.open('', '_blank');
+      api('POST', { action: 'file_url', id: id }).then(function(d){ if (win && !win.closed) win.location = d.url; else window.location.href = d.url; })
+        .catch(function(err){ if (win) win.close(); toast(err.message, true); });
+      return;
+    }
+    if (act === 'att-del') { var at = S.attachments.filter(function(x){ return x.id === id; })[0]; if (at && confirm('Remove "' + at.file_name + '"? This deletes the file from HQ.')) run(api('POST', { action: 'delete_attachment', id: id }), 'File removed.'); return; }
+    if (act === 'add-series') { var nm = prompt('Name the new folder (e.g. Q1 2027 Offsite):'); if (nm && nm.trim()) run(api('POST', { action: 'save_series', name: nm.trim(), keywords: [], sort_order: S.series.length * 10 + 10 }), 'Folder added.'); return; }
+    if (act === 'save-series') {
+      var row = b.closest('.sl-ser'), s = seriesById(id) || {};
+      run(api('POST', { action: 'save_series', id: id, name: row.querySelector('[data-role="name"]').value.trim(), color: row.querySelector('[data-role="color"]').value,
+        kind: row.querySelector('[data-role="kind"]').value, subtitle: row.querySelector('[data-role="subtitle"]').value,
+        keywords: row.querySelector('[data-role="kw"]').value.split(',').map(function(k){ return k.trim(); }).filter(Boolean), sort_order: s.sort_order }), 'Folder saved.');
+      return;
+    }
+    if (act === 'del-series') { var ss = seriesById(id); if (ss && confirm('Delete the "' + ss.name + '" folder? Its meetings move to Unmapped and its folder files are deleted.')) { if (S.folder === id) S.folder = ''; run(api('POST', { action: 'delete_series', id: id }), 'Folder deleted.'); } return; }
+    if (act === 'apply-rules') { run(api('POST', { action: 'apply_rules' }), function(d){ var n = (d && d.mapped) || 0; return n ? 'Filed ' + n + ' meeting' + (n === 1 ? '' : 's') + '.' : 'No Unmapped meetings matched a rule.'; }); return; }
+  }
+
   function wire(){
-    var v = $('view-srlead'); if (!v || v.__srlWired) return; v.__srlWired = true;
+    var v = $('view-srlead'); if (!v || v.__slWired) return; v.__slWired = true;
     v.addEventListener('click', onClick);
-    $('srlFileInput').addEventListener('change', function(){ if (S.attTarget && this.files.length) uploadFiles(this.files, S.attTarget); });
-    v.addEventListener('dragover', function(e){
-      var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z || !e.dataTransfer || [].indexOf.call(e.dataTransfer.types || [], 'Files') === -1) return;
-      e.preventDefault(); z.classList.add('srl-drop');
-    });
-    v.addEventListener('dragleave', function(e){ var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('srl-drop'); });
-    v.addEventListener('drop', function(e){
-      var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z) return;
-      e.preventDefault(); z.classList.remove('srl-drop');
-      if (e.dataTransfer && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files, { kind: z.getAttribute('data-drop-kind'), id: z.getAttribute('data-drop-id') });
-    });
-    $('srlSearch').addEventListener('input', function(){ S.q = this.value.trim(); renderList(); });
-    $('srlSourceFilter').addEventListener('change', function(){ S.src = this.value; renderList(); });
+    v.addEventListener('input', function(e){ if (e.target.id === 'slSearch') { S.q = e.target.value.trim(); var mb = $('slMainBody'); if (mb && S.tab === 'timeline') mb.innerHTML = timelineHtml(); } });
+    v.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target.closest && e.target.closest('.sl-addrow')) { e.preventDefault(); addAction(e.target.closest('.sl-addrow').querySelector('[data-sl="add-action"]')); } });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && S.open && v.style.display !== 'none') closeDrawer(); });
+    $('slFileInput').addEventListener('change', function(){ if (S.attTarget && this.files.length) uploadFiles(this.files, S.attTarget); });
+    v.addEventListener('dragover', function(e){ var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z || !e.dataTransfer || [].indexOf.call(e.dataTransfer.types || [], 'Files') === -1) return; e.preventDefault(); z.classList.add('sl-dragover'); });
+    v.addEventListener('dragleave', function(e){ var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('sl-dragover'); });
+    v.addEventListener('drop', function(e){ var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z) return; e.preventDefault(); z.classList.remove('sl-dragover');
+      if (e.dataTransfer && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files, { kind: z.getAttribute('data-drop-kind'), id: z.getAttribute('data-drop-id') }); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
 })();
