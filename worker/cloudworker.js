@@ -5559,6 +5559,160 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    // ===== SRLEAD_v1 — Sr Leadership meeting map =====
+    // Access: HQ admins, or anyone whose role/exception grants tab:srleadership (same rule the HQ sidebar uses).
+    // Data: sr_series + sr_meetings in Supabase, read/written with the service key only (RLS on, no client policies).
+    if (url.pathname === "/srlead") {
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const userTok = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+      let perms = {};
+      try {
+        const pr = await fetch(env.SUPABASE_URL + "/rest/v1/rpc/my_permissions", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + userTok, "apikey": env.SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_email: who.email })
+        });
+        if (pr.ok) perms = (await pr.json()) || {};
+      } catch (e) {}
+      if (!(perms._admin === true || perms["tab:srleadership"] === true)) return json({ error: "You don't have access to Sr Leadership." }, 403, origin);
+
+      const SBH = { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
+      const sb = async (path, init) => {
+        const r = await fetch(env.SUPABASE_URL + "/rest/v1/" + path, Object.assign({ headers: SBH }, init || {}));
+        const t = await r.text();
+        if (!r.ok) throw new Error(path.split("?")[0] + " " + r.status + " " + t.slice(0, 160));
+        return t ? JSON.parse(t) : null;
+      };
+      const isId = (v) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+      const clip = (v, n) => String(v == null ? "" : v).slice(0, n);
+      const SOURCES = ["granola", "teams", "link"];
+      const matchSeries = (title, series) => {
+        const t = String(title || "").toLowerCase();
+        for (const s of series) for (const k of (s.keywords || [])) {
+          const kk = String(k || "").trim().toLowerCase();
+          if (!kk) continue;
+          // whole-word match, so "1:1" doesn't fire on "11:15" and "L10" doesn't fire on "L100"
+          let i = t.indexOf(kk);
+          while (i !== -1) {
+            const before = i === 0 ? "" : t[i - 1], after = t[i + kk.length] || "";
+            if (!/[a-z0-9]/.test(before) && !/[a-z0-9]/.test(after)) return s.id;
+            i = t.indexOf(kk, i + 1);
+          }
+        }
+        return null;
+      };
+      const loadSeries = () => sb("sr_series?select=*&order=sort_order.asc,name.asc");
+
+      try {
+        if (request.method === "GET") {
+          const [series, meetings] = await Promise.all([
+            loadSeries(),
+            sb("sr_meetings?select=*&order=meeting_date.desc.nullslast,created_at.desc&limit=2000")
+          ]);
+          return json({ ok: true, series, meetings }, 200, origin);
+        }
+        if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+        let body;
+        try { body = await request.json(); } catch (e) { return json({ error: "bad json" }, 400, origin); }
+        const a = body && body.action;
+
+        if (a === "save_series") {
+          const row = {};
+          if (body.name !== undefined) {
+            row.name = clip(body.name, 80).trim();
+            if (!row.name) return json({ error: "Series needs a name." }, 400, origin);
+          }
+          if (body.color !== undefined) row.color = /^#[0-9a-f]{6}$/i.test(body.color) ? body.color : "#94a3b8";
+          if (body.keywords !== undefined) row.keywords = (Array.isArray(body.keywords) ? body.keywords : []).map((k) => clip(k, 60).trim()).filter(Boolean).slice(0, 25);
+          if (body.sort_order !== undefined && Number.isFinite(+body.sort_order)) row.sort_order = Math.round(+body.sort_order);
+          if (body.id) {
+            if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+            await sb("sr_series?id=eq." + body.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify(row) });
+            return json({ ok: true }, 200, origin);
+          }
+          if (!row.name) return json({ error: "Series needs a name." }, 400, origin);
+          row.created_by = who.email;
+          const out = await sb("sr_series", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
+          return json({ ok: true, series: out && out[0] }, 200, origin);
+        }
+
+        if (a === "delete_series") {
+          if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          await sb("sr_series?id=eq." + body.id, { method: "DELETE", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }) });
+          return json({ ok: true }, 200, origin);
+        }
+
+        if (a === "add_rule") {
+          if (!isId(body.series_id)) return json({ error: "bad series id" }, 400, origin);
+          const kw = clip(body.keyword, 60).trim();
+          if (!kw) return json({ error: "keyword required" }, 400, origin);
+          const rows = await sb("sr_series?select=id,keywords&id=eq." + body.series_id);
+          if (!rows || !rows.length) return json({ error: "series not found" }, 404, origin);
+          const cur = rows[0].keywords || [];
+          if (!cur.some((k) => String(k).toLowerCase() === kw.toLowerCase())) {
+            await sb("sr_series?id=eq." + body.series_id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify({ keywords: cur.concat([kw]).slice(0, 25) }) });
+          }
+          return json({ ok: true }, 200, origin);
+        }
+
+        if (a === "save_meeting") {
+          const row = {};
+          if (body.title !== undefined) row.title = clip(body.title, 200).trim();
+          if (body.meeting_date !== undefined) row.meeting_date = /^\d{4}-\d{2}-\d{2}$/.test(String(body.meeting_date || "")) ? body.meeting_date : null;
+          if (body.source !== undefined) row.source = SOURCES.includes(body.source) ? body.source : "link";
+          if (body.url !== undefined) {
+            const u = clip(body.url, 2000).trim();
+            if (u && !/^https:\/\//i.test(u)) return json({ error: "Links need to start with https://" }, 400, origin);
+            row.url = u || null;
+          }
+          if (body.notes !== undefined) row.notes = clip(body.notes, 5000);
+          if (body.series_id !== undefined) {
+            if (body.series_id === "auto") {
+              const t = row.title !== undefined ? row.title : (body.id && isId(body.id) ? ((await sb("sr_meetings?select=title&id=eq." + body.id))[0] || {}).title : "");
+              row.series_id = matchSeries(t, await loadSeries());
+            } else if (body.series_id === "" || body.series_id === null) row.series_id = null;
+            else if (isId(body.series_id)) row.series_id = body.series_id;
+            else return json({ error: "bad series id" }, 400, origin);
+          }
+          row.updated_at = new Date().toISOString();
+          if (body.id) {
+            if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+            if (row.title !== undefined && !row.title) return json({ error: "Give it a title." }, 400, origin);
+            await sb("sr_meetings?id=eq." + body.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify(row) });
+            return json({ ok: true }, 200, origin);
+          }
+          if (!row.title) return json({ error: "Give it a title." }, 400, origin);
+          if (row.series_id === undefined) row.series_id = matchSeries(row.title, await loadSeries());
+          row.created_by = who.email;
+          const out = await sb("sr_meetings", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
+          return json({ ok: true, meeting: out && out[0] }, 200, origin);
+        }
+
+        if (a === "delete_meeting") {
+          if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          await sb("sr_meetings?id=eq." + body.id, { method: "DELETE", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }) });
+          return json({ ok: true }, 200, origin);
+        }
+
+        if (a === "apply_rules") {
+          const [series, unm] = await Promise.all([loadSeries(), sb("sr_meetings?select=id,title&series_id=is.null&limit=2000")]);
+          let mapped = 0;
+          for (const m of unm || []) {
+            const sid = matchSeries(m.title, series);
+            if (!sid) continue;
+            await sb("sr_meetings?id=eq." + m.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify({ series_id: sid, updated_at: new Date().toISOString() }) });
+            mapped++;
+          }
+          return json({ ok: true, mapped }, 200, origin);
+        }
+
+        return json({ error: "unknown action" }, 400, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 500, origin);
+      }
+    }
     if (url.pathname === "/permissions") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
