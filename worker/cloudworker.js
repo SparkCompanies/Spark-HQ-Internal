@@ -3070,6 +3070,72 @@ var worker_default = {
         return new Response(null, { status: 204, headers: corsHeaders(origin) });
       }
     }
+    if (url.pathname === "/my-links") {
+      // MY_LINKS_v1: personal Quick Actions links. Each signed-in person only ever sees and edits their own rows.
+      // Table: spark_hq_my_links (id bigserial pk, email text, label text, url text, sort int default 100, created_at timestamptz default now()), RLS on, service key only.
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const me = who.email.toLowerCase();
+      const list = async () => {
+        const r = await sbService(env, "GET", "spark_hq_my_links?select=id,label,url,sort&email=eq." + encodeURIComponent(me) + "&order=sort.asc,id.asc");
+        return r.ok && Array.isArray(r.data) ? r.data : [];
+      };
+      if (request.method === "GET") return json({ ok: true, links: await list() }, 200, origin);
+      if (request.method === "POST") {
+        let b = {};
+        try { b = await request.json(); } catch (e) {}
+        if (b.remove) {
+          const id = parseInt(b.remove, 10);
+          if (!id) return json({ error: "id required" }, 400, origin);
+          const r = await sbService(env, "DELETE", "spark_hq_my_links?id=eq." + id + "&email=eq." + encodeURIComponent(me));
+          if (!r.ok) return json({ error: "Could not remove that link" }, 502, origin);
+          return json({ ok: true, links: await list() }, 200, origin);
+        }
+        const label = String(b.label || "").trim().slice(0, 40);
+        let link = String(b.url || "").trim();
+        if (link && !/^https?:\/\//i.test(link)) link = "https://" + link;
+        let okUrl = false;
+        try { const u = new URL(link); okUrl = (u.protocol === "https:" || u.protocol === "http:") && u.hostname.indexOf(".") > 0; } catch (e) {}
+        if (!label || !okUrl) return json({ error: "Give it a name and a web address" }, 400, origin);
+        const cur = await list();
+        if (cur.length >= 12) return json({ error: "You can keep up to 12 links. Remove one first." }, 400, origin);
+        const r = await sbService(env, "POST", "spark_hq_my_links", { email: me, label, url: link.slice(0, 500), sort: (cur.length + 1) * 10 });
+        if (!r.ok) return json({ error: "Could not save that link", detail: r.data }, 502, origin);
+        return json({ ok: true, links: await list() }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
+    if (url.pathname === "/my-photo") {
+      // MY_PHOTO_UPLOAD_v1: a signed-in person replaces THEIR OWN Microsoft 365 profile photo (shows in Outlook, Teams and HQ).
+      // Needs the HQ app registration (AZ_CLIENT_ID) to hold Graph application permission ProfilePhoto.ReadWrite.All
+      // (or User.ReadWrite.All) with admin consent. The email always comes from the verified session, never the request.
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let b = {};
+      try { b = await request.json(); } catch (e) {}
+      const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+\/=]+)$/.exec(String(b.image || ""));
+      if (!m) return json({ error: "Send a JPG or PNG image" }, 400, origin);
+      const bin = Uint8Array.from(atob(m[2]), (ch) => ch.charCodeAt(0));
+      if (bin.length > 4 * 1024 * 1024) return json({ error: "That photo is too large (4 MB max)" }, 400, origin);
+      try {
+        const token = await getGraphToken(env);
+        const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(who.email) + "/photo/$value", {
+          method: "PUT",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "image/" + m[1] },
+          body: bin
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          const denied = r.status === 403 || /Authorization_RequestDenied|AccessDenied/i.test(t);
+          return json({ error: denied ? "Photo updates aren't switched on yet. Ask Allie." : "Microsoft 365 didn't accept that photo", status: r.status, detail: t.slice(0, 300) }, denied ? 403 : 502, origin);
+        }
+        try { await caches.default.delete(new Request("https://spark-hq-cache.internal/photos-v1")); } catch (e) {}
+        return json({ ok: true }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e && e.message || e) }, 500, origin);
+      }
+    }
     if (url.pathname === "/help-routes") {
       // HELP_ROUTES_v1 ("Who do I ask?"): need-based routing shown on Home + the header pill. Any signed-in user reads; admins edit.
       // Table: spark_hq_help_routes (id bigserial pk, slug text unique, topic text, blurb text, icon text, owner_email text, backup_email text, note text, how text, sort int default 100, updated_at timestamptz default now())
