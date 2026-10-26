@@ -5562,7 +5562,7 @@ var worker_default = {
     // ===== SRLEAD_v1 — Sr Leadership meeting map =====
     // Access: HQ admins, or anyone whose role/exception grants tab:srleadership (same rule the HQ sidebar uses).
     // Data: sr_series + sr_meetings in Supabase, read/written with the service key only (RLS on, no client policies).
-    if (url.pathname === "/srlead") {
+    if (url.pathname === "/srlead" || url.pathname === "/srlead/upload") {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -5576,7 +5576,8 @@ var worker_default = {
         });
         if (pr.ok) perms = (await pr.json()) || {};
       } catch (e) {}
-      if (!(perms._admin === true || perms["tab:srleadership"] === true)) return json({ error: "You don't have access to Sr Leadership." }, 403, origin);
+      // SRLEAD_v2: explicit grant only (role or per-person exception); admin status alone does not unlock this tab
+      if (perms["tab:srleadership"] !== true) return json({ error: "You don't have access to Sr Leadership." }, 403, origin);
 
       const SBH = { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
       const sb = async (path, init) => {
@@ -5604,14 +5605,46 @@ var worker_default = {
         return null;
       };
       const loadSeries = () => sb("sr_series?select=*&order=sort_order.asc,name.asc");
+      // SRLEAD_ATT_v1: files live in the private "srlead" storage bucket; only this route (service key) touches them
+      const BUCKET = "srlead";
+      const MAX_FILE = 25 * 1024 * 1024;
+      const storage = (p, init) => fetch(env.SUPABASE_URL + "/storage/v1/" + p, Object.assign({}, init || {}, {
+        headers: Object.assign({ "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY }, (init && init.headers) || {})
+      }));
+      const removeObjects = async (paths) => {
+        if (!paths.length) return;
+        await storage("object/" + BUCKET, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prefixes: paths }) });
+      };
 
       try {
+        if (url.pathname === "/srlead/upload") {
+          if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+          const mid = url.searchParams.get("meeting_id") || "", sid = url.searchParams.get("series_id") || "";
+          if ((isId(mid) ? 1 : 0) + (isId(sid) ? 1 : 0) !== 1) return json({ error: "meeting_id or series_id required" }, 400, origin);
+          const name = clip(url.searchParams.get("name") || "file", 180).replace(/[\\/\u0000-\u001f]/g, "_").trim() || "file";
+          if (+(request.headers.get("Content-Length") || 0) > MAX_FILE) return json({ error: "Files are limited to 25 MB." }, 413, origin);
+          const buf = await request.arrayBuffer();
+          if (!buf.byteLength) return json({ error: "Empty file." }, 400, origin);
+          if (buf.byteLength > MAX_FILE) return json({ error: "Files are limited to 25 MB." }, 413, origin);
+          const ctype = clip(request.headers.get("Content-Type") || "application/octet-stream", 120);
+          const safe = name.replace(/[^A-Za-z0-9._-]+/g, "_").slice(-120) || "file";
+          const path = (mid || sid) + "/" + crypto.randomUUID() + "-" + safe;
+          const up = await storage("object/" + BUCKET + "/" + path, { method: "POST", headers: { "Content-Type": ctype, "x-upsert": "false" }, body: buf });
+          if (!up.ok) throw new Error("upload " + up.status + " " + (await up.text()).slice(0, 160));
+          const row = { meeting_id: mid || null, series_id: sid || null, file_name: name, storage_path: path, content_type: ctype, size_bytes: buf.byteLength, created_by: who.email };
+          let out;
+          try {
+            out = await sb("sr_attachments", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
+          } catch (e) { await removeObjects([path]); throw e; }
+          return json({ ok: true, attachment: out && out[0] }, 200, origin);
+        }
         if (request.method === "GET") {
-          const [series, meetings] = await Promise.all([
+          const [series, meetings, attachments] = await Promise.all([
             loadSeries(),
-            sb("sr_meetings?select=*&order=meeting_date.desc.nullslast,created_at.desc&limit=2000")
+            sb("sr_meetings?select=*&order=meeting_date.desc.nullslast,created_at.desc&limit=2000"),
+            sb("sr_attachments?select=id,meeting_id,series_id,file_name,content_type,size_bytes,created_by,created_at&order=created_at.asc&limit=5000")
           ]);
-          return json({ ok: true, series, meetings }, 200, origin);
+          return json({ ok: true, series, meetings, attachments }, 200, origin);
         }
         if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
         let body;
@@ -5638,8 +5671,31 @@ var worker_default = {
           return json({ ok: true, series: out && out[0] }, 200, origin);
         }
 
+        if (a === "file_url") {
+          if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          const rows = await sb("sr_attachments?select=storage_path,file_name&id=eq." + body.id);
+          if (!rows || !rows.length) return json({ error: "File not found." }, 404, origin);
+          const sr = await storage("object/sign/" + BUCKET + "/" + rows[0].storage_path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn: 600 }) });
+          const sj = await sr.json().catch(() => ({}));
+          const signed = sj.signedURL || sj.signedUrl;
+          if (!sr.ok || !signed) throw new Error("sign " + sr.status);
+          return json({ ok: true, url: env.SUPABASE_URL + "/storage/v1" + signed, name: rows[0].file_name }, 200, origin);
+        }
+
+        if (a === "delete_attachment") {
+          if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          const rows = await sb("sr_attachments?select=storage_path&id=eq." + body.id);
+          if (rows && rows.length) {
+            await removeObjects([rows[0].storage_path]);
+            await sb("sr_attachments?id=eq." + body.id, { method: "DELETE", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }) });
+          }
+          return json({ ok: true }, 200, origin);
+        }
+
         if (a === "delete_series") {
           if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          const sf = await sb("sr_attachments?select=storage_path&series_id=eq." + body.id);
+          await removeObjects((sf || []).map((r) => r.storage_path));
           await sb("sr_series?id=eq." + body.id, { method: "DELETE", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }) });
           return json({ ok: true }, 200, origin);
         }
@@ -5692,6 +5748,8 @@ var worker_default = {
 
         if (a === "delete_meeting") {
           if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          const mf = await sb("sr_attachments?select=storage_path&meeting_id=eq." + body.id);
+          await removeObjects((mf || []).map((r) => r.storage_path));
           await sb("sr_meetings?id=eq." + body.id, { method: "DELETE", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }) });
           return json({ ok: true }, 200, origin);
         }

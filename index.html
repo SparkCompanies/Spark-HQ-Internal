@@ -8581,7 +8581,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     <!-- ==================== SR LEADERSHIP (SRLEAD_v1) ==================== -->
     <div id="view-srlead" class="tab-page cream" style="display: none;">
       <div class="tab-hero">
-        <div class="eyebrow">Sr Leadership <span class="lead-restricted">Restricted · Sr Leadership role</span></div>
+        <div class="eyebrow">Sr Leadership <span class="lead-restricted">Restricted · invite only</span></div>
         <h1>Every leadership meeting, mapped. <span class="dim">Notes, recordings, one place.</span></h1>
         <div class="dek">Drop in a Granola note, a Teams recording, or any link. Series rules file it automatically. Anything the rules can't place lands in Unmapped until you sort it.</div>
       </div>
@@ -8646,6 +8646,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         <div class="srl-layout">
           <aside id="srlSeriesNav" class="srl-nav" aria-label="Series"></aside>
           <section id="srlList" class="srl-list"></section>
+          <input type="file" id="srlFileInput" multiple style="display:none" aria-hidden="true">
         </div>
       </div>
     </div>
@@ -11841,7 +11842,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   function gateRender() {
     // nav tabs
     Object.keys(GATE_TAB_PERM).forEach(function(tab){
-      var allowed = permAllowed(GATE_TAB_PERM[tab]);
+      /* SRLEAD_v2: Sr Leadership needs an explicit grant (role or exception); admin status alone doesn't unlock it */
+      var allowed = (tab === 'srlead') ? !!(MY_PERMS && MY_PERMS[GATE_TAB_PERM[tab]] === true) : permAllowed(GATE_TAB_PERM[tab]);
       document.querySelectorAll('.nav-item[data-tab="' + tab + '"]').forEach(function(btn){
         btn.style.display = allowed ? '' : 'none';
       });
@@ -23906,6 +23908,19 @@ window.addEventListener("message",function(e){
 #view-srlead .srl-map{margin-top:10px;padding:10px;border-radius:10px;background:var(--paper-warm);border:1px dashed var(--gold-deep);display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
 #view-srlead .srl-map input[type=text]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:13px var(--font-display);min-width:140px}
 #view-srlead .srl-empty{padding:40px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px;background:#fff}
+/* SRLEAD_ATT_v1 attachments */
+#view-srlead .srl-atts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#view-srlead .srl-att{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:5px 6px 5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--paper);font:600 12px var(--font-display);color:var(--ink)}
+#view-srlead .srl-att button{border:0;background:none;cursor:pointer;color:inherit;font:inherit;padding:0;display:inline-flex;align-items:center;gap:6px;min-width:0}
+#view-srlead .srl-att .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+#view-srlead .srl-att .sz{color:var(--muted-light);font-weight:500}
+#view-srlead .srl-att .srl-att-x{color:var(--muted);font-size:15px;line-height:1;padding:0 3px}
+#view-srlead .srl-att .srl-att-x:hover{color:#b42318}
+#view-srlead .srl-att:hover{border-color:var(--gold-deep)}
+#view-srlead .srl-folder{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+#view-srlead .srl-folder-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font:700 13px var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#view-srlead .srl-folder .srl-atts:empty::before{content:'No files yet. Drop decks, PDFs, or spreadsheets here.';font-size:12.5px;color:var(--muted-light)}
+#view-srlead .srl-drop{outline:2px dashed var(--gold-deep);outline-offset:3px;background:var(--paper-warm)}
 #view-srlead .srl-ser-row{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,2fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-light)}
 #view-srlead .srl-ser-row input[type=text]{padding:8px 9px;border:1px solid var(--line);border-radius:8px;font:13.5px var(--font-display);width:100%}
 #view-srlead .srl-ser-row input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
@@ -23926,7 +23941,18 @@ window.addEventListener("message",function(e){
    through the worker's /srlead route, which re-checks tab:srleadership server-side. */
 (function(){
   var SRL_WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
-  var S = { series: [], meetings: [], sel: '__all', q: '', src: '', editId: null, loaded: false, busy: false };
+  var S = { series: [], meetings: [], attachments: [], attTarget: null, sel: '__all', q: '', src: '', editId: null, loaded: false, busy: false };
+  var SRL_MAX_FILE = 25 * 1024 * 1024;
+  var SRL_FILE_ICO = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+  var SRL_CLIP_ICO = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg>';
+  function fmtSize(n){ n = +n || 0; if (n < 1024) return n + ' B'; if (n < 1048576) return Math.round(n/1024) + ' KB'; return (n/1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB'; }
+  function attsFor(kind, id){ return S.attachments.filter(function(a){ return kind === 'meeting' ? a.meeting_id === id : a.series_id === id; }); }
+  function attChips(list){
+    return list.map(function(a){
+      return '<span class="srl-att"><button data-srl="att-open" data-id="' + esc(a.id) + '" title="Open ' + esc(a.file_name) + '">' + SRL_FILE_ICO + '<span class="nm">' + esc(a.file_name) + '</span><span class="sz">' + fmtSize(a.size_bytes) + '</span></button>'
+        + '<button class="srl-att-x" data-srl="att-del" data-id="' + esc(a.id) + '" aria-label="Remove ' + esc(a.file_name) + '">&times;</button></span>';
+    }).join('');
+  }
   var SRC_LABEL = { granola: 'Granola', teams: 'Teams recording', link: 'Link' };
 
   function $(id){ return document.getElementById(id); }
@@ -23959,7 +23985,7 @@ window.addEventListener("message",function(e){
   window.srlLoad = function(){
     status(S.loaded ? '' : 'Loading…');
     return api('GET').then(function(d){
-      S.series = d.series || []; S.meetings = d.meetings || []; S.loaded = true;
+      S.series = d.series || []; S.meetings = d.meetings || []; S.attachments = d.attachments || []; S.loaded = true;
       status(''); render();
     }).catch(function(e){ status(e.message, true); render(); });
   };
@@ -24002,14 +24028,21 @@ window.addEventListener("message",function(e){
     var box = $('srlList'); if (!box) return;
     var rows = filtered();
     if (!S.loaded) { box.innerHTML = ''; return; }
+    var folder = '';
+    var selSeries = seriesById(S.sel);
+    if (selSeries) {
+      folder = '<div class="srl-folder" data-drop-kind="series" data-drop-id="' + esc(selSeries.id) + '"><div class="srl-folder-head"><span>' + esc(selSeries.name) + ' \u00b7 folder files</span>'
+        + '<button class="srl-btn srl-btn-sm" data-srl="attach" data-kind="series" data-id="' + esc(selSeries.id) + '">' + SRL_CLIP_ICO + 'Add files</button></div>'
+        + '<div class="srl-atts">' + attChips(attsFor('series', selSeries.id)) + '</div></div>';
+    }
     if (!rows.length) {
       var msg = S.sel === '__unmapped' ? 'Nothing waiting. Every meeting has a home.' : (S.meetings.length ? 'No meetings match.' : 'No meetings yet. Use Add meeting to drop in your first note or recording.');
-      box.innerHTML = '<div class="srl-empty">' + msg + '</div>'; return;
+      box.innerHTML = folder + '<div class="srl-empty">' + msg + '</div>'; return;
     }
-    box.innerHTML = rows.map(function(m){
+    box.innerHTML = folder + rows.map(function(m){
       var s = m.series_id ? seriesById(m.series_id) : null;
       var url = safeUrl(m.url);
-      var h = '<div class="srl-row" data-id="' + esc(m.id) + '">'
+      var h = '<div class="srl-row" data-id="' + esc(m.id) + '" data-drop-kind="meeting" data-drop-id="' + esc(m.id) + '">'
         + '<div class="srl-date">' + fmtDate(m.meeting_date) + '</div>'
         + '<div><div class="srl-title">' + esc(m.title) + '</div><div class="srl-meta">'
         + '<span class="srl-pill ' + esc(m.source) + '">' + esc(SRC_LABEL[m.source] || m.source) + '</span>'
@@ -24017,6 +24050,8 @@ window.addEventListener("message",function(e){
         + (m.created_by ? '<span style="font-size:11px;color:var(--muted-light)">added by ' + esc(String(m.created_by).split('@')[0]) + '</span>' : '')
         + '</div>'
         + (m.notes ? '<div class="srl-notes">' + esc(m.notes) + '</div>' : '');
+      var ma = attsFor('meeting', m.id);
+      if (ma.length) h += '<div class="srl-atts">' + attChips(ma) + '</div>';
       if (!m.series_id && S.series.length) {
         h += '<div class="srl-map"><span>File under</span><select class="srl-select" data-role="map-series">' + seriesOptions('', false).replace('<option value="" selected>Unmapped</option>', '<option value="" selected>Pick a series…</option>') + '</select>'
           + '<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" data-role="map-rule" checked> and route future titles containing</label>'
@@ -24025,6 +24060,7 @@ window.addEventListener("message",function(e){
       }
       h += '</div><div class="srl-actions">'
         + (url ? '<a class="srl-open" href="' + esc(url) + '" target="_blank" rel="noopener">Open<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '')
+        + '<button class="srl-btn srl-btn-sm" data-srl="attach" data-kind="meeting" data-id="' + esc(m.id) + '">' + SRL_CLIP_ICO + 'Attach</button>'
         + '<button class="srl-btn srl-btn-sm" data-srl="edit" data-id="' + esc(m.id) + '">Edit</button>'
         + '<button class="srl-btn srl-btn-sm srl-btn-danger" data-srl="del" data-id="' + esc(m.id) + '">Delete</button>'
         + '</div></div>';
@@ -24141,15 +24177,71 @@ window.addEventListener("message",function(e){
       }
       return;
     }
+    if (act === 'attach') {
+      S.attTarget = { kind: b.getAttribute('data-kind'), id: id };
+      var fi = $('srlFileInput'); fi.value = ''; fi.click();
+      return;
+    }
+    if (act === 'att-open') {
+      var win = window.open('', '_blank');
+      api('POST', { action: 'file_url', id: id }).then(function(d){
+        if (win && !win.closed) win.location = d.url; else window.location.href = d.url;
+      }).catch(function(e){ if (win) win.close(); status(e.message, true); });
+      return;
+    }
+    if (act === 'att-del') {
+      var at = S.attachments.filter(function(x){ return x.id === id; })[0];
+      if (at && confirm('Remove "' + at.file_name + '"? This deletes the file from HQ.')) run(api('POST', { action: 'delete_attachment', id: id }), 'File removed.');
+      return;
+    }
     if (act === 'apply-rules') {
       run(api('POST', { action: 'apply_rules' }), function(d){ var n = (d && d.mapped) || 0; return n ? 'Rules filed ' + n + ' meeting' + (n === 1 ? '' : 's') + '.' : 'No Unmapped meetings matched a rule.'; });
       return;
     }
   }
 
+  function uploadFiles(fileList, target){
+    var files = [].slice.call(fileList);
+    var big = files.filter(function(f){ return f.size > SRL_MAX_FILE; });
+    files = files.filter(function(f){ return f.size > 0 && f.size <= SRL_MAX_FILE; });
+    if (big.length) status(big.map(function(f){ return f.name; }).join(', ') + ' is over 25 MB. For recordings, paste the SharePoint or Stream link instead.', true);
+    if (!files.length || S.busy) return;
+    S.busy = true;
+    var done = 0, failed = [];
+    var next = function(){
+      if (!files.length) {
+        S.busy = false;
+        return srlLoad().then(function(){
+          if (failed.length) status('Could not upload: ' + failed.join('; '), true);
+          else status(done === 1 ? 'File added.' : done + ' files added.');
+        });
+      }
+      var f = files.shift();
+      status('Uploading ' + f.name + '\u2026');
+      return window.SPARK_SB.getToken().then(function(tok){
+        var q = (target.kind === 'series' ? 'series_id=' : 'meeting_id=') + encodeURIComponent(target.id) + '&name=' + encodeURIComponent(f.name);
+        return fetch(SRL_WORKER + '/srlead/upload?' + q, { method: 'POST', headers: { 'Authorization': 'Bearer ' + tok, 'Content-Type': f.type || 'application/octet-stream' }, body: f });
+      }).then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(d){ if (!r.ok) throw new Error(d.error || ('upload failed (' + r.status + ')')); done++; });
+      }).catch(function(e){ failed.push(f.name + ' (' + e.message + ')'); }).then(next);
+    };
+    next();
+  }
+
   function wire(){
     var v = $('view-srlead'); if (!v || v.__srlWired) return; v.__srlWired = true;
     v.addEventListener('click', onClick);
+    $('srlFileInput').addEventListener('change', function(){ if (S.attTarget && this.files.length) uploadFiles(this.files, S.attTarget); });
+    v.addEventListener('dragover', function(e){
+      var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z || !e.dataTransfer || [].indexOf.call(e.dataTransfer.types || [], 'Files') === -1) return;
+      e.preventDefault(); z.classList.add('srl-drop');
+    });
+    v.addEventListener('dragleave', function(e){ var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (z && !z.contains(e.relatedTarget)) z.classList.remove('srl-drop'); });
+    v.addEventListener('drop', function(e){
+      var z = e.target.closest && e.target.closest('[data-drop-kind]'); if (!z) return;
+      e.preventDefault(); z.classList.remove('srl-drop');
+      if (e.dataTransfer && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files, { kind: z.getAttribute('data-drop-kind'), id: z.getAttribute('data-drop-id') });
+    });
     $('srlSearch').addEventListener('input', function(){ S.q = this.value.trim(); renderList(); });
     $('srlSourceFilter').addEventListener('change', function(){ S.src = this.value; renderList(); });
   }
