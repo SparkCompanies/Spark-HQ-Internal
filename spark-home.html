@@ -3017,6 +3017,7 @@ window.addEventListener('load',function(){setTimeout(function(){try{
   @keyframes hw2Drift{0%{transform:translateX(-30%)}100%{transform:translateX(60%)}}
   .hw2-pk{width:14px;height:14px;vertical-align:-2px;margin-right:2px;filter:drop-shadow(0 0 4px rgba(255,122,24,.6));animation:hw2Flicker 3.2s ease-in-out infinite}
   @keyframes hw2Flicker{0%,100%{filter:drop-shadow(0 0 3px rgba(255,122,24,.5))}45%{filter:drop-shadow(0 0 7px rgba(255,140,40,.9))}50%{filter:drop-shadow(0 0 2px rgba(255,122,24,.35))}}
+  .v2-eyebrow .v2-eb-bolt,.bnr-eyebrow .v2-eb-bolt{display:none !important}
   .hw2-host{position:relative}
   .hw2-web{position:absolute;top:0;right:0;width:150px;height:150px;opacity:.22;z-index:0}
   .hw2-web.l{left:0;right:auto;transform:scaleX(-1)}
@@ -3051,7 +3052,7 @@ window.addEventListener('load',function(){setTimeout(function(){try{
   var hero=d.querySelector('.hero.hw-on')||d.querySelector('.hero');
   if(hero){hero.appendChild(el('div','hw2 hw2-fog','<i></i><i></i><i></i>'))}
   // 2. section eyebrow bolts become jack-o-lanterns
-  d.querySelectorAll('.v2-eyebrow .v2-eb-bolt, .bnr-eyebrow .v2-eb-bolt').forEach(function(b){var w=d.createElement('span');w.innerHTML=pumpkin;b.replaceWith(w.firstChild)});
+  d.querySelectorAll('.v2-eyebrow, .bnr-eyebrow').forEach(function(e){if(e.querySelector('.hw2-pk'))return;var b=e.querySelector('.v2-eb-bolt');var w=d.createElement('span');w.innerHTML=pumpkin;if(b)b.after(w.firstChild);else e.prepend(w.firstChild)});
   // 3. cobwebs + a couple of spiders on the cream sections, alternating sides
   [].slice.call(d.querySelectorAll('section.v2-wrap, section.qa, section.celebs, section.pulse')).forEach(function(s,i){
     if(i%2) return; s.classList.add('hw2-host');
