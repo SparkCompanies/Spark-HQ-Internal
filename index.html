@@ -23800,7 +23800,7 @@ window.addEventListener("message",function(e){
 /* ===== end LMS_LANDING_v1 ===== */
 </script>
 
-<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3, notify v4) */
+<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3, notify v4, edit actions v5) */
 #view-srlead{--sl-ink:#1a1a2e;--sl-violet:#4b45a8;--sl-teal:#0e7490;--sl-green:#15803d}
 #view-srlead .sl-wrap{max-width:1180px;margin:0 auto;padding:30px 32px 70px}
 #view-srlead .sl-eyebrow{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:6px}
@@ -23908,6 +23908,20 @@ window.addEventListener("message",function(e){
 #view-srlead .sl-own{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:4px;font-size:11.5px;color:var(--muted)}
 #view-srlead .sl-own .src{cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:2px}
 #view-srlead .sl-mini{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:800;color:#1a1a2e}
+#view-srlead .sl-assign{border:1px dashed #cbd5e1;background:none;border-radius:99px;padding:1px 9px;font:600 11.5px var(--font-display);color:var(--muted);cursor:pointer}
+#view-srlead .sl-assign:hover{border-color:var(--gold-deep);color:var(--sl-ink)}
+#view-srlead .sl-pen{opacity:0;transition:opacity .15s}
+#view-srlead .sl-act:hover .sl-pen,#view-srlead .sl-pen:focus{opacity:1}
+@media (hover:none){#view-srlead .sl-pen{opacity:1}}
+#view-srlead .sl-act-edit{flex-direction:column;align-items:stretch;gap:8px;background:var(--paper-warm);border-radius:12px;padding:12px;margin:6px 0;border-top:0}
+#view-srlead .sl-act-edit input{padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:13.5px var(--font-display);background:#fff;min-width:0;color:var(--sl-ink)}
+#view-srlead .sl-act-edit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#view-srlead .sl-act-edit-row .o{flex:2 1 180px}
+#view-srlead .sl-duewrap{flex:1 1 150px;display:flex;position:relative}
+#view-srlead .sl-duewrap .d{flex:1;padding-right:34px}
+#view-srlead .sl-calbtn{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer;padding:4px;display:grid;place-items:center}
+#view-srlead .sl-duewrap .dp{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+#view-srlead .sl-due.late{background:#fee4e2;color:#b42318}
 #view-srlead .sl-due{font-size:11px;font-weight:700;color:var(--gold-dark);background:#fef3c7;border-radius:6px;padding:2px 7px;white-space:nowrap;align-self:flex-start}
 #view-srlead .sl-x{border:0;background:none;color:var(--muted-light);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;align-self:flex-start}
 #view-srlead .sl-x:hover{color:#b42318}
@@ -23982,7 +23996,7 @@ window.addEventListener("message",function(e){
    worker's /srlead route, which re-checks tab:srleadership on every call. */
 (function(){
   var W = 'https://spark-hq-worker.sparkcompanies.workers.dev';
-  var S = { series: [], meetings: [], actions: [], attachments: [], next: null, loaded: false, busy: false,
+  var S = { series: [], meetings: [], actions: [], attachments: [], next: null, loaded: false, busy: false, editAct: null,
             folder: '', tab: 'timeline', q: '', open: null, editing: false, attTarget: null, showDone: false };
   var MAX_FILE = 25 * 1024 * 1024;
   var SRC = { granola: 'Granola', teams: 'Teams recording', link: 'Link' };
@@ -24192,19 +24206,52 @@ window.addEventListener("message",function(e){
     return h;
   }
 
+  // Due dates: anything typed ("Q1", "Jan") is kept as written; picked dates are stored as YYYY-MM-DD and flagged when past due.
+  function dueInfo(d, done){
+    d = String(d || '').trim(); if (!d) return null;
+    var x = /^\d{4}-\d{2}-\d{2}$/.test(d) ? ymd(d) : null;
+    if (!x) return { txt: d, late: false };
+    var today = new Date(); today.setHours(0,0,0,0);
+    var dt = new Date(x.y, x.m - 1, x.d);
+    return { txt: MON[x.m - 1] + ' ' + x.d + (x.y !== today.getFullYear() ? ', ' + x.y : ''), late: !done && dt < today };
+  }
+  function ownerNames(){
+    var set = {};
+    ['Allie','Aaron','Fletcher','Dave','Bedros','Jamie','Alex','Mary','Ryan'].forEach(function(n){ set[n] = 1; });
+    S.actions.forEach(function(a){ owners(a.owner).forEach(function(o){ set[o] = 1; }); });
+    return Object.keys(set).sort();
+  }
+  function actionEditRow(a){
+    var di = /^\d{4}-\d{2}-\d{2}$/.test(String(a.due || '')) ? a.due : '';
+    return '<div class="sl-act sl-act-edit" data-id="' + esc(a.id) + '">'
+      + '<input class="t" type="text" maxlength="500" value="' + esc(a.text) + '" aria-label="Action item">'
+      + '<div class="sl-act-edit-row">'
+      + '<input class="o" type="text" maxlength="120" list="slOwners" value="' + esc(a.owner || '') + '" placeholder="Owner(s), e.g. Mary, Allie" aria-label="Owners">'
+      + '<span class="sl-duewrap"><input class="d" type="text" maxlength="40" value="' + esc(a.due || '') + '" placeholder="Due (date, Q1, Jan…)" aria-label="Due">'
+      + '<button class="sl-calbtn" data-sl="pick-due" aria-label="Pick a date">' + I.cal + '</button><input class="dp" type="date" value="' + esc(di) + '" tabindex="-1" aria-hidden="true"></span>'
+      + '</div><div class="sl-act-edit-row"><button class="sl-btn sl-btn-sm" data-sl="cancel-action">Cancel</button><button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="save-action" data-id="' + esc(a.id) + '">Save</button></div></div>';
+  }
   function actionRow(a, mode){ /* mode: 'side' | 'tab' | 'drawer' */
-    var compact = mode === 'side';
+    if (S.editAct === a.id && mode !== 'side') return actionEditRow(a);
     var m = a.meeting_id ? meetingById(a.meeting_id) : null;
-    var os = owners(a.owner);
+    var os = owners(a.owner), du = dueInfo(a.due, a.done);
     return '<div class="sl-act' + (a.done ? ' done' : '') + '"><button class="sl-chk" data-sl="toggle" data-id="' + esc(a.id) + '" aria-label="' + (a.done ? 'Reopen' : 'Mark done') + '">' + (a.done ? I.check : '') + '</button>'
       + '<div class="body"><div class="txt">' + esc(a.text) + '</div><div class="sl-own">'
-      + (os.length ? os.map(function(o){ return avatar(o) + esc(o); }).join(' ') : '<span>Unassigned</span>')
+      + (os.length ? os.map(function(o){ return avatar(o) + esc(o); }).join(' ') : '<button class="sl-assign" data-sl="edit-action" data-id="' + esc(a.id) + '" data-mode="' + mode + '">+ Add owner</button>')
       + (mode === 'tab' && m ? '<span>·</span><span class="src" data-sl="open" data-id="' + esc(m.id) + '">' + esc(m.title) + '</span>' : '')
-      + '</div></div>' + (a.due ? '<span class="sl-due">' + esc(a.due) + '</span>' : '')
-      + (!compact ? '<button class="sl-x" data-sl="del-action" data-id="' + esc(a.id) + '" aria-label="Delete">&times;</button>' : '') + '</div>';
+      + '</div></div>' + (du ? '<span class="sl-due' + (du.late ? ' late' : '') + '" title="' + (du.late ? 'Past due' : 'Due') + '">' + (du.late ? 'Overdue · ' : '') + esc(du.txt) + '</span>' : '')
+      + '<button class="sl-x sl-pen" data-sl="edit-action" data-id="' + esc(a.id) + '" data-mode="' + mode + '" aria-label="Edit owner or due date">' + svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>', 14) + '</button>'
+      + (mode !== 'side' ? '<button class="sl-x" data-sl="del-action" data-id="' + esc(a.id) + '" aria-label="Delete">&times;</button>' : '') + '</div>';
+  }
+  function saveActionEdit(row){
+    if (!row) return;
+    var id = row.getAttribute('data-id'), t = row.querySelector('.t').value.trim();
+    if (!t) { toast('The action item needs text.', true); return; }
+    S.editAct = null;
+    run(api('POST', { action: 'save_action', id: id, text: t, owner: row.querySelector('.o').value.trim(), due: row.querySelector('.d').value.trim() }), 'Action item updated.');
   }
   function addActionRow(mid){
-    return '<div class="sl-addrow" data-mid="' + esc(mid || '') + '"><input class="t" type="text" maxlength="500" placeholder="New action item"><input class="o" type="text" maxlength="120" placeholder="Owner"><input class="d" type="text" maxlength="40" placeholder="Due"><button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="add-action">Add</button></div>';
+    return '<div class="sl-addrow" data-mid="' + esc(mid || '') + '"><input class="t" type="text" maxlength="500" placeholder="New action item"><input class="o" type="text" maxlength="120" list="slOwners" placeholder="Owner"><input class="d" type="text" maxlength="40" placeholder="Due"><button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="add-action">Add</button></div>';
   }
   function actionsTabHtml(){
     var list = S.actions.filter(function(a){ var m = a.meeting_id ? meetingById(a.meeting_id) : null; return !S.folder || (m && inFolder(m)) || (!m && !S.folder); });
@@ -24261,7 +24308,8 @@ window.addEventListener("message",function(e){
   function render(){
     var root = $('slRoot'); if (!root || !S.loaded) return;
     var focus = document.activeElement && document.activeElement.id === 'slSearch';
-    root.innerHTML = heroHtml() + statsHtml() + foldersHtml() + mainHtml();
+    root.innerHTML = heroHtml() + statsHtml() + foldersHtml() + mainHtml()
+      + '<datalist id="slOwners">' + ownerNames().map(function(n){ return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>';
     if (focus) { var si = $('slSearch'); si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
     renderDrawer();
   }
@@ -24418,6 +24466,21 @@ window.addEventListener("message",function(e){
     if (act === 'show-done') { S.showDone = !S.showDone; render(); return; }
     if (act === 'toggle') { toggleAction(id); return; }
     if (act === 'add-action') { addAction(b); return; }
+    if (act === 'edit-action') {
+      S.editAct = id;
+      // the side panel is compact, so editing from there jumps to the full Action items list
+      if (b.getAttribute('data-mode') === 'side') { S.tab = 'actions'; render(); var g2 = v.querySelector('.sl-grid'); if (g2) g2.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      else { render(); }
+      var er = v.querySelector('.sl-act-edit[data-id="' + id + '"] .o'); if (er) er.focus();
+      return;
+    }
+    if (act === 'cancel-action') { S.editAct = null; render(); return; }
+    if (act === 'pick-due') {
+      var dp = b.parentNode.querySelector('.dp');
+      try { if (dp.showPicker) dp.showPicker(); else dp.click(); } catch (err) { dp.click(); }
+      return;
+    }
+    if (act === 'save-action') { saveActionEdit(b.closest('.sl-act-edit')); return; }
     if (act === 'del-action') { var ac = S.actions.filter(function(x){ return x.id === id; })[0]; if (ac && confirm('Delete "' + ac.text + '"?')) run(api('POST', { action: 'delete_action', id: id }), 'Action deleted.'); return; }
     if (act === 'del-meeting') { var mm = meetingById(id); if (mm && confirm('Delete "' + mm.title + '" and its files? This only removes it from HQ, not from Granola or Teams.')) { closeDrawer(); run(api('POST', { action: 'delete_meeting', id: id }), 'Meeting deleted.'); } return; }
     if (act === 'map') {
@@ -24452,6 +24515,14 @@ window.addEventListener("message",function(e){
     var v = $('view-srlead'); if (!v || v.__slWired) return; v.__slWired = true;
     v.addEventListener('click', onClick);
     v.addEventListener('input', function(e){ if (e.target.id === 'slSearch') { S.q = e.target.value.trim(); var mb = $('slMainBody'); if (mb && S.tab === 'timeline') mb.innerHTML = timelineHtml(); } });
+    v.addEventListener('change', function(e){
+      if (e.target.classList && e.target.classList.contains('dp') && e.target.value) { var d = e.target.closest('.sl-duewrap').querySelector('.d'); d.value = e.target.value; }
+    });
+    v.addEventListener('keydown', function(e){
+      var ed = e.target.closest && e.target.closest('.sl-act-edit');
+      if (ed && e.key === 'Enter') { e.preventDefault(); saveActionEdit(ed); return; }
+      if (ed && e.key === 'Escape') { e.stopPropagation(); S.editAct = null; render(); return; }
+    });
     v.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target.closest && e.target.closest('.sl-addrow')) { e.preventDefault(); addAction(e.target.closest('.sl-addrow').querySelector('[data-sl="add-action"]')); } });
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && S.open && v.style.display !== 'none') closeDrawer(); });
     $('slFileInput').addEventListener('change', function(){ if (S.attTarget && this.files.length) uploadFiles(this.files, S.attTarget); });
