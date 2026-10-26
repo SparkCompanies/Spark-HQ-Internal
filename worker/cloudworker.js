@@ -5576,7 +5576,8 @@ var worker_default = {
         });
         if (pr.ok) perms = (await pr.json()) || {};
       } catch (e) {}
-      if (!(perms._admin === true || perms["tab:srleadership"] === true)) return json({ error: "You don't have access to Sr Leadership." }, 403, origin);
+      // SRLEAD_v2: explicit grant only (role or per-person exception); admin status alone does not unlock this tab
+      if (perms["tab:srleadership"] !== true) return json({ error: "You don't have access to Sr Leadership." }, 403, origin);
 
       const SBH = { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
       const sb = async (path, init) => {
