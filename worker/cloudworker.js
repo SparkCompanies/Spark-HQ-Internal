@@ -5605,6 +5605,64 @@ var worker_default = {
         return null;
       };
       const loadSeries = () => sb("sr_series?select=*&order=sort_order.asc,name.asc");
+      // SRLEAD_v4: tell the group when a meeting posts. HQ push goes to anyone who turned notifications on;
+      // one email (BCC) goes to everyone with access. The email links back to HQ and carries no meeting content.
+      const hEsc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const notifyGroup = async (mid) => {
+        const rows = await sb("sr_meetings?select=id,title,meeting_date,series_id,decisions&id=eq." + mid);
+        const m = rows && rows[0];
+        if (!m) throw new Error("Meeting not found.");
+        const [ovr, roles, acts, ser] = await Promise.all([
+          sb("permission_overrides?select=email,grant_perm&perm_key=eq.tab:srleadership"),
+          sb("app_roles?select=id,permissions"),
+          sb("sr_actions?select=id&meeting_id=eq." + mid),
+          m.series_id ? sb("sr_series?select=name&id=eq." + m.series_id) : Promise.resolve([])
+        ]);
+        const roleIds = (roles || []).filter((r) => r.permissions && r.permissions["tab:srleadership"] === true).map((r) => r.id);
+        const fromRoles = roleIds.length ? await sb("user_app_role?select=email&role_id=in.(" + roleIds.join(",") + ")") : [];
+        const deny = new Set((ovr || []).filter((o) => o.grant_perm === false).map((o) => String(o.email || "").toLowerCase()));
+        const all = new Set();
+        (ovr || []).filter((o) => o.grant_perm === true).forEach((o) => all.add(String(o.email || "").toLowerCase()));
+        (fromRoles || []).forEach((u) => all.add(String(u.email || "").toLowerCase()));
+        const me = String(who.email || "").toLowerCase();
+        const to = [...all].filter((e) => /@/.test(e) && !deny.has(e) && e !== me);
+        const folder = ser && ser[0] ? ser[0].name : "Unmapped";
+        const d = /^\d{4}-\d{2}-\d{2}$/.test(String(m.meeting_date || "")) ? new Date(m.meeting_date + "T12:00:00Z") : null;
+        const dateTxt = d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }) : "";
+        const nDec = Array.isArray(m.decisions) ? m.decisions.length : 0, nAct = (acts || []).length;
+        const counts = [nDec ? nDec + " decision" + (nDec === 1 ? "" : "s") : "", nAct ? nAct + " action item" + (nAct === 1 ? "" : "s") : ""].filter(Boolean).join(", ");
+        const poster = me.split("@")[0];
+        const result = { recipients: to.length, push: 0, email: 0 };
+        if (!to.length) return result;
+        if (typeof pushToEmails === "function") {
+          try {
+            result.push = await pushToEmails(env, to, null, { title: "Sr Leadership: " + m.title, body: [folder, dateTxt, counts].filter(Boolean).join(" \u00b7 "), url: "/#srlead/" + m.id, tag: "srlead-" + m.id });
+          } catch (e) {}
+        }
+        const link = (env.HQ_URL || "https://hq.sparktalentinc.com") + "/#srlead/" + m.id;
+        const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F6F3;padding:32px 16px"><tr><td align="center">'
+          + '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #ECE9E0">'
+          + '<tr><td style="background:#14142b;padding:28px 32px"><p style="margin:0 0 10px;font:700 11px/1.4 Jost,Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#FFD43B">Sr Leadership &middot; new meeting posted</p>'
+          + '<p style="margin:0;font:800 24px/1.25 Jost,Arial,sans-serif;color:#ffffff">' + hEsc(m.title) + '</p>'
+          + '<p style="margin:10px 0 0;font:400 14px/1.5 Jost,Arial,sans-serif;color:#c9cbe0">' + hEsc([folder, dateTxt].filter(Boolean).join(" \u00b7 ")) + '</p></td></tr>'
+          + '<tr><td style="padding:26px 32px 8px;font:400 15px/1.6 Jost,Arial,sans-serif;color:#1a1a2e">' + hEsc(poster) + ' posted notes' + (counts ? ' with ' + hEsc(counts) : '') + '. Everything is in HQ, where only the Sr Leadership group can see it.</td></tr>'
+          + '<tr><td style="padding:18px 32px 30px"><a href="' + hEsc(link) + '" style="display:inline-block;background:#F5C518;color:#1a1a2e;text-decoration:none;font:700 14px/1 Jost,Arial,sans-serif;padding:14px 22px;border-radius:10px">Open in Spark HQ</a></td></tr>'
+          + '<tr><td style="padding:0 32px 26px"><div style="border-top:1px solid #EDEBE6;padding-top:14px;font:400 12px/1.5 Jost,Arial,sans-serif;color:#A8A5A0">Sent by Spark HQ to the Sr Leadership group. Notes stay in HQ; this email has no meeting content.</div></td></tr>'
+          + '</table></td></tr></table>';
+        try {
+          const gtok = await getGraphToken(env);
+          const from = env.SRLEAD_FROM_MAILBOX || env.PROFILE_FROM_MAILBOX || "hq@sparkcompanies.com";
+          const mr = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(from) + "/sendMail", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + gtok, "Content-Type": "application/json" },
+            body: JSON.stringify({ message: { subject: "Sr Leadership: " + m.title, body: { contentType: "HTML", content: html },
+              toRecipients: [{ emailAddress: { address: from } }], bccRecipients: to.map((e) => ({ emailAddress: { address: e } })) }, saveToSentItems: false })
+          });
+          if (mr.status === 202) result.email = to.length; else result.emailError = mr.status;
+        } catch (e) { result.emailError = String(e.message || e).slice(0, 120); }
+        await sb("sr_meetings?id=eq." + mid, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }), body: JSON.stringify({ notified_at: new Date().toISOString(), notified_by: who.email }) });
+        return result;
+      };
       // SRLEAD_ATT_v1: files live in the private "srlead" storage bucket; only this route (service key) touches them
       const BUCKET = "srlead";
       const MAX_FILE = 25 * 1024 * 1024;
@@ -5778,7 +5836,16 @@ var worker_default = {
           if (row.series_id === undefined) row.series_id = matchSeries(row.title, await loadSeries());
           row.created_by = who.email;
           const out = await sb("sr_meetings", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
-          return json({ ok: true, meeting: out && out[0] }, 200, origin);
+          let notified = null;
+          if (body.notify === true && out && out[0]) {
+            try { notified = await notifyGroup(out[0].id); } catch (e) { notified = { error: String(e.message || e).slice(0, 120) }; }
+          }
+          return json({ ok: true, meeting: out && out[0], notified }, 200, origin);
+        }
+
+        if (a === "notify_meeting") {
+          if (!isId(body.id)) return json({ error: "bad id" }, 400, origin);
+          return json({ ok: true, notified: await notifyGroup(body.id) }, 200, origin);
         }
 
         if (a === "delete_meeting") {
