@@ -23800,7 +23800,7 @@ window.addEventListener("message",function(e){
 /* ===== end LMS_LANDING_v1 ===== */
 </script>
 
-<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3, notify v4, edit actions v5, owner emails v6) */
+<style>/* SRLEAD_v1 — Sr Leadership meeting map (hub layout v3, notify v4, edit actions v5, owner emails v6, recordings v7) */
 #view-srlead{--sl-ink:#1a1a2e;--sl-violet:#4b45a8;--sl-teal:#0e7490;--sl-green:#15803d}
 #view-srlead .sl-wrap{max-width:1180px;margin:0 auto;padding:30px 32px 70px}
 #view-srlead .sl-eyebrow{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:6px}
@@ -24382,7 +24382,7 @@ window.addEventListener("message",function(e){
           + '<div class="wide"><input type="text" data-role="kw" value="' + esc((s.keywords || []).join(', ')) + '" placeholder="Filing keywords, comma separated">'
           + '<button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="save-series" data-id="' + esc(s.id) + '">Save</button><button class="sl-btn sl-btn-sm sl-btn-danger" data-sl="del-series" data-id="' + esc(s.id) + '">Delete</button></div></div>';
       }).join('')
-      + '<div class="sl-foot" style="justify-content:space-between"><button class="sl-btn" data-sl="apply-rules">Re-run rules on Unmapped</button><button class="sl-btn sl-btn-ink" data-sl="add-series">' + I.plus + 'New folder</button></div></div>';
+      + '<div class="sl-foot" style="justify-content:space-between"><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="sl-btn" data-sl="apply-rules">Re-run rules on Unmapped</button><button class="sl-btn" data-sl="sweep">' + I.video + 'Check Teams recordings now</button></span><button class="sl-btn sl-btn-ink" data-sl="add-series">' + I.plus + 'New folder</button></div></div>';
   }
   function renderDrawer(){
     var d = $('slDrawer'), v = $('view-srlead'); if (!d || !v) return;
@@ -24516,6 +24516,7 @@ window.addEventListener("message",function(e){
       return;
     }
     if (act === 'del-series') { var ss = seriesById(id); if (ss && confirm('Delete the "' + ss.name + '" folder? Its meetings move to Unmapped and its folder files are deleted.')) { if (S.folder === id) S.folder = ''; run(api('POST', { action: 'delete_series', id: id }), 'Folder deleted.'); } return; }
+    if (act === 'sweep') { run(api('POST', { action: 'sweep_recordings' }), function(d){ var a = (d && d.sweep && d.sweep.added) || []; return a.length ? 'Added ' + a.join(', ') + '.' : 'No new Sr Leadership recordings.'; }); return; }
     if (act === 'apply-rules') { run(api('POST', { action: 'apply_rules' }), function(d){ var n = (d && d.mapped) || 0; return n ? 'Filed ' + n + ' meeting' + (n === 1 ? '' : 's') + '.' : 'No Unmapped meetings matched a rule.'; }); return; }
   }
 
