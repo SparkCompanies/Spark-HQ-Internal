@@ -6769,6 +6769,7 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
       <button class="nav-item" data-tab="brand"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M13 2L5 13h6l-1 9 8-11h-6z"/></svg></span>Brand Hub</button>
       
       <button class="nav-item nav-leadership" data-tab="leadership"><span class="ico">⛨</span>Leadership</button>
+      <button class="nav-item nav-srlead" data-tab="srlead" style="display:none"><span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14h3M8 17h6"/></svg></span>Sr Leadership</button>
       <button class="nav-item" data-tab="admin" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line-light);"><span class="ico">⚙</span>Admin</button>
     </nav>
     <div class="footer">
@@ -8576,6 +8577,79 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
       </div>
     </div>
 
+
+    <!-- ==================== SR LEADERSHIP (SRLEAD_v1) ==================== -->
+    <div id="view-srlead" class="tab-page cream" style="display: none;">
+      <div class="tab-hero">
+        <div class="eyebrow">Sr Leadership <span class="lead-restricted">Restricted · Sr Leadership role</span></div>
+        <h1>Every leadership meeting, mapped. <span class="dim">Notes, recordings, one place.</span></h1>
+        <div class="dek">Drop in a Granola note, a Teams recording, or any link. Series rules file it automatically. Anything the rules can't place lands in Unmapped until you sort it.</div>
+      </div>
+      <div class="tab-body">
+        <div class="srl-toolbar">
+          <button class="srl-btn srl-btn-primary" data-srl="open-add">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add meeting
+          </button>
+          <button class="srl-btn" data-srl="open-series">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
+            Manage series
+          </button>
+          <div class="srl-search">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="srlSearch" type="search" placeholder="Search titles and notes" autocomplete="off">
+          </div>
+          <select id="srlSourceFilter" class="srl-select" aria-label="Filter by source">
+            <option value="">All sources</option>
+            <option value="granola">Granola</option>
+            <option value="teams">Teams recording</option>
+            <option value="link">Other link</option>
+          </select>
+        </div>
+
+        <div id="srlStatus" class="srl-status" role="status"></div>
+
+        <div id="srlAddPanel" class="srl-panel" style="display:none">
+          <div class="srl-panel-head"><span id="srlAddTitle">Add a meeting</span><button class="srl-x" data-srl="close-add" aria-label="Close">&times;</button></div>
+          <div class="srl-form">
+            <label class="srl-f srl-f-wide">Title<input id="srlFTitle" type="text" maxlength="200" placeholder="e.g. Sr Leadership L10 — Oct 27"></label>
+            <label class="srl-f">Date<input id="srlFDate" type="date"></label>
+            <label class="srl-f">Source
+              <select id="srlFSource" class="srl-select">
+                <option value="granola">Granola</option>
+                <option value="teams">Teams recording</option>
+                <option value="link">Other link</option>
+              </select>
+            </label>
+            <label class="srl-f srl-f-wide">Link<input id="srlFUrl" type="url" placeholder="https://"></label>
+            <label class="srl-f">Series
+              <select id="srlFSeries" class="srl-select"></select>
+            </label>
+            <label class="srl-f srl-f-full">Notes<textarea id="srlFNotes" rows="3" maxlength="5000" placeholder="Decisions, follow-ups, anything worth finding later"></textarea></label>
+          </div>
+          <div class="srl-panel-foot">
+            <button class="srl-btn" data-srl="close-add">Cancel</button>
+            <button class="srl-btn srl-btn-primary" data-srl="save-meeting">Save</button>
+          </div>
+        </div>
+
+        <div id="srlSeriesPanel" class="srl-panel" style="display:none">
+          <div class="srl-panel-head"><span>Meeting series &amp; rules</span><button class="srl-x" data-srl="close-series" aria-label="Close">&times;</button></div>
+          <div class="srl-help">A meeting goes into the first series (top to bottom) whose keyword shows up in its title as a whole word or phrase. Capitals don't matter. Separate them with commas.</div>
+          <div id="srlSeriesEdit"></div>
+          <div class="srl-panel-foot">
+            <button class="srl-btn" data-srl="add-series-row">+ New series</button>
+            <button class="srl-btn" data-srl="apply-rules">Re-run rules on Unmapped</button>
+          </div>
+        </div>
+
+        <div class="srl-layout">
+          <aside id="srlSeriesNav" class="srl-nav" aria-label="Series"></aside>
+          <section id="srlList" class="srl-list"></section>
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== ADMIN ==================== -->
     <div id="view-admin" class="tab-page admin-page" style="display: none;">
       <div class="admin-shell">
@@ -9667,7 +9741,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const tab = btn.dataset.tab;
-        const allViews = ['home','jarvis','command','salesforce','finance','headcount','sparkline','training','standard','careers','people','tools','brand','docs','leadership','admin'];
+        const allViews = ['home','jarvis','command','salesforce','finance','headcount','sparkline','training','standard','careers','people','tools','brand','docs','leadership','srlead','admin'];
         allViews.forEach(v => {
           const el = document.getElementById('view-' + v);
           if (el) el.style.display = (v === tab) ? '' : 'none';
@@ -9680,6 +9754,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
         if (tab === 'finance') { try { finLoad(); } catch(e){} }
         if (tab === 'sparkline') { try { window.SPARKLINE_INIT && window.SPARKLINE_INIT(); } catch(e){} }
         if (tab === 'headcount') { try { hcLoad(); } catch(e){} }
+        if (tab === 'srlead') { try { srlLoad(); } catch(e){} }
         if (tab === 'jarvis') {
           try { jvRenderAgents(); } catch(e){}
           try { jvRenderHistory(); } catch(e){}
@@ -11532,6 +11607,7 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
     { key: 'tab:tools',         label: 'See Tools & Apps tab' },
     { key: 'tab:people',        label: 'See Org Chart tab' },
     { key: 'tab:career',        label: 'See Career Paths tab' },
+    { key: 'tab:srleadership',  label: 'See Sr Leadership tab' },
     { key: 'training:*',        label: 'All trainings' },
     { key: 'training:onboarding', label: 'Onboarding training' },
     { key: 'training:recruiting', label: 'Recruiting training' },
@@ -11731,7 +11807,8 @@ window.SPARKLINE_INIT=function(){ if(window.__SL_DONE) return; window.__SL_DONE=
   var GATE_TAB_PERM = {
     'tools':   'tab:tools',
     'people':  'tab:people',
-    'careers': 'tab:career'
+    'careers': 'tab:career',
+    'srlead':  'tab:srleadership'  /* SRLEAD_v1: button starts hidden; only shown once /permissions confirms access */
     // 'jarvis' handled separately below
   };
   var MY_PERMS = null;
@@ -14694,7 +14771,7 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
     // Hide/show nav items
     document.querySelectorAll('.nav-item').forEach(btn => {
       const tab = btn.dataset.tab;
-      btn.classList.toggle('hide-for-role', tab!=='command' && !perms.navItems.includes(tab));
+      btn.classList.toggle('hide-for-role', tab!=='command' && tab!=='srlead' && !perms.navItems.includes(tab));
     });
     // Hide/show admin sub-tabs
     document.querySelectorAll('.admin-subnav-item').forEach(btn => {
@@ -23780,6 +23857,304 @@ window.addEventListener("message",function(e){
   else setTimeout(boot, 300);
 })();
 /* ===== end LMS_LANDING_v1 ===== */
+</script>
+
+<style>/* SRLEAD_v1 — Sr Leadership meeting map */
+#view-srlead .srl-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+#view-srlead .srl-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 13px var(--font-display);cursor:pointer;box-shadow:0 1px 2px rgba(26,26,46,.06)}
+#view-srlead .srl-btn:hover{border-color:var(--gold-deep)}
+#view-srlead .srl-btn-primary{background:var(--ink);color:var(--gold);border-color:var(--ink);box-shadow:0 6px 16px rgba(26,26,46,.18),inset 0 1px 0 rgba(255,255,255,.08)}
+#view-srlead .srl-btn-primary:hover{filter:brightness(1.15)}
+#view-srlead .srl-btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+#view-srlead .srl-btn-danger{color:#b42318}
+#view-srlead .srl-search{flex:1 1 220px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:0 12px;color:var(--muted)}
+#view-srlead .srl-search input{flex:1;border:0;outline:0;padding:9px 0;font:14px var(--font-display);background:transparent;color:var(--ink)}
+#view-srlead .srl-select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#fff;font:13px var(--font-display);color:var(--ink)}
+#view-srlead .srl-status{min-height:18px;font-size:12px;color:var(--muted);margin-bottom:8px}
+#view-srlead .srl-status.err{color:#b42318}
+#view-srlead .srl-panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 12px 30px rgba(26,26,46,.08)}
+#view-srlead .srl-panel-head{display:flex;justify-content:space-between;align-items:center;font:700 15px var(--font-display);margin-bottom:12px}
+#view-srlead .srl-x{border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:var(--muted)}
+#view-srlead .srl-help{font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+#view-srlead .srl-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+#view-srlead .srl-f{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#view-srlead .srl-f-wide{grid-column:span 2}
+#view-srlead .srl-f-full{grid-column:1/-1}
+#view-srlead .srl-f input,#view-srlead .srl-f textarea{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font:14px var(--font-display);color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400;background:var(--paper)}
+#view-srlead .srl-f textarea{resize:vertical}
+#view-srlead .srl-panel-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}
+#view-srlead .srl-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
+#view-srlead .srl-nav{display:flex;flex-direction:column;gap:6px;position:sticky;top:16px}
+#view-srlead .srl-nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;font:600 13.5px var(--font-display);color:var(--ink)}
+#view-srlead .srl-nav-item:hover{background:#fff;border-color:var(--line)}
+#view-srlead .srl-nav-item.on{background:#fff;border-color:var(--line);box-shadow:inset 3px 0 0 var(--gold),0 4px 14px rgba(26,26,46,.06)}
+#view-srlead .srl-dot{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 -1px 0 rgba(0,0,0,.2)}
+#view-srlead .srl-nav-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#view-srlead .srl-count{font-size:11px;font-weight:700;color:var(--muted);background:var(--line-light);border-radius:99px;padding:2px 8px}
+#view-srlead .srl-count.warn{background:var(--amber-bg);color:var(--gold-dark)}
+#view-srlead .srl-nav-sep{height:1px;background:var(--line);margin:6px 4px}
+#view-srlead .srl-row{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:14px;align-items:start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 0 rgba(26,26,46,.03),0 8px 20px -14px rgba(26,26,46,.25)}
+#view-srlead .srl-date{font:700 12px var(--font-display);color:var(--muted);letter-spacing:.04em;padding-top:2px}
+#view-srlead .srl-title{font:700 15px var(--font-display);color:var(--ink);word-break:break-word}
+#view-srlead .srl-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+#view-srlead .srl-pill{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--line-light);color:var(--muted)}
+#view-srlead .srl-pill.granola{background:#e8f5ec;color:#15803d}
+#view-srlead .srl-pill.teams{background:#ecebfa;color:#4b45a8}
+#view-srlead .srl-notes{font-size:13px;color:#475569;margin-top:8px;line-height:1.5;white-space:pre-wrap}
+#view-srlead .srl-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+#view-srlead .srl-open{display:inline-flex;align-items:center;gap:6px;font:700 12px var(--font-display);color:var(--ink);text-decoration:none;padding:6px 10px;border-radius:8px;background:var(--gold-grad);box-shadow:0 4px 10px rgba(212,160,23,.3)}
+#view-srlead .srl-map{margin-top:10px;padding:10px;border-radius:10px;background:var(--paper-warm);border:1px dashed var(--gold-deep);display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
+#view-srlead .srl-map input[type=text]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:13px var(--font-display);min-width:140px}
+#view-srlead .srl-empty{padding:40px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px;background:#fff}
+#view-srlead .srl-ser-row{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,2fr) auto auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-light)}
+#view-srlead .srl-ser-row input[type=text]{padding:8px 9px;border:1px solid var(--line);border-radius:8px;font:13.5px var(--font-display);width:100%}
+#view-srlead .srl-ser-row input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
+@media (max-width: 860px){
+  #view-srlead .srl-layout{grid-template-columns:1fr}
+  #view-srlead .srl-nav{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  #view-srlead .srl-nav-item{width:auto;flex:none}
+  #view-srlead .srl-nav-sep{display:none}
+  #view-srlead .srl-form{grid-template-columns:1fr 1fr}
+  #view-srlead .srl-row{grid-template-columns:1fr}
+  #view-srlead .srl-actions{flex-direction:row;align-items:center}
+  #view-srlead .srl-ser-row{grid-template-columns:44px minmax(0,1fr) auto auto}
+  #view-srlead .srl-ser-row [data-role=kw]{grid-column:1/-1;order:5}
+}
+</style>
+<script>
+/* SRLEAD_v1 — Sr Leadership meeting map. Data lives in Supabase (sr_series, sr_meetings) and is only reachable
+   through the worker's /srlead route, which re-checks tab:srleadership server-side. */
+(function(){
+  var SRL_WORKER = 'https://spark-hq-worker.sparkcompanies.workers.dev';
+  var S = { series: [], meetings: [], sel: '__all', q: '', src: '', editId: null, loaded: false, busy: false };
+  var SRC_LABEL = { granola: 'Granola', teams: 'Teams recording', link: 'Link' };
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function status(msg, isErr){ var el = $('srlStatus'); if (!el) return; el.textContent = msg || ''; el.className = 'srl-status' + (isErr ? ' err' : ''); }
+  function safeUrl(u){ return /^https:\/\//i.test(String(u || '')) ? u : ''; }
+  function fmtDate(d){
+    if (!d) return 'No date';
+    var p = String(d).slice(0,10).split('-'); if (p.length !== 3) return esc(d);
+    var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]-1] || '';
+    return m + ' ' + (+p[2]) + ', ' + p[0];
+  }
+  function seriesById(id){ for (var i=0;i<S.series.length;i++) if (S.series[i].id === id) return S.series[i]; return null; }
+
+  function api(method, body){
+    if (!window.SPARK_SB || !window.SPARK_SB.getToken) return Promise.reject(new Error('Sign in first.'));
+    return window.SPARK_SB.getToken().then(function(tok){
+      if (!tok) throw new Error('Sign in first.');
+      var init = { method: method, headers: { 'Authorization': 'Bearer ' + tok } };
+      if (body) { init.headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+      return fetch(SRL_WORKER + '/srlead', init);
+    }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(d){
+        if (!r.ok) throw new Error(d.error || ('Request failed (' + r.status + ')'));
+        return d;
+      });
+    });
+  }
+
+  window.srlLoad = function(){
+    status(S.loaded ? '' : 'Loading…');
+    return api('GET').then(function(d){
+      S.series = d.series || []; S.meetings = d.meetings || []; S.loaded = true;
+      status(''); render();
+    }).catch(function(e){ status(e.message, true); render(); });
+  };
+
+  function filtered(){
+    var q = S.q.toLowerCase();
+    return S.meetings.filter(function(m){
+      if (S.sel === '__unmapped' && m.series_id) return false;
+      if (S.sel !== '__all' && S.sel !== '__unmapped' && m.series_id !== S.sel) return false;
+      if (S.src && m.source !== S.src) return false;
+      if (q && (String(m.title||'') + ' ' + String(m.notes||'')).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  function seriesOptions(selected, includeAuto){
+    var h = includeAuto ? '<option value="auto"' + (selected === 'auto' ? ' selected' : '') + '>Auto (use rules)</option>' : '';
+    h += '<option value=""' + (selected === '' ? ' selected' : '') + '>Unmapped</option>';
+    S.series.forEach(function(s){ h += '<option value="' + esc(s.id) + '"' + (selected === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; });
+    return h;
+  }
+
+  function renderNav(){
+    var nav = $('srlSeriesNav'); if (!nav) return;
+    var counts = {}, unm = 0;
+    S.meetings.forEach(function(m){ if (m.series_id) counts[m.series_id] = (counts[m.series_id]||0)+1; else unm++; });
+    var item = function(id, name, color, n, warn){
+      return '<button class="srl-nav-item' + (S.sel === id ? ' on' : '') + '" data-srl="sel" data-id="' + esc(id) + '">'
+        + '<span class="srl-dot" style="background:' + esc(color) + '"></span><span class="srl-nav-name">' + esc(name) + '</span>'
+        + '<span class="srl-count' + (warn && n ? ' warn' : '') + '">' + n + '</span></button>';
+    };
+    var h = item('__all', 'All meetings', 'var(--ink)', S.meetings.length);
+    h += item('__unmapped', 'Unmapped', '#D4A017', unm, true);
+    h += '<div class="srl-nav-sep"></div>';
+    S.series.forEach(function(s){ h += item(s.id, s.name, s.color || '#94a3b8', counts[s.id] || 0); });
+    nav.innerHTML = h;
+  }
+
+  function renderList(){
+    var box = $('srlList'); if (!box) return;
+    var rows = filtered();
+    if (!S.loaded) { box.innerHTML = ''; return; }
+    if (!rows.length) {
+      var msg = S.sel === '__unmapped' ? 'Nothing waiting. Every meeting has a home.' : (S.meetings.length ? 'No meetings match.' : 'No meetings yet. Use Add meeting to drop in your first note or recording.');
+      box.innerHTML = '<div class="srl-empty">' + msg + '</div>'; return;
+    }
+    box.innerHTML = rows.map(function(m){
+      var s = m.series_id ? seriesById(m.series_id) : null;
+      var url = safeUrl(m.url);
+      var h = '<div class="srl-row" data-id="' + esc(m.id) + '">'
+        + '<div class="srl-date">' + fmtDate(m.meeting_date) + '</div>'
+        + '<div><div class="srl-title">' + esc(m.title) + '</div><div class="srl-meta">'
+        + '<span class="srl-pill ' + esc(m.source) + '">' + esc(SRC_LABEL[m.source] || m.source) + '</span>'
+        + (s ? '<span class="srl-pill"><span class="srl-dot" style="display:inline-block;width:7px;height:7px;margin-right:5px;background:' + esc(s.color || '#94a3b8') + '"></span>' + esc(s.name) + '</span>' : '<span class="srl-pill" style="background:var(--amber-bg);color:var(--gold-dark)">Unmapped</span>')
+        + (m.created_by ? '<span style="font-size:11px;color:var(--muted-light)">added by ' + esc(String(m.created_by).split('@')[0]) + '</span>' : '')
+        + '</div>'
+        + (m.notes ? '<div class="srl-notes">' + esc(m.notes) + '</div>' : '');
+      if (!m.series_id && S.series.length) {
+        h += '<div class="srl-map"><span>File under</span><select class="srl-select" data-role="map-series">' + seriesOptions('', false).replace('<option value="" selected>Unmapped</option>', '<option value="" selected>Pick a series…</option>') + '</select>'
+          + '<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" data-role="map-rule" checked> and route future titles containing</label>'
+          + '<input type="text" data-role="map-kw" maxlength="60" value="' + esc(suggestKeyword(m.title)) + '">'
+          + '<button class="srl-btn srl-btn-sm srl-btn-primary" data-srl="map" data-id="' + esc(m.id) + '">File it</button></div>';
+      }
+      h += '</div><div class="srl-actions">'
+        + (url ? '<a class="srl-open" href="' + esc(url) + '" target="_blank" rel="noopener">Open<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></a>' : '')
+        + '<button class="srl-btn srl-btn-sm" data-srl="edit" data-id="' + esc(m.id) + '">Edit</button>'
+        + '<button class="srl-btn srl-btn-sm srl-btn-danger" data-srl="del" data-id="' + esc(m.id) + '">Delete</button>'
+        + '</div></div>';
+      return h;
+    }).join('');
+  }
+
+  // First few words of the title, minus dates/numbers, as a starting keyword the user can edit.
+  function suggestKeyword(t){
+    var words = String(t || '').replace(/[—–\-|:()]/g,' ').split(/\s+/).filter(function(w){ return w && !/\d/.test(w); });
+    return words.slice(0, 3).join(' ');
+  }
+
+  function renderSeriesEditor(){
+    var box = $('srlSeriesEdit'); if (!box) return;
+    if (!S.series.length) { box.innerHTML = '<div class="srl-help">No series yet. Add one below.</div>'; return; }
+    box.innerHTML = S.series.map(function(s, i){
+      return '<div class="srl-ser-row" data-id="' + esc(s.id) + '">'
+        + '<input type="color" data-role="color" value="' + esc(s.color || '#94a3b8') + '" aria-label="Color">'
+        + '<input type="text" data-role="name" maxlength="80" value="' + esc(s.name) + '" aria-label="Series name">'
+        + '<input type="text" data-role="kw" value="' + esc((s.keywords || []).join(', ')) + '" placeholder="Keywords, comma separated" aria-label="Keywords">'
+        + '<button class="srl-btn srl-btn-sm srl-btn-primary" data-srl="save-series" data-id="' + esc(s.id) + '">Save</button>'
+        + '<button class="srl-btn srl-btn-sm srl-btn-danger" data-srl="del-series" data-id="' + esc(s.id) + '">Delete</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function render(){
+    renderNav(); renderList();
+    if ($('srlSeriesPanel') && $('srlSeriesPanel').style.display !== 'none') renderSeriesEditor();
+  }
+
+  function openAdd(m){
+    S.editId = m ? m.id : null;
+    $('srlAddTitle').textContent = m ? 'Edit meeting' : 'Add a meeting';
+    $('srlFTitle').value = m ? (m.title || '') : '';
+    $('srlFDate').value = m ? String(m.meeting_date || '').slice(0,10) : new Date().toISOString().slice(0,10);
+    $('srlFSource').value = m ? (m.source || 'link') : 'granola';
+    $('srlFUrl').value = m ? (m.url || '') : '';
+    $('srlFNotes').value = m ? (m.notes || '') : '';
+    $('srlFSeries').innerHTML = seriesOptions(m ? (m.series_id || '') : 'auto', !m || !m.series_id);
+    $('srlAddPanel').style.display = '';
+    $('srlFTitle').focus();
+  }
+  function closeAdd(){ $('srlAddPanel').style.display = 'none'; S.editId = null; }
+
+  function run(p, okMsg){
+    if (S.busy) return Promise.resolve();
+    S.busy = true; status('Saving…');
+    var res;
+    return p.then(function(d){ res = d; S.busy = false; return srlLoad(); }).then(function(){ var m = typeof okMsg === 'function' ? okMsg(res) : okMsg; if (m) status(m); })
+      .catch(function(e){ S.busy = false; status(e.message, true); });
+  }
+
+  function saveMeeting(){
+    var title = $('srlFTitle').value.trim();
+    var url = $('srlFUrl').value.trim();
+    if (!title) { status('Give it a title.', true); return; }
+    if (url && !/^https:\/\//i.test(url)) { status('Links need to start with https://', true); return; }
+    var body = { action: 'save_meeting', id: S.editId || undefined, title: title, meeting_date: $('srlFDate').value || null,
+      source: $('srlFSource').value, url: url, notes: $('srlFNotes').value, series_id: $('srlFSeries').value };
+    run(api('POST', body).then(function(d){
+      closeAdd();
+      return d;
+    }), 'Saved.');
+  }
+
+  function onClick(e){
+    var b = e.target.closest('[data-srl]'); if (!b || !$('view-srlead').contains(b)) return;
+    var act = b.getAttribute('data-srl'), id = b.getAttribute('data-id');
+    if (act === 'sel') { S.sel = id; render(); return; }
+    if (act === 'open-add') { openAdd(null); return; }
+    if (act === 'close-add') { closeAdd(); return; }
+    if (act === 'save-meeting') { saveMeeting(); return; }
+    if (act === 'open-series') { var p = $('srlSeriesPanel'); p.style.display = p.style.display === 'none' ? '' : 'none'; renderSeriesEditor(); return; }
+    if (act === 'close-series') { $('srlSeriesPanel').style.display = 'none'; return; }
+    if (act === 'edit') { var m = S.meetings.filter(function(x){ return x.id === id; })[0]; if (m) { openAdd(m); window.scrollTo({ top: 0, behavior: 'smooth' }); } return; }
+    if (act === 'del') {
+      var mm = S.meetings.filter(function(x){ return x.id === id; })[0];
+      if (mm && confirm('Delete "' + mm.title + '"? This removes it from HQ only, not from Granola or Teams.')) run(api('POST', { action: 'delete_meeting', id: id }), 'Deleted.');
+      return;
+    }
+    if (act === 'map') {
+      var wrap = b.closest('.srl-map');
+      var sid = wrap.querySelector('[data-role="map-series"]').value;
+      var mk = wrap.querySelector('[data-role="map-rule"]').checked;
+      var kw = wrap.querySelector('[data-role="map-kw"]').value.trim();
+      if (!sid) { status('Pick a series first.', true); return; }
+      var p2 = api('POST', { action: 'save_meeting', id: id, series_id: sid });
+      if (mk && kw) p2 = p2.then(function(){ return api('POST', { action: 'add_rule', series_id: sid, keyword: kw }); });
+      run(p2, mk && kw ? 'Filed, and future "' + kw + '" meetings will route there.' : 'Filed.');
+      return;
+    }
+    if (act === 'add-series-row') {
+      var name = prompt('Name the new series (e.g. L10, Offsite, 1:1s):');
+      if (name && name.trim()) run(api('POST', { action: 'save_series', name: name.trim(), keywords: [name.trim()], sort_order: S.series.length * 10 + 10 }), 'Series added. Edit its keywords below.');
+      return;
+    }
+    if (act === 'save-series') {
+      var row = b.closest('.srl-ser-row');
+      var s = seriesById(id) || {};
+      run(api('POST', { action: 'save_series', id: id,
+        name: row.querySelector('[data-role="name"]').value.trim(),
+        color: row.querySelector('[data-role="color"]').value,
+        keywords: row.querySelector('[data-role="kw"]').value.split(',').map(function(k){ return k.trim(); }).filter(Boolean),
+        sort_order: s.sort_order }), 'Series saved.');
+      return;
+    }
+    if (act === 'del-series') {
+      var ss = seriesById(id);
+      if (ss && confirm('Delete the "' + ss.name + '" series? Its meetings move to Unmapped; nothing else is deleted.')) {
+        if (S.sel === id) S.sel = '__all';
+        run(api('POST', { action: 'delete_series', id: id }), 'Series deleted.');
+      }
+      return;
+    }
+    if (act === 'apply-rules') {
+      run(api('POST', { action: 'apply_rules' }), function(d){ var n = (d && d.mapped) || 0; return n ? 'Rules filed ' + n + ' meeting' + (n === 1 ? '' : 's') + '.' : 'No Unmapped meetings matched a rule.'; });
+      return;
+    }
+  }
+
+  function wire(){
+    var v = $('view-srlead'); if (!v || v.__srlWired) return; v.__srlWired = true;
+    v.addEventListener('click', onClick);
+    $('srlSearch').addEventListener('input', function(){ S.q = this.value.trim(); renderList(); });
+    $('srlSourceFilter').addEventListener('change', function(){ S.src = this.value; renderList(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+})();
 </script>
 
 </body>
