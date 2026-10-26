@@ -1640,6 +1640,108 @@ async function sbxPicklists(env, objectName, tok) {
   }
 }
 __name(sbxPicklists, "sbxPicklists");
+// SRLEAD_v7: route Teams recordings into the Sr Leadership hub automatically.
+// Every 30 minutes (cron "*/30 * * * *") this reads the organizer's OneDrive Recordings folder. A recording whose meeting
+// title matches a Sr Leadership folder keyword (e.g. "Executive Meeting with SR Leaders") becomes a meeting in that folder,
+// linked to the recording, and the group is notified. Anything that doesn't match a folder (client calls, etc.) is ignored.
+async function srleadRecordingSweep(env, opts) {
+  opts = opts || {};
+  const SBH = { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": "Bearer " + env.SUPABASE_SERVICE_KEY, "Content-Type": "application/json" };
+  const sb = async (path, init) => {
+    const r = await fetch(env.SUPABASE_URL + "/rest/v1/" + path, Object.assign({ headers: SBH }, init || {}));
+    const t = await r.text();
+    if (!r.ok) throw new Error(path.split("?")[0] + " " + r.status + " " + t.slice(0, 160));
+    return t ? JSON.parse(t) : null;
+  };
+  const hEsc = (v) => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const mbox = env.SRLEAD_CAL_MAILBOX || "aspegel@sparkcompanies.com";
+  const lookbackDays = opts.lookbackDays || 14;
+  const out = { checked: 0, added: [], skipped: 0 };
+
+  const series = (await sb("sr_series?select=id,name,keywords&order=sort_order.asc,name.asc")) || [];
+  const matchSeries = (title) => {
+    const t = String(title || "").toLowerCase();
+    for (const s of series) for (const k of (s.keywords || [])) {
+      const kk = String(k || "").trim().toLowerCase();
+      if (!kk) continue;
+      let i = t.indexOf(kk);
+      while (i !== -1) {
+        const before = i === 0 ? "" : t[i - 1], after = t[i + kk.length] || "";
+        if (!/[a-z0-9]/.test(before) && !/[a-z0-9]/.test(after)) return s;
+        i = t.indexOf(kk, i + 1);
+      }
+    }
+    return null;
+  };
+
+  const gtok = await getGraphToken(env);
+  const lr = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(mbox) + "/drive/root:/Recordings:/children?$select=id,name,webUrl,createdDateTime,file&$orderby=createdDateTime desc&$top=60",
+    { headers: { "Authorization": "Bearer " + gtok } });
+  if (!lr.ok) throw new Error("recordings list " + lr.status + " " + (await lr.text()).slice(0, 140));
+  const items = ((await lr.json()).value || []).filter((it) => it.file && /\.mp4$/i.test(it.name || ""));
+  const cutoff = Date.now() - lookbackDays * 864e5;
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  for (const it of items) {
+    if (Date.parse(it.createdDateTime || 0) < cutoff) continue;
+    out.checked++;
+    // "<Meeting title>-YYYYMMDD_HHMMSS-Meeting Recording[ N].mp4"
+    const m = /^(.*)-(\d{4})(\d{2})(\d{2})_\d{6}-Meeting Recording(?: \d+)?\.mp4$/i.exec(it.name);
+    if (!m) { out.skipped++; continue; }
+    const mtTitle = m[1].trim(), date = m[2] + "-" + m[3] + "-" + m[4];
+    const s = matchSeries(mtTitle);
+    if (!s) { out.skipped++; continue; }
+    // one recording per folder per day; an existing Teams entry (added by hand or an earlier sweep) wins
+    const dupe = await sb("sr_meetings?select=id&source=eq.teams&meeting_date=eq." + date + "&series_id=eq." + s.id);
+    if (dupe && dupe.length) continue;
+    const title = mtTitle + " · " + MON[+m[3] - 1] + " " + (+m[4]);
+    const row = { title, meeting_date: date, source: "teams", url: it.webUrl, series_id: s.id, created_by: "hq-automation" };
+    const ins = await sb("sr_meetings", { method: "POST", headers: Object.assign({}, SBH, { "Prefer": "return=representation" }), body: JSON.stringify(row) });
+    const meeting = ins && ins[0];
+    if (!meeting) continue;
+    out.added.push(title);
+    if (opts.notify === false) continue;
+
+    // notify everyone with access (same list and channels as a hand-posted meeting)
+    try {
+      const [ovr, roles] = await Promise.all([
+        sb("permission_overrides?select=email,grant_perm&perm_key=eq.tab:srleadership"),
+        sb("app_roles?select=id,permissions")
+      ]);
+      const roleIds = (roles || []).filter((r) => r.permissions && r.permissions["tab:srleadership"] === true).map((r) => r.id);
+      const fromRoles = roleIds.length ? await sb("user_app_role?select=email&role_id=in.(" + roleIds.join(",") + ")") : [];
+      const deny = new Set((ovr || []).filter((o) => o.grant_perm === false).map((o) => String(o.email || "").toLowerCase()));
+      const all = new Set();
+      (ovr || []).filter((o) => o.grant_perm === true).forEach((o) => all.add(String(o.email || "").toLowerCase()));
+      (fromRoles || []).forEach((u) => all.add(String(u.email || "").toLowerCase()));
+      const to = [...all].filter((e) => /@/.test(e) && !deny.has(e));
+      if (!to.length) continue;
+      const link = (env.HQ_URL || "https://hq.sparktalentinc.com") + "/#srlead/" + meeting.id;
+      if (typeof pushToEmails === "function") {
+        try { await pushToEmails(env, to, null, { title: "Sr Leadership: recording posted", body: title + " · " + s.name, url: "/#srlead/" + meeting.id, tag: "srlead-" + meeting.id }); } catch (e) {}
+      }
+      const html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F6F3;padding:32px 16px"><tr><td align="center">'
+        + '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #ECE9E0">'
+        + '<tr><td style="background:#14142b;padding:28px 32px"><p style="margin:0 0 10px;font:700 11px/1.4 Jost,Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#FFD43B">Sr Leadership &middot; recording posted</p>'
+        + '<p style="margin:0;font:800 24px/1.25 Jost,Arial,sans-serif;color:#ffffff">' + hEsc(title) + '</p>'
+        + '<p style="margin:10px 0 0;font:400 14px/1.5 Jost,Arial,sans-serif;color:#c9cbe0">' + hEsc(s.name) + '</p></td></tr>'
+        + '<tr><td style="padding:26px 32px 8px;font:400 15px/1.6 Jost,Arial,sans-serif;color:#1a1a2e">The Teams recording is in the Sr Leadership hub. Notes, decisions and action items get added there as they come in.</td></tr>'
+        + '<tr><td style="padding:18px 32px 30px"><a href="' + hEsc(link) + '" style="display:inline-block;background:#F5C518;color:#1a1a2e;text-decoration:none;font:700 14px/1 Jost,Arial,sans-serif;padding:14px 22px;border-radius:10px">Open in Spark HQ</a></td></tr>'
+        + '<tr><td style="padding:0 32px 26px"><div style="border-top:1px solid #EDEBE6;padding-top:14px;font:400 12px/1.5 Jost,Arial,sans-serif;color:#A8A5A0">Sent by Spark HQ to the Sr Leadership group.</div></td></tr>'
+        + '</table></td></tr></table>';
+      const from = env.SRLEAD_FROM_MAILBOX || env.PROFILE_FROM_MAILBOX || "hq@sparkcompanies.com";
+      const mr = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(from) + "/sendMail", {
+        method: "POST", headers: { "Authorization": "Bearer " + gtok, "Content-Type": "application/json" },
+        body: JSON.stringify({ message: { subject: "Sr Leadership: " + title + " recording posted", body: { contentType: "HTML", content: html },
+          toRecipients: [{ emailAddress: { address: from } }], bccRecipients: to.map((e) => ({ emailAddress: { address: e } })) }, saveToSentItems: false })
+      });
+      await sb("sr_meetings?id=eq." + meeting.id, { method: "PATCH", headers: Object.assign({}, SBH, { "Prefer": "return=minimal" }),
+        body: JSON.stringify({ notified_at: new Date().toISOString(), notified_by: mr.status === 202 ? "hq-automation" : "hq-automation (email failed)" }) });
+    } catch (e) { console.error("srlead notify failed", e && e.message); }
+  }
+  return out;
+}
+
 var worker_default = {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -5931,6 +6033,10 @@ var worker_default = {
             try { notified = await notifyGroup(out[0].id); } catch (e) { notified = { error: String(e.message || e).slice(0, 120) }; }
           }
           return json({ ok: true, meeting: out && out[0], notified }, 200, origin);
+        }
+
+        if (a === "sweep_recordings") {
+          return json({ ok: true, sweep: await srleadRecordingSweep(env) }, 200, origin);
         }
 
         if (a === "notify_meeting") {
@@ -10931,6 +11037,8 @@ var worker_default = {
     if (cron === "0 12 * * 1-5") { ctx.waitUntil(whosOutDigest(env).catch(function(e) { console.error("whos-out digest failed", e && e.message); })); }
     // GREETINGS_v1: daily 9am ET birthday / anniversary send ("0 13 * * *")
     if (cron === "0 13 * * *") { ctx.waitUntil(greetingsRun(env, {}).catch(function(e) { console.error("greetings cron failed", e && e.message); })); }
+    // SRLEAD_v7: every 30 minutes, route new Teams recordings of Sr Leadership meetings into the hub
+    if (cron === "*/30 * * * *") { ctx.waitUntil(srleadRecordingSweep(env).catch(function(e) { console.error("srlead sweep failed", e && e.message); })); }
     if (!cron || cron === "0 12 * * 4") { ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); })); }
   }
 };

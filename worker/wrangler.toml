@@ -13,4 +13,4 @@ keep_vars = true
 # push digest (8am ET in summer, 7am in winter); "0 13 * * *" = daily birthday / anniversary greetings
 # (9am ET in summer, 8am in winter). The Friday greetings run also covers Sat and Sun.
 [triggers]
-crons = ["0 12 * * 4", "0 12 * * 1-5", "0 13 * * *"]
+crons = ["0 12 * * 4", "0 12 * * 1-5", "0 13 * * *", "*/30 * * * *"]
