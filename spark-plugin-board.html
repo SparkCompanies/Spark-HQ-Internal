@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plugin Board · Spark HQ</title>
+<link rel="icon" href="icons/hq-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* PLUGIN BOARD v1 · spark-plugin-board.html · opens from the HQ sidebar in a new tab
+   Same login as Spark HQ (adopts the HQ session from localStorage), same worker.
+   Zero animation on purpose: this runs on a TV all day. */
+:root{
+  --y:#FFC800; --y-soft:#FFF3C4; --ink:#171614; --paper:#FEFAED; --paper-2:#F5F3EC;
+  --card:#FFFFFF; --line:#ECE9DF; --line-2:#E7E4DA; --muted:#6F6A5E; --muted-2:#9A958A;
+  --green:#176A3F; --green-soft:#DDF3E6; --red:#D23B2E; --red-soft:#FBDEDB; --red-deep:#A4231A;
+  --amber:#A58000; --amber-soft:#FFEFC7; --blue:#2557A7; --blue-soft:#DCE8FB; --purple:#5B3FA3; --purple-soft:#E9E2F8;
+  --sb:240px; --top:56px; --r:12px; --r-sm:8px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:14px/1.45 Jost,"Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--paper-2);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:inherit}
+.hidden{display:none !important}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:var(--sb) 1fr;grid-template-rows:var(--top) 1fr;min-height:100vh}
+.sidebar{grid-row:1/3;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 0 14px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{padding:0 22px 16px;display:flex;align-items:center;min-height:56px}
+.logo img{height:46px;width:auto;display:block}
+.logo .wordmark{font-weight:700;font-size:26px;letter-spacing:-.02em;line-height:1}
+.logo .wordmark small{display:block;font-size:10px;letter-spacing:.28em;font-weight:500;color:var(--muted)}
+.nav-h{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);padding:14px 22px 6px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 22px;border:0;background:none;border-left:3px solid transparent;font-size:14px}
+.nav-item:hover{background:var(--paper)}
+.nav-item.active{background:var(--paper);border-left-color:var(--y);font-weight:600}
+.nav-item .ico{width:14px;color:var(--muted-2);font-size:12px;text-align:center}
+.nav-item .cnt{margin-left:auto;font-size:11px;color:var(--muted);background:var(--paper-2);border-radius:999px;padding:1px 8px}
+.nav-item .cnt.alert{background:var(--red);color:#fff;font-weight:600}
+.nav-item.sub{padding-left:48px;font-size:13px}
+.nav-item.soon{color:var(--muted-2);cursor:default}
+.nav-item.soon .tag{margin-left:auto;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.sb-foot{margin-top:auto;padding:14px 22px 0;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.sb-foot .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sb-foot button{background:none;border:0;padding:0;font-size:12px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.sb-foot .build{margin-top:10px;font-size:11px;color:var(--muted-2)}
+
+.topbar{grid-column:2;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 24px;position:sticky;top:0;z-index:5}
+.topbar .qa-lbl{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);font-weight:600;margin-right:6px}
+.qa{display:flex;align-items:center;gap:8px;border:0;background:none;padding:8px 10px;border-radius:var(--r-sm);font-weight:600;font-size:13.5px}
+.qa:hover{background:var(--paper)}
+.qa .sq{width:16px;height:16px;border-radius:4px;background:var(--y);display:inline-grid;place-items:center;font-size:10px;color:var(--ink)}
+.qa[disabled]{color:var(--muted-2);cursor:default}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line-2);border-radius:var(--r);padding:7px 12px;min-width:260px}
+.search input{border:0;background:none;outline:none;width:100%;font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;background:var(--card)}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.pill.stale .dot{background:var(--amber)}
+.pill.err .dot{background:var(--red)}
+
+.main{grid-column:2;padding:22px 24px 40px;min-width:0}
+
+/* ---------- page header ---------- */
+.crumb{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);font-weight:600}
+.titlebar{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:4px 0 16px}
+.titlebar h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0;line-height:1.1}
+.titlebar .sub{color:var(--muted);font-size:13.5px;margin-top:4px}
+.chips{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chips .lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);font-weight:600;margin-right:4px}
+.chip{border:1px solid var(--line-2);background:var(--card);border-radius:999px;padding:6px 13px;font-weight:600;font-size:12.5px}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.week{background:var(--y);border-color:var(--y);color:var(--ink)}
+
+/* ---------- KPI tiles ---------- */
+.kpis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px 12px;min-height:118px;cursor:pointer}
+.kpi:hover{border-color:var(--line-2)}
+.kpi.hl{border:2px solid var(--y);box-shadow:0 0 0 3px var(--y-soft)}
+.kpi .k{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700}
+.kpi .v{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin:6px 0 2px}
+.kpi .v small{font-size:16px;font-weight:500;color:var(--muted)}
+.kpi .v .g{color:var(--green)} .kpi .v .r{color:var(--red)}
+.kpi .d{font-size:12px;color:var(--muted)}
+.kpi .d2{font-size:12px;margin-top:6px;font-weight:600}
+.kpi .d2.up{color:var(--green)} .kpi .d2.dn{color:var(--red)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--y)}
+.bar i.dark{background:var(--ink)}
+
+/* ---------- panels ---------- */
+.cols{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.panel .ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.panel .ph .k{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700;width:100%}
+.panel .ph h2{font-size:17px;margin:0;font-weight:700}
+.panel .ph .note{color:var(--muted);font-size:12.5px}
+.panel .foot{margin-top:10px;font-size:12px;color:var(--muted)}
+
+/* jobs table */
+table.jobs{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12.5px}
+table.jobs th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap}
+table.jobs td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.jobs tr.row{cursor:pointer}
+table.jobs tr.row:hover td{background:var(--paper)}
+table.jobs .num{text-align:center;font-variant-numeric:tabular-nums}
+table.jobs .num.z{color:var(--muted-2)}
+.score{display:inline-block;min-width:34px;text-align:center;border-radius:6px;padding:2px 6px;font-weight:700;font-size:12px}
+.score.g{background:var(--green-soft);color:var(--green)}
+.score.a{background:var(--amber-soft);color:var(--amber)}
+.score.r{background:var(--red-soft);color:var(--red-deep)}
+.svc{display:inline-block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border-radius:4px;padding:2px 6px;background:var(--paper-2);color:var(--muted)}
+.svc.li{background:var(--green-soft);color:var(--green)} .svc.st{background:var(--amber-soft);color:var(--amber)}
+.svc.et{background:var(--blue-soft);color:var(--blue)} .svc.pe{background:var(--purple-soft);color:var(--purple)}
+.cov{font-size:11px;font-weight:700;letter-spacing:.04em}
+.cov.ok{color:var(--green)} .cov.part{color:var(--amber)} .cov.none{color:var(--red)}
+.cov::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:5px;vertical-align:1px}
+.cov.part::before{border-radius:0;transform:rotate(45deg);width:6px;height:6px}
+.cov.none::before{background:none;border:1.5px solid currentColor;width:6px;height:6px}
+.who{display:inline-block;background:var(--ink);color:#fff;border-radius:6px;padding:2px 8px;font-weight:600;font-size:11.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.who.none{background:var(--paper-2);color:var(--muted);font-style:italic;font-weight:500}
+.client{font-weight:700}
+
+/* focus board */
+table.focus{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+table.focus th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);font-weight:600}
+table.focus td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.focus select{width:100%;border:1px solid var(--line-2);border-radius:6px;padding:4px 4px;background:var(--card);font-size:11.5px;color:var(--ink);text-overflow:ellipsis}
+table.focus select.set{border-color:var(--green);background:var(--green-soft)}
+table.focus select.set.miss{border-color:var(--red);background:var(--red-soft);border-style:dashed}
+table.focus td.psb{font-size:11px;text-align:right;white-space:nowrap;color:var(--muted)}
+table.focus td.psb b{color:var(--ink);background:var(--y-soft);border-radius:4px;padding:0 5px}
+
+/* support */
+table.sup{width:100%;border-collapse:collapse;font-size:12.5px}
+table.sup th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);font-weight:600}
+table.sup td{padding:8px 6px;border-bottom:1px solid var(--line)}
+table.sup td.n{text-align:center;font-variant-numeric:tabular-nums}
+table.sup td.gap{color:var(--red);font-weight:700;text-align:center}
+table.sup td.gap.ok{color:var(--muted-2);font-weight:500}
+table.sup td.money{color:var(--red);font-weight:700}
+table.sup td.money.ok{color:var(--muted)}
+
+/* states */
+.empty{padding:28px 12px;text-align:center;color:var(--muted);font-size:13px}
+.gate{min-height:100vh;display:grid;place-items:center;background:var(--paper-2)}
+.gate .box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px 36px;max-width:440px}
+.gate h1{font-size:22px;margin:0 0 8px}
+.gate p{color:var(--muted);margin:0 0 18px}
+.btn{background:var(--y);border:0;border-radius:var(--r-sm);padding:10px 16px;font-weight:700}
+.btn.ghost{background:var(--card);border:1px solid var(--line-2);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:50;max-width:80vw}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(23,22,20,.45);display:grid;place-items:center;z-index:40}
+.modal .box{background:var(--card);border-radius:16px;padding:22px 24px;width:min(560px,92vw);max-height:86vh;overflow:auto}
+.modal h2{margin:0 0 4px;font-size:18px}
+.modal p{color:var(--muted);margin:0 0 14px;font-size:13px}
+.modal table{width:100%;border-collapse:collapse;font-size:13px}
+.modal td,.modal th{padding:6px 6px;border-bottom:1px solid var(--line);text-align:left}
+.modal input{width:84px;border:1px solid var(--line-2);border-radius:6px;padding:5px 7px}
+.modal .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+
+/* TV mode */
+body.tv .sidebar,body.tv .topbar{display:none}
+body.tv .shell{grid-template-columns:1fr}
+body.tv .main{grid-column:1;padding:18px 22px}
+body.tv .kpi .v{font-size:40px}
+body.tv table.jobs{font-size:14px}
+.tv-exit{position:fixed;top:10px;right:12px;z-index:30;display:none}
+body.tv .tv-exit{display:block}
+
+@media (max-width:1280px){ .kpis{grid-template-columns:repeat(4,minmax(0,1fr))} .cols{grid-template-columns:1fr} }
+@media (max-width:860px){ .shell{grid-template-columns:1fr} .sidebar{display:none} .topbar,.main{grid-column:1} .search{min-width:0} }
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate hidden">
+  <div class="box">
+    <h1>Sign in through Spark HQ</h1>
+    <p>The Plugin Board uses your HQ login. Open Spark HQ, sign in, then come back and reload this tab.</p>
+    <button class="btn" onclick="window.open('https://hq.sparktalentinc.com','_blank','noopener')">Open Spark HQ</button>
+    <button class="btn ghost" onclick="location.reload()">I signed in, reload</button>
+  </div>
+</div>
+
+<div id="app" class="shell hidden">
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="spark-companies-logo.png" alt="Spark Companies" onerror="this.outerHTML='<div class=wordmark>SPARK<small>COMPANIES</small></div>'">
+    </div>
+    <div class="nav-h">Home</div>
+    <a class="nav-item" href="https://hq.sparktalentinc.com"><span class="ico">⌂</span>Spark HQ</a>
+    <button class="nav-item soon"><span class="ico">◎</span>Command Center<span class="tag">v2</span></button>
+    <div class="nav-h">Teams · by business unit</div>
+    <div id="nav-units"></div>
+    <div class="nav-h">Company intel</div>
+    <button class="nav-item soon"><span class="ico">▦</span>Region Compare<span class="tag">v2</span></button>
+    <button class="nav-item soon"><span class="ico">▦</span>Fulfillment Data<span class="tag">v2</span></button>
+    <div class="sb-foot">
+      <div class="row"><button id="btn-targets">Targets</button><span>·</span><button id="btn-diag">Data check</button></div>
+      <div class="build">Plugin Board v1 · HQ worker · <span id="who-foot"></span></div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <span class="qa-lbl">Quick actions</span>
+    <button class="qa" id="btn-refresh"><span class="sq">↻</span>Refresh</button>
+    <button class="qa" id="btn-sf"><span class="sq">☁</span>Salesforce</button>
+    <button class="qa" id="btn-tv"><span class="sq">▭</span>TV mode</button>
+    <label class="search"><span>⌕</span><input id="q" placeholder="Search reqs, clients, recruiters" autocomplete="off"></label>
+    <span class="pill" id="live"><span class="dot"></span><span id="live-txt">Loading</span></span>
+    <span class="pill" id="who"></span>
+  </header>
+
+  <main class="main">
+    <div class="crumb" id="crumb">Teams</div>
+    <div class="titlebar">
+      <div>
+        <h1 id="title">Req Focus</h1>
+        <div class="sub">Who is on what today · coverage vs open balance · every row opens its Salesforce job</div>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <section class="kpis" id="kpis"></section>
+
+    <div class="cols">
+      <section class="panel">
+        <div class="ph">
+          <div class="k">Jobs &amp; pipeline · open reqs</div>
+          <h2>Sorted by req score, then open balance</h2>
+          <span class="note">score = Target Rate 30 + Top 5 Skills 30 + Hiring Manager Alignment 30 + Interview Time 10</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="jobs" id="jobs">
+            <colgroup>
+              <col style="width:52px"><col style="width:17%"><col style="width:19%"><col style="width:92px">
+              <col style="width:40px"><col style="width:40px"><col style="width:36px"><col style="width:40px"><col style="width:40px"><col style="width:40px">
+              <col style="width:84px"><col style="width:44px"><col style="width:120px">
+            </colgroup>
+            <thead><tr>
+              <th>Score</th><th>Client</th><th>Job</th><th>Svc line</th>
+              <th class="num" title="Open balance (openings − filled)">Opn</th><th class="num">Sub</th><th class="num">IV</th><th class="num">Pnd</th><th class="num">Off</th><th class="num">Onb</th>
+              <th>Coverage</th><th class="num">Age</th><th>Recruiter</th>
+            </tr></thead>
+            <tbody id="jobs-body"></tbody>
+          </table>
+        </div>
+        <div class="foot" id="jobs-foot">Score &lt; 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.</div>
+      </section>
+
+      <div style="display:grid;gap:16px">
+        <section class="panel">
+          <div class="ph">
+            <div class="k">Focus board · <span id="week-lbl"></span></div>
+            <h2>One req per person per day</h2>
+            <span class="note" id="focus-note"></span>
+          </div>
+          <table class="focus">
+            <thead><tr><th style="width:26%">Recruiter</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th style="width:70px;text-align:right">Pre·Sub</th></tr></thead>
+            <tbody id="focus-body"></tbody>
+          </table>
+          <div class="foot">Picks save to Spark HQ as you change them. Green = that req has pipeline today. Dashed red = picked, but nobody is in process on it.</div>
+        </section>
+
+        <section class="panel">
+          <div class="ph">
+            <div class="k">Where to put support</div>
+            <h2>Gap × GP/hr × 40 = weekly GP at risk</h2>
+            <span class="note">unsupported clients first</span>
+          </div>
+          <table class="sup">
+            <thead><tr><th>Client</th><th class="n">Open</th><th class="n">Pipe</th><th class="n">Gap</th><th>GP $/wk at risk</th><th>Focused by</th></tr></thead>
+            <tbody id="sup-body"></tbody>
+          </table>
+          <div class="foot">GP/hr = bill − pay × (1 + burden) averaged over the client's open reqs. Reqs without a bill or pay rate count as $0 and are marked.</div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+<button class="btn tv-exit" id="btn-tv-exit">Exit TV mode</button>
+<div id="modal-root"></div>
+
+<script>
+/* ============================================================================
+   CONFIG + AUTH + API — same shape as spark-boards.html so the HQ session is reused.
+   ========================================================================== */
+const CONFIG = {
+  SUPABASE_URL: "https://rdyzvohphrmkkowdsoam.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5",
+  WORKER_URL: "https://spark-hq-worker.sparkcompanies.workers.dev",
+  HQ_URL: "https://hq.sparktalentinc.com",
+  // Salesforce base used for "open this job" links. Leave blank to open HQ's Salesforce tab instead.
+  SF_BASE: ""
+};
+const Auth = {
+  token: null, user: null, viaHQ: false, _refreshing: null,
+  hqToken() {
+    try {
+      const raw = localStorage.getItem('spark_hq_sb_auth');
+      if (!raw) return null;
+      const v = JSON.parse(raw);
+      const s = v && (v.currentSession || v);
+      if (!s || !s.access_token) return null;
+      const exp = s.expires_at ? s.expires_at * 1000 : 0;
+      if (exp && Date.now() > exp - 30000) return { token: s.access_token, user: s.user || v.user || null, expired: true };
+      return { token: s.access_token, user: s.user || v.user || null };
+    } catch (e) { return null; }
+  },
+  adopt() {
+    const x = this.hqToken();
+    if (!x) {
+      try { const s = JSON.parse(localStorage.getItem('sb-spark') || 'null'); if (s && s.token) { this.token = s.token; this.user = s.user; return true; } } catch (e) {}
+      return false;
+    }
+    this.token = x.token; if (x.user) this.user = x.user; this.viaHQ = true; return true;
+  },
+  currentToken() { if (this.viaHQ) { const x = this.hqToken(); if (x) { this.token = x.token; return x.token; } } return this.token; },
+  refresh() {
+    if (this._refreshing) return this._refreshing;
+    const self = this;
+    this._refreshing = (async function () {
+      try {
+        const raw = localStorage.getItem('spark_hq_sb_auth'); if (!raw) return null;
+        const v = JSON.parse(raw); const s = v && (v.currentSession || v); const rt = s && s.refresh_token; if (!rt) return null;
+        const res = await fetch(CONFIG.SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_ANON_KEY }, body: JSON.stringify({ refresh_token: rt }) });
+        if (!res.ok) return null;
+        const d = await res.json(); if (!d || !d.access_token) return null;
+        const ns = Object.assign({}, s, d); if (d.expires_in) ns.expires_at = Math.floor(Date.now() / 1000) + d.expires_in;
+        try { localStorage.setItem('spark_hq_sb_auth', JSON.stringify(v && v.currentSession ? Object.assign({}, v, { currentSession: ns }) : ns)); } catch (e) {}
+        self.token = d.access_token; return d.access_token;
+      } catch (e) { return null; } finally { setTimeout(function () { self._refreshing = null; }, 1500); }
+    })();
+    return this._refreshing;
+  }
+};
+const API = {
+  async call(path, opts = {}) {
+    const hit = t => fetch(CONFIG.WORKER_URL + path, { ...opts, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (t || ''), ...(opts.headers || {}) } });
+    let r = await hit(Auth.currentToken());
+    if (r.status === 401) { const nt = await Auth.refresh(); if (nt) r = await hit(nt); }
+    if (!r.ok) {
+      let body = ''; try { body = (await r.text()).slice(0, 200); } catch (e) {}
+      if (r.status === 401) { showGate(); }
+      throw new Error('API ' + r.status + ' ' + path + ' ' + body);
+    }
+    return r.json();
+  }
+};
+
+/* ============================================================================
+   DATA MODEL
+   ========================================================================== */
+const S = {
+  raw: null, jobs: [], byJob: {}, units: [], unit: 'ALL', svc: 'ALL', q: '',
+  state: {}, targets: {}, focus: {}, week: null, hl: null
+};
+const num = v => (v == null || v === '' || isNaN(+v)) ? 0 : +v;
+const day = 86400000;
+function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x; }
+function ymd(d) { return d.toISOString().slice(0,10); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+// Stage name → bucket. Source never counts as in-process. Unknown names fall into "other" and are not counted.
+function stageKey(name, type) {
+  const s = (String(name || '') + ' ' + String(type || '')).toLowerCase();
+  if (/place|hired|start/.test(s)) return 'placed';
+  if (/onboard/.test(s)) return 'onb';
+  if (/pending/.test(s)) return 'pnd';
+  if (/offer/.test(s)) return 'off';
+  if (/interview/.test(s)) return 'iv';
+  if (/submit|submittal|client review|sent to client/.test(s)) return 'sub';
+  if (/pre-?screen|prescreen|screen/.test(s)) return 'pre';
+  if (/sourc|applied|new|lead/.test(s)) return 'src';
+  return 'other';
+}
+const CLOSED_APP = /reject|declin|withdr|closed|not selected|dnq|do not/i;
+const STALL_DAYS = { sub: 5, pnd: 3, off: 3, iv: 14, onb: 14, pre: 14 };
+
+function reqScore(j) {
+  if (j.Req_Score__c != null && j.Req_Score__c !== '') return num(j.Req_Score__c);
+  return (j.Target_Rate__c ? 30 : 0) + (j.Top_5_Skill_Sets__c ? 30 : 0) + (j.Hiring_Manager_Alignment__c ? 30 : 0) + (j.Interview_Time__c ? 10 : 0);
+}
+function svcClass(v) {
+  const s = String(v || '').toLowerCase();
+  if (/light industrial/.test(s)) return 'li';
+  if (/skilled/.test(s)) return 'st';
+  if (/engineer|tech|it\b/.test(s)) return 'et';
+  if (/professional|exec|clerical|admin/.test(s)) return 'pe';
+  return '';
+}
+function svcShort(v) {
+  const s = String(v || '');
+  if (/DFM MARSHALL/i.test(s)) return 'LI · DFM';
+  if (/Clerical/i.test(s)) return 'Clerical/Prof';
+  if (/High Volume/i.test(s)) return 'High Vol';
+  return s.length > 16 ? s.slice(0, 15) + '…' : s;
+}
+
+function buildModel(raw) {
+  S.raw = raw;
+  const today = new Date(); today.setHours(0,0,0,0);
+  S.week = mondayOf(today);
+  const weekEnd = new Date(S.week.getTime() + 7 * day);
+
+  // pipeline per job
+  const pipe = {};
+  (raw.applicants || []).forEach(a => {
+    if (CLOSED_APP.test(String(a.bpats__Applicant_Status__c || ''))) return;
+    const stName = a.Stage_name__c || (a.bpats__Stage__r && a.bpats__Stage__r.Name) || '';
+    const stType = a.bpats__Stage__r && a.bpats__Stage__r.bpats__Stage_Type__c;
+    const k = stageKey(stName, stType);
+    const p = pipe[a.bpats__Job__c] || (pipe[a.bpats__Job__c] = { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, movedWk:0 });
+    p[k] = (p[k] || 0) + 1;
+    const mod = a.LastModifiedDate ? new Date(a.LastModifiedDate) : null;
+    const inWeek = mod && mod >= S.week && mod < weekEnd;
+    if (k === 'pre' && inWeek) p.preWk++;
+    if (['sub','iv','pnd','off','onb'].includes(k)) {
+      p.inproc++;
+      if (inWeek) p.movedWk++;
+      if (k === 'sub' && inWeek) p.subWk++;
+      const dic = num(a.bpats__Days_in_Current_Stage__c);
+      if (dic > (STALL_DAYS[k] || 14)) p.stalled++;
+    }
+  });
+
+  // placements → active HC, starts/terms this week and 90d, by BU
+  const hc = {}, startsWk = {}, termsWk = {}, starts90 = {}, terms90 = {};
+  (raw.placements || []).forEach(pl => {
+    const bu = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || 'Unassigned';
+    const st = pl.bpats__Start_Date__c ? new Date(pl.bpats__Start_Date__c + 'T00:00:00') : null;
+    const tm = pl.Terminated_Date__c ? new Date(pl.Terminated_Date__c + 'T00:00:00') : null;
+    const active = st && st <= today && !tm;
+    if (active) hc[bu] = (hc[bu] || 0) + 1;
+    if (st && st >= S.week && st < weekEnd) startsWk[bu] = (startsWk[bu] || 0) + 1;
+    if (tm && tm >= S.week && tm < weekEnd) termsWk[bu] = (termsWk[bu] || 0) + 1;
+    if (st && st >= new Date(today - 90 * day) && st <= today) starts90[bu] = (starts90[bu] || 0) + 1;
+    if (tm && tm >= new Date(today - 90 * day)) terms90[bu] = (terms90[bu] || 0) + 1;
+  });
+  S.hc = hc; S.startsWk = startsWk; S.termsWk = termsWk; S.starts90 = starts90; S.terms90 = terms90;
+
+  // jobs
+  S.jobs = (raw.jobs || []).map(j => {
+    const p = pipe[j.Id] || { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, movedWk:0 };
+    const open = Math.max(0, num(j.bpats__Number_of_Openings__c) - num(j.bpats__Openings_Filled__c));
+    const rec = (j.Recruiter__r && j.Recruiter__r.Name) || '';
+    const bill = num(j.bpats__Bill_Rate__c), pay = num(j.bpats__Pay_Rate__c), burden = num(j.Burden_Percent__c);
+    const gp = (bill && pay) ? Math.max(0, bill - pay * (1 + burden / 100)) : null;
+    let cov = 'none';
+    if (open > 0 && p.inproc >= open) cov = 'ok'; else if (p.inproc > 0) cov = 'part';
+    return {
+      id: j.Id, name: j.Name, title: j.bpats__Job_Title__c || j.Name, client: j.bpats__Account_Name__c || '(no account)',
+      unit: j.Subdivision__c || 'Unassigned', svc: j.Job_Classification__c || 'Unassigned', sub: j.Job_Subclassification__c || '',
+      openings: num(j.bpats__Number_of_Openings__c), filled: num(j.bpats__Openings_Filled__c), open,
+      recruiter: rec, am: (j.Account_Manager__r && j.Account_Manager__r.Name) || '', support: (j.User__r && j.User__r.Name) || '',
+      hm: (j.bpats__Hiring_Manager__r && j.bpats__Hiring_Manager__r.Name) || '',
+      score: reqScore(j), boxes: { rate: !!j.Target_Rate__c, skills: !!j.Top_5_Skill_Sets__c, hm: !!j.Hiring_Manager_Alignment__c, iv: !!j.Interview_Time__c },
+      age: j.CreatedDate ? Math.floor((today - new Date(j.CreatedDate)) / day) : null,
+      bill, pay, burden, gp, cov, p
+    };
+  });
+  S.byJob = {}; S.jobs.forEach(j => S.byJob[j.id] = j);
+
+  // units = today's Business Unit values, as they are in Salesforce
+  const cnt = {};
+  S.jobs.forEach(j => { if (j.open > 0) cnt[j.unit] = (cnt[j.unit] || 0) + 1; });
+  S.units = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b)).map(u => ({ name: u, n: cnt[u] }));
+  if (S.unit !== 'ALL' && !cnt[S.unit]) S.unit = 'ALL';
+}
+
+function visibleJobs() {
+  return S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0)
+    .filter(j => !S.q || (j.client + ' ' + j.title + ' ' + j.recruiter + ' ' + j.name).toLowerCase().includes(S.q))
+    .sort((a, b) => b.score - a.score || b.open - a.open || (a.age || 0) - (b.age || 0));
+}
+
+/* ============================================================================
+   RENDER
+   ========================================================================== */
+function renderNav() {
+  const all = S.jobs.filter(j => j.open > 0).length;
+  let h = `<button class="nav-item ${S.unit === 'ALL' ? 'active' : ''}" data-unit="ALL"><span class="ico">◎</span>All teams<span class="cnt">${all}</span></button>`;
+  S.units.forEach(u => {
+    const bad = u.name === 'Unassigned';
+    h += `<button class="nav-item ${S.unit === u.name ? 'active' : ''}" data-unit="${esc(u.name)}"><span class="ico">◎</span>${esc(u.name)}<span class="cnt ${bad ? 'alert' : ''}">${u.n}</span></button>`;
+  });
+  document.getElementById('nav-units').innerHTML = h;
+  document.querySelectorAll('#nav-units .nav-item').forEach(b => b.onclick = () => { S.unit = b.dataset.unit; S.hl = null; renderAll(); });
+}
+
+function renderChips() {
+  const svcs = {};
+  S.jobs.filter(j => j.open > 0 && (S.unit === 'ALL' || j.unit === S.unit)).forEach(j => svcs[j.svc] = (svcs[j.svc] || 0) + 1);
+  const names = Object.keys(svcs).sort((a, b) => svcs[b] - svcs[a]);
+  if (S.svc !== 'ALL' && !svcs[S.svc]) S.svc = 'ALL';
+  let h = `<span class="lbl">Service line</span><button class="chip ${S.svc === 'ALL' ? 'on' : ''}" data-svc="ALL">All</button>`;
+  names.forEach(n => h += `<button class="chip ${S.svc === n ? 'on' : ''}" data-svc="${esc(n)}" title="${esc(n)} · ${svcs[n]} reqs">${esc(svcShort(n))}</button>`);
+  h += `<span class="chip week">Week of ${S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`;
+  document.getElementById('chips').innerHTML = h;
+  document.querySelectorAll('#chips .chip[data-svc]').forEach(b => b.onclick = () => { S.svc = b.dataset.svc; renderAll(); });
+}
+
+function renderHeader() {
+  const unitLbl = S.unit === 'ALL' ? 'All teams' : S.unit;
+  document.getElementById('crumb').textContent = 'Teams › ' + unitLbl;
+  document.getElementById('title').textContent = 'Req Focus — ' + unitLbl;
+  document.title = unitLbl + ' · Plugin Board';
+}
+
+function unitStat(map) {
+  if (S.unit === 'ALL') return Object.values(map).reduce((a, b) => a + b, 0);
+  return map[S.unit] || 0;
+}
+
+function renderKpis() {
+  const rows = S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && (S.svc === 'ALL' || j.svc === S.svc));
+  const openRows = rows.filter(j => j.open > 0);
+  const openBal = openRows.reduce((a, j) => a + j.open, 0);
+  const covered = openRows.filter(j => j.cov === 'ok').length;
+  const covPct = openRows.length ? Math.round(covered / openRows.length * 100) : 0;
+  const inproc = rows.reduce((a, j) => a + j.p.inproc, 0);
+  const stalled = rows.reduce((a, j) => a + j.p.stalled, 0);
+  const stallPct = inproc ? Math.round(stalled / inproc * 100) : 0;
+  const preWk = rows.reduce((a, j) => a + j.p.preWk, 0);
+  const subWk = rows.reduce((a, j) => a + j.p.subWk, 0);
+  const hc = unitStat(S.hc), sw = unitStat(S.startsWk), tw = unitStat(S.termsWk), s90 = unitStat(S.starts90), t90 = unitStat(S.terms90);
+  const t = S.targets[S.unit] || {};
+  const tHC = num(t.hc), tPre = num(t.pre), tSub = num(t.sub);
+  const avgScore = openRows.length ? Math.round(openRows.reduce((a, j) => a + j.score, 0) / openRows.length) : 0;
+  const low = openRows.filter(j => j.score < 40).length;
+
+  const tile = (id, k, v, d, extra = '', hl = false) => `<div class="kpi ${hl ? 'hl' : ''}" data-hl="${id}"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div>${extra}</div>`;
+  const bar = (v, t, dark) => t ? `<div class="bar"><i class="${dark ? 'dark' : ''}" style="width:${Math.min(100, Math.round(v / t * 100))}%"></i></div>` : '';
+  document.getElementById('kpis').innerHTML =
+    tile('hc', 'Active HC', hc.toLocaleString(), tHC ? `vs target ${tHC}` : 'set a target in Targets', s90 || t90 ? `<div class="d2 ${s90 >= t90 ? 'up' : 'dn'}">${s90 >= t90 ? '▲' : '▼'} ${s90} starts · ${t90} terms · 90d</div>` : '', S.hl === 'hc') +
+    tile('open', 'Open balance', openBal, `on ${openRows.length} reqs`, low ? `<div class="d2 dn">▲ ${low} reqs score below 40</div>` : '', S.hl === 'open') +
+    tile('cov', 'Covered', covPct + '<small>%</small>', 'pipeline ≥ open balance', bar(covPct, 100), S.hl === 'cov') +
+    tile('inproc', 'In process', inproc, 'Submittal → Onboarding', `<div class="d2 ${stallPct > 30 ? 'dn' : ''}">${stalled} stalled · ${stallPct}%</div>`, S.hl === 'inproc') +
+    tile('pre', 'Pre-screens wk', preWk, tPre ? `target ${tPre}` : 'moved into pre-screen this week', bar(preWk, tPre, true), S.hl === 'pre') +
+    tile('sub', 'Submittals wk', subWk, tSub ? `target ${tSub}` : 'moved into submittal this week', bar(subWk, tSub, true), S.hl === 'sub') +
+    tile('score', 'Starts · terms wk', `<span class="g">${sw}</span><small> / </small><span class="r">${tw}</span>`, `net ${sw - tw >= 0 ? '+' : ''}${sw - tw} · avg req score ${avgScore}`, '', S.hl === 'score');
+  document.querySelectorAll('.kpi').forEach(k => k.onclick = () => { S.hl = S.hl === k.dataset.hl ? null : k.dataset.hl; renderKpis(); });
+}
+
+function renderJobs() {
+  const rows = visibleJobs();
+  const tb = document.getElementById('jobs-body');
+  if (!rows.length) { tb.innerHTML = `<tr><td colspan="13" class="empty">No open reqs match. Clear the search or pick another service line.</td></tr>`; return; }
+  const cell = (n, k) => `<td class="num ${n ? '' : 'z'}" title="${k}">${n || '0'}</td>`;
+  tb.innerHTML = rows.map(j => {
+    const sc = j.score >= 80 ? 'g' : j.score >= 40 ? 'a' : 'r';
+    const boxes = `Target Rate ${j.boxes.rate ? '✓' : '✗'} · Top 5 Skills ${j.boxes.skills ? '✓' : '✗'} · HM Alignment ${j.boxes.hm ? '✓' : '✗'} · Interview Time ${j.boxes.iv ? '✓' : '✗'}`;
+    const covTxt = j.cov === 'ok' ? 'COVERED' : j.cov === 'part' ? 'PARTIAL' : (j.recruiter ? 'UNCOVERED' : 'NOBODY');
+    return `<tr class="row" data-id="${j.id}">
+      <td><span class="score ${sc}" title="${boxes}">${j.score}</span></td>
+      <td class="client" title="${esc(j.client)}">${esc(j.client)}</td>
+      <td title="${esc(j.title)} (${esc(j.name)})">${esc(j.title)}</td>
+      <td><span class="svc ${svcClass(j.svc)}" title="${esc(j.svc)}${j.sub ? ' · ' + esc(j.sub) : ''}">${esc(svcShort(j.svc))}</span></td>
+      <td class="num"><b>${j.open}</b></td>${cell(j.p.sub, 'Submittal')}${cell(j.p.iv, 'Interview')}${cell(j.p.pnd, 'Pending offer')}${cell(j.p.off, 'Offer')}${cell(j.p.onb, 'Onboarding')}
+      <td><span class="cov ${j.cov}">${covTxt}</span></td>
+      <td class="num">${j.age == null ? '—' : j.age + 'd'}</td>
+      <td>${j.recruiter ? `<span class="who" title="${esc(j.recruiter)}">${esc(j.recruiter)}</span>` : '<span class="who none">unassigned</span>'}</td>
+    </tr>`;
+  }).join('');
+  tb.querySelectorAll('tr.row').forEach(tr => tr.onclick = () => openJob(tr.dataset.id));
+  const low = rows.filter(j => j.score < 40).length;
+  document.getElementById('jobs-foot').innerHTML = `${rows.length} open reqs shown · ${low} score below 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.`;
+}
+
+function openJob(id) {
+  if (CONFIG.SF_BASE) window.open(CONFIG.SF_BASE.replace(/\/+$/, '') + '/lightning/r/bpats__Job__c/' + id + '/view', '_blank', 'noopener');
+  else window.open(CONFIG.HQ_URL + '/#salesforce', '_blank', 'noopener');
+}
+
+/* ---------- focus board ---------- */
+const DAYS = ['mon','tue','wed','thu','fri'];
+function focusKey() { return 'focus:' + ymd(S.week) + ':' + (S.unit === 'ALL' ? 'ALL' : S.unit); }
+function renderFocus() {
+  document.getElementById('week-lbl').textContent = 'week of ' + S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const jobs = S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && j.open > 0).sort((a, b) => a.client.localeCompare(b.client) || a.title.localeCompare(b.title));
+  const picks = S.focus[focusKey()] || {};
+  const recs = {};
+  jobs.forEach(j => { if (j.recruiter) recs[j.recruiter] = true; });
+  Object.keys(picks).forEach(r => recs[r] = true);
+  const names = Object.keys(recs).sort();
+  const tb = document.getElementById('focus-body');
+  if (!names.length) { tb.innerHTML = `<tr><td colspan="7" class="empty">No recruiters on open reqs in this unit yet. Assign a Recruiter on the job in Salesforce and they appear here.</td></tr>`; document.getElementById('focus-note').textContent = ''; return; }
+  const opts = jobs.map(j => `<option value="${j.id}">${esc(j.client)} — ${esc(j.title)}</option>`).join('');
+  let filled = 0;
+  tb.innerHTML = names.map(r => {
+    const mine = jobs.filter(j => j.recruiter === r);
+    const pre = mine.reduce((a, j) => a + j.p.preWk, 0), sub = mine.reduce((a, j) => a + j.p.subWk, 0);
+    const row = picks[r] || {};
+    const cells = DAYS.map(d => {
+      const v = row[d] || ''; const j = v && S.byJob[v];
+      if (v) filled++;
+      const cls = j ? ('set' + (j.p.inproc ? '' : ' miss')) : '';
+      return `<td><select class="${cls}" data-rec="${esc(r)}" data-day="${d}" title="${j ? esc(j.client + ' — ' + j.title) : 'pick a req'}"><option value="">— pick —</option>${opts}</select></td>`;
+    }).join('');
+    return `<tr><td><span class="who" title="${esc(r)}">${esc(r)}</span></td>${cells}<td class="psb" title="pre-screens · submittals moved this week on this recruiter's reqs"><b>${pre}</b> ${sub}</td></tr>`;
+  }).join('');
+  tb.querySelectorAll('select').forEach(sel => {
+    const v = (picks[sel.dataset.rec] || {})[sel.dataset.day] || '';
+    sel.value = v;
+    sel.onchange = async () => {
+      const k = focusKey(); const cur = S.focus[k] || (S.focus[k] = {});
+      (cur[sel.dataset.rec] || (cur[sel.dataset.rec] = {}))[sel.dataset.day] = sel.value;
+      renderFocus(); renderSupport();
+      try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key: k, value: cur }) }); }
+      catch (e) { toast('Pick not saved to HQ (' + (e.message.includes('404') ? 'state routes not deployed yet' : e.message.slice(0, 60)) + ')'); }
+    };
+  });
+  document.getElementById('focus-note').textContent = `${filled} of ${names.length * 5} slots picked`;
+}
+
+/* ---------- where to put support ---------- */
+function renderSupport() {
+  const jobs = S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0);
+  const picks = S.focus[focusKey()] || {};
+  const focusedBy = {};
+  Object.keys(picks).forEach(r => DAYS.forEach(d => { const j = S.byJob[picks[r][d]]; if (j) (focusedBy[j.client] || (focusedBy[j.client] = {}))[r] = true; }));
+  const by = {};
+  jobs.forEach(j => {
+    const c = by[j.client] || (by[j.client] = { open: 0, pipe: 0, gps: [], noRate: 0 });
+    c.open += j.open; c.pipe += j.p.inproc; if (j.gp == null) c.noRate++; else c.gps.push(j.gp);
+  });
+  const rows = Object.keys(by).map(name => {
+    const c = by[name]; const gap = Math.max(0, c.open - c.pipe);
+    const gp = c.gps.length ? c.gps.reduce((a, b) => a + b, 0) / c.gps.length : 0;
+    const who = Object.keys(focusedBy[name] || {});
+    return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who };
+  }).sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap)).slice(0, 12);
+  const tb = document.getElementById('sup-body');
+  if (!rows.length) { tb.innerHTML = `<tr><td colspan="6" class="empty">Nothing open here.</td></tr>`; return; }
+  tb.innerHTML = rows.map(r => `<tr>
+    <td class="client" title="${esc(r.name)}">${esc(r.name)}</td>
+    <td class="n">${r.open}</td><td class="n">${r.pipe}</td>
+    <td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
+    <td class="money ${r.gap ? '' : 'ok'}" title="${r.noRate ? r.noRate + ' req(s) without bill/pay rate' : 'avg GP/hr ' + money(r.gp)}">${r.gap ? money(r.risk) : '$0'}${r.noRate ? ' <span style="color:var(--muted-2)">*</span>' : ''}</td>
+    <td>${r.who.length ? r.who.map(w => `<span class="who">${esc(w.split(' ')[0])}</span>`).join(' ') : '<span class="who none">nobody</span>'}</td>
+  </tr>`).join('');
+}
+
+function renderAll() { renderNav(); renderChips(); renderHeader(); renderKpis(); renderJobs(); renderFocus(); renderSupport(); }
+
+/* ============================================================================
+   LOAD
+   ========================================================================== */
+function setLive(kind, txt) { const p = document.getElementById('live'); p.className = 'pill ' + (kind || ''); document.getElementById('live-txt').textContent = txt; }
+function toast(msg) { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; clearTimeout(t._t); t._t = setTimeout(() => t.remove(), 6000); }
+function showGate() { document.getElementById('gate').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); }
+
+async function loadState() {
+  try {
+    const keys = ['targets', focusKey()].concat(S.units.map(u => 'focus:' + ymd(S.week) + ':' + u.name));
+    const r = await API.call('/pi-state-load?keys=' + encodeURIComponent(keys.join(',')));
+    S.state = r.state || {};
+    S.targets = (S.state.targets && S.state.targets.value) || {};
+    Object.keys(S.state).forEach(k => { if (k.startsWith('focus:')) S.focus[k] = S.state[k].value || {}; });
+  } catch (e) {
+    // state routes not deployed yet: board still works, picks just don't persist
+  }
+}
+
+async function load(fresh) {
+  setLive('stale', fresh ? 'Refreshing' : 'Loading');
+  try {
+    const raw = await API.call('/pi-board' + (fresh ? '?fresh=1' : ''));
+    if (raw.error) throw new Error(raw.error);
+    buildModel(raw);
+    await loadState();
+    renderAll();
+    const at = new Date(raw.asOf);
+    setLive('', (raw.cached ? 'Live · cached ' : 'Live · synced ') + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    const d = raw.diag || {};
+    const probs = ['jobs','applicants','placements'].filter(k => d[k] && d[k].error);
+    if (probs.length) toast('Salesforce returned an error for ' + probs.join(', ') + '. Open Data check in the sidebar.');
+  } catch (e) {
+    setLive('err', 'Not connected');
+    if (/404/.test(e.message)) toast('The /pi-board route is not on the HQ worker yet. Paste pi-board-routes.js into cloudworker.js and deploy.');
+    else toast(e.message.slice(0, 140));
+  }
+}
+
+/* ---------- modals ---------- */
+function openTargets() {
+  const units = ['ALL'].concat(S.units.map(u => u.name));
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal"><div class="box">
+    <h2>Targets</h2><p>Per business unit. Used by the Active HC, Pre-screens and Submittals tiles. Saved to Spark HQ.</p>
+    <table><thead><tr><th>Unit</th><th>HC target</th><th>Pre-screens / wk</th><th>Submittals / wk</th></tr></thead><tbody>
+    ${units.map(u => { const t = S.targets[u] || {}; return `<tr><td>${u === 'ALL' ? 'All teams' : esc(u)}</td>
+      <td><input type="number" data-u="${esc(u)}" data-f="hc" value="${t.hc || ''}"></td>
+      <td><input type="number" data-u="${esc(u)}" data-f="pre" value="${t.pre || ''}"></td>
+      <td><input type="number" data-u="${esc(u)}" data-f="sub" value="${t.sub || ''}"></td></tr>`; }).join('')}
+    </tbody></table>
+    <div class="acts"><button class="btn ghost" id="m-cancel">Cancel</button><button class="btn" id="m-save">Save targets</button></div>
+  </div></div>`;
+  root.querySelector('#m-cancel').onclick = () => root.innerHTML = '';
+  root.querySelector('#m-save').onclick = async () => {
+    const t = {};
+    root.querySelectorAll('input').forEach(i => { const u = i.dataset.u; (t[u] || (t[u] = {}))[i.dataset.f] = num(i.value); });
+    S.targets = t; root.innerHTML = ''; renderKpis();
+    try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key: 'targets', value: t }) }); toast('Targets saved'); }
+    catch (e) { toast('Targets kept for this session only (state routes not deployed yet)'); }
+  };
+}
+function openDiag() {
+  const d = (S.raw && S.raw.diag) || {};
+  const root = document.getElementById('modal-root');
+  const line = k => { const x = d[k] || {}; return `<tr><td>${k}</td><td>${x.n == null ? '—' : x.n}</td><td>${(x.dropped || []).join(', ') || '—'}</td><td style="color:var(--red)">${esc(x.error || '')}</td></tr>`; };
+  root.innerHTML = `<div class="modal"><div class="box">
+    <h2>Data check</h2><p>What the HQ worker pulled from Salesforce on the last load. "Dropped" = columns Salesforce rejected and the board worked around; tell Bedros if any appear.</p>
+    <table><thead><tr><th>Query</th><th>Rows</th><th>Dropped columns</th><th>Error</th></tr></thead><tbody>${line('jobs')}${line('applicants')}${line('placements')}</tbody></table>
+    <p style="margin-top:12px">Worker: ${CONFIG.WORKER_URL}<br>As of: ${S.raw ? S.raw.asOf : '—'}${S.raw && S.raw.cached ? ' (cached, Refresh for fresh)' : ''}</p>
+    <div class="acts"><button class="btn" id="m-ok">Close</button></div>
+  </div></div>`;
+  root.querySelector('#m-ok').onclick = () => root.innerHTML = '';
+}
+
+/* ---------- boot ---------- */
+(function boot() {
+  if (!Auth.adopt()) { showGate(); return; }
+  document.getElementById('app').classList.remove('hidden');
+  const email = (Auth.user && Auth.user.email) || '';
+  document.getElementById('who').textContent = email.split('@')[0] || 'signed in';
+  document.getElementById('who-foot').textContent = email;
+  document.getElementById('btn-refresh').onclick = () => load(true);
+  document.getElementById('btn-sf').onclick = () => window.open(CONFIG.SF_BASE || (CONFIG.HQ_URL + '/#salesforce'), '_blank', 'noopener');
+  document.getElementById('btn-tv').onclick = () => document.body.classList.add('tv');
+  document.getElementById('btn-tv-exit').onclick = () => document.body.classList.remove('tv');
+  document.getElementById('btn-targets').onclick = openTargets;
+  document.getElementById('btn-diag').onclick = openDiag;
+  document.getElementById('q').oninput = e => { S.q = e.target.value.trim().toLowerCase(); renderJobs(); };
+  load(false);
+  setInterval(() => load(false), 15 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
