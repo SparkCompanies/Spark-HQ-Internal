@@ -46,5 +46,7 @@ jobs:
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
           ls site/*.html | sed 's|site/|  |'
+      - name: Optimize index.html for delivery (OPTIMIZE_SHELL_v1)
+        run: node optimize-shell.cjs index.html site
       - name: Deploy via SWA CLI
         run: npx -y @azure/static-web-apps-cli@latest deploy ./site --env production --deployment-token ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_RED_DUNE_014D74810 }}
