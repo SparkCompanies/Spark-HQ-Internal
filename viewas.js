@@ -1,8 +1,9 @@
-/* VIEW_AS_v1
+/* VIEW_AS_v2
    Loaded into the HQ shell (index.html) by spark-home.html, same path as my-links.js, because index.html is too
    large to edit on github.com.
-   "View as": lets a super admin see HQ exactly as a given team member sees it. Nav and admin visibility in HQ are
-   decided purely by role (enforceRole), so viewing as a person = applying that person's role to this session.
+   "View as": lets a super admin see HQ exactly as a given team member sees it. Two things decide what a person
+   sees: their role (enforceRole: super_admin / manager / member nav lists) and their permission grants
+   (gateRender: Tools, Directory, Career Paths, Sr Leadership from Supabase my_permissions). v2 simulates both.
    - Picker lives in the topbar next to "Need help?". Super admins only (same FLOOR list as the role lock).
    - Choose a person (from profiles) or a bare role. A banner shows who you are viewing as, with an Exit button.
    - While active, every setRole() call is pinned to the viewed role, so the role-lock's periodic
@@ -56,7 +57,48 @@
     wrapSetRole();
     if (origSetRole) origSetRole(state.role);
     renderBanner();
+    applyGates();
   }
+
+  /* ---------- permission gates ----------
+     HQ hides Tools, Directory, Career Paths and Sr Leadership unless /permissions (Supabase my_permissions) grants
+     them. That lookup is for the signed-in admin, so a view-as must re-run it for the viewed person and apply the
+     same rule gateRender() uses, or the picture is wrong. "Any member" = no grants, which is what a member with no
+     app role or exception gets today. */
+  var GATE = { tools: "tab:tools", people: "tab:people", careers: "tab:career", srlead: "tab:srleadership" };
+  var viewPerms = null;
+  function permOk(p, key) {
+    if (!p) return true;
+    if (p._admin === true) return true;
+    if (p[key] === true) return true;
+    if (key.indexOf(":") > 0 && p[key.split(":")[0] + ":*"] === true) return true;
+    return false;
+  }
+  function paintGates() {
+    if (!state || !viewPerms) return;
+    Object.keys(GATE).forEach(function (tab) {
+      var ok = tab === "srlead" ? viewPerms[GATE[tab]] === true : permOk(viewPerms, GATE[tab]);
+      document.querySelectorAll('.nav-item[data-tab="' + tab + '"]').forEach(function (b) { b.style.display = ok ? "" : "none"; });
+    });
+  }
+  function applyGates() {
+    if (!state) return;
+    var done = function (p) { viewPerms = p || {}; paintGates(); };
+    if (!state.email) { done({}); return; }
+    try {
+      var c = window.SPARK_SB.getClient();
+      c.rpc("my_permissions", { p_email: state.email }).then(function (r) { done((r && r.data) || {}); }).catch(function () { done({}); });
+    } catch (e) { done({}); }
+  }
+  // HQ re-runs its own gate pass on sign-in changes; paint ours right after so it never wins while a view is active.
+  (function hookGates() {
+    var orig = window.applyPermissionGates;
+    if (typeof orig !== "function" || orig.__viewas) { setTimeout(hookGates, 800); return; }
+    var wrapped = function () { var r = orig.apply(this, arguments); setTimeout(paintGates, 1200); setTimeout(paintGates, 3000); return r; };
+    wrapped.__viewas = true;
+    window.applyPermissionGates = wrapped;
+  })();
+  setInterval(paintGates, 4000);
 
   /* ---------- UI ---------- */
   var CSS = "" +
@@ -116,7 +158,7 @@
     if (!state) { if (old) old.remove(); document.body.classList.remove("hq-viewas"); return; }
     var who = state.label || state.email || state.role;
     var html = EYE + "<span>Viewing HQ as <b>" + esc(who) + "</b> <span class=\"sub\">(" + esc(state.role.replace("_", " ")) +
-      " role). What you see now is what they see.</span></span><button type=\"button\" id=\"hqViewAsExit\">Exit view</button>";
+      " role, their tab grants). What you see now is what they see.</span></span><button type=\"button\" id=\"hqViewAsExit\">Exit view</button>";
     if (old) { old.innerHTML = html; } else {
       old = document.createElement("div"); old.id = "hqViewAsBanner"; old.innerHTML = html; document.body.appendChild(old);
     }
