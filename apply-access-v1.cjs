@@ -65,8 +65,13 @@ replaceOnce(
 if (process.exitCode) { console.error("Nothing written — fix the anchors above first."); process.exit(1); }
 if (!changes) { console.log("No changes needed."); process.exit(0); }
 
-const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-fs.writeFileSync(path.join(__dirname, "index." + stamp + ".bak.html"), before);
-fs.writeFileSync(file, src);
-console.log("Done. " + changes + " change(s). Backup: index." + stamp + ".bak.html");
+if (process.env.CI) {
+  fs.writeFileSync(file, src);
+  console.log("Done. " + changes + " change(s). (CI run: no backup file written)");
+} else {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  fs.writeFileSync(path.join(__dirname, "index." + stamp + ".bak.html"), before);
+  fs.writeFileSync(file, src);
+  console.log("Done. " + changes + " change(s). Backup: index." + stamp + ".bak.html");
+}
 console.log("Next: git add index.html && git commit -m \"ACCESS_v1: baseline tabs, retire role demo switcher\" && git push");
