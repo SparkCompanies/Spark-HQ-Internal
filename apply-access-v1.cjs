@@ -3,7 +3,7 @@
    Run from the repo root:  node apply-access-v1.cjs
    Edits index.html in place (backup written first). Idempotent: safe to run twice.
 
-   1. Career Paths, Directory and Software & Tools leave the permission gate. They fall back to the role layer
+   1. Career Paths, Directory and Software & Tools leave the permission gate; members also get Spark Boards + Tools in their nav. They fall back to the role layer
       (member / manager / super_admin nav lists), which already includes all three. Only Sr Leadership stays gated.
    2. The browser-local "Your role" demo switcher is removed from the Admin sub-nav (it only ever changed the
       admin's own browser and contradicted Supabase).
@@ -46,6 +46,13 @@ replaceOnce(
   "HQ_GATED_TABS flag",
   "  var MY_PERMS = null;\n",
   "  var MY_PERMS = null;\n  window.HQ_GATED_TABS = Object.keys(GATE_TAB_PERM); /* ACCESS_v1 */\n"
+);
+
+// 1c. Members get Spark Boards and Software & Tools in their sidebar (they were only in manager/super admin lists).
+replaceOnce(
+  "member navItems: add boards + tools",
+  "navItems: ['home','command','people','leadership','terrmap','chargecc','training','standard','careers','brand' /* BRAND_HUB_v1 */]",
+  "navItems: ['home','command','people','leadership','boards','terrmap','chargecc','training','standard','careers','tools','brand' /* BRAND_HUB_v1 */ /* ACCESS_v1: boards + tools for everyone */]"
 );
 
 // 2. Drop the browser-local role demo switcher from the super admin sub-nav.
