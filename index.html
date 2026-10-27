@@ -23869,6 +23869,14 @@ window.addEventListener("message",function(e){
 #view-srlead .sl-tab.on{background:var(--sl-ink);color:#FFD43B}
 #view-srlead .sl-search{flex:1 1 180px;display:flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:0 14px;color:var(--muted)}
 #view-srlead .sl-search input{flex:1;border:0;outline:0;padding:10px 0;font:14px var(--font-display);background:transparent;color:var(--sl-ink);min-width:0}
+#view-srlead .sl-owners{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px}
+#view-srlead .sl-owners .lbl{font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-light);margin-right:4px}
+#view-srlead .sl-ochip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:99px;padding:4px 10px 4px 5px;font:600 12.5px 'Jost',sans-serif;color:var(--sl-ink,#111);cursor:pointer;transition:background .15s,border-color .15s}
+#view-srlead .sl-ochip.all{padding-left:10px}
+#view-srlead .sl-ochip b{font-weight:700;color:var(--muted);font-size:11.5px}
+#view-srlead .sl-ochip:hover{border-color:rgba(255,200,0,.7);background:#fffbe6}
+#view-srlead .sl-ochip.on{background:#111;color:#fff;border-color:#111}
+#view-srlead .sl-ochip.on b{color:#FFC800}
 #view-srlead .sl-filter{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:99px;padding:6px 8px 6px 12px;font-size:12.5px;font-weight:700;margin-bottom:14px}
 #view-srlead .sl-filter button{border:0;background:var(--line-light);border-radius:99px;width:22px;height:22px;cursor:pointer;color:var(--muted)}
 #view-srlead .sl-month{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted-light);margin:8px 0 10px;display:flex;align-items:center;gap:10px}
@@ -23997,7 +24005,7 @@ window.addEventListener("message",function(e){
 (function(){
   var W = 'https://spark-hq-worker.sparkcompanies.workers.dev';
   var S = { series: [], meetings: [], actions: [], attachments: [], next: null, loaded: false, busy: false, editAct: null,
-            folder: '', tab: 'timeline', q: '', open: null, editing: false, attTarget: null, showDone: false };
+            folder: '', tab: 'timeline', q: '', open: null, editing: false, attTarget: null, showDone: false, owner: '' };
   var MAX_FILE = 25 * 1024 * 1024;
   var SRC = { granola: 'Granola', teams: 'Teams recording', link: 'Link' };
   var PAL = ['#FFD43B','#a5b4fc','#86efac','#fda4af','#67e8f9','#fdba74','#c4b5fd','#fde68a','#f9a8d4','#99f6e4'];
@@ -24264,10 +24272,25 @@ window.addEventListener("message",function(e){
   /* SL_SEARCH_ALL_TABS_v1: the search box filters every tab (it used to only filter Timeline) */
   function slQ(s){ var q = (S.q || '').toLowerCase(); return !q || String(s || '').toLowerCase().indexOf(q) !== -1; }
   function slTabBody(){ return S.tab === 'actions' ? actionsTabHtml() : S.tab === 'decisions' ? decisionsTabHtml() : S.tab === 'files' ? filesTabHtml() : timelineHtml(); }
+  /* SL_OWNER_FILTER_v1: owner chips on the Action items tab. Counts are open items and respect the folder + search. */
+  function slOwnerName(o){ o = String(o || '').trim(); return o ? o.charAt(0).toUpperCase() + o.slice(1) : ''; }
+  function slOwnerKeys(s){ var k = owners(s).map(function(o){ return o.trim().toLowerCase(); }).filter(Boolean); return k.length ? k : ['__none']; }
+  function slOwnerBar(list){
+    var c = {}, label = {};
+    list.forEach(function(a){ if (a.done) return; var names = owners(a.owner); slOwnerKeys(a.owner).forEach(function(k, i){ c[k] = (c[k] || 0) + 1; if (!label[k]) label[k] = k === '__none' ? 'Unassigned' : slOwnerName(names[i]); }); });
+    var keys = Object.keys(c).sort(function(x, y){ if (x === '__none') return 1; if (y === '__none') return -1; return (c[y] - c[x]) || label[x].localeCompare(label[y]); });
+    if (S.owner && !c[S.owner]) { keys.unshift(S.owner); c[S.owner] = 0; label[S.owner] = S.owner === '__none' ? 'Unassigned' : slOwnerName(S.owner); }
+    if (!keys.length) return '';
+    var total = list.filter(function(a){ return !a.done; }).length;
+    return '<div class="sl-owners"><span class="lbl">Owner</span><button class="sl-ochip all' + (!S.owner ? ' on' : '') + '" data-sl="owner" data-id="">Everyone <b>' + total + '</b></button>'
+      + keys.map(function(k){ return '<button class="sl-ochip' + (k === '__none' ? ' all' : '') + (S.owner === k ? ' on' : '') + '" data-sl="owner" data-id="' + esc(k) + '">' + (k === '__none' ? '' : avatar(label[k])) + esc(label[k]) + ' <b>' + c[k] + '</b></button>'; }).join('') + '</div>';
+  }
   function actionsTabHtml(){
     var list = S.actions.filter(function(a){ var m = a.meeting_id ? meetingById(a.meeting_id) : null; return (!S.folder || (m && inFolder(m)) || (!m && !S.folder)) && slQ(a.text + ' ' + (a.owner || '') + ' ' + (a.due || '') + ' ' + (m ? m.title : '')); });
+    var bar = slOwnerBar(list);
+    if (S.owner) list = list.filter(function(a){ return slOwnerKeys(a.owner).indexOf(S.owner) !== -1; });
     var open = list.filter(function(a){ return !a.done; }), done = list.filter(function(a){ return a.done; });
-    return '<div class="sl-panel">' + addActionRow('') + (open.length ? open.map(function(a){ return actionRow(a, 'tab'); }).join('') : '<div style="color:var(--muted);font-size:13.5px;padding:8px 0">No open items.</div>')
+    return bar + '<div class="sl-panel">' + addActionRow('') + (open.length ? open.map(function(a){ return actionRow(a, 'tab'); }).join('') : '<div style="color:var(--muted);font-size:13.5px;padding:8px 0">No open items.</div>')
       + (done.length ? '<button class="sl-more" data-sl="show-done">' + (S.showDone ? 'Hide' : 'Show') + ' ' + done.length + ' done</button>' + (S.showDone ? done.map(function(a){ return actionRow(a, 'tab'); }).join('') : '') : '') + '</div>';
   }
   function decisionsTabHtml(){
@@ -24463,6 +24486,7 @@ window.addEventListener("message",function(e){
     var act = b.getAttribute('data-sl'), id = b.getAttribute('data-id');
     if (act === 'tab') { S.tab = b.getAttribute('data-tab'); render(); var g = v.querySelector('.sl-grid'); if (g && b.classList.contains('sl-stat')) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (act === 'folder') { S.folder = (S.folder === id) ? '' : id; render(); return; }
+    if (act === 'owner') { S.owner = (S.owner === id) ? '' : (id || ''); var omb = $('slMainBody'); if (omb) omb.innerHTML = slTabBody(); return; }
     if (act === 'open') { openDrawer(id); return; }
     if (act === 'close') { closeDrawer(); return; }
     if (act === 'new') { openDrawer('__new'); return; }
