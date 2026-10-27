@@ -32,6 +32,8 @@ jobs:
           # files. Root *.js is NOT staged wholesale on purpose - the repo root holds helper
           # snippets that should never be public - so name each page script explicitly.
           cp spark-brand.js site/ 2>/dev/null || true
+          # MY_LINKS_v1: shell add-on (My links + Update my photo), loaded by spark-home.html
+          cp my-links.js site/ 2>/dev/null || true
           if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
