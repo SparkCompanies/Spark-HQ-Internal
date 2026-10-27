@@ -34,6 +34,8 @@ jobs:
           cp spark-brand.js site/ 2>/dev/null || true
           # MY_LINKS_v1: shell add-on (My links + Update my photo), loaded by spark-home.html
           cp my-links.js site/ 2>/dev/null || true
+          # VIEW_AS_v1: super-admin "View as" picker, loaded by spark-home.html the same way.
+          cp viewas.js site/ 2>/dev/null || true
           if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
