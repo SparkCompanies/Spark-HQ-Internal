@@ -36,6 +36,8 @@ jobs:
           cp my-links.js site/ 2>/dev/null || true
           # VIEW_AS_v1: super-admin "View as" picker, loaded by spark-home.html the same way.
           cp viewas.js site/ 2>/dev/null || true
+          # ACCESS_v1: Admin > Access screen, loaded by spark-home.html the same way.
+          cp access.js site/ 2>/dev/null || true
           if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
