@@ -1,4 +1,4 @@
-/* TRAFFIC_BY_PERSON_v1 — Admin > Where people go > By person
+/* TRAFFIC_BY_PERSON_v1.1 — Admin > Where people go > By person
    Loaded into the HQ shell by spark-home.html (same path as my-links.js / viewas.js / access.js).
    The existing "Where people go" pane already records every tab change with who and when (worker /track) but
    only shows totals by tab. This adds a per-person view on the same data: who is using HQ, when they were last in,
@@ -21,46 +21,46 @@
   };
 
   var CSS = "" +
-    "#tfPeople{margin-top:26px;font-family:Outfit,Inter,system-ui,sans-serif}" +
-    "#tfPeople svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}" +
-    "#tfPeople .tp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}" +
-    "#tfPeople h3{margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}" +
-    "#tfPeople .tp-sub{font-size:12.5px;color:#6B675C;margin:4px 0 0}" +
-    "#tfPeople .tp-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}" +
-    "#tfPeople .tp-search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #ddd7c8;border-radius:10px;padding:0 10px;color:#6B675C}" +
-    "#tfPeople .tp-search input{border:0;outline:0;padding:8px 0;font:13px Outfit,Inter,system-ui,sans-serif;background:transparent;width:200px;color:#1a1915}" +
-    "#tfPeople .tp-chip{border:1px solid #ddd7c8;background:#fff;border-radius:999px;padding:6px 11px;font:600 12px Outfit,Inter,system-ui,sans-serif;cursor:pointer;color:#6B675C;display:inline-flex;align-items:center;gap:6px}" +
-    "#tfPeople .tp-chip.on{background:#0D0E1A;color:#FFC800;border-color:#0D0E1A}" +
-    "#tfPeople .tp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}" +
-    "#tfPeople .tp-tile{background:#fff;border:1px solid #ece8de;border-radius:12px;padding:12px 14px}" +
-    "#tfPeople .tp-tile b{display:block;font-size:22px;line-height:1.1}" +
-    "#tfPeople .tp-tile span{font-size:11px;color:#6B675C;text-transform:uppercase;letter-spacing:.4px;font-weight:600}" +
-    "#tfPeople table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #ece8de;border-radius:14px;overflow:hidden}" +
-    "#tfPeople th{text-align:left;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#9a9484;font-weight:700;padding:11px 14px;background:#fbf9f3;border-bottom:1px solid #ece8de;cursor:pointer;user-select:none}" +
-    "#tfPeople th.on{color:#1a1915}" +
-    "#tfPeople td{padding:10px 14px;border-bottom:1px solid #f1ede3;vertical-align:middle;font-size:13px}" +
-    "#tfPeople tr.p{cursor:pointer}" +
-    "#tfPeople tr.p:hover td{background:#fdfbf4}" +
-    "#tfPeople tr.p.open td{background:#fff8dc}" +
-    "#tfPeople .who{display:flex;align-items:center;gap:10px;min-width:0}" +
-    "#tfPeople .av{width:30px;height:30px;border-radius:50%;background:#0D0E1A;color:#FFC800;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}" +
-    "#tfPeople .nm{font-weight:600}" +
-    "#tfPeople .em{font-size:11px;color:#6B675C}" +
-    "#tfPeople .bar{display:inline-block;height:6px;border-radius:3px;background:#FFC800;vertical-align:middle;margin-right:8px}" +
-    "#tfPeople .top{display:flex;gap:5px;flex-wrap:wrap}" +
-    "#tfPeople .tag{font-size:11px;background:#f3efe4;border-radius:999px;padding:2px 8px;color:#1a1915;white-space:nowrap}" +
-    "#tfPeople .tag i{font-style:normal;color:#9a9484;margin-left:3px}" +
-    "#tfPeople .chev svg{transition:transform .15s;color:#9a9484}" +
-    "#tfPeople tr.open .chev svg{transform:rotate(90deg)}" +
-    "#tfPeople .path{padding:4px 14px 14px 54px;background:#fffdf5}" +
-    "#tfPeople .day{font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#9a9484;font-weight:700;margin:12px 0 6px}" +
-    "#tfPeople .ev{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:3px 0}" +
-    "#tfPeople .ev .t{font-variant-numeric:tabular-nums;color:#6B675C;width:64px;flex:none}" +
-    "#tfPeople .ev .d{width:6px;height:6px;border-radius:50%;background:#FFC800;flex:none}" +
-    "#tfPeople .ev .d.action{background:#38bdf8}" +
-    "#tfPeople .ev .d.admin{background:#a78bfa}" +
-    "#tfPeople .ev .dev{font-size:10.5px;color:#9a9484;margin-left:auto}" +
-    "#tfPeople .empty{padding:22px;text-align:center;color:#6B675C;font-size:13px}";
+    "#tpByPerson{margin-top:26px;font-family:Outfit,Inter,system-ui,sans-serif}" +
+    "#tpByPerson svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}" +
+    "#tpByPerson .tp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}" +
+    "#tpByPerson h3{margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}" +
+    "#tpByPerson .tp-sub{font-size:12.5px;color:#6B675C;margin:4px 0 0}" +
+    "#tpByPerson .tp-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}" +
+    "#tpByPerson .tp-search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #ddd7c8;border-radius:10px;padding:0 10px;color:#6B675C}" +
+    "#tpByPerson .tp-search input{border:0;outline:0;padding:8px 0;font:13px Outfit,Inter,system-ui,sans-serif;background:transparent;width:200px;color:#1a1915}" +
+    "#tpByPerson .tp-chip{border:1px solid #ddd7c8;background:#fff;border-radius:999px;padding:6px 11px;font:600 12px Outfit,Inter,system-ui,sans-serif;cursor:pointer;color:#6B675C;display:inline-flex;align-items:center;gap:6px}" +
+    "#tpByPerson .tp-chip.on{background:#0D0E1A;color:#FFC800;border-color:#0D0E1A}" +
+    "#tpByPerson .tp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}" +
+    "#tpByPerson .tp-tile{background:#fff;border:1px solid #ece8de;border-radius:12px;padding:12px 14px}" +
+    "#tpByPerson .tp-tile b{display:block;font-size:22px;line-height:1.1}" +
+    "#tpByPerson .tp-tile span{font-size:11px;color:#6B675C;text-transform:uppercase;letter-spacing:.4px;font-weight:600}" +
+    "#tpByPerson table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #ece8de;border-radius:14px;overflow:hidden}" +
+    "#tpByPerson th{text-align:left;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#9a9484;font-weight:700;padding:11px 14px;background:#fbf9f3;border-bottom:1px solid #ece8de;cursor:pointer;user-select:none}" +
+    "#tpByPerson th.on{color:#1a1915}" +
+    "#tpByPerson td{padding:10px 14px;border-bottom:1px solid #f1ede3;vertical-align:middle;font-size:13px}" +
+    "#tpByPerson tr.p{cursor:pointer}" +
+    "#tpByPerson tr.p:hover td{background:#fdfbf4}" +
+    "#tpByPerson tr.p.open td{background:#fff8dc}" +
+    "#tpByPerson .who{display:flex;align-items:center;gap:10px;min-width:0}" +
+    "#tpByPerson .av{width:30px;height:30px;border-radius:50%;background:#0D0E1A;color:#FFC800;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}" +
+    "#tpByPerson .nm{font-weight:600}" +
+    "#tpByPerson .em{font-size:11px;color:#6B675C}" +
+    "#tpByPerson .bar{display:inline-block;height:6px;border-radius:3px;background:#FFC800;vertical-align:middle;margin-right:8px}" +
+    "#tpByPerson .top{display:flex;gap:5px;flex-wrap:wrap}" +
+    "#tpByPerson .tag{font-size:11px;background:#f3efe4;border-radius:999px;padding:2px 8px;color:#1a1915;white-space:nowrap}" +
+    "#tpByPerson .tag i{font-style:normal;color:#9a9484;margin-left:3px}" +
+    "#tpByPerson .chev svg{transition:transform .15s;color:#9a9484}" +
+    "#tpByPerson tr.open .chev svg{transform:rotate(90deg)}" +
+    "#tpByPerson .path{padding:4px 14px 14px 54px;background:#fffdf5}" +
+    "#tpByPerson .day{font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#9a9484;font-weight:700;margin:12px 0 6px}" +
+    "#tpByPerson .ev{display:flex;align-items:center;gap:10px;font-size:12.5px;padding:3px 0}" +
+    "#tpByPerson .ev .t{font-variant-numeric:tabular-nums;color:#6B675C;width:64px;flex:none}" +
+    "#tpByPerson .ev .d{width:6px;height:6px;border-radius:50%;background:#FFC800;flex:none}" +
+    "#tpByPerson .ev .d.action{background:#38bdf8}" +
+    "#tpByPerson .ev .d.admin{background:#a78bfa}" +
+    "#tpByPerson .ev .dev{font-size:10.5px;color:#9a9484;margin-left:auto}" +
+    "#tpByPerson .empty{padding:22px;text-align:center;color:#6B675C;font-size:13px}";
 
   function css() { if (document.getElementById("tfPeopleCss")) return; var s = document.createElement("style"); s.id = "tfPeopleCss"; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -116,7 +116,7 @@
   function fmtDay(s) { var d = new Date(s + "T12:00:00"); return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }); }
 
   function render() {
-    var host = document.getElementById("tfPeople"); if (!host) return;
+    var host = document.getElementById("tpByPerson"); if (!host) return;
     var list = Object.keys(people).map(function (k) { return people[k]; });
     var allDir = Object.keys(dir || {}).filter(function (em) { return dir[em].active !== false; });
     var silent = allDir.filter(function (em) { return !people[em]; });
@@ -199,10 +199,14 @@
 
   /* ---------- boot ---------- */
   function mount() {
-    var pane = document.querySelector('.admin-pane[data-admin-pane="traffic"]'); if (!pane || document.getElementById("tfPeople")) return;
+    var pane = document.querySelector('.admin-pane[data-admin-pane="traffic"]'); if (!pane || document.getElementById("tpByPerson")) return;
     css();
-    var host = document.createElement("div"); host.id = "tfPeople"; host.innerHTML = '<div class="empty">Open “Where people go” to load activity by person.</div>';
-    var sec = pane.querySelector(".admin-section") || pane; sec.appendChild(host);
+    var host = document.createElement("div"); host.id = "tpByPerson"; host.innerHTML = '<div class="empty">Open “Where people go” to load activity by person.</div>';
+    // The pane already has a small per-person table (tbody#tpByPerson: visits, top tabs, last active). This view
+    // supersedes it, so it takes that card's place and the old card is hidden rather than shown twice.
+    var oldBody = document.getElementById("tfPeople"), oldCard = oldBody && oldBody.closest("table") && oldBody.closest("table").parentElement;
+    if (oldCard && oldCard !== pane) { oldCard.parentElement.insertBefore(host, oldCard); oldCard.style.display = "none"; }
+    else { var sec = pane.querySelector(".admin-section") || pane; sec.appendChild(host); }
     // Follow the pane's own range buttons (7 / 30 / 90) and Refresh.
     pane.querySelectorAll("#tfRange button").forEach(function (b) { b.addEventListener("click", function () { days = +b.getAttribute("data-d") || days; load(); }); });
     pane.querySelectorAll("button").forEach(function (b) { if (/refresh/i.test(b.textContent)) b.addEventListener("click", function () { load(); }); });
