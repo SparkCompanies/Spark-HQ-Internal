@@ -84,7 +84,9 @@
   function applyGates() {
     if (!state) return;
     var done = function (p) { viewPerms = p || {}; paintGates(); };
-    if (!state.email) { done({}); return; }
+    // Hide the gated tabs right away (no grants) so nothing flashes while the lookup runs.
+    viewPerms = {}; paintGates();
+    if (!state.email) { return; }
     try {
       var c = window.SPARK_SB.getClient();
       c.rpc("my_permissions", { p_email: state.email }).then(function (r) { done((r && r.data) || {}); }).catch(function () { done({}); });
