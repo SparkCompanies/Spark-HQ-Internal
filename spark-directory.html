@@ -670,7 +670,27 @@ li.col .tog svg{transform:rotate(-90deg)}
 
   if(!inShell) $('previewBar').hidden=false;
   load();
-})();
+  /* DIR_EXPORT_v1: admins can download the directory as Excel (name, title, phone, mobile, email, team, company). Exports the people currently shown, so a team filter or search narrows the file. */
+  (function(){
+        var btn=document.createElement('button'); btn.className='pbtn'; btn.id='tExport'; btn.type='button'; btn.style.display='none'; btn.title='Download the people shown as an Excel file';
+        btn.innerHTML='<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>Export';
+        var pr=document.getElementById('tPrint'); if(pr&&pr.parentNode) pr.parentNode.insertBefore(btn,pr);
+        function lib(){ return window.XLSX ? Promise.resolve(window.XLSX) : new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=function(){ res(window.XLSX); }; s.onerror=function(){ rej(new Error('Could not load the Excel library. Check your connection and try again.')); }; document.head.appendChild(s); }); }
+        btn.onclick=function(){
+                var list=(typeof filtered==='function') ? filtered() : PEOPLE;
+                btn.disabled=true;
+                lib().then(function(X){
+                          var rows=list.map(function(p){ return { 'Name':p.name||'', 'Title':p.title||'', 'Phone':p.phone||'', 'Mobile':p.mobile||'', 'Email':p.email||'', 'Team':p.department||'', 'Company':p.company||'' }; });
+                          var ws=X.utils.json_to_sheet(rows); ws['!cols']=[{wch:26},{wch:34},{wch:16},{wch:16},{wch:36},{wch:24},{wch:26}];
+                          var wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,'Directory');
+                          var d=new Date(), stamp=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+                          X.writeFile(wb,'Spark-Directory-'+stamp+'.xlsx');
+                }).catch(function(e){ alert(e.message||e); }).then(function(){ btn.disabled=false; });
+        };
+        var t=setInterval(function(){ if(PEOPLE.length){ clearInterval(t); btn.style.display=CAN_EDIT?'':'none'; } },500);
+  })();
+  
+  })();
 </script>
 </body>
 </html>
