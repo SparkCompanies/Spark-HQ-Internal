@@ -5086,6 +5086,116 @@ var worker_default = {
         return json({ error: String(e.message || e) }, 502, origin);
       }
     }
+    // ---- PLUGIN BOARD v1 routes (/pi-board, /pi-state-load, /pi-state-save) ----
+
+    if (url.pathname === "/pi-board") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const fresh = url.searchParams.get("fresh") === "1";
+        const now = Date.now();
+        if (!fresh && globalThis.__piBoardCache && now - globalThis.__piBoardCache.at < 10 * 60 * 1000) {
+          return json(Object.assign({ cached: true }, globalThis.__piBoardCache.payload), 200, origin);
+        }
+
+        // Runs a SOQL; if Salesforce rejects a column we guessed, drop it and retry (max 6 times).
+        // Lets the board keep working if a custom field is renamed or missing on this org.
+        const safeQuery = async function (fields, from, where, order) {
+          let list = fields.slice();
+          const dropped = [];
+          for (let i = 0; i < 6; i++) {
+            const soql = "SELECT " + list.join(", ") + " FROM " + from + (where ? " WHERE " + where : "") + (order ? " ORDER BY " + order : "");
+            const res = await runSalesforceQueryAll(env, soql);
+            if (res.ok) return { records: res.records || [], dropped, soql };
+            const m = /No such column '([^']+)'/i.exec(res.error || "") || /Didn't understand relationship '([^']+)'/i.exec(res.error || "");
+            if (!m) return { records: [], dropped, soql, error: res.error };
+            const bad = m[1];
+            const before = list.length;
+            list = list.filter(function (f) { return f !== bad && f.indexOf(bad + ".") !== 0 && f.indexOf(bad + "__r") !== 0; });
+            if (list.length === before) return { records: [], dropped, soql, error: res.error };
+            dropped.push(bad);
+          }
+          return { records: [], dropped, error: "too many missing columns" };
+        };
+
+        const jobs = await safeQuery(
+          ["Id", "Name", "bpats__Job_Title__c", "bpats__Account_Name__c", "bpats__Account__c", "bpats__Status__c",
+           "Subdivision__c", "Job_Classification__c", "Job_Subclassification__c",
+           "bpats__Number_of_Openings__c", "bpats__Openings_Filled__c",
+           "Recruiter__c", "Recruiter__r.Name", "Account_Manager__r.Name", "User__r.Name", "Owner.Name",
+           "bpats__Hiring_Manager__r.Name", "bpats__Bill_Rate__c", "bpats__Pay_Rate__c", "Burden_Percent__c",
+           "Req_Score__c", "Target_Rate__c", "Top_5_Skill_Sets__c", "Hiring_Manager_Alignment__c", "Interview_Time__c",
+           "bpats__Start_Date__c", "bpats__Type__c", "CreatedDate", "LastModifiedDate"],
+          "bpats__Job__c", "bpats__Status__c = 'Open'", "CreatedDate DESC");
+
+        const apps = await safeQuery(
+          ["Id", "bpats__Job__c", "Stage_name__c", "bpats__Stage__r.Name", "bpats__Stage__r.bpats__Stage_Type__c",
+           "bpats__Applicant_Status__c", "bpats__Days_in_Current_Stage__c", "bpats__Recruited_By__r.Name",
+           "CreatedDate", "LastModifiedDate"],
+          "bpats__ATS_Applicant__c", "bpats__Job__r.bpats__Status__c = 'Open'", null);
+
+        // Active headcount + 90-day starts/terms, by job business unit
+        const pls = await safeQuery(
+          ["Id", "Status__c", "bpats__Start_Date__c", "Terminated_Date__c", "bpats__ATS_Job__c",
+           "bpats__ATS_Job__r.Subdivision__c", "bpats__Account__r.Name", "bpats__ATS_Candidate__r.Name"],
+          "bpats__Placement__c",
+          "(bpats__Start_Date__c <= TODAY AND (Terminated_Date__c = null OR Terminated_Date__c >= LAST_N_DAYS:90)) OR bpats__Start_Date__c = NEXT_N_DAYS:30",
+          null);
+
+        const payload = {
+          ok: true,
+          asOf: new Date().toISOString(),
+          by: who.email,
+          jobs: jobs.records,
+          applicants: apps.records,
+          placements: pls.records,
+          diag: {
+            jobs: { n: jobs.records.length, dropped: jobs.dropped, error: jobs.error || null },
+            applicants: { n: apps.records.length, dropped: apps.dropped, error: apps.error || null },
+            placements: { n: pls.records.length, dropped: pls.dropped, error: pls.error || null }
+          }
+        };
+        // Never cache a Salesforce failure
+        if (!jobs.error) globalThis.__piBoardCache = { at: now, payload };
+        return json(payload, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
+
+    if (url.pathname === "/pi-state-load") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const keys = String(url.searchParams.get("keys") || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 30);
+        let path = "pi_board_state?select=key,value,updated_at,updated_by";
+        if (keys.length) path += "&key=in.(" + keys.map(encodeURIComponent).join(",") + ")";
+        const r = await sbService(env, "GET", path);
+        if (!r.ok) return json({ error: "state load failed: " + JSON.stringify(r.data).slice(0, 200) }, 502, origin);
+        const out = {};
+        (r.data || []).forEach(function (row) { out[row.key] = { value: row.value, updated_at: row.updated_at, updated_by: row.updated_by }; });
+        return json({ ok: true, state: out }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
+
+    if (url.pathname === "/pi-state-save" && request.method === "POST") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      try {
+        const body = await request.json();
+        const key = String(body.key || "").trim().slice(0, 120);
+        if (!key || typeof body.value === "undefined") return json({ error: "key and value required" }, 400, origin);
+        const row = { key, value: body.value, updated_at: new Date().toISOString(), updated_by: who.email };
+        const up = await sbService(env, "POST", "pi_board_state?on_conflict=key", [row]);
+        if (!up.ok) return json({ error: "state save failed: " + JSON.stringify(up.data).slice(0, 200) }, 502, origin);
+        await sbService(env, "POST", "pi_board_state_versions", [{ key, value: body.value, saved_at: row.updated_at, saved_by: who.email }]);
+        return json({ ok: true, key, updated_at: row.updated_at, updated_by: who.email }, 200, origin);
+      } catch (e) {
+        return json({ error: String(e.message || e) }, 502, origin);
+      }
+    }
     if (url.pathname === "/sf-query") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
