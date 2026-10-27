@@ -1,4 +1,4 @@
-/* ACCESS_v1 — Admin > Access
+/* ACCESS_v1.1 — Admin > Access
    Loaded into the HQ shell by spark-home.html (same path as my-links.js and viewas.js; index.html is too large to
    edit on github.com). Replaces the "People & roles" admin pane with one screen that answers one question per
    person: what can they get to?
@@ -279,8 +279,12 @@
     t = t || 0;
     var ready = pane() && window.SPARK_SB && window.SPARK_SB.getClient && window.SPARK_SB.whoami && window.SPARK_SB.whoami();
     if (!ready) { if (t < 60) setTimeout(function () { boot(t + 1); }, 700); return; }
-    refresh();
-    // Re-pull whenever the sub-tab is opened, so a change made in another tab shows up.
+    injectCss();
+    // Lazy: nothing is fetched until the Access sub-tab is actually opened, so this add-on costs members
+    // nothing on page load (just the 7 KB script). Re-pulled on every open so changes made elsewhere show up.
+    var p = pane();
+    if (p && p.style.display !== "none" && p.offsetParent !== null) refresh();
+    else p.innerHTML = '<div class="acc"><div class="acc-empty">Open Access to load team members.</div></div>';
     document.addEventListener("click", function (e) {
       var b = e.target && e.target.closest && e.target.closest('.admin-subnav-item[data-admin-tab="people-admin"]');
       if (b) setTimeout(refresh, 60);
