@@ -250,7 +250,7 @@
   if (bdsw && bdgrid) {
     var bdBrand = BRANDS[0];
 
-    bdsw.innerHTML = BRANDS.map(function (b) {
+    bdsw.innerHTML = BRANDS.filter(function (b) { return b.key !== "jjp" && b.key !== "flex" && b.key !== "packaging"; }).map(function (b) {
       var has = !!BACKDROP_SETS[b.key];
       return '<button data-bd="' + b.key + '" style="--c:' + (b.gold || "#FFC800") + '"' +
              (has ? "" : ' title="No backdrops yet"') + '>' +
