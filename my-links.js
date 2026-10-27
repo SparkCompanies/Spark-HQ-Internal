@@ -73,8 +73,8 @@
     var w = d.createElement('div'); w.className = 'ml-wrap';
     w.innerHTML = '<button type="button" class="ml-btn" id="mlBtn" aria-haspopup="true" aria-expanded="false"><span class="ic">' + STAR + '</span>My links <span class="ct" id="mlCount"></span></button>'
       + '<div class="ml-pop" id="mlPop" role="dialog" aria-label="My links"><div class="ml-h">My links</div><div id="mlList"></div>'
-      + '<form class="ml-form" id="mlForm" autocomplete="off"><input id="mlLabel" maxlength="40" placeholder="Name, like FB Marketplace" aria-label="Link name" required>'
-      + '<input id="mlUrl" maxlength="500" placeholder="Web address, like facebook.com/marketplace" aria-label="Web address" required>'
+      + '<form class="ml-form" id="mlForm" autocomplete="off"><input id="mlLabel" maxlength="40" placeholder="Name, like LinkedIn" aria-label="Link name" required>'
+      + '<input id="mlUrl" maxlength="500" placeholder="Web address, like linkedin.com" aria-label="Web address" required>'
       + '<div class="ml-msg" id="mlMsg" aria-live="polite"></div><button type="submit">Add link</button></form></div>';
     bar.parentNode.insertBefore(w, bar.nextSibling);
     var btn = d.getElementById('mlBtn'), pop = d.getElementById('mlPop'), msg = d.getElementById('mlMsg');
