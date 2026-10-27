@@ -3094,6 +3094,8 @@ window.addEventListener('load',function(){setTimeout(function(){try{
 /* MY_LINKS_LOADER_v1: this page runs inside the HQ shell (index.html), which is too big to edit on github.com.
    Load the shell add-ons (My links next to Quick Actions, Update my photo in the account menu) into the parent page. */
 (function(){try{var p=window.parent; if(!p||p===window||p.__hqMyLinks||p.document.getElementById('myLinksJs')) return; var s=p.document.createElement('script'); s.id='myLinksJs'; s.src='/my-links.js'; p.document.head.appendChild(s);}catch(e){}})();
+  /* VIEW_AS_v1: same path for the View-as picker (super admins see HQ as any team member). */
+  (function(){try{var p=window.parent; if(!p||p===window||p.__hqViewAs||p.document.getElementById('viewAsJs')) return; var s=p.document.createElement('script'); s.id='viewAsJs'; s.src='/viewas.js'; p.document.head.appendChild(s);}catch(e){}})();
 </script>
 </body>
 </html>
