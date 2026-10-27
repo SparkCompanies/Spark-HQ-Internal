@@ -242,7 +242,16 @@
     talent: [
       { slug:"dark",    name:"Signed wall, dark",   note:"Charcoal wall, warm shelf light" },
       { slug:"bright",  name:"Signed wall, bright", note:"Daylight, living wall behind" },
-      { slug:"graphic", name:"Graphic",             note:"No room, just the mark" }
+      { slug:"graphic", name:"Graphic",             note:"No room, just the mark" },
+      { slug:"loft", name:"Loft, daylight", note:"White wall, wood slats, city window" },
+      { slug:"harvest-dark", name:"Harvest, dark", note:"Charcoal wall, fall leaves, pumpkins" },
+      { slug:"winter-bright", name:"Winter, bright", note:"White wall, snowy window, frosted pine" },
+      { slug:"brick", name:"Brick", note:"Exposed brick, black steel shelving" },
+      { slug:"gold-edge", name:"Gold edge", note:"Dark wall, lit gold edges" },
+      { slug:"harvest-cream", name:"Harvest, cream", note:"Warm cream wall, fall leaves, pumpkins" },
+      { slug:"winter-navy", name:"Winter, navy", note:"Navy wall, snow outside, candles" },
+      { slug:"harvest-glow", name:"Harvest, glow", note:"Cream wall, autumn window light" },
+      { slug:"winter-slate", name:"Winter, slate", note:"Slate wall, mountain snow window" }
     ]
   };
 
