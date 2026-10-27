@@ -237,8 +237,16 @@
     companies: [
       { slug:"dark",    name:"Signed wall, dark",   note:"Charcoal wall, warm shelf light" },
       { slug:"bright",  name:"Signed wall, bright", note:"Daylight, living wall behind" },
-      { slug:"graphic", name:"Graphic",             note:"No room, just the mark" }
+      { slug:"graphic", name:"Graphic",             note:"No room, just the mark" },
+      { slug:"loft", name:"Loft, daylight", note:"White wall, city window, wood shelving" },
+      { slug:"harvest", name:"Harvest", note:"Cream wall, fall leaves, pumpkins" },
+      { slug:"winter", name:"Winter", note:"White wall, snowy pines, lantern" }
     ],
+    ignite: [
+      { slug:"loft", name:"Loft, daylight", note:"White wall, city window, wood shelving" },
+      { slug:"harvest", name:"Harvest", note:"Cream wall, fall leaves, pumpkins" },
+      { slug:"winter", name:"Winter", note:"White wall, snowy pines, lantern" }
+      ],
     talent: [
       { slug:"dark",    name:"Signed wall, dark",   note:"Charcoal wall, warm shelf light" },
       { slug:"bright",  name:"Signed wall, bright", note:"Daylight, living wall behind" },
