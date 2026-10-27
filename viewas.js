@@ -1,4 +1,4 @@
-/* VIEW_AS_v2
+/* VIEW_AS_v3
    Loaded into the HQ shell (index.html) by spark-home.html, same path as my-links.js, because index.html is too
    large to edit on github.com.
    "View as": lets a super admin see HQ exactly as a given team member sees it. Two things decide what a person
@@ -65,7 +65,13 @@
      them. That lookup is for the signed-in admin, so a view-as must re-run it for the viewed person and apply the
      same rule gateRender() uses, or the picture is wrong. "Any member" = no grants, which is what a member with no
      app role or exception gets today. */
-  var GATE = { tools: "tab:tools", people: "tab:people", careers: "tab:career", srlead: "tab:srleadership" };
+  // After the ACCESS_v1 patch index.html publishes which tabs are still gated; before it, assume the original four.
+  var GATE_ALL = { tools: "tab:tools", people: "tab:people", careers: "tab:career", srlead: "tab:srleadership" };
+  function gateMap() {
+    var g = window.HQ_GATED_TABS;
+    if (!g || !g.length) return GATE_ALL;
+    var out = {}; g.forEach(function (t) { if (GATE_ALL[t]) out[t] = GATE_ALL[t]; }); return out;
+  }
   var viewPerms = null;
   function permOk(p, key) {
     if (!p) return true;
@@ -76,6 +82,7 @@
   }
   function paintGates() {
     if (!state || !viewPerms) return;
+    var GATE = gateMap();
     Object.keys(GATE).forEach(function (tab) {
       var ok = tab === "srlead" ? viewPerms[GATE[tab]] === true : permOk(viewPerms, GATE[tab]);
       document.querySelectorAll('.nav-item[data-tab="' + tab + '"]').forEach(function (b) { b.style.display = ok ? "" : "none"; });
@@ -261,6 +268,9 @@
       });
     });
   }
+
+  // Public hook so Admin > Access can start a view from a row.
+  window.hqViewAs = { start: function (email, role, label) { startView(email, role, label); }, exit: exitView };
 
   /* ---------- boot ---------- */
   function boot(t) {
