@@ -10,6 +10,10 @@ jobs:
     name: Deploy static file
     steps:
       - uses: actions/checkout@v4
+      # ACCESS_v1: index.html is too big to edit on github.com, so the pending patch is applied to the build copy here.
+      # Idempotent; prints "already applied" once index.html in the repo carries the change.
+      - name: Apply pending index.html patches
+        run: CI=1 node apply-access-v1.cjs || echo "patch skipped"
       - name: Stage site
         run: |
           mkdir -p site
