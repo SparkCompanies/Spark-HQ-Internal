@@ -21,10 +21,7 @@
     { key:"packaging", name:"Spark Packaging", mark:"\u2122", svg:"brand/spark-packaging.svg", png:"brand/spark-packaging-wordmark.png", rev:"brand/spark-packaging-reversed.svg", revPng:"brand/spark-packaging-reversed.png",
       gold:"#FFDE59", dark:"#3E3E3E", note:"Packaging and co-manufacturing talent. Carries \u2122 while the mark is pending.",
       alts:[ {label:"Circle badge", png:"brand/spark-packaging-logo.png"},
-             {label:"Reversed", png:"brand/spark-packaging-reversed.png"} ] },
-    { key:"bolt", name:"Bolt Creative", mark:"", svg:"brand/bolt-creative.svg", png:"bolt-creative-logo.png",
-      rev:"brand/bolt-creative-lime.svg",
-      gold:"#C6FF3D", dark:"#0D0E1A", note:"The in-house creative studio. Lime on dark, ink on light." }
+             {label:"Reversed", png:"brand/spark-packaging-reversed.png"} ] }
   ];
 
   var esc = function (s) {
@@ -350,7 +347,6 @@
                  jjp:"JJP gold", flex:"Flex orange", packaging:"Packaging gold" };
   var SW = [];
   BRANDS.forEach(function (b) {
-    if (b.key === "bolt") return;
     SW.push({ nm: SWNAME[b.key] || b.name, hex: b.gold, who: b.house ? "Portfolio-wide" : b.name });
   });
   SW.push({ nm:"Night", hex:"#0D0E1A", who:"Spark Companies, Spark HQ", dark:true });
@@ -798,7 +794,7 @@
     { q: "Which is the registered trademark?",
       a: ["Spark Companies®", "Spark®", "SPARK™", "All of them"], right: 0,
       why: "The mark sits on the full name. “Spark” alone is not registered." },
-    { q: "You are building a slide that shows all seven brands together. Which gold do you use for the slide itself?",
+    { q: "You are building a slide that shows all six brands together. Which gold do you use for the slide itself?",
       a: ["Whichever gold you like", "The house gold, #FFC800", "Ignite’s #F2D216", "Mix them"], right: 1,
       why: "Entity golds are for work inside that one brand. Anything portfolio-wide uses the house gold." },
     { q: "You need the Ignite logo on a black background. What do you grab?",
