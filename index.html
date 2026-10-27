@@ -24261,20 +24261,24 @@ window.addEventListener("message",function(e){
   function addActionRow(mid){
     return '<div class="sl-addrow" data-mid="' + esc(mid || '') + '"><input class="t" type="text" maxlength="500" placeholder="New action item"><input class="o" type="text" maxlength="120" list="slOwners" placeholder="Owner"><input class="d" type="text" maxlength="40" placeholder="Due"><button class="sl-btn sl-btn-sm sl-btn-ink" data-sl="add-action">Add</button></div>';
   }
+  /* SL_SEARCH_ALL_TABS_v1: the search box filters every tab (it used to only filter Timeline) */
+  function slQ(s){ var q = (S.q || '').toLowerCase(); return !q || String(s || '').toLowerCase().indexOf(q) !== -1; }
+  function slTabBody(){ return S.tab === 'actions' ? actionsTabHtml() : S.tab === 'decisions' ? decisionsTabHtml() : S.tab === 'files' ? filesTabHtml() : timelineHtml(); }
   function actionsTabHtml(){
-    var list = S.actions.filter(function(a){ var m = a.meeting_id ? meetingById(a.meeting_id) : null; return !S.folder || (m && inFolder(m)) || (!m && !S.folder); });
+    var list = S.actions.filter(function(a){ var m = a.meeting_id ? meetingById(a.meeting_id) : null; return (!S.folder || (m && inFolder(m)) || (!m && !S.folder)) && slQ(a.text + ' ' + (a.owner || '') + ' ' + (a.due || '') + ' ' + (m ? m.title : '')); });
     var open = list.filter(function(a){ return !a.done; }), done = list.filter(function(a){ return a.done; });
     return '<div class="sl-panel">' + addActionRow('') + (open.length ? open.map(function(a){ return actionRow(a, 'tab'); }).join('') : '<div style="color:var(--muted);font-size:13.5px;padding:8px 0">No open items.</div>')
       + (done.length ? '<button class="sl-more" data-sl="show-done">' + (S.showDone ? 'Hide' : 'Show') + ' ' + done.length + ' done</button>' + (S.showDone ? done.map(function(a){ return actionRow(a, 'tab'); }).join('') : '') : '') + '</div>';
   }
   function decisionsTabHtml(){
     var rows = [];
-    S.meetings.filter(inFolder).forEach(function(m){ decisionsOf(m).forEach(function(d){ rows.push({ d: d, m: m }); }); });
-    if (!rows.length) return '<div class="sl-empty">No decisions logged yet.</div>';
+    S.meetings.filter(inFolder).forEach(function(m){ decisionsOf(m).forEach(function(d){ if (slQ(d + ' ' + m.title)) rows.push({ d: d, m: m }); }); });
+    if (!rows.length) return '<div class="sl-empty">' + (S.q ? 'No decisions match that search.' : 'No decisions logged yet.') + '</div>';
     return '<div class="sl-panel">' + rows.map(function(r){ return '<div class="sl-dec">' + esc(r.d) + '<span class="src" data-sl="open" data-id="' + esc(r.m.id) + '">' + esc(r.m.title) + ' · ' + fmtDate(r.m.meeting_date) + '</span></div>'; }).join('') + '</div>';
   }
   function filesTabHtml(){
     var list = S.attachments.filter(function(a){
+      if (!slQ(a.file_name)) return false;
       if (!S.folder) return true;
       if (a.series_id) return a.series_id === S.folder;
       var m = meetingById(a.meeting_id); return m && inFolder(m);
@@ -24308,7 +24312,7 @@ window.addEventListener("message",function(e){
     var fname = S.folder === '__unmapped' ? 'Unmapped' : (seriesById(S.folder) || {}).name;
     var body = S.tab === 'actions' ? actionsTabHtml() : S.tab === 'decisions' ? decisionsTabHtml() : S.tab === 'files' ? filesTabHtml() : timelineHtml();
     return '<section class="sl-grid"><div><div class="sl-bar"><div class="sl-tabs">' + tabs.map(function(t){ return '<button class="sl-tab' + (S.tab === t[0] ? ' on' : '') + '" data-sl="tab" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>'
-      + '<label class="sl-search"><input id="slSearch" type="search" placeholder="Search notes and decisions" value="' + esc(S.q) + '" autocomplete="off"></label></div>'
+      + '<label class="sl-search"><input id="slSearch" type="search" placeholder="Search notes, actions, decisions and files" value="' + esc(S.q) + '" autocomplete="off"></label></div>'
       + (fname ? '<div class="sl-filter">Showing: ' + esc(fname) + '<button data-sl="folder" data-id="' + esc(S.folder) + '" aria-label="Show all">&times;</button></div>' : '')
       + '<div id="slMainBody">' + body + '</div></div>' + sideHtml() + '</section>';
   }
@@ -24523,7 +24527,7 @@ window.addEventListener("message",function(e){
   function wire(){
     var v = $('view-srlead'); if (!v || v.__slWired) return; v.__slWired = true;
     v.addEventListener('click', onClick);
-    v.addEventListener('input', function(e){ if (e.target.id === 'slSearch') { S.q = e.target.value.trim(); var mb = $('slMainBody'); if (mb && S.tab === 'timeline') mb.innerHTML = timelineHtml(); } });
+    v.addEventListener('input', function(e){ if (e.target.id === 'slSearch') { S.q = e.target.value.trim(); var mb = $('slMainBody'); if (mb) mb.innerHTML = slTabBody(); } });
     v.addEventListener('change', function(e){
       if (e.target.classList && e.target.classList.contains('dp') && e.target.value) { var d = e.target.closest('.sl-duewrap').querySelector('.d'); d.value = e.target.value; }
     });
