@@ -1,4 +1,4 @@
-/* BENEFITS_v1.4 — Benefits & PTO tab + Admin > Benefits & PTO editor
+/* BENEFITS_v1.5 — Benefits & PTO tab + Admin > Benefits & PTO editor
    Loaded into the HQ shell by spark-home.html (same path as my-links.js, viewas.js, access.js and traffic.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -48,12 +48,12 @@
       ],
       request: [
         "Clear the dates with your leader first, especially for anything over two days.",
-        "Submit the request so it's on the books. Your leader approves it and the hours come out of your PTO.",
-        "Add it to your Outlook calendar as Out of Office so the team can see it."
+        "Log in to Greenshades (Green Employee) and submit your time-off request there. That's the only place PTO requests count.",
+        "Your leader approves it in Greenshades and the hours come out of your PTO. Add it to your Outlook calendar as Out of Office so the team can see it."
       ],
-      requestUrl: "",
-      requestLabel: "Request time off",
-      balanceUrl: "",
+      requestUrl: "https://www.greenemployee.com",
+      requestLabel: "Request PTO in Greenshades",
+      balanceUrl: "https://www.greenemployee.com",
       balanceLabel: "See my PTO balance"
     },
     holidays: {
@@ -325,6 +325,13 @@
     ".bf-banner{background:linear-gradient(90deg,#FFF3C4,#FFF9E3);border-color:#F0D277}" +
     ".bf-lk .ib{background:#FFD43B;color:#1a1a2e}.bf-ct .av{box-shadow:0 0 0 2px #FFD43B}" +
     ".bf-btn{border-color:rgba(232,190,60,.7)}.bf-meter{background:#FFF1C2}" +
+    /* GREENSHADES_CTA_v1 */
+    ".bf-gs{display:flex;align-items:center;gap:16px;margin:0 0 22px;padding:16px 18px;border-radius:16px;background:linear-gradient(100deg,#FFD43B 0%,#FFE27A 55%,#FFF1B8 100%);border:1px solid #F0BE12;box-shadow:0 0 0 4px rgba(255,212,59,.2),0 18px 34px -22px rgba(150,110,20,.7)}" +
+    ".bf-gs .gs-ic{width:46px;height:46px;border-radius:13px;background:#1a1a2e;color:#FFD43B;display:grid;place-items:center;flex:none}.bf-gs .gs-ic .bf-ic{width:22px;height:22px}" +
+    ".bf-gs .gs-tx{flex:1;min-width:0}.bf-gs .gs-tx b{display:block;font-size:17px;font-weight:800;color:#1a1a2e}.bf-gs .gs-tx span{display:block;font-size:13px;color:#3d3520;margin-top:2px;line-height:1.45}" +
+    ".bf-gs .gs-go{background:#1a1a2e;border-color:#1a1a2e;color:#fff;padding:12px 18px;font-size:14px;white-space:nowrap;flex:none}.bf-gs .gs-go:hover{background:#2a2a4a;border-color:#2a2a4a}.bf-gs .gs-go .bf-ic{color:#FFD43B}" +
+    ".bf-gs.sm{margin:16px 0 0;padding:10px 12px;border-radius:13px;box-shadow:0 0 0 3px rgba(255,212,59,.18)}.bf-gs.sm .gs-ic{width:36px;height:36px;border-radius:10px}.bf-gs.sm .gs-ic .bf-ic{width:18px;height:18px}.bf-gs.sm .gs-tx b{font-size:14px}.bf-gs.sm .gs-tx span{display:none}.bf-gs.sm .gs-go{padding:9px 14px;font-size:13px}" +
+    "@media(max-width:640px){.bf-gs{flex-wrap:wrap}.bf-gs .gs-go{width:100%;justify-content:center}}" +
     "@media(max-width:900px){.bf-row.c3,.bf-row.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-steps{grid-template-columns:1fr}}" +
     "@media(max-width:640px){.bf{padding:18px 16px 50px}.bf-row.c2,.bf-row.c3,.bf-row.c4{grid-template-columns:1fr}.bf-head h1{font-size:25px}.bf-find input{width:120px}}" +
     /* admin editor */
@@ -390,19 +397,25 @@
       }).join("") + '</div>' + (m.footnote ? '<div class="bf-foot">' + ic("info") + esc(m.footnote) + '</div>' : '') + '</div>';
   }
 
+  var GS_URL = "https://www.greenemployee.com";
+  function gsCta(d, compact) {
+    var url = (d.pto && d.pto.requestUrl) || GS_URL;
+    return '<div class="bf-gs' + (compact ? ' sm' : '') + '"><div class="gs-ic">' + ic("calendar") + '</div><div class="gs-tx"><b>PTO requests go through Greenshades</b><span>Log in to Green Employee to request time off and check your balance. Requests made anywhere else don\'t count.</span></div>' +
+      '<a class="bf-btn gs-go" target="_blank" rel="noopener" href="' + esc(url) + '">' + esc((d.pto && d.pto.requestLabel) || "Request PTO in Greenshades") + ic("arrow") + '</a></div>';
+  }
   function panelTime(d, t) {
     var tiers = d.pto.tiers || [];
     var savedStart = ""; try { savedStart = localStorage.getItem("hq_bf_start") || ""; } catch (e) {}
     var actions = (d.pto.requestUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.pto.requestUrl) + '">' + ic("calendar") + esc(d.pto.requestLabel || "Request time off") + '</a>' : '') +
       (d.pto.balanceUrl ? '<a class="bf-btn" target="_blank" rel="noopener" href="' + esc(d.pto.balanceUrl) + '">' + ic("eye") + esc(d.pto.balanceLabel || "See my balance") + '</a>' : '');
-    return (actions ? '<div class="bf-actions">' + actions + '</div>' : '') +
+    return gsCta(d) +
       '<div class="bf-sec"><h2>' + ic("trend") + 'How much PTO you get</h2><p class="sub">One bucket for sick, vacation and personal time, added to every weekly paycheck. It steps up with years of service.</p>' +
         '<div class="bf-row c3" id="bfTiers">' + tiers.map(function (tr, i) { return '<div class="bf-card bf-tier" data-i="' + i + '"><small>' + esc(tr.label) + '</small><b>' + esc(tr.days) + ' days</b><span>' + esc(tr.hours) + ' hours a year · ' + esc(tr.perPeriod) + ' hrs per paycheck</span></div>'; }).join("") + '</div></div>' +
       '<div class="bf-sec"><div class="bf-row c2">' +
         '<div class="bf-card"><h3>' + ic("clock") + 'What have I earned this year?</h3><div class="bf-est"><label>Your start date<input type="date" id="bfStart" value="' + esc(savedStart) + '"></label><button class="bf-btn" id="bfEstBtn">Estimate</button></div><div class="bf-est-out" id="bfEstOut">A rough estimate from your start date. It doesn\'t subtract time you\'ve used.</div></div>' +
         '<div class="bf-card"><h3>' + ic("check") + 'Good to know</h3><ul><li>Up to <b>' + esc(d.pto.carryoverHours) + ' hours</b> (' + Math.round(d.pto.carryoverHours / 8) + ' days) carries into next year.</li>' + (d.pto.rules || []).filter(function (r) { return !/carry/i.test(r); }).slice(0, 4).map(function (r) { return '<li>' + esc(r) + '</li>'; }).join("") + '</ul></div>' +
       '</div></div>' +
-      '<div class="bf-sec"><h2>' + ic("calendar") + 'Taking time off</h2><div class="bf-card"><ol class="bf-steps">' + (d.pto.request || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ol></div></div>' +
+      '<div class="bf-sec"><div class="bf-sec-top"><h2>' + ic("calendar") + 'Taking time off</h2><a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.pto.requestUrl || GS_URL) + '">' + ic("calendar") + 'Open Greenshades</a></div><div class="bf-card"><ol class="bf-steps">' + (d.pto.request || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ol></div></div>' +
       '<div class="bf-sec"><h2>' + ic("heart") + 'Using PTO when you\'re sick</h2><div class="bf-card">' + list(d.pto.sick) + '</div></div>';
   }
 
@@ -456,6 +469,7 @@
       '<div class="bf-head"><div><div class="bf-k">' + ic("gift") + 'Benefits &amp; PTO</div><h1>Your time off and benefits</h1><p>PTO, holidays, health plans and who to ask, all in one spot.</p></div>' +
         (nh ? '<div class="bf-next"><div class="bf-dt"><b>' + nh.date.getDate() + '</b><small>' + MONTHS[nh.date.getMonth()] + '</small></div><div><small class="l">Next paid holiday</small><b class="n">' + esc(nh.name) + '</b><span>' + (daysTo === 0 ? "Today" : daysTo === 1 ? "Tomorrow" : "In " + daysTo + " days") + '</span></div></div>' : '') +
       '</div>' +
+      (sub !== "time" ? gsCta(d, true) : '') +
       '<div class="bf-tabs" role="tablist">' + SUBTABS.map(function (s) { return '<button role="tab" data-sub="' + s[0] + '" class="' + (sub === s[0] ? "on" : "") + '" aria-selected="' + (sub === s[0]) + '">' + ic(s[2]) + s[1] + '</button>'; }).join("") + '</div>' +
       SUBTABS.map(function (s) { return '<div class="bf-panel' + (sub === s[0] ? " on" : "") + '" data-panel="' + s[0] + '">' + (sub === s[0] ? PANELS[s[0]](d, t, nh) : "") + '</div>'; }).join("") +
       '<div class="bf-src">' + ic("book") + 'Source: ' + esc(d.source) + (META && META.updated_at ? ' · updated in HQ ' + new Date(META.updated_at).toLocaleDateString() : '') + '. If anything here differs from the handbook, the handbook wins.</div></div>';
