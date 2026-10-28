@@ -1,4 +1,4 @@
-/* BENEFITS_v1.2 — Benefits & PTO tab + Admin > Benefits & PTO editor
+/* BENEFITS_v1.3 — Benefits & PTO tab + Admin > Benefits & PTO editor
    Loaded into the HQ shell by spark-home.html (same path as my-links.js, viewas.js, access.js and traffic.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -252,120 +252,65 @@
   }
 
   /* ---------- CSS ---------- */
-  var NOISE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E\")";
   var CSS = "" +
     /* Baseline for every signed-in team member: outrank the shell's .hide-for-role{display:none!important} for our buttons */
     ".sidebar .nav-item[data-tab=\"" + TAB + "\"].hide-for-role{display:flex!important}" +
     ".admin-subnav-item[data-admin-tab=\"" + ADMIN_TAB + "\"].hide-for-role{display:flex!important}" +
-    "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1a2e;background:" +
-      "radial-gradient(1200px 500px at 85% -120px,rgba(245,197,24,.14),transparent 60%),radial-gradient(900px 420px at -10% 30%,rgba(200,150,62,.10),transparent 60%),linear-gradient(180deg,#FBFAF6 0%,#F6F3EC 100%)}" +
-    ".bf{max-width:1140px;margin:0 auto;padding:28px 32px 80px;position:relative}" +
+    "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1a2e;background:#FAF9F5}" +
+    ".bf{max-width:1080px;margin:0 auto;padding:26px 32px 70px}" +
     ".bf .bf-ic{display:inline-flex;width:18px;height:18px;flex:none;color:inherit}.bf .bf-ic svg,.bfa .bf-ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}" +
-    ".bf-eyebrow{font-size:11px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:8px}" +
-    /* hero */
-    ".bf-hero{position:relative;margin-top:14px;border-radius:26px;overflow:hidden;color:#fff;padding:38px 40px 58px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.85fr);gap:32px;align-items:center;isolation:isolate;" +
-      "background:linear-gradient(118deg,#141428 0%,#1b1b36 48%,#2a2347 100%);box-shadow:0 40px 80px -36px rgba(20,20,45,.75),0 2px 0 rgba(255,255,255,.06) inset}" +
-    ".bf-hero::before{content:'';position:absolute;inset:-40%;z-index:0;background:radial-gradient(closest-side at 22% 30%,rgba(255,212,59,.42),transparent 70%),radial-gradient(closest-side at 80% 110%,rgba(200,150,62,.35),transparent 70%);filter:blur(30px);animation:bfGlow 14s ease-in-out infinite alternate}" +
-    ".bf-hero::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.10;mix-blend-mode:overlay;background-image:" + NOISE + "}" +
-    ".bf-hero>*{position:relative;z-index:1}" +
-    ".bf-hero .bf-ring{position:absolute;right:-120px;top:-160px;width:420px;height:420px;border-radius:50%;border:1px solid rgba(255,212,59,.22);box-shadow:0 0 0 60px rgba(255,212,59,.04),0 0 0 120px rgba(255,212,59,.025);z-index:0;pointer-events:none}" +
-    ".bf-hero h1{font-size:38px;line-height:1.06;margin:14px 0 12px;font-weight:800;letter-spacing:-.015em;color:#fff;text-shadow:0 2px 24px rgba(0,0,0,.35)}" +
-    ".bf-hero h1 em{font-style:normal;background:linear-gradient(92deg,#FFE57A,#F5C518 60%,#DEBA6F);-webkit-background-clip:text;background-clip:text;color:transparent}" +
-    ".bf-hero .bf-dek{color:#cfd0e6;font-size:14.5px;line-height:1.65;max-width:540px}" +
-    ".bf-hero .bf-k{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#FFD43B;display:flex;align-items:center;gap:8px}" +
-    ".bf-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.bf-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:600;color:#e8e8f4;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}.bf-chip .bf-ic{width:14px;height:14px;color:#FFD43B}" +
-    ".bf-next{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:20px 22px 22px;backdrop-filter:blur(10px);box-shadow:0 30px 50px -30px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.18)}" +
-    ".bf-next::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;background:linear-gradient(140deg,rgba(255,216,79,.65),rgba(255,216,79,0) 45%,rgba(255,216,79,.25));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}" +
-    ".bf-next b{display:block;font-size:26px;font-weight:800;margin:10px 0 2px;color:#fff;letter-spacing:-.01em}.bf-next span{display:block;color:#cfd0e6;font-size:13px}" +
-    ".bf-next .bf-count{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 12px;border-radius:999px;background:linear-gradient(180deg,#FFE063,#F0BE12);color:#1a1a2e;font-weight:800;font-size:12px;box-shadow:0 10px 22px -10px rgba(245,197,24,.9),inset 0 1px 0 rgba(255,255,255,.5)}" +
-    ".bf-next .bf-big{position:absolute;right:18px;top:14px;font-size:64px;font-weight:800;line-height:1;color:rgba(255,216,79,.10);letter-spacing:-.04em;pointer-events:none}" +
-    "@keyframes bfGlow{0%{transform:translate(0,0) scale(1)}100%{transform:translate(4%,6%) scale(1.08)}}" +
-    /* stat tiles */
-    ".bf-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:-26px 18px 8px;position:relative;z-index:2}" +
-    ".bf-tile{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff,#FBFAF6);border:1px solid rgba(255,255,255,.9);border-radius:18px;padding:16px 18px 15px;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 18px 40px -22px rgba(30,26,10,.45),0 0 0 1px rgba(200,150,62,.12);transition:transform .18s,box-shadow .18s}" +
-    ".bf-tile:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 26px 46px -22px rgba(30,26,10,.5),0 0 0 1px rgba(200,150,62,.3)}" +
-    ".bf-tile::after{content:'';position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(245,197,24,.28),transparent 70%)}" +
-    ".bf-tile b{display:block;font-size:26px;font-weight:800;line-height:1.05;letter-spacing:-.02em}.bf-tile small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a8477;font-weight:700;margin-bottom:7px}.bf-tile span{display:block;font-size:12px;color:#6B675C;margin-top:5px;line-height:1.4}" +
-    ".bf-tile .bf-bars{display:flex;gap:3px;align-items:flex-end;height:22px;margin-top:9px}.bf-tile .bf-bars i{flex:1;border-radius:3px 3px 1px 1px;background:linear-gradient(180deg,#e9e3d3,#ddd5c0)}.bf-tile .bf-bars i.on{background:linear-gradient(180deg,#FFE063,#C8963E);box-shadow:0 4px 10px -4px rgba(200,150,62,.8)}" +
-    /* sections */
-    ".bf-sec{margin-top:44px}.bf-sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;position:relative}" +
-    ".bf-sec-h::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(200,150,62,.55),rgba(200,150,62,.08) 60%,transparent)}" +
-    ".bf-sec h2{margin:6px 0 6px;font-size:24px;font-weight:800;letter-spacing:-.015em;display:flex;align-items:center;gap:12px}" +
-    ".bf-sec h2 .bf-md{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#1a1a2e;background:linear-gradient(145deg,#FFE063,#DEBA6F);box-shadow:0 10px 20px -10px rgba(200,150,62,.9),inset 0 1px 0 rgba(255,255,255,.6)}.bf-sec h2 .bf-md .bf-ic{width:19px;height:19px}" +
-    ".bf-sec .bf-sub{font-size:13.5px;color:#6B675C;max-width:680px;line-height:1.55}" +
-    ".bf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.bf-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}" +
-    /* cards */
-    ".bf-card{position:relative;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid rgba(236,232,222,.9);border-radius:18px;padding:20px 22px;box-shadow:0 1px 0 #fff inset,0 20px 40px -30px rgba(30,26,10,.5);transition:transform .18s,box-shadow .18s}" +
-    ".bf-card:hover{transform:translateY(-2px);box-shadow:0 1px 0 #fff inset,0 28px 50px -28px rgba(30,26,10,.55),0 0 0 1px rgba(200,150,62,.25)}" +
-    ".bf-card h3{margin:0 0 10px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:10px}" +
-    ".bf-card h3 .bf-md{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#8a6a1c;background:linear-gradient(145deg,#FFF4C2,#F3E2A8);box-shadow:inset 0 1px 0 #fff,0 6px 14px -8px rgba(200,150,62,.8)}.bf-card h3 .bf-md .bf-ic{width:16px;height:16px}" +
-    ".bf-card p,.bf-card li{font-size:13.5px;line-height:1.6;color:#3d3b35;margin:0}.bf-card ul{margin:0;padding-left:0;list-style:none}.bf-card li{position:relative;padding-left:18px}.bf-card li::before{content:'';position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:linear-gradient(145deg,#FFD84F,#C8963E);box-shadow:0 2px 6px -2px rgba(200,150,62,.9)}.bf-card li+li{margin-top:7px}" +
-    ".bf-card.dark{background:linear-gradient(150deg,#1b1b36,#141428);border-color:rgba(255,255,255,.08);color:#e8e8f4}.bf-card.dark h3{color:#fff}.bf-card.dark p,.bf-card.dark li{color:#cfd0e6}" +
-    /* PTO tiers */
-    ".bf-tiers{display:grid;gap:10px}.bf-tier{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid #efebe2;background:#fff;transition:background .2s,border-color .2s,transform .2s}" +
-    ".bf-tier .bf-no{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:13px;color:#6B675C;background:#F3F0E8}.bf-tier .bf-tl{font-weight:800;font-size:14px}.bf-tier .bf-ts{font-size:12px;color:#6B675C;margin-top:2px}" +
-    ".bf-tier .bf-tr{text-align:right}.bf-tier .bf-tr b{display:block;font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1}.bf-tier .bf-tr span{font-size:11px;color:#6B675C;text-transform:uppercase;letter-spacing:.08em;font-weight:700}" +
-    ".bf-tier .bf-bar{grid-column:1/-1;height:6px;border-radius:99px;background:#F1EDE3;overflow:hidden}.bf-tier .bf-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#DEBA6F,#F5C518);box-shadow:0 0 12px rgba(245,197,24,.5)}" +
-    ".bf-tier.me{background:linear-gradient(135deg,#1b1b36,#23214a);border-color:transparent;color:#fff;transform:scale(1.015);box-shadow:0 24px 40px -24px rgba(20,20,45,.8)}.bf-tier.me .bf-no{background:linear-gradient(145deg,#FFE063,#DEBA6F);color:#1a1a2e}.bf-tier.me .bf-ts,.bf-tier.me .bf-tr span{color:#cfd0e6}.bf-tier.me .bf-bar{background:rgba(255,255,255,.12)}" +
+    ".bf-k{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:7px}.bf-k .bf-ic{width:14px;height:14px}" +
+    /* header */
+    ".bf-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}" +
+    ".bf-head h1{margin:6px 0 4px;font-size:30px;font-weight:800;letter-spacing:-.015em}.bf-head p{margin:0;font-size:14px;color:#6B675C;max-width:560px;line-height:1.5}" +
+    ".bf-next{display:flex;align-items:center;gap:12px;padding:10px 16px 10px 10px;border-radius:14px;background:#fff;border:1px solid #ECE9E0;box-shadow:0 10px 24px -20px rgba(30,26,10,.6)}" +
+    ".bf-next .bf-dt{width:46px;height:46px;border-radius:12px;background:#1a1a2e;color:#FFD43B;display:grid;place-items:center;line-height:1;text-align:center}.bf-next .bf-dt b{display:block;font-size:17px;font-weight:800}.bf-next .bf-dt small{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#fff;margin-top:2px}" +
+    ".bf-next small.l{display:block;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a8477;font-weight:700}.bf-next b.n{display:block;font-size:15px;font-weight:800;margin-top:1px}.bf-next span{display:block;font-size:12px;color:#6B675C}" +
+    /* sub-tabs */
+    ".bf-tabs{position:sticky;top:0;z-index:5;display:flex;gap:4px;margin:22px 0 22px;padding:5px;border-radius:14px;background:#fff;border:1px solid #ECE9E0;box-shadow:0 10px 24px -22px rgba(30,26,10,.6);overflow-x:auto}" +
+    ".bf-tabs button{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border:0;border-radius:10px;background:transparent;font:600 13.5px Outfit,Inter,system-ui,sans-serif;color:#6B675C;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}" +
+    ".bf-tabs button:hover{background:#FAF9F5;color:#1a1a2e}.bf-tabs button.on{background:#1a1a2e;color:#fff}.bf-tabs button.on .bf-ic{color:#FFD43B}.bf-tabs .bf-ic{width:16px;height:16px}" +
+    /* panels */
+    ".bf-panel{display:none}.bf-panel.on{display:block;animation:bfIn .2s ease}@keyframes bfIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}" +
+    ".bf-sec+.bf-sec{margin-top:28px}.bf-sec>h2{margin:0 0 12px;font-size:17px;font-weight:800;display:flex;align-items:center;gap:9px}.bf-sec>h2 .bf-ic{color:#B8912E;width:18px;height:18px}.bf-sec>p.sub{margin:-6px 0 14px;font-size:13.5px;color:#6B675C;line-height:1.5}" +
+    ".bf-row{display:grid;gap:14px}.bf-row.c2{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-row.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.bf-row.c4{grid-template-columns:repeat(4,minmax(0,1fr))}" +
+    ".bf-card{background:#fff;border:1px solid #ECE9E0;border-radius:16px;padding:18px 20px;box-shadow:0 12px 28px -24px rgba(30,26,10,.55)}" +
+    ".bf-card h3{margin:0 0 8px;font-size:14.5px;font-weight:800;display:flex;align-items:center;gap:8px}.bf-card h3 .bf-ic{color:#B8912E;width:17px;height:17px}" +
+    ".bf-card p,.bf-card li{font-size:13.5px;line-height:1.55;color:#3d3b35;margin:0}.bf-card ul{margin:0;padding-left:18px}.bf-card li+li{margin-top:6px}.bf-card li::marker{color:#C8963E}" +
+    /* tiers */
+    ".bf-tier{position:relative;text-align:left;cursor:default}.bf-tier small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#8a8477;font-weight:700}.bf-tier b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 2px}.bf-tier span{display:block;font-size:12.5px;color:#6B675C}" +
+    ".bf-tier.me{border-color:#1a1a2e;box-shadow:0 0 0 1px #1a1a2e,0 18px 32px -24px rgba(20,20,45,.8)}.bf-tier.me::after{content:'Your tier';position:absolute;right:14px;top:14px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#FFD43B;color:#1a1a2e;padding:3px 8px;border-radius:999px}" +
     /* estimator */
-    ".bf-est{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.bf-est label{font-size:12px;color:#6B675C;display:block}.bf-est input{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;padding:10px 12px;border:1px solid #ddd7c8;border-radius:12px;box-sizing:border-box;background:#fff;box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}" +
-    ".bf-est-out{margin-top:16px;display:grid;grid-template-columns:118px 1fr;gap:16px;align-items:center;padding:16px;border-radius:16px;background:linear-gradient(160deg,#FAF8F1,#F3EFE4);border:1px solid #ECE6D6;font-size:13.5px;line-height:1.6;box-shadow:inset 0 1px 0 #fff}.bf-est-out b{font-weight:800}.bf-est-out.empty{grid-template-columns:1fr;color:#6B675C}" +
-    ".bf-ring{position:relative;width:118px;height:118px}.bf-ring svg{width:100%;height:100%;transform:rotate(-90deg)}.bf-ring .bf-rt{fill:none;stroke:#E8E2D3;stroke-width:10}.bf-ring .bf-rv{fill:none;stroke:url(#bfGold);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.1s cubic-bezier(.22,.8,.3,1);filter:drop-shadow(0 2px 6px rgba(245,197,24,.55))}" +
-    ".bf-ring .bf-rc{position:absolute;inset:0;display:grid;place-items:center;text-align:center;line-height:1}.bf-ring .bf-rc b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em}.bf-ring .bf-rc small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8477;font-weight:700;margin-top:3px}" +
+    ".bf-est{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}.bf-est label{flex:1 1 200px;font-size:12px;color:#6B675C}.bf-est input{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;padding:9px 11px;border:1px solid #DDD7C8;border-radius:10px;box-sizing:border-box;background:#fff}" +
+    ".bf-est-out{margin-top:12px;font-size:13.5px;line-height:1.6;color:#3d3b35}.bf-est-out b{font-weight:800;color:#1a1a2e}.bf-est-out .big{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}.bf-est-out .big b{font-size:28px;letter-spacing:-.02em}.bf-est-out .big span{font-size:13px;color:#6B675C}" +
+    ".bf-meter{height:8px;border-radius:99px;background:#F1EDE3;overflow:hidden;margin:8px 0 10px}.bf-meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#DEBA6F,#F5C518);transition:width .9s cubic-bezier(.22,.8,.3,1)}" +
     /* steps */
-    ".bf-steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.bf-steps li{counter-increment:s;position:relative;padding:18px 18px 16px 18px;font-size:13.5px;line-height:1.55;color:#3d3b35;border-radius:14px;background:#fff;border:1px solid #efebe2;box-shadow:0 14px 30px -26px rgba(30,26,10,.6)}" +
-    ".bf-steps li::before{content:counter(s);display:grid;place-items:center;width:30px;height:30px;margin-bottom:10px;border-radius:10px;font-weight:800;font-size:13px;color:#1a1a2e;background:linear-gradient(145deg,#FFE063,#F0BE12);box-shadow:0 10px 18px -10px rgba(245,197,24,1),inset 0 1px 0 rgba(255,255,255,.6)}" +
+    ".bf-steps{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.bf-steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:#3d3b35}.bf-steps li::before{content:counter(s);flex:none;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;background:#FFD43B;color:#1a1a2e}" +
     /* buttons */
-    ".bf-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:13px;font:700 13px Outfit,Inter,system-ui,sans-serif;border:1px solid #ddd7c8;background:linear-gradient(180deg,#fff,#F8F6F0);color:#1a1a2e;cursor:pointer;text-decoration:none;box-shadow:inset 0 1px 0 #fff,0 8px 18px -12px rgba(30,26,10,.6);transition:transform .12s,box-shadow .15s}.bf-btn:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff,0 14px 26px -14px rgba(30,26,10,.7)}" +
-    ".bf-btn.gold{background:linear-gradient(180deg,#FFE063,#F0BE12);border-color:transparent;box-shadow:0 12px 24px -10px rgba(245,197,24,.8),inset 0 1px 0 rgba(255,255,255,.6)}.bf-btn .bf-ic{width:16px;height:16px}" +
-    ".bf-yr{display:inline-flex;border:1px solid #ddd7c8;border-radius:999px;overflow:hidden;background:#fff;box-shadow:inset 0 1px 0 #fff,0 6px 14px -10px rgba(30,26,10,.6)}.bf-yr button{font:700 12.5px Outfit,Inter,system-ui,sans-serif;padding:8px 16px;border:0;background:transparent;cursor:pointer;color:#6B675C}.bf-yr button.on{background:linear-gradient(145deg,#1b1b36,#23214a);color:#FFD43B}" +
+    ".bf-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:11px;font:700 13px Outfit,Inter,system-ui,sans-serif;border:1px solid #DDD7C8;background:#fff;color:#1a1a2e;cursor:pointer;text-decoration:none}.bf-btn:hover{border-color:#C8963E}.bf-btn.gold{background:#FFD43B;border-color:#FFD43B}.bf-btn .bf-ic{width:15px;height:15px}" +
+    ".bf-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}" +
+    ".bf-seg{display:inline-flex;border:1px solid #DDD7C8;border-radius:999px;overflow:hidden;background:#fff}.bf-seg button{font:700 12.5px Outfit,Inter,system-ui,sans-serif;padding:7px 14px;border:0;background:transparent;cursor:pointer;color:#6B675C}.bf-seg button.on{background:#1a1a2e;color:#FFD43B}" +
+    ".bf-sec-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}.bf-sec-top h2{margin:0;font-size:17px;font-weight:800;display:flex;align-items:center;gap:9px}.bf-sec-top h2 .bf-ic{color:#B8912E;width:18px;height:18px}" +
     /* holidays */
-    ".bf-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;margin:4px 0 16px;padding:14px 14px 12px;border-radius:18px;background:linear-gradient(150deg,#1b1b36,#141428);box-shadow:0 30px 50px -34px rgba(20,20,45,.8),inset 0 1px 0 rgba(255,255,255,.06);position:relative;overflow:hidden}" +
-    ".bf-strip::after{content:'';position:absolute;inset:0;opacity:.08;mix-blend-mode:overlay;background-image:" + NOISE + ";pointer-events:none}" +
-    ".bf-mo{position:relative;z-index:1;text-align:center;padding:8px 2px 6px;border-radius:10px;color:#9a9bb8;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}.bf-mo.now{background:rgba(255,216,79,.08);color:#FFD43B;box-shadow:inset 0 0 0 1px rgba(255,216,79,.25)}" +
-    ".bf-mo .bf-dots{display:flex;justify-content:center;gap:4px;margin-top:8px;min-height:8px}.bf-mo .bf-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14)}.bf-mo .bf-dots i.on{background:linear-gradient(145deg,#FFE063,#DEBA6F);box-shadow:0 0 10px rgba(255,216,79,.6)}.bf-mo .bf-dots i.next{box-shadow:0 0 0 3px rgba(255,216,79,.25),0 0 14px rgba(255,216,79,.9);animation:bfPulse 2s infinite}" +
-    "@keyframes bfPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,216,79,.25),0 0 14px rgba(255,216,79,.9)}50%{box-shadow:0 0 0 6px rgba(255,216,79,.12),0 0 18px rgba(255,216,79,.7)}}" +
-    ".bf-hol{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}" +
-    ".bf-hd{position:relative;display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid #efebe2;border-radius:16px;padding:14px 16px;box-shadow:0 1px 0 #fff inset,0 16px 34px -28px rgba(30,26,10,.6);transition:transform .18s,box-shadow .18s}.bf-hd:hover{transform:translateY(-2px)}.bf-hd.past{opacity:.5;filter:saturate(.6)}" +
-    ".bf-hd.next{border-color:transparent;background:linear-gradient(150deg,#1b1b36,#23214a);color:#fff;box-shadow:0 26px 44px -26px rgba(20,20,45,.9)}.bf-hd.next .bf-wd{color:#cfd0e6}.bf-hd.next .bf-tag{position:absolute;right:12px;top:10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#1a1a2e;background:linear-gradient(180deg,#FFE063,#F0BE12);padding:3px 8px;border-radius:999px}" +
-    ".bf-hd .bf-dt{width:50px;height:50px;border-radius:14px;background:linear-gradient(160deg,#23214a,#141428);color:#fff;display:grid;place-items:center;line-height:1;flex:none;box-shadow:0 10px 18px -10px rgba(20,20,45,.9),inset 0 1px 0 rgba(255,255,255,.1)}.bf-hd.next .bf-dt{background:linear-gradient(160deg,#FFE063,#DEBA6F);color:#1a1a2e}.bf-hd .bf-dt b{font-size:18px;font-weight:800;color:#FFD43B}.bf-hd.next .bf-dt b{color:#1a1a2e}.bf-hd .bf-dt small{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:3px;opacity:.85}" +
-    ".bf-hd .bf-nm{font-weight:800;font-size:13.5px}.bf-hd .bf-wd{font-size:12px;color:#6B675C;margin-top:1px}.bf-hd .bf-obs{font-size:11px;color:#B8912E;font-weight:700;margin-top:2px}.bf-hd.next .bf-obs{color:#FFD43B}" +
-    /* links & contacts */
-    ".bf-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}" +
-    ".bf-lk{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid #efebe2;border-radius:16px;padding:16px 18px;text-decoration:none;color:inherit;box-shadow:0 1px 0 #fff inset,0 16px 34px -28px rgba(30,26,10,.6);transition:transform .15s,box-shadow .18s,border-color .18s}.bf-lk:hover{transform:translateY(-3px);box-shadow:0 1px 0 #fff inset,0 26px 44px -26px rgba(30,26,10,.7),0 0 0 1px rgba(200,150,62,.35)}" +
-    ".bf-lk .bf-md{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:#1a1a2e;background:linear-gradient(145deg,#FFE063,#DEBA6F);box-shadow:0 10px 20px -10px rgba(200,150,62,1),inset 0 1px 0 rgba(255,255,255,.6)}.bf-lk .bf-md .bf-ic{width:18px;height:18px}.bf-lk b{display:block;font-size:14px}.bf-lk span{display:block;font-size:12.5px;color:#6B675C;margin-top:3px;line-height:1.45}.bf-lk .bf-go{margin-left:auto;align-self:center;color:#B8912E;opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s}.bf-lk:hover .bf-go{opacity:1;transform:none}" +
-    ".bf-ct{display:flex;gap:14px;align-items:center;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid #efebe2;border-radius:16px;padding:14px 16px;box-shadow:0 1px 0 #fff inset,0 16px 34px -28px rgba(30,26,10,.6)}" +
-    ".bf-ct .bf-av{position:relative;width:44px;height:44px;border-radius:50%;background:linear-gradient(160deg,#23214a,#141428);color:#FFD43B;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none;box-shadow:0 10px 18px -10px rgba(20,20,45,.9)}.bf-ct .bf-av::after{content:'';position:absolute;inset:-3px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,#FFE063,#DEBA6F,#FFE063);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}" +
-    ".bf-ct .bf-tp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a8477;font-weight:700}.bf-ct b{display:block;font-size:14px;margin-top:1px}.bf-ct a{color:#B8912E;font-size:12.5px;text-decoration:none;font-weight:600}.bf-ct small{display:block;color:#6B675C;font-size:12px;margin-top:1px}" +
-    ".bf-foot{margin-top:40px;font-size:12px;color:#6B675C;display:flex;gap:8px;align-items:center;padding-top:16px;border-top:1px solid rgba(200,150,62,.2)}.bf-foot .bf-ic{width:14px;height:14px}" +
+    ".bf-hd{display:flex;align-items:center;gap:12px;padding:12px 14px}.bf-hd.past{opacity:.45}.bf-hd.next{border-color:#1a1a2e;box-shadow:0 0 0 1px #1a1a2e,0 18px 32px -24px rgba(20,20,45,.8)}" +
+    ".bf-hd .bf-dt{width:44px;height:44px;border-radius:11px;background:#F3F0E8;display:grid;place-items:center;line-height:1;text-align:center;flex:none}.bf-hd.next .bf-dt{background:#1a1a2e;color:#FFD43B}.bf-hd .bf-dt b{display:block;font-size:16px;font-weight:800}.bf-hd .bf-dt small{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;opacity:.8}" +
+    ".bf-hd .nm{font-weight:700;font-size:13.5px}.bf-hd .wd{font-size:12px;color:#6B675C}.bf-hd .ob{font-size:11px;color:#B8912E;font-weight:700}" +
+    ".bf-find{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #DDD7C8;border-radius:999px;padding:6px 8px 6px 12px;color:#8a8477}.bf-find input{border:0;outline:0;font:inherit;font-size:13px;background:transparent;width:170px;color:#1a1a2e}.bf-find span{font-size:11px;font-weight:800;background:#F3F0E8;color:#6B675C;border-radius:999px;padding:3px 8px}.bf-find .bf-ic{width:15px;height:15px}" +
+    ".bf-fl{display:flex;flex-wrap:wrap;gap:7px}.bf-fl span{padding:6px 11px;border-radius:999px;font-size:12.5px;font-weight:600;background:#FAF9F5;border:1px solid #ECE9E0;color:#3d3b35}" +
+    ".bf-none{font-size:13px;color:#8a8477;padding:8px 0 0}" +
+    /* medical */
+    ".bf-plan h3{margin:0;font-size:17px}.bf-plan .ty{font-size:12px;color:#6B675C;margin:2px 0 12px}.bf-plan .ded{padding:12px 14px;border-radius:12px;background:#FAF9F5;margin-bottom:12px}.bf-plan .ded small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a8477;font-weight:700}.bf-plan .ded b{display:block;font-size:24px;font-weight:800;letter-spacing:-.02em;margin-top:2px}.bf-plan .ded span{font-size:12px;color:#6B675C}" +
+    ".bf-plan dl,.bf-kv dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:13px}.bf-plan dt,.bf-kv dt{color:#6B675C}.bf-plan dd{margin:0;text-align:right;font-weight:700}.bf-plan .nt{margin-top:12px;padding-top:10px;border-top:1px solid #F1EDE3;font-size:12.5px;color:#6B675C;line-height:1.5}" +
+    ".bf-kv .cr{font-size:12px;font-weight:700;color:#B8912E;margin:-4px 0 10px}.bf-kv dl{grid-template-columns:auto 1fr}.bf-kv dd{margin:0;line-height:1.45}" +
+    ".bf-foot{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;line-height:1.5;color:#8a8477}.bf-foot .bf-ic{width:14px;height:14px;margin-top:2px}" +
+    ".bf-banner{display:flex;gap:10px;align-items:center;padding:12px 16px;border-radius:12px;background:#FFF8DC;border:1px solid #F3E2A8;font-size:13.5px;color:#5c5540;margin-bottom:14px}.bf-banner b{color:#1a1a2e}.bf-banner .bf-ic{color:#B8912E}" +
+    /* contacts & links */
+    ".bf-ct{display:flex;gap:12px;align-items:center}.bf-ct .av{width:40px;height:40px;border-radius:50%;background:#1a1a2e;color:#FFD43B;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}.bf-ct .tp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a8477;font-weight:700}.bf-ct b{display:block;font-size:14px}.bf-ct a{color:#B8912E;font-size:12.5px;text-decoration:none;font-weight:600}.bf-ct small{display:block;color:#6B675C;font-size:12px}" +
+    ".bf-lk{display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;transition:border-color .15s}.bf-lk:hover{border-color:#C8963E}.bf-lk .ib{width:38px;height:38px;border-radius:10px;background:#FFF4C2;color:#8a6a1c;display:grid;place-items:center;flex:none}.bf-lk b{display:block;font-size:14px}.bf-lk span{display:block;font-size:12.5px;color:#6B675C;margin-top:2px}" +
+    ".bf-src{margin-top:34px;font-size:12px;color:#8a8477;display:flex;gap:7px;align-items:center}.bf-src .bf-ic{width:14px;height:14px}" +
     ".bf-loading,.bf-empty{padding:50px 0;text-align:center;color:#6B675C}" +
-    "@media(max-width:1000px){.bf-tiles{grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}.bf-hol{grid-template-columns:repeat(2,minmax(0,1fr))}}" +
-    "@media(max-width:820px){.bf{padding:20px 16px 50px}.bf-hero{grid-template-columns:1fr;padding:26px 22px}.bf-hero .bf-ring{display:none}.bf-grid.two{grid-template-columns:1fr}.bf-hero h1{font-size:30px}.bf-est{grid-template-columns:1fr}.bf-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-strip{grid-template-columns:repeat(6,minmax(0,1fr))}.bf-hol{grid-template-columns:1fr}.bf-est-out{grid-template-columns:1fr;justify-items:center;text-align:center}}" +
-    "@media(prefers-reduced-motion:reduce){.bf-hero::before,.bf-mo .bf-dots i.next{animation:none}}" +
-    /* floating holidays */
-    ".bf-float{position:relative;margin-top:14px;border-radius:22px;padding:24px 26px 22px;overflow:hidden;color:#1a1a2e;background:linear-gradient(160deg,#FFF9E3 0%,#FBF3D6 45%,#F6E9C4 100%);border:1px solid rgba(200,150,62,.35);box-shadow:0 30px 60px -36px rgba(120,90,20,.6),inset 0 1px 0 #fff}" +
-    ".bf-float::before{content:'';position:absolute;right:-80px;top:-120px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(255,216,79,.55),rgba(255,216,79,0) 68%);pointer-events:none}" +
-    ".bf-float::after{content:'';position:absolute;inset:0;opacity:.07;mix-blend-mode:multiply;background-image:" + NOISE + ";pointer-events:none}" +
-    ".bf-float>*{position:relative;z-index:1}.bf-float-h{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:16px}.bf-float .bf-k{color:#8a6a1c}.bf-float h3{margin:8px 0 6px;font-size:22px;font-weight:800;letter-spacing:-.015em}.bf-float p{margin:0;font-size:13.5px;line-height:1.55;color:#5c5540;max-width:620px}" +
-    ".bf-float-find{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(200,150,62,.4);border-radius:999px;padding:6px 8px 6px 14px;box-shadow:0 10px 24px -16px rgba(120,90,20,.6);color:#8a6a1c;flex:0 0 auto}.bf-float-find input{border:0;outline:0;font:inherit;font-size:13px;background:transparent;min-width:170px;color:#1a1a2e}.bf-float-find span{font-size:11px;font-weight:800;background:#1a1a2e;color:#FFD43B;border-radius:999px;padding:4px 9px}" +
-    ".bf-chips2{display:flex;flex-wrap:wrap;gap:8px}.bf-fchip{display:inline-flex;align-items:center;padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:#2b2615;background:linear-gradient(180deg,#fff,#FBF7EA);border:1px solid rgba(200,150,62,.35);box-shadow:0 8px 16px -12px rgba(120,90,20,.7),inset 0 1px 0 #fff;transition:transform .12s,box-shadow .15s}.bf-fchip:hover{transform:translateY(-2px);box-shadow:0 14px 22px -12px rgba(120,90,20,.8),inset 0 1px 0 #fff}" +
-    ".bf-float-none{font-size:13px;color:#8a6a1c;padding:10px 0 0}" +
-    /* medical plans */
-    ".bf-med{position:relative;margin-top:14px;border-radius:22px;padding:24px 26px 22px;overflow:hidden;color:#fff;background:linear-gradient(150deg,#1b1b36 0%,#141428 60%,#1f1a3a 100%);box-shadow:0 36px 70px -36px rgba(20,20,45,.85),inset 0 1px 0 rgba(255,255,255,.06)}" +
-    ".bf-med::before{content:'';position:absolute;left:-120px;bottom:-200px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(255,212,59,.22),transparent 68%);filter:blur(20px);pointer-events:none}.bf-med::after{content:'';position:absolute;inset:0;opacity:.08;mix-blend-mode:overlay;background-image:" + NOISE + ";pointer-events:none}.bf-med>*{position:relative;z-index:1}" +
-    ".bf-med-h{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:18px}.bf-med .bf-k{color:#FFD43B}.bf-med h3{margin:8px 0 4px;font-size:22px;font-weight:800;letter-spacing:-.015em;color:#fff}.bf-med-h p{margin:4px 0 0;font-size:13px;color:#cfd0e6}.bf-med-h p b{color:#FFD43B}" +
-    ".bf-yr.dark{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.06);box-shadow:none}.bf-yr.dark button{color:#cfd0e6}.bf-yr.dark button.on{background:linear-gradient(180deg,#FFE063,#F0BE12);color:#1a1a2e}" +
-    ".bf-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}" +
-    ".bf-plan{position:relative;border-radius:18px;padding:18px 18px 16px;background:linear-gradient(170deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 24px 40px -30px rgba(0,0,0,.8);transition:transform .18s}.bf-plan:hover{transform:translateY(-3px)}" +
-    ".bf-plan.mid{border-color:rgba(255,216,79,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 0 1px rgba(255,216,79,.2),0 30px 50px -30px rgba(245,197,24,.45)}" +
-    ".bf-plan-nm{font-size:19px;font-weight:800;letter-spacing:-.01em;color:#fff}.bf-plan-ty{font-size:11.5px;color:#b9bad4;margin-top:3px}" +
-    ".bf-plan-ded{margin:14px 0 12px;padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08)}.bf-plan-ded small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9a9bb8;font-weight:700}.bf-plan-ded b{display:block;font-size:30px;font-weight:800;line-height:1.05;margin-top:4px;background:linear-gradient(92deg,#FFE57A,#F5C518 60%,#DEBA6F);-webkit-background-clip:text;background-clip:text;color:transparent}.bf-plan-ded span{display:block;font-size:11.5px;color:#b9bad4;margin-top:3px}" +
-    ".bf-plan dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:12.5px}.bf-plan dt{color:#b9bad4}.bf-plan dt i{display:block;font-style:normal;font-size:10px;color:#7f80a0}.bf-plan dd{margin:0;text-align:right;font-weight:700;color:#fff}" +
-    ".bf-plan-note{margin:12px 0 0;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;line-height:1.5;color:#cfd0e6}" +
-    ".bf-med-foot{display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:11.5px;line-height:1.5;color:#9a9bb8}.bf-med-foot .bf-ic{width:14px;height:14px;margin-top:2px;color:#FFD43B}" +
-    ".bf-kv .bf-carrier{font-size:12px;font-weight:700;color:#B8912E;margin:-4px 0 10px}.bf-kv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:13px}.bf-kv dt{color:#6B675C;font-weight:600;white-space:nowrap}.bf-kv dd{margin:0;color:#3d3b35;line-height:1.5}" +
-    "@media(max-width:1000px){.bf-plans{grid-template-columns:1fr}.bf-kv dl{grid-template-columns:1fr}.bf-kv dt{margin-top:4px}}" +
-    ".bfa-plans input{min-width:90px;font-size:12px;padding:6px 8px}.bfa-plans td:first-child input{min-width:110px}.bfa-plans td:last-child input{min-width:220px}" +
+    "@media(max-width:900px){.bf-row.c3,.bf-row.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-steps{grid-template-columns:1fr}}" +
+    "@media(max-width:640px){.bf{padding:18px 16px 50px}.bf-row.c2,.bf-row.c3,.bf-row.c4{grid-template-columns:1fr}.bf-head h1{font-size:25px}.bf-find input{width:120px}}" +
     /* admin editor */
     ".bfa{font-family:Outfit,Inter,system-ui,sans-serif}.bfa .bf-ic{display:inline-flex;width:16px;height:16px;flex:none}" +
     ".bfa-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}.bfa-bar .sp{flex:1}.bfa-status{font-size:12.5px;color:#6B675C}.bfa-status.bad{color:#b42318}.bfa-status.good{color:#15803d}" +
@@ -405,133 +350,128 @@
   function initials(n) { return String(n || "?").split(/[\s._-]+/).map(function (s) { return s.charAt(0); }).join("").slice(0, 2).toUpperCase(); }
   function list(items) { return "<ul>" + (items || []).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>"; }
 
-  function md(name) { return '<span class="bf-md">' + ic(name) + '</span>'; }
+  var SUBTABS = [["time", "Time off", "palm"], ["holidays", "Holidays", "sun"], ["health", "Health & benefits", "heart"], ["leave", "Other leave", "shield"], ["help", "Who to ask", "user"]];
+  var sub = null;
+  try { sub = localStorage.getItem("hq_bf_sub"); } catch (e) {}
+  if (!SUBTABS.some(function (t) { return t[0] === sub; })) sub = "time";
   var medYear = null; // "current" | "next", null = decide from the switch date
+
   function renderMedical(m) {
     if (!m || !m.current || !(m.current.plans || []).length) return "";
     var sw = parseISO(m.switchDate), hasNext = m.next && (m.next.plans || []).length;
-    var autoNext = !!(sw && today() >= sw && hasNext);
-    var which = medYear || (autoNext ? "next" : "current");
+    var which = medYear || (sw && today() >= sw && hasNext ? "next" : "current");
     if (which === "next" && !hasNext) which = "current";
     var set = m[which], daysToSwitch = sw ? Math.round((sw - today()) / 86400000) : null;
-    var ROWS = [["ded", "Deductible", "individual / family"], ["oop", "Out-of-pocket max", "individual / family"], ["coins", "Coinsurance", "your share after deductible"], ["pcp", "Primary care visit"], ["spec", "Specialist visit"], ["uc", "Urgent care"], ["er", "Emergency room"], ["rx", "Prescriptions", "tier 1 / 2 / 3 retail"]];
-    var html = '<div class="bf-med"><div class="bf-med-h"><div><div class="bf-k">' + ic("heart") + 'Medical plans · ' + esc(m.carrier || "") + '</div><h3>' + (which === "next" ? "Starting " + esc(m.next.label) : "Plan year " + esc(set.label)) + '</h3>' +
-      (which === "current" && hasNext && daysToSwitch != null && daysToSwitch > 0 && daysToSwitch < 120 ? '<p>New plan designs start in <b>' + daysToSwitch + ' days</b>. Flip the toggle to preview them before open enrollment.</p>' : '') + '</div>' +
-      (hasNext ? '<div class="bf-yr dark"><button data-med="current" class="' + (which === "current" ? "on" : "") + '">Current</button><button data-med="next" class="' + (which === "next" ? "on" : "") + '">From ' + esc((m.next.label || "").split(" to ")[0]) + '</button></div>' : '') + '</div>' +
-      '<div class="bf-plans">' + (set.plans || []).map(function (p, i) {
-        return '<div class="bf-plan' + (i === 1 ? " mid" : "") + '"><div class="bf-plan-top"><div class="bf-plan-nm">' + esc(p.name) + '</div><div class="bf-plan-ty">' + esc(p.type) + (p.network ? ' · ' + esc(p.network) : '') + '</div></div>' +
-          '<div class="bf-plan-ded"><small>Deductible</small><b>' + esc((p.ded || "").split("/")[0].trim()) + '</b><span>' + esc(p.ded) + '</span></div>' +
-          '<dl>' + ROWS.slice(1).map(function (r) { return p[r[0]] ? '<dt>' + r[1] + (r[2] ? '<i>' + r[2] + '</i>' : '') + '</dt><dd>' + esc(p[r[0]]) + '</dd>' : ''; }).join("") + '</dl>' +
-          (p.note ? '<p class="bf-plan-note">' + esc(p.note) + '</p>' : '') + '</div>';
-      }).join("") + '</div>' + (m.footnote ? '<div class="bf-med-foot">' + ic("info") + esc(m.footnote) + '</div>' : '') + '</div>';
-    return html;
+    var ROWS = [["oop", "Out-of-pocket max"], ["coins", "Coinsurance"], ["pcp", "Primary care"], ["spec", "Specialist"], ["uc", "Urgent care"], ["er", "Emergency room"], ["rx", "Rx tier 1 / 2 / 3"]];
+    return '<div class="bf-sec"><div class="bf-sec-top"><h2>' + ic("heart") + 'Medical · ' + esc(m.carrier || "") + '</h2>' +
+      (hasNext ? '<div class="bf-seg"><button data-med="current" class="' + (which === "current" ? "on" : "") + '">Now to Nov 30</button><button data-med="next" class="' + (which === "next" ? "on" : "") + '">From ' + esc((m.next.label || "").split(" to ")[0]) + '</button></div>' : '') + '</div>' +
+      (which === "current" && hasNext && daysToSwitch != null && daysToSwitch > 0 && daysToSwitch < 120 ? '<div class="bf-banner">' + ic("info") + '<span>New plans start <b>' + esc((m.next.label || "").split(" to ")[0]) + '</b>, ' + daysToSwitch + ' days from now. Use the toggle to compare before open enrollment.</span></div>' : '') +
+      '<div class="bf-row c3">' + (set.plans || []).map(function (p) {
+        return '<div class="bf-card bf-plan"><h3>' + esc(p.name) + '</h3><div class="ty">' + esc(p.type) + (p.network ? ' · ' + esc(p.network) : '') + '</div>' +
+          '<div class="ded"><small>Deductible</small><b>' + esc((p.ded || "").split("/")[0].trim()) + '</b><span>' + esc(p.ded) + ' individual / family</span></div>' +
+          '<dl>' + ROWS.map(function (r) { return p[r[0]] ? '<dt>' + r[1] + '</dt><dd>' + esc(p[r[0]]) + '</dd>' : ''; }).join("") + '</dl>' +
+          (p.note ? '<div class="nt">' + esc(p.note) + '</div>' : '') + '</div>';
+      }).join("") + '</div>' + (m.footnote ? '<div class="bf-foot">' + ic("info") + esc(m.footnote) + '</div>' : '') + '</div>';
   }
+
+  function panelTime(d, t) {
+    var tiers = d.pto.tiers || [];
+    var savedStart = ""; try { savedStart = localStorage.getItem("hq_bf_start") || ""; } catch (e) {}
+    var actions = (d.pto.requestUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.pto.requestUrl) + '">' + ic("calendar") + esc(d.pto.requestLabel || "Request time off") + '</a>' : '') +
+      (d.pto.balanceUrl ? '<a class="bf-btn" target="_blank" rel="noopener" href="' + esc(d.pto.balanceUrl) + '">' + ic("eye") + esc(d.pto.balanceLabel || "See my balance") + '</a>' : '');
+    return (actions ? '<div class="bf-actions">' + actions + '</div>' : '') +
+      '<div class="bf-sec"><h2>' + ic("trend") + 'How much PTO you get</h2><p class="sub">One bucket for sick, vacation and personal time, added to every weekly paycheck. It steps up with years of service.</p>' +
+        '<div class="bf-row c3" id="bfTiers">' + tiers.map(function (tr, i) { return '<div class="bf-card bf-tier" data-i="' + i + '"><small>' + esc(tr.label) + '</small><b>' + esc(tr.days) + ' days</b><span>' + esc(tr.hours) + ' hours a year · ' + esc(tr.perPeriod) + ' hrs per paycheck</span></div>'; }).join("") + '</div></div>' +
+      '<div class="bf-sec"><div class="bf-row c2">' +
+        '<div class="bf-card"><h3>' + ic("clock") + 'What have I earned this year?</h3><div class="bf-est"><label>Your start date<input type="date" id="bfStart" value="' + esc(savedStart) + '"></label><button class="bf-btn" id="bfEstBtn">Estimate</button></div><div class="bf-est-out" id="bfEstOut">A rough estimate from your start date. It doesn\'t subtract time you\'ve used.</div></div>' +
+        '<div class="bf-card"><h3>' + ic("check") + 'Good to know</h3><ul><li>Up to <b>' + esc(d.pto.carryoverHours) + ' hours</b> (' + Math.round(d.pto.carryoverHours / 8) + ' days) carries into next year.</li>' + (d.pto.rules || []).filter(function (r) { return !/carry/i.test(r); }).slice(0, 4).map(function (r) { return '<li>' + esc(r) + '</li>'; }).join("") + '</ul></div>' +
+      '</div></div>' +
+      '<div class="bf-sec"><h2>' + ic("calendar") + 'Taking time off</h2><div class="bf-card"><ol class="bf-steps">' + (d.pto.request || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ol></div></div>' +
+      '<div class="bf-sec"><h2>' + ic("heart") + 'Using PTO when you\'re sick</h2><div class="bf-card">' + list(d.pto.sick) + '</div></div>';
+  }
+
+  function panelHolidays(d, t, nh) {
+    var hols = holidaysFor(d.holidays, year), nhKey = nh && nh.date ? iso(nh.date) : "";
+    var fl = d.holidays.floating || {}, flList = fl.list || [];
+    return '<div class="bf-sec"><div class="bf-sec-top"><h2>' + ic("sun") + (d.holidays.paid || []).length + ' paid holidays</h2><div class="bf-seg"><button data-y="' + t.getFullYear() + '" class="' + (year === t.getFullYear() ? "on" : "") + '">' + t.getFullYear() + '</button><button data-y="' + (t.getFullYear() + 1) + '" class="' + (year === t.getFullYear() + 1 ? "on" : "") + '">' + (t.getFullYear() + 1) + '</button></div></div>' +
+        '<div class="bf-row c4">' + hols.map(function (h) {
+          if (!h.date) return '<div class="bf-card bf-hd"><div class="bf-dt"><b>?</b></div><div><div class="nm">' + esc(h.name) + '</div><div class="wd">Date set in Admin</div></div></div>';
+          var obs = h.actual && iso(h.actual) !== iso(h.date), isNext = iso(h.date) === nhKey;
+          return '<div class="bf-card bf-hd' + (h.date < t ? " past" : "") + (isNext ? " next" : "") + '"><div class="bf-dt"><b>' + h.date.getDate() + '</b><small>' + MONTHS[h.date.getMonth()] + '</small></div><div><div class="nm">' + esc(h.name) + '</div><div class="wd">' + DAYS[h.date.getDay()] + (isNext ? ' · up next' : '') + '</div>' + (obs ? '<div class="ob">Observed (falls on ' + DAYS[h.actual.getDay()].slice(0, 3) + ')</div>' : '') + '</div></div>';
+        }).join("") + '</div>' +
+        '<div class="bf-foot">' + ic("info") + 'Full-time team members. A holiday on a weekend is observed on the nearest weekday. If payday lands on a holiday, you\'re paid the business day before.</div></div>' +
+      '<div class="bf-sec"><div class="bf-sec-top"><h2>' + ic("gift") + (fl.count || 0) + ' floating holidays, your pick</h2>' + (flList.length ? '<div class="bf-find">' + ic("search") + '<input type="search" id="bfFloatFind" placeholder="Find a holiday" aria-label="Find a floating holiday"><span id="bfFloatCount">' + flList.length + '</span></div>' : '') + '</div>' +
+        '<div class="bf-card"><p style="margin-bottom:12px">' + esc(fl.note) + '</p>' +
+          (flList.length ? '<div class="bf-fl" id="bfFloatList">' + flList.map(function (h) { return '<span>' + esc(h) + '</span>'; }).join("") + '</div><div class="bf-none" id="bfFloatNone" style="display:none">Not on the list. Ask TMX if you think it should be.</div>' : '<div class="bf-none">The approved list will show here once it\'s added in Admin.</div>') +
+        '</div></div>' +
+      '<div class="bf-sec"><h2>' + ic("book") + 'Religious observance</h2><div class="bf-card"><p>' + esc((d.holidays.notes || []).filter(function (n) { return /religious/i.test(n); })[0] || "One paid day each year for religious observance on a regular workday. Request it through your department leader two weeks ahead.") + '</p></div></div>';
+  }
+
+  function panelHealth(d) {
+    var b = d.benefits || {};
+    return '<div class="bf-banner">' + ic("info") + '<span><b>Plan year ' + esc(b.planYear) + '.</b> ' + esc(b.eligibility) + '</span></div>' +
+      (b.guideUrl ? '<div class="bf-actions"><a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(b.guideUrl) + '">' + ic("file") + esc(b.guideLabel || "Benefits guide") + '</a></div>' : '') +
+      renderMedical(b.medical) +
+      ((b.other || []).length ? '<div class="bf-sec"><h2>' + ic("smile") + 'Dental, vision, life and disability</h2><div class="bf-row c3">' + b.other.map(function (o) { return '<div class="bf-card bf-kv"><h3>' + ic(o.icon || "check") + esc(o.name) + '</h3>' + (o.carrier ? '<div class="cr">' + esc(o.carrier) + '</div>' : '') + '<dl>' + (o.rows || []).map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join("") + '</dl></div>'; }).join("") + '</div></div>' : '') +
+      '<div class="bf-sec"><h2>' + ic("trend") + '401(k)</h2><div class="bf-card"><p>' + esc(((b.items || []).filter(function (x) { return /401/.test(x.name); })[0] || {}).blurb || "Retirement plan with payroll deductions.") + ' Questions go to Priyanka Malani.</p></div></div>' +
+      '<div class="bf-sec"><h2>' + ic("calendar") + 'Enrolling and making changes</h2><div class="bf-card">' + list(b.notes) + '</div></div>';
+  }
+
+  function panelLeave(d) {
+    return '<div class="bf-sec"><p class="sub" style="margin:0 0 14px">Paid and protected time beyond PTO. TMX helps with the paperwork for any of these.</p><div class="bf-row c2">' +
+      (d.leave || []).map(function (l) { return '<div class="bf-card"><h3>' + ic(l.icon || "info") + esc(l.title) + '</h3><p>' + esc(l.body) + '</p></div>'; }).join("") + '</div></div>';
+  }
+
+  function panelHelp(d) {
+    var links = (d.links || []).filter(function (l) { return l.url; });
+    return '<div class="bf-sec"><h2>' + ic("user") + 'Questions go to</h2><div class="bf-row c2">' +
+        (d.contacts || []).map(function (c) { return '<div class="bf-card bf-ct"><div class="av">' + esc(initials(c.name)) + '</div><div><div class="tp">' + esc(c.topic) + '</div><b>' + esc(c.name) + '</b>' + (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + (c.note ? '<small>' + esc(c.note) + '</small>' : '') + '</div></div>'; }).join("") + '</div></div>' +
+      (links.length ? '<div class="bf-sec"><h2>' + ic("link") + 'Helpful links</h2><div class="bf-row c2">' + links.map(function (l) { return '<a class="bf-card bf-lk" target="_blank" rel="noopener" href="' + esc(l.url) + '"><span class="ib">' + ic(l.icon || "link") + '</span><div><b>' + esc(l.label) + '</b><span>' + esc(l.blurb) + '</span></div></a>'; }).join("") + '</div></div>' : '');
+  }
+
   function renderTab() {
     var root = document.getElementById("bfRoot"); if (!root) return;
     var d = DATA; if (!d) { root.innerHTML = '<div class="bf-loading">Loading…</div>'; return; }
     var t = today(), nh = nextHoliday(d.holidays);
     var daysTo = nh ? Math.round((nh.date - t) / 86400000) : null;
-    var tiers = d.pto.tiers || [];
-    var maxDays = Math.max.apply(null, tiers.map(function (x) { return +x.days || 0; }).concat([1]));
-    var hols = holidaysFor(d.holidays, year);
-    var nhKey = nh && nh.date ? iso(nh.date) : "";
-    var savedStart = ""; try { savedStart = localStorage.getItem("hq_bf_start") || ""; } catch (e) {}
-    var paidCount = (d.holidays.paid || []).length, floatCount = d.holidays.floating.count || 0;
+    var PANELS = { time: panelTime, holidays: panelHolidays, health: panelHealth, leave: panelLeave, help: panelHelp };
 
     var html = '<div class="bf">' +
-      '<div class="bf-eyebrow">' + ic("gift") + 'Benefits &amp; PTO</div>' +
-      /* hero */
-      '<div class="bf-hero"><div class="bf-ring"></div><div><div class="bf-k">' + ic("sun") + 'For every team member</div><h1>Time off, holidays and benefits, <em>in one place.</em></h1><div class="bf-dek">' + esc(d.intro) + '</div>' +
-        '<div class="bf-chips"><span class="bf-chip">' + ic("palm") + 'Up to ' + esc(maxDays) + ' PTO days a year</span><span class="bf-chip">' + ic("sun") + paidCount + ' paid holidays + ' + floatCount + ' floating</span><span class="bf-chip">' + ic("heart") + 'Medical, dental, vision &amp; more</span></div></div>' +
-        '<div class="bf-next">' + (nh && daysTo != null ? '<div class="bf-big">' + daysTo + '</div>' : '') + '<div class="bf-k">' + ic("calendar") + 'Next paid holiday</div>' +
-          (nh ? '<b>' + esc(nh.name) + '</b><span>' + fmt(nh.date, true) + (nh.actual && iso(nh.actual) !== iso(nh.date) ? ' (observed)' : '') + '</span><span class="bf-count">' + ic("clock") + (daysTo === 0 ? "Today" : daysTo === 1 ? "Tomorrow" : daysTo + " days away") + '</span>' : '<b>Set in Admin</b>') +
-        '</div></div>' +
-      /* stat tiles */
-      '<div class="bf-tiles">' +
-        tiers.map(function (tr, i) { return '<div class="bf-tile"><small>' + esc(tr.label) + '</small><b>' + esc(tr.days) + ' days</b><span>' + esc(tr.hours) + ' hrs a year · ' + esc(tr.perPeriod) + ' hrs per paycheck</span><div class="bf-bars">' + tiers.map(function (_, j) { return '<i class="' + (j <= i ? "on" : "") + '" style="height:' + (40 + Math.round(60 * (+tiers[j].days || 0) / maxDays)) + '%"></i>'; }).join("") + '</div></div>'; }).join("") +
-        '<div class="bf-tile"><small>Carryover</small><b>' + esc(d.pto.carryoverHours) + ' hrs</b><span>up to ' + Math.round(d.pto.carryoverHours / 8) + ' days into next year</span></div>' +
-        '<div class="bf-tile"><small>Paid holidays</small><b>' + paidCount + ' + ' + floatCount + '</b><span>company holidays + floating</span></div>' +
-      '</div>';
-
-    /* PTO */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Paid time off</div><h2>' + md("palm") + 'How PTO accrues</h2><div class="bf-sub">One bucket for sick, vacation and personal time. Your rate is set by years of service and lands with every weekly paycheck.</div></div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (d.pto.balanceUrl ? '<a class="bf-btn" target="_blank" rel="noopener" href="' + esc(d.pto.balanceUrl) + '">' + ic("eye") + esc(d.pto.balanceLabel || "See my balance") + '</a>' : '') + (d.pto.requestUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.pto.requestUrl) + '">' + ic("calendar") + esc(d.pto.requestLabel || "Request time off") + '</a>' : '') + '</div></div>' +
-      '<div class="bf-grid two">' +
-        '<div class="bf-card"><h3>' + md("trend") + 'Accrual by years of service</h3><div class="bf-tiers" id="bfTierBody">' +
-          tiers.map(function (tr, i) { return '<div class="bf-tier" data-i="' + i + '"><div class="bf-no">' + (i + 1) + '</div><div><div class="bf-tl">' + esc(tr.label) + '</div><div class="bf-ts">' + esc(tr.hours) + ' hours a year · ' + esc(tr.perPeriod) + ' hrs every paycheck</div></div><div class="bf-tr"><b>' + esc(tr.days) + '</b><span>days</span></div><div class="bf-bar"><i style="width:' + Math.round(100 * (+tr.days || 0) / maxDays) + '%"></i></div></div>'; }).join("") +
-          '</div></div>' +
-        '<div class="bf-card"><h3>' + md("clock") + 'Estimate what you\'ve accrued this year</h3><div class="bf-est"><label>Your start date<input type="date" id="bfStart" value="' + esc(savedStart) + '"></label><button class="bf-btn gold" id="bfEstBtn">' + ic("arrow") + 'Estimate</button></div><div class="bf-est-out empty" id="bfEstOut">Enter your start date to see your tier and a rough year-to-date accrual. It\'s an estimate, not your balance; what you\'ve used isn\'t subtracted' + (d.pto.balanceUrl ? ', and your real balance lives in the payroll portal' : '') + '.</div></div>' +
-        '<div class="bf-card"><h3>' + md("check") + 'The rules</h3>' + list(d.pto.rules) + '</div>' +
-        '<div class="bf-card"><h3>' + md("heart") + 'Using PTO when you\'re sick</h3>' + list(d.pto.sick) + '</div>' +
+      '<div class="bf-head"><div><div class="bf-k">' + ic("gift") + 'Benefits &amp; PTO</div><h1>Your time off and benefits</h1><p>PTO, holidays, health plans and who to ask, all in one spot.</p></div>' +
+        (nh ? '<div class="bf-next"><div class="bf-dt"><b>' + nh.date.getDate() + '</b><small>' + MONTHS[nh.date.getMonth()] + '</small></div><div><small class="l">Next paid holiday</small><b class="n">' + esc(nh.name) + '</b><span>' + (daysTo === 0 ? "Today" : daysTo === 1 ? "Tomorrow" : "In " + daysTo + " days") + '</span></div></div>' : '') +
       '</div>' +
-      '<div style="margin-top:14px"><div class="bf-eyebrow" style="margin:10px 0 10px">How to request time off</div><ol class="bf-steps">' + (d.pto.request || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ol></div></div>';
-
-    /* Holidays */
-    var byMonth = {}; hols.forEach(function (h) { if (h.date) { var m = h.date.getMonth(); (byMonth[m] = byMonth[m] || []).push(h); } });
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Holidays</div><h2>' + md("sun") + 'Paid holidays ' + year + '</h2><div class="bf-sub">Full-time team members get these days paid. When a holiday lands on a weekend it\'s observed on the nearest weekday.</div></div>' +
-      '<div class="bf-yr"><button data-y="' + t.getFullYear() + '" class="' + (year === t.getFullYear() ? "on" : "") + '">' + t.getFullYear() + '</button><button data-y="' + (t.getFullYear() + 1) + '" class="' + (year === t.getFullYear() + 1 ? "on" : "") + '">' + (t.getFullYear() + 1) + '</button></div></div>' +
-      '<div class="bf-strip">' + MONTHS.map(function (m, i) { var hs = byMonth[i] || []; return '<div class="bf-mo' + (year === t.getFullYear() && i === t.getMonth() ? " now" : "") + '" title="' + esc(hs.map(function (h) { return h.name; }).join(", ")) + '">' + m + '<div class="bf-dots">' + hs.map(function (h) { return '<i class="on' + (iso(h.date) === nhKey ? " next" : "") + '"></i>'; }).join("") + '</div></div>'; }).join("") + '</div>' +
-      '<div class="bf-hol">' + hols.map(function (h) {
-        if (!h.date) return '<div class="bf-hd"><div class="bf-dt"><b>?</b></div><div><div class="bf-nm">' + esc(h.name) + '</div><div class="bf-wd">Date set in Admin</div></div></div>';
-        var past = h.date < t, obs = h.actual && iso(h.actual) !== iso(h.date), isNext = iso(h.date) === nhKey;
-        return '<div class="bf-hd' + (past ? " past" : "") + (isNext ? " next" : "") + '">' + (isNext ? '<span class="bf-tag">Up next</span>' : '') + '<div class="bf-dt"><b>' + h.date.getDate() + '</b><small>' + MONTHS[h.date.getMonth()] + '</small></div><div><div class="bf-nm">' + esc(h.name) + '</div><div class="bf-wd">' + DAYS[h.date.getDay()] + '</div>' + (obs ? '<div class="bf-obs">Observed · falls on ' + DAYS[h.actual.getDay()].slice(0, 3) + ' ' + MONTHS[h.actual.getMonth()] + ' ' + h.actual.getDate() + '</div>' : '') + '</div></div>';
-      }).join("") + '</div>' +
-      '<div class="bf-card" style="margin-top:14px"><h3>' + md("info") + 'Good to know</h3>' + list(d.holidays.notes) + '</div>' +
-      /* floating holidays */
-      '<div class="bf-float"><div class="bf-float-h"><div><div class="bf-k">' + ic("gift") + 'Floating holidays</div><h3>' + floatCount + ' days a year, your pick.</h3><p>' + esc(d.holidays.floating.note) + '</p></div>' +
-        ((d.holidays.floating.list || []).length ? '<div class="bf-float-find">' + ic("search") + '<input type="search" id="bfFloatFind" placeholder="Find a holiday" aria-label="Find a floating holiday"><span id="bfFloatCount">' + d.holidays.floating.list.length + '</span></div>' : '') + '</div>' +
-        ((d.holidays.floating.list || []).length ? '<div class="bf-chips2" id="bfFloatList">' + d.holidays.floating.list.map(function (h) { return '<span class="bf-fchip">' + esc(h) + '</span>'; }).join("") + '</div><div class="bf-float-none" id="bfFloatNone" style="display:none">Nothing on the list matches. Ask TMX if you think it should be added.</div>' : '<div class="bf-float-none">The approved list will show here once it\'s added in Admin.</div>') +
-      '</div></div>';
-
-    /* Other leave */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Other leave</div><h2>' + md("shield") + 'When life happens</h2><div class="bf-sub">Paid and protected time beyond PTO. TMX helps with the paperwork for any of these.</div></div></div>' +
-      '<div class="bf-grid">' + (d.leave || []).map(function (l) { return '<div class="bf-card"><h3>' + md(l.icon || "info") + esc(l.title) + '</h3><p>' + esc(l.body) + '</p></div>'; }).join("") + '</div></div>';
-
-    /* Benefits */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Benefits</div><h2>' + md("heart") + 'The benefits package</h2><div class="bf-sub">Plan year ' + esc(d.benefits.planYear) + '. ' + esc(d.benefits.eligibility) + '</div></div>' +
-      (d.benefits.guideUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.benefits.guideUrl) + '">' + ic("file") + esc(d.benefits.guideLabel || "Benefits guide") + '</a>' : '') + '</div>' +
-      '<div class="bf-grid">' + (d.benefits.items || []).map(function (b) { return '<div class="bf-card"><h3>' + md(b.icon || "check") + esc(b.name) + '</h3><p>' + esc(b.blurb) + '</p></div>'; }).join("") + '</div>' +
-      renderMedical(d.benefits.medical) +
-      '<div class="bf-grid" style="margin-top:14px">' + (d.benefits.other || []).map(function (o) { return '<div class="bf-card bf-kv"><h3>' + md(o.icon || "check") + esc(o.name) + '</h3>' + (o.carrier ? '<div class="bf-carrier">' + esc(o.carrier) + '</div>' : '') + '<dl>' + (o.rows || []).map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join("") + '</dl></div>'; }).join("") + '</div>' +
-      '<div class="bf-card dark" style="margin-top:14px"><h3>' + md("info") + 'Enrollment and changes</h3>' + list(d.benefits.notes) + '</div></div>';
-
-    /* Links */
-    var links = (d.links || []).filter(function (l) { return l.url; });
-    if (links.length) html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Helpful links</div><h2>' + md("link") + 'Where things live</h2></div></div><div class="bf-links">' +
-      links.map(function (l) { return '<a class="bf-lk" target="_blank" rel="noopener" href="' + esc(l.url) + '">' + md(l.icon || "link") + '<div><b>' + esc(l.label) + '</b><span>' + esc(l.blurb) + '</span></div><span class="bf-go">' + ic("arrow") + '</span></a>'; }).join("") + '</div></div>';
-
-    /* Contacts */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Who to ask</div><h2>' + md("user") + 'Questions go to</h2></div></div><div class="bf-links">' +
-      (d.contacts || []).map(function (c) { return '<div class="bf-ct"><div class="bf-av">' + esc(initials(c.name)) + '</div><div><div class="bf-tp">' + esc(c.topic) + '</div><b>' + esc(c.name) + '</b>' + (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + (c.note ? '<small>' + esc(c.note) + '</small>' : '') + '</div></div>'; }).join("") + '</div></div>';
-
-    html += '<div class="bf-foot">' + ic("book") + 'Source: ' + esc(d.source) + (META && META.updated_at ? ' · Last updated in HQ ' + new Date(META.updated_at).toLocaleDateString() : '') + '. If anything here differs from the handbook, the handbook wins.</div></div>';
+      '<div class="bf-tabs" role="tablist">' + SUBTABS.map(function (s) { return '<button role="tab" data-sub="' + s[0] + '" class="' + (sub === s[0] ? "on" : "") + '" aria-selected="' + (sub === s[0]) + '">' + ic(s[2]) + s[1] + '</button>'; }).join("") + '</div>' +
+      SUBTABS.map(function (s) { return '<div class="bf-panel' + (sub === s[0] ? " on" : "") + '" data-panel="' + s[0] + '">' + (sub === s[0] ? PANELS[s[0]](d, t, nh) : "") + '</div>'; }).join("") +
+      '<div class="bf-src">' + ic("book") + 'Source: ' + esc(d.source) + (META && META.updated_at ? ' · updated in HQ ' + new Date(META.updated_at).toLocaleDateString() : '') + '. If anything here differs from the handbook, the handbook wins.</div></div>';
     root.innerHTML = html;
 
-    root.querySelectorAll(".bf-yr button[data-y]").forEach(function (b) { b.addEventListener("click", function () { year = +b.getAttribute("data-y"); renderTab(); }); });
-    root.querySelectorAll(".bf-yr button[data-med]").forEach(function (b) { b.addEventListener("click", function () { medYear = b.getAttribute("data-med"); var y = window.scrollY; renderTab(); window.scrollTo(0, y); }); });
+    root.querySelectorAll(".bf-tabs button").forEach(function (b) { b.addEventListener("click", function () { sub = b.getAttribute("data-sub"); try { localStorage.setItem("hq_bf_sub", sub); } catch (e) {} renderTab(); }); });
+    root.querySelectorAll("button[data-y]").forEach(function (b) { b.addEventListener("click", function () { year = +b.getAttribute("data-y"); renderTab(); }); });
+    root.querySelectorAll("button[data-med]").forEach(function (b) { b.addEventListener("click", function () { medYear = b.getAttribute("data-med"); renderTab(); }); });
     var ff = root.querySelector("#bfFloatFind");
     if (ff) ff.addEventListener("input", function () {
       var q = ff.value.toLowerCase().trim(), n = 0;
-      root.querySelectorAll("#bfFloatList .bf-fchip").forEach(function (c) { var on = !q || c.textContent.toLowerCase().indexOf(q) >= 0; c.style.display = on ? "" : "none"; if (on) n++; });
+      root.querySelectorAll("#bfFloatList span").forEach(function (c) { var on = !q || c.textContent.toLowerCase().indexOf(q) >= 0; c.style.display = on ? "" : "none"; if (on) n++; });
       root.querySelector("#bfFloatCount").textContent = n; root.querySelector("#bfFloatNone").style.display = n ? "none" : "";
     });
-    var go = function () {
-      var v = root.querySelector("#bfStart").value, st = parseISO(v), out = root.querySelector("#bfEstOut");
-      if (!st) { out.className = "bf-est-out empty"; out.innerHTML = "Pick your start date first."; return; }
-      try { localStorage.setItem("hq_bf_start", v); } catch (e) {}
-      var e = estimate(d.pto, st);
-      root.querySelectorAll("#bfTierBody .bf-tier").forEach(function (tr) { tr.classList.toggle("me", tiers[+tr.getAttribute("data-i")] === e.tier); });
-      var yrs = Math.floor(e.years), mos = Math.floor((e.years - yrs) * 12);
-      var pct = Math.max(0, Math.min(1, e.hours / (+e.tier.hours || 1))), C = 2 * Math.PI * 50;
-      out.className = "bf-est-out";
-      out.innerHTML = '<div class="bf-ring"><svg viewBox="0 0 118 118"><defs><linearGradient id="bfGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE063"/><stop offset="1" stop-color="#C8963E"/></linearGradient></defs><circle class="bf-rt" cx="59" cy="59" r="50"/><circle class="bf-rv" cx="59" cy="59" r="50" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '"/></svg><div class="bf-rc"><div><b>' + e.hours + '</b><small>hrs so far</small></div></div></div>' +
-        '<div>You\'ve been with Spark <b>' + yrs + ' year' + (yrs === 1 ? "" : "s") + (mos ? ", " + mos + " month" + (mos === 1 ? "" : "s") : "") + '</b>, so you\'re in the <b>' + esc(e.tier.label) + '</b> tier: <b>' + esc(e.tier.days) + ' days</b> (' + esc(e.tier.hours) + ' hours) a year, <b>' + esc(e.tier.perPeriod) + ' hours</b> each paycheck. ' +
-        'Across the <b>' + e.periods + '</b> paychecks so far in ' + t.getFullYear() + ', that\'s roughly <b>' + e.hours + ' hours</b> (' + (Math.round(e.hours / 8 * 10) / 10) + ' days), about ' + Math.round(pct * 100) + '% of the year\'s accrual, before anything you\'ve used or carried over.</div>';
-      var rv = out.querySelector(".bf-rv"); if (rv) requestAnimationFrame(function () { rv.style.strokeDashoffset = (C * (1 - pct)).toFixed(1); });
-    };
-    root.querySelector("#bfEstBtn").addEventListener("click", go);
-    root.querySelector("#bfStart").addEventListener("keydown", function (ev) { if (ev.key === "Enter") go(); });
-    if (savedStart) go();
+    var est = root.querySelector("#bfEstBtn");
+    if (est) {
+      var tiers = d.pto.tiers || [];
+      var go = function () {
+        var v = root.querySelector("#bfStart").value, st = parseISO(v), out = root.querySelector("#bfEstOut");
+        if (!st) { out.textContent = "Pick your start date first."; return; }
+        try { localStorage.setItem("hq_bf_start", v); } catch (e) {}
+        var e = estimate(d.pto, st), yrs = Math.floor(e.years), mos = Math.floor((e.years - yrs) * 12);
+        var pct = Math.max(0, Math.min(1, e.hours / (+e.tier.hours || 1)));
+        root.querySelectorAll("#bfTiers .bf-tier").forEach(function (c) { c.classList.toggle("me", tiers[+c.getAttribute("data-i")] === e.tier); });
+        out.innerHTML = '<div class="big"><b>' + e.hours + ' hrs</b><span>about ' + (Math.round(e.hours / 8 * 10) / 10) + ' days earned so far in ' + t.getFullYear() + '</span></div><div class="bf-meter"><i style="width:0"></i></div>' +
+          yrs + ' yr' + (yrs === 1 ? "" : "s") + (mos ? " " + mos + " mo" : "") + ' with Spark puts you in the <b>' + esc(e.tier.label) + '</b> tier: ' + esc(e.tier.days) + ' days a year. Doesn\'t subtract time you\'ve used.';
+        var bar = out.querySelector(".bf-meter i"); requestAnimationFrame(function () { bar.style.width = Math.round(pct * 100) + "%"; });
+      };
+      est.addEventListener("click", go);
+      root.querySelector("#bfStart").addEventListener("keydown", function (ev) { if (ev.key === "Enter") go(); });
+      if (root.querySelector("#bfStart").value) go();
+    }
   }
   function openTab() {
     document.querySelectorAll(".nav-item").forEach(function (b) { b.classList.remove("active"); });
