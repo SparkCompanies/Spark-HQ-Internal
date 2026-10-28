@@ -5125,7 +5125,7 @@ var worker_default = {
            "Recruiter__c", "Recruiter__r.Name", "Account_Manager__r.Name", "User__r.Name", "Owner.Name",
            "bpats__Hiring_Manager__r.Name", "bpats__Bill_Rate__c", "bpats__Pay_Rate__c", "Burden_Percent__c",
            "Req_Score__c", "Target_Rate__c", "Top_5_Skill_Sets__c", "Hiring_Manager_Alignment__c", "Interview_Time__c",
-           "bpats__Start_Date__c", "bpats__Type__c", "CreatedDate", "LastModifiedDate"],
+           "bpats__Start_Date__c", "bpats__Type__c", "bpats__Location__c", "CreatedDate", "LastModifiedDate"],
           "bpats__Job__c", "bpats__Status__c = 'Open'", "CreatedDate DESC");
 
         const apps = await safeQuery(
@@ -5137,7 +5137,8 @@ var worker_default = {
         // Active headcount + 90-day starts/terms, by job business unit
         const pls = await safeQuery(
           ["Id", "Status__c", "bpats__Start_Date__c", "Terminated_Date__c", "bpats__ATS_Job__c",
-           "bpats__ATS_Job__r.Subdivision__c", "bpats__Account__r.Name", "bpats__ATS_Candidate__r.Name"],
+           "bpats__ATS_Job__r.Subdivision__c", "bpats__ATS_Job__r.Job_Classification__c", "bpats__ATS_Job__r.Job_Subclassification__c",
+           "bpats__ATS_Job__r.bpats__Location__c", "bpats__ATS_Job__r.bpats__Job_Title__c", "bpats__Account__r.Name", "bpats__ATS_Candidate__r.Name"],
           "bpats__Placement__c",
           "(bpats__Start_Date__c <= TODAY AND (Terminated_Date__c = null OR Terminated_Date__c >= LAST_N_DAYS:90)) OR bpats__Start_Date__c = NEXT_N_DAYS:30",
           null);
