@@ -6524,6 +6524,32 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
 .celeb-row.is-today .cr-day{color:#171614;background:var(--gold);border-radius:6px;padding:1px 5px;text-align:center;flex:0 0 auto;min-width:30px}
 .celeb-ico{flex:0 0 auto;width:16px;height:16px}
 .celeb-empty{font-size:12px;color:var(--muted-light);padding:2px 0 4px}
+/*HIRED_DIRECT_v1*/
+.hd-wrap{margin:0 0 18px}
+.hd-card{background:linear-gradient(180deg,#fffdf7,#fff);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(23,22,20,.05)}
+.hd-head{display:flex;align-items:center;gap:10px;padding:16px 20px 12px;border-bottom:1px solid rgba(184,145,46,.14)}
+.hd-eyebrow{font-family:var(--font-display);font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#B8912E}
+.hd-sub{font-size:11.5px;color:var(--muted-light);letter-spacing:.02em}
+.hd-toggle{margin-left:auto;display:flex;gap:4px}
+.hd-toggle button{font:inherit;font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+.hd-toggle button.on{background:#171614;color:var(--gold);border-color:#171614}
+.hd-lead{padding:12px 20px 0;font-size:13px;line-height:1.5;color:var(--muted)}
+.hd-list{padding:8px 20px 16px;display:grid;gap:10px}
+.hd-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 14px;border:1px solid rgba(184,145,46,.18);border-radius:12px;background:#fff}
+.hd-row.is-done{opacity:.5}
+.hd-name{font-weight:700;color:var(--ink);font-size:14.5px}
+.hd-meta{font-size:12.5px;color:var(--muted);margin-top:2px}
+.hd-contact{font-size:12.5px;color:var(--ink);margin-top:6px;line-height:1.5}
+.hd-contact a{color:inherit;text-decoration:none;border-bottom:1px dotted rgba(184,145,46,.6)}
+.hd-contact .hd-none{color:var(--muted-light);font-style:italic}
+.hd-who{font-size:11px;color:var(--muted-light);margin-top:4px}
+.hd-acts{display:flex;flex-direction:column;gap:6px;align-items:flex-end;justify-content:center}
+.hd-chk{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;user-select:none;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;white-space:nowrap}
+.hd-chk svg{width:14px;height:14px;flex:0 0 auto}
+.hd-chk.on{background:rgba(245,197,24,.16);border-color:#D4A017;color:#171614}
+.hd-chk.busy{opacity:.5;pointer-events:none}
+.hd-sf{font-size:11.5px;color:#B8912E;font-weight:600;text-decoration:none}
+@media(max-width:600px){.hd-row{grid-template-columns:1fr}.hd-acts{flex-direction:row;align-items:center;justify-content:flex-start}}
 </style>
 <style>/*HIDE_SL_MATCH_v1*/.nav-item[data-tab=sparkline],.nav-item[data-tab=match]{display:none!important}</style><style>/*SPARK_POLISH_v1a*/.nav-item{position:relative;border-radius:10px;transition:color .15s,background .15s,box-shadow .15s}.nav-item:hover{color:#FFC800}.nav-item.active,.nav-item.on{background:linear-gradient(135deg,rgba(255,200,0,.16),rgba(255,200,0,.04));box-shadow:inset 3px 0 0 #FFC800,0 0 16px rgba(255,200,0,.08)}*:focus-visible{outline:2px solid #FFC800;outline-offset:2px}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a32;border-radius:99px}::-webkit-scrollbar-thumb:hover{background:#3d3d48}::-webkit-scrollbar-track{background:transparent}</style><style>/*SPARK_POLISH_v1b*/.hc-card,.hc-kpi,.fbox{transition:transform .16s,box-shadow .16s}.hc-card:hover,.hc-kpi:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.12)}.tab-hero .eyebrow{letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#B8912E}.tab-hero .dek{line-height:1.66}button{transition:filter .15s,transform .12s}button:active{transform:scale(.985)}.tab-page.cream .lms-shell{border-radius:14px}</style><script>/* M365_BELL_v1 config: Entra app registration (SPA) client ID for "Spark HQ". Leave empty until the app exists. */window.HQ_GRAPH_CLIENT_ID = '6562a89e-5889-4a86-9aba-ed29eef1fc03';</script>
 
@@ -7012,6 +7038,8 @@ a.hw-stat:hover .hw-stat-val { color:var(--gold-dark); }
             </div>
           </div>
           <!-- PULSE_HIDDEN_v1 — announcements block parked. Delete the two style="display:none" attributes to bring it back. -->
+          <!-- HIRED_DIRECT_v1 — hired-direct follow-ups for the signed-in recruiter -->
+          <div class="hd-wrap" id="hdWrap" style="display:none"></div>
           <!-- HQ_CELEBRATIONS_v2 — birthdays & anniversaries, home page -->
           <div class="celeb-wrap" id="celebWrap"></div>
           <div class="pulse-board" id="pulseBoard" style="display:none"></div>
@@ -22469,6 +22497,89 @@ window.jvDraftCard = function(draft){
 })();
 </script>
 
+<script>/*HIRED_DIRECT_v1 — hired-direct follow-ups card*/
+(function () {
+  var WK = "https://spark-hq-worker.sparkcompanies.workers.dev";
+  var NS = "http://www.w3.org/2000/svg";
+  var S = { items: [], admin: false, all: false };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]; }); }
+  function ico(d) { var s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "2.2"); s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round"); var p = document.createElementNS(NS, "path"); p.setAttribute("d", d); s.appendChild(p); return s; }
+  var D_CHECK = "M5 12.5l4.5 4.5L19 7", D_PHONE = "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z", D_MAIL = "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6";
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function fmtDate(iso) { if (!iso) return ""; var d = new Date(iso); if (isNaN(d)) return ""; return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+  function addrLines(a) { a = a || {}; var l1 = String(a.street || "").replace(/\s*\n\s*/g, ", ").trim(); var l2 = [a.city, a.state].filter(Boolean).join(", ") + (a.zip ? " " + a.zip : ""); return [l1, l2.trim()].filter(Boolean); }
+  function api(method, body) {
+    return window.SPARK_SB.getToken().then(function (tok) {
+      if (!tok) throw new Error("Sign in first.");
+      var init = { method: method, headers: { Authorization: "Bearer " + tok } };
+      if (body) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(body); }
+      return fetch(WK + "/hired-direct" + (method === "GET" && S.all ? "?all=1" : ""), init);
+    }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || ("Request failed (" + r.status + ")")); return d; }); });
+  }
+  function chk(label, d, on, busy, onClick) {
+    var b = el("button", "hd-chk" + (on ? " on" : "") + (busy ? " busy" : "")); b.type = "button";
+    b.appendChild(ico(on ? D_CHECK : d)); b.appendChild(document.createTextNode(label));
+    b.addEventListener("click", onClick); return b;
+  }
+  function row(it) {
+    var done = !!(it.called_at && it.card_sent_at);
+    var r = el("div", "hd-row" + (done ? " is-done" : ""));
+    var left = el("div");
+    left.appendChild(el("div", "hd-name", it.candidate_name || "Candidate"));
+    left.appendChild(el("div", "hd-meta", [it.job_title, it.client].filter(Boolean).join(" at ") + (it.sent_at ? " \u00b7 flagged " + fmtDate(it.sent_at) : "")));
+    var c = el("div", "hd-contact"); var al = addrLines(it.address); var parts = [];
+    if (it.candidate_phone) parts.push("<a href=\"tel:" + esc(String(it.candidate_phone).replace(/[^0-9+]/g, "")) + "\">" + esc(it.candidate_phone) + "</a>");
+    if (it.candidate_email) parts.push("<a href=\"mailto:" + esc(it.candidate_email) + "\">" + esc(it.candidate_email) + "</a>");
+    c.innerHTML = (parts.length ? parts.join(" \u00b7 ") + "<br>" : "") + (al.length ? esc(al.join(", ")) : "<span class=\"hd-none\">No mailing address on the Contact \u2014 grab it on the call.</span>");
+    left.appendChild(c);
+    if (S.all) left.appendChild(el("div", "hd-who", (it.recruiter_name || it.recruiter_email || "") + (it.recruiter_via ? " (" + it.recruiter_via + ")" : "")));
+    var sf = el("a", "hd-sf", "Open placement in Salesforce"); sf.href = "https://spark-companies.lightning.force.com/lightning/r/bpats__Placement__c/" + encodeURIComponent(it.placement_id) + "/view"; sf.target = "_blank"; sf.rel = "noopener";
+    var sfw = el("div"); sfw.style.marginTop = "6px"; sfw.appendChild(sf); left.appendChild(sfw);
+    var acts = el("div", "hd-acts");
+    acts.appendChild(chk("Called", D_PHONE, !!it.called_at, it._busy, function () { mark(it, { called: !it.called_at }); }));
+    acts.appendChild(chk("Card sent", D_MAIL, !!it.card_sent_at, it._busy, function () { mark(it, { card: !it.card_sent_at }); }));
+    r.appendChild(left); r.appendChild(acts); return r;
+  }
+  function mark(it, patch) {
+    it._busy = true; render();
+    api("POST", Object.assign({ placementId: it.placement_id }, patch)).then(function (d) {
+      if (d && d.item) { for (var k in d.item) it[k] = d.item[k]; }
+    }).catch(function (e) { alert(e.message || "Could not save"); }).then(function () { it._busy = false; render(); });
+  }
+  function render() {
+    var host = document.getElementById("hdWrap"); if (!host) return;
+    var open = S.items.filter(function (i) { return !(i.called_at && i.card_sent_at); });
+    if (!S.items.length) { host.style.display = "none"; host.innerHTML = ""; return; }
+    host.innerHTML = ""; host.style.display = "";
+    var card = el("div", "hd-card"), head = el("div", "hd-head");
+    head.appendChild(el("div", "hd-eyebrow", "Hired direct \u2014 call and congratulate"));
+    head.appendChild(el("div", "hd-sub", open.length ? open.length + " open" : "All caught up"));
+    if (S.admin) { var t = el("div", "hd-toggle"); [["Mine", false], ["Everyone", true]].forEach(function (o) { var b = el("button", S.all === o[1] ? "on" : "", o[0]); b.type = "button"; b.addEventListener("click", function () { if (S.all !== o[1]) { S.all = o[1]; load(); } }); t.appendChild(b); }); head.appendChild(t); }
+    card.appendChild(head);
+    card.appendChild(el("div", "hd-lead", "The client hired your candidate on. Call them, ask who they know that\u2019s looking, and drop a card in the mail. Check each one off here."));
+    var list = el("div", "hd-list");
+    S.items.slice().sort(function (a, b) { var ad = !!(a.called_at && a.card_sent_at), bd = !!(b.called_at && b.card_sent_at); if (ad !== bd) return ad ? 1 : -1; return String(b.sent_at || "").localeCompare(String(a.sent_at || "")); }).forEach(function (it) { list.appendChild(row(it)); });
+    card.appendChild(list); host.appendChild(card);
+  }
+  function load() {
+    api("GET").then(function (d) { S.items = d.items || []; S.admin = !!d.admin; S.all = !!d.all; render(); if (location.hash === "#hired-direct") jump(); }).catch(function () { /* never let this break the home page */ });
+  }
+  function jump() {
+    try { var b = document.querySelector(".nav-item[data-tab=\"home\"]"); if (b) b.click(); } catch (e) {}
+    setTimeout(function () { var h = document.getElementById("hdWrap"); if (h && h.style.display !== "none") h.scrollIntoView({ behavior: "smooth", block: "start" }); }, 350);
+  }
+  function go() {
+    var n = 0;
+    var iv = setInterval(function () {
+      n++;
+      if (document.getElementById("hdWrap") && window.SPARK_SB && window.SPARK_SB.getToken) { clearInterval(iv); load(); try { window.SPARK_SB.onChange(function () { setTimeout(load, 300); }); } catch (e) {} }
+      else if (n > 60) clearInterval(iv);
+    }, 250);
+  }
+  window.addEventListener("hashchange", function () { if (location.hash === "#hired-direct") jump(); });
+  if (document.readyState !== "loading") go(); else document.addEventListener("DOMContentLoaded", go);
+})();
+</script>
 <script>/*HQ_CELEBRATIONS_v2 — home-page celebrations card*/
 (function () {
   var WK = "https://spark-hq-worker.sparkcompanies.workers.dev";
