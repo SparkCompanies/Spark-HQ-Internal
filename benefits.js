@@ -1,4 +1,4 @@
-/* BENEFITS_v1.5 — Benefits & PTO tab + Admin > Benefits & PTO editor
+/* BENEFITS_v1.6 — Benefits & PTO tab + Admin > Benefits & PTO editor
    Loaded into the HQ shell by spark-home.html (same path as my-links.js, viewas.js, access.js and traffic.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -112,6 +112,12 @@
         ] },
         footnote: "Deductibles and out-of-pocket maximums are shown individual / family, in network, per calendar year. Copays are for in-network care. Rx shows the Tier 1 / 2 / 3 retail copays; specialty tiers are 20% up to a cap. Full details are in the plan summaries."
       },
+      carriers: [
+        { name: "Priority Health", covers: "Medical and prescriptions", url: "https://www.priorityhealth.com/member/member-account", icon: "heart", perks: "Digital ID card, find in-network doctors, see claims and what you owe, track your deductible, compare costs before you go." },
+        { name: "Delta Dental", covers: "Dental", url: "https://www.memberportal.com/mp/delta/", icon: "smile", perks: "ID card, find a PPO or Premier dentist, check what's covered, see claims and how much of your $1,000 annual max is left." },
+        { name: "EyeMed", covers: "Vision", url: "https://eyemed.com/en-us/member", icon: "eye", perks: "ID card, find an in-network eye doctor, see when you're next eligible for an exam, frames or contacts." }
+      ],
+      carrierNote: "Set up your logins now, not the day you need them. Each one takes about five minutes with your member ID (on your card) or your SSN and date of birth. All three also have phone apps with your ID card in them.",
       other: [
         { name: "Dental", icon: "smile", carrier: "Delta Dental PPO", rows: [["Deductible", "$75 person / $225 family (PPO and Premier); $50 / $150 out of network. Waived for preventive."], ["Annual maximum", "$1,000 per person"], ["Preventive", "Covered in full in the PPO network (exams, cleanings, x-rays)"], ["Basic", "You pay 20% (fillings, scaling); 40% at Premier or out of network"], ["Major", "You pay 50% (crowns, root canals, implants)"], ["Orthodontia", "You pay 50%, adults and children, $1,000 lifetime maximum"]] },
         { name: "Vision", icon: "eye", carrier: "EyeMed, Insight network", rows: [["Eye exam", "$10 copay, once every 12 months"], ["Lenses", "$25 copay (single, bifocal or trifocal), once every 12 months"], ["Frames", "$110 allowance, once every 24 months"], ["Contacts", "$110 allowance instead of lenses and frames; medically necessary contacts covered in full"], ["LASIK", "15% discount"]] },
@@ -332,6 +338,10 @@
     ".bf-gs .gs-go{background:#1a1a2e;border-color:#1a1a2e;color:#fff;padding:12px 18px;font-size:14px;white-space:nowrap;flex:none}.bf-gs .gs-go:hover{background:#2a2a4a;border-color:#2a2a4a}.bf-gs .gs-go .bf-ic{color:#FFD43B}" +
     ".bf-gs.sm{margin:16px 0 0;padding:10px 12px;border-radius:13px;box-shadow:0 0 0 3px rgba(255,212,59,.18)}.bf-gs.sm .gs-ic{width:36px;height:36px;border-radius:10px}.bf-gs.sm .gs-ic .bf-ic{width:18px;height:18px}.bf-gs.sm .gs-tx b{font-size:14px}.bf-gs.sm .gs-tx span{display:none}.bf-gs.sm .gs-go{padding:9px 14px;font-size:13px}" +
     "@media(max-width:640px){.bf-gs{flex-wrap:wrap}.bf-gs .gs-go{width:100%;justify-content:center}}" +
+    /* CARRIER_LOGINS_v1 */
+    ".bf-car-head{display:flex;gap:14px;align-items:center;margin-bottom:14px;padding:14px 16px;border-radius:14px;background:#1a1a2e;color:#fff;box-shadow:0 0 0 3px rgba(255,212,59,.25)}.bf-car-head .ci{width:40px;height:40px;border-radius:11px;background:#FFD43B;color:#1a1a2e;display:grid;place-items:center;flex:none}.bf-car-head .ci .bf-ic{width:20px;height:20px}.bf-car-head b{display:block;font-size:16px;font-weight:800;color:#FFD43B}.bf-car-head span{display:block;font-size:13px;color:#d6d7ea;margin-top:2px;line-height:1.45}" +
+    ".bf-car{display:flex;flex-direction:column;gap:10px}.bf-car .top{display:flex;gap:12px;align-items:center}.bf-car .ib{width:40px;height:40px;border-radius:11px;background:#FFD43B;color:#1a1a2e;display:grid;place-items:center;flex:none}.bf-car .top b{display:block;font-size:15px;font-weight:800}.bf-car .top small{display:block;font-size:12px;color:#6B675C}.bf-car p{flex:1;font-size:13px;color:#3d3b35}" +
+    ".bf-car .go{justify-content:center;background:#1a1a2e;border-color:#1a1a2e;color:#fff}.bf-car .go:hover{background:#2a2a4a}.bf-car .go .bf-ic{color:#FFD43B}" +
     "@media(max-width:900px){.bf-row.c3,.bf-row.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-steps{grid-template-columns:1fr}}" +
     "@media(max-width:640px){.bf{padding:18px 16px 50px}.bf-row.c2,.bf-row.c3,.bf-row.c4{grid-template-columns:1fr}.bf-head h1{font-size:25px}.bf-find input{width:120px}}" +
     /* admin editor */
@@ -436,10 +446,21 @@
       '<div class="bf-sec"><h2>' + ic("book") + 'Religious observance</h2><div class="bf-card"><p>' + esc((d.holidays.notes || []).filter(function (n) { return /religious/i.test(n); })[0] || "One paid day each year for religious observance on a regular workday. Request it through your department leader two weeks ahead.") + '</p></div></div>';
   }
 
+  function renderCarriers(b) {
+    var cs = (b.carriers || []).filter(function (c) { return c.name; });
+    if (!cs.length) return "";
+    return '<div class="bf-sec bf-carriers"><div class="bf-car-head"><div class="ci">' + ic("user") + '</div><div><b>Create your carrier logins</b><span>' + esc(b.carrierNote || "") + '</span></div></div>' +
+      '<div class="bf-row c3">' + cs.map(function (c) {
+        return '<div class="bf-card bf-car"><div class="top"><span class="ib">' + ic(c.icon || "link") + '</span><div><b>' + esc(c.name) + '</b><small>' + esc(c.covers || "") + '</small></div></div>' +
+          (c.perks ? '<p>' + esc(c.perks) + '</p>' : '') +
+          (c.url ? '<a class="bf-btn go" target="_blank" rel="noopener" href="' + esc(c.url) + '">Log in or create account' + ic("arrow") + '</a>' : '') + '</div>';
+      }).join("") + '</div></div>';
+  }
   function panelHealth(d) {
     var b = d.benefits || {};
     return '<div class="bf-banner">' + ic("info") + '<span><b>Plan year ' + esc(b.planYear) + '.</b> ' + esc(b.eligibility) + '</span></div>' +
       (b.guideUrl ? '<div class="bf-actions"><a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(b.guideUrl) + '">' + ic("file") + esc(b.guideLabel || "Benefits guide") + '</a></div>' : '') +
+      renderCarriers(b) +
       renderMedical(b.medical) +
       ((b.other || []).length ? '<div class="bf-sec"><h2>' + ic("smile") + 'Dental, vision, life and disability</h2><div class="bf-row c3">' + b.other.map(function (o) { return '<div class="bf-card bf-kv"><h3>' + ic(o.icon || "check") + esc(o.name) + '</h3>' + (o.carrier ? '<div class="cr">' + esc(o.carrier) + '</div>' : '') + '<dl>' + (o.rows || []).map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join("") + '</dl></div>'; }).join("") + '</div></div>' : '') +
       '<div class="bf-sec"><h2>' + ic("trend") + '401(k)</h2><div class="bf-card"><p>' + esc(((b.items || []).filter(function (x) { return /401/.test(x.name); })[0] || {}).blurb || "Retirement plan with payroll deductions.") + ' Questions go to Priyanka Malani.</p></div></div>' +
@@ -455,6 +476,7 @@
     var links = (d.links || []).filter(function (l) { return l.url; });
     return '<div class="bf-sec"><h2>' + ic("user") + 'Questions go to</h2><div class="bf-row c2">' +
         (d.contacts || []).map(function (c) { return '<div class="bf-card bf-ct"><div class="av">' + esc(initials(c.name)) + '</div><div><div class="tp">' + esc(c.topic) + '</div><b>' + esc(c.name) + '</b>' + (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + (c.note ? '<small>' + esc(c.note) + '</small>' : '') + '</div></div>'; }).join("") + '</div></div>' +
+      ((d.benefits && d.benefits.carriers || []).filter(function (c) { return c.url; }).length ? '<div class="bf-sec"><h2>' + ic("heart") + 'Insurance carrier logins</h2><div class="bf-row c3">' + d.benefits.carriers.filter(function (c) { return c.url; }).map(function (c) { return '<a class="bf-card bf-lk" target="_blank" rel="noopener" href="' + esc(c.url) + '"><span class="ib">' + ic(c.icon || "link") + '</span><div><b>' + esc(c.name) + '</b><span>' + esc(c.covers || "") + '</span></div></a>'; }).join("") + '</div></div>' : '') +
       (links.length ? '<div class="bf-sec"><h2>' + ic("link") + 'Helpful links</h2><div class="bf-row c2">' + links.map(function (l) { return '<a class="bf-card bf-lk" target="_blank" rel="noopener" href="' + esc(l.url) + '"><span class="ib">' + ic(l.icon || "link") + '</span><div><b>' + esc(l.label) + '</b><span>' + esc(l.blurb) + '</span></div></a>'; }).join("") + '</div></div>' : '');
   }
 
@@ -614,6 +636,9 @@
       '<div class="hint" style="margin-top:6px"><b>Current plan year</b></div>' + planTable("current", m.current || { plans: [] }) +
       '<div class="hint" style="margin-top:14px"><b>Next plan year</b> (leave empty if not decided yet)</div>' + planTable("next", m.next || { plans: [] }) +
       area("Footnote under the plans", "bfa_medFoot", m.footnote) + '</div>';
+    html += '<div class="bfa-sec"><h3>' + ic("user") + 'Carrier logins</h3><p class="hint">Shown at the top of Health &amp; benefits and on Who to ask. One carrier per line as <code>Name | What it covers | Login URL | What they can do there | icon</code>. Icons: heart, smile, eye, shield, trend, link.</p>' +
+      area("Carriers", "bfa_carriers", (d.benefits.carriers || []).map(function (c) { return [c.name, c.covers, c.url, c.perks, c.icon].join(" | "); }), "one per line") +
+      area("Nudge above the carrier cards", "bfa_carrierNote", d.benefits.carrierNote) + '</div>';
     html += '<div class="bfa-sec"><h3>' + ic("smile") + 'Dental, vision, life and disability</h3><p class="hint">One card each. Rows are one per line as <code>Label | Detail</code>.</p>' +
       (d.benefits.other || []).map(function (o, i) { return '<div class="bfa-grid"><div>' + field("Card title", "bfa_oth_name" + i, o.name) + field("Carrier / subtitle", "bfa_oth_carrier" + i, o.carrier) + '<label>Icon ' + iconSel("bfa_oth_icon" + i, o.icon) + '</label></div>' + area("Rows", "bfa_oth_rows" + i, (o.rows || []).map(function (r) { return r[0] + " | " + r[1]; }), "Label | Detail") + '</div><div style="text-align:right;margin:-6px 0 10px"><button class="bfa-x" data-del-oth="' + i + '">' + ic("trash") + ' Remove this card</button></div>'; }).join("") +
       '<button class="bfa-add" id="bfaAddOth">' + ic("plus") + 'Add a card</button></div>';
@@ -666,6 +691,8 @@
     el.querySelectorAll("[data-b]").forEach(function (n) { var b = d.benefits.items[+n.getAttribute("data-b")]; if (b) b[n.getAttribute("data-k")] = n.value; });
     d.benefits.items.forEach(function (b, i) { var s = el.querySelector("#bfa_bic" + i); if (s) b.icon = s.value; });
     var m = d.benefits.medical || (d.benefits.medical = { current: { plans: [] }, next: { plans: [] } });
+    d.benefits.carriers = lines(v("bfa_carriers")).map(function (l) { var q = l.split("|").map(function (x) { return x.trim(); }); return { name: q[0] || "", covers: q[1] || "", url: q[2] || "", perks: q[3] || "", icon: q[4] || "link" }; }).filter(function (c) { return c.name; });
+    d.benefits.carrierNote = v("bfa_carrierNote");
     m.carrier = v("bfa_medCarrier"); m.switchDate = v("bfa_medSwitch").trim(); m.footnote = v("bfa_medFoot");
     m.current = m.current || { plans: [] }; m.next = m.next || { plans: [] }; m.current.label = v("bfa_medCurLbl"); m.next.label = v("bfa_medNextLbl");
     el.querySelectorAll("input[data-med]").forEach(function (n) { var set = m[n.getAttribute("data-med")], p = set && set.plans[+n.getAttribute("data-i")]; if (p) p[n.getAttribute("data-k")] = n.value.trim(); });
