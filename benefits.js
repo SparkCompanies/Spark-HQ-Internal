@@ -1,4 +1,4 @@
-/* BENEFITS_v1 — Benefits & PTO tab + Admin > Benefits & PTO editor
+/* BENEFITS_v1.1 — Benefits & PTO tab + Admin > Benefits & PTO editor
    Loaded into the HQ shell by spark-home.html (same path as my-links.js, viewas.js, access.js and traffic.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -105,8 +105,8 @@
       { label: "Maven IT support", url: "mailto:support@mavenitinc.com", blurb: "Laptop, email, password and software issues go to Maven.", icon: "laptop" }
     ],
     contacts: [
-      { topic: "Benefits and enrollment", name: "Mary Patrico", email: "mpatrico@sparkcompanies.com", note: "Backup: Allie Spegel" },
-      { topic: "PTO and time off", name: "Your leader", email: "", note: "Then Mary Patrico for policy questions" },
+      { topic: "Benefits and enrollment", name: "Tamika Coleman", email: "tcoleman@sparkcompanies.com", note: "Medical, dental, vision, life, disability, open enrollment" },
+      { topic: "PTO and time off", name: "Priyanka Malani", email: "pmalani@sparkcompanies.com", note: "Clear dates with your leader first" },
       { topic: "401(k)", name: "Priyanka Malani", email: "pmalani@sparkcompanies.com", note: "Enrollment, contributions, rollovers" },
       { topic: "Pay, pay stubs and W-2s", name: "Priyanka Malani", email: "pmalani@sparkcompanies.com", note: "Payroll" }
     ],
@@ -231,53 +231,93 @@
   }
 
   /* ---------- CSS ---------- */
+  var NOISE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E\")";
   var CSS = "" +
-    "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:var(--ink,#1a1a2e)}" +
-    ".bf{max-width:1120px;margin:0 auto;padding:30px 32px 70px}" +
+    "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1a2e;background:" +
+      "radial-gradient(1200px 500px at 85% -120px,rgba(245,197,24,.14),transparent 60%),radial-gradient(900px 420px at -10% 30%,rgba(200,150,62,.10),transparent 60%),linear-gradient(180deg,#FBFAF6 0%,#F6F3EC 100%)}" +
+    ".bf{max-width:1140px;margin:0 auto;padding:28px 32px 80px;position:relative}" +
     ".bf .bf-ic{display:inline-flex;width:18px;height:18px;flex:none;color:inherit}.bf .bf-ic svg,.bfa .bf-ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}" +
-    ".bf-eyebrow{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:8px}" +
-    ".bf-hero{position:relative;margin-top:14px;border-radius:22px;overflow:hidden;color:#fff;padding:32px 34px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(280px,.8fr);gap:28px;align-items:center;" +
-      "background:radial-gradient(900px 300px at 10% -20%,rgba(245,197,24,.28),transparent 60%),linear-gradient(135deg,#17172f 0%,#1f1f3a 55%,#2a2444 100%);box-shadow:0 30px 60px -30px rgba(23,23,47,.7)}" +
-    ".bf-hero::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.06;background-image:radial-gradient(#fff 1px,transparent 1px);background-size:18px 18px}" +
+    ".bf-eyebrow{font-size:11px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:#B8912E;display:flex;align-items:center;gap:8px}" +
+    /* hero */
+    ".bf-hero{position:relative;margin-top:14px;border-radius:26px;overflow:hidden;color:#fff;padding:38px 40px 58px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.85fr);gap:32px;align-items:center;isolation:isolate;" +
+      "background:linear-gradient(118deg,#141428 0%,#1b1b36 48%,#2a2347 100%);box-shadow:0 40px 80px -36px rgba(20,20,45,.75),0 2px 0 rgba(255,255,255,.06) inset}" +
+    ".bf-hero::before{content:'';position:absolute;inset:-40%;z-index:0;background:radial-gradient(closest-side at 22% 30%,rgba(255,212,59,.42),transparent 70%),radial-gradient(closest-side at 80% 110%,rgba(200,150,62,.35),transparent 70%);filter:blur(30px);animation:bfGlow 14s ease-in-out infinite alternate}" +
+    ".bf-hero::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.10;mix-blend-mode:overlay;background-image:" + NOISE + "}" +
     ".bf-hero>*{position:relative;z-index:1}" +
-    ".bf-hero h1{font-size:34px;line-height:1.08;margin:12px 0 10px;font-weight:800;letter-spacing:-.01em;color:#fff}" +
-    ".bf-hero .bf-dek{color:#c9cbe0;font-size:14.5px;line-height:1.6;max-width:560px}" +
-    ".bf-hero .bf-k{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#FFD43B;display:flex;align-items:center;gap:8px}" +
-    ".bf-next{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:18px 20px;backdrop-filter:blur(6px)}" +
-    ".bf-next b{display:block;font-size:24px;font-weight:800;margin:8px 0 2px;color:#fff}.bf-next span{display:block;color:#c9cbe0;font-size:13px}" +
-    ".bf-next .bf-count{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 10px;border-radius:999px;background:linear-gradient(180deg,#FFD84F,#F0BE12);color:#1a1a2e;font-weight:700;font-size:12px}" +
-    ".bf-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0 8px}" +
-    ".bf-tile{background:#fff;border:1px solid #ece8de;border-radius:16px;padding:16px 18px;box-shadow:0 14px 30px -24px rgba(20,18,10,.6);position:relative;overflow:hidden}" +
-    ".bf-tile::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#FFD84F,#C8963E)}" +
-    ".bf-tile b{display:block;font-size:26px;font-weight:800;line-height:1.05}.bf-tile small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6B675C;font-weight:700;margin-bottom:6px}.bf-tile span{display:block;font-size:12.5px;color:#6B675C;margin-top:4px}" +
-    ".bf-sec{margin-top:36px}.bf-sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}" +
-    ".bf-sec h2{margin:4px 0 4px;font-size:22px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}.bf-sec h2 .bf-ic{width:22px;height:22px;color:#B8912E}" +
-    ".bf-sec .bf-sub{font-size:13.5px;color:#6B675C;max-width:680px;line-height:1.5}" +
+    ".bf-hero .bf-ring{position:absolute;right:-120px;top:-160px;width:420px;height:420px;border-radius:50%;border:1px solid rgba(255,212,59,.22);box-shadow:0 0 0 60px rgba(255,212,59,.04),0 0 0 120px rgba(255,212,59,.025);z-index:0;pointer-events:none}" +
+    ".bf-hero h1{font-size:38px;line-height:1.06;margin:14px 0 12px;font-weight:800;letter-spacing:-.015em;color:#fff;text-shadow:0 2px 24px rgba(0,0,0,.35)}" +
+    ".bf-hero h1 em{font-style:normal;background:linear-gradient(92deg,#FFE57A,#F5C518 60%,#DEBA6F);-webkit-background-clip:text;background-clip:text;color:transparent}" +
+    ".bf-hero .bf-dek{color:#cfd0e6;font-size:14.5px;line-height:1.65;max-width:540px}" +
+    ".bf-hero .bf-k{font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#FFD43B;display:flex;align-items:center;gap:8px}" +
+    ".bf-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.bf-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:600;color:#e8e8f4;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}.bf-chip .bf-ic{width:14px;height:14px;color:#FFD43B}" +
+    ".bf-next{position:relative;background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:20px 22px 22px;backdrop-filter:blur(10px);box-shadow:0 30px 50px -30px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.18)}" +
+    ".bf-next::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;background:linear-gradient(140deg,rgba(255,216,79,.65),rgba(255,216,79,0) 45%,rgba(255,216,79,.25));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}" +
+    ".bf-next b{display:block;font-size:26px;font-weight:800;margin:10px 0 2px;color:#fff;letter-spacing:-.01em}.bf-next span{display:block;color:#cfd0e6;font-size:13px}" +
+    ".bf-next .bf-count{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:6px 12px;border-radius:999px;background:linear-gradient(180deg,#FFE063,#F0BE12);color:#1a1a2e;font-weight:800;font-size:12px;box-shadow:0 10px 22px -10px rgba(245,197,24,.9),inset 0 1px 0 rgba(255,255,255,.5)}" +
+    ".bf-next .bf-big{position:absolute;right:18px;top:14px;font-size:64px;font-weight:800;line-height:1;color:rgba(255,216,79,.10);letter-spacing:-.04em;pointer-events:none}" +
+    "@keyframes bfGlow{0%{transform:translate(0,0) scale(1)}100%{transform:translate(4%,6%) scale(1.08)}}" +
+    /* stat tiles */
+    ".bf-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:-26px 18px 8px;position:relative;z-index:2}" +
+    ".bf-tile{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff,#FBFAF6);border:1px solid rgba(255,255,255,.9);border-radius:18px;padding:16px 18px 15px;box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 18px 40px -22px rgba(30,26,10,.45),0 0 0 1px rgba(200,150,62,.12);transition:transform .18s,box-shadow .18s}" +
+    ".bf-tile:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 26px 46px -22px rgba(30,26,10,.5),0 0 0 1px rgba(200,150,62,.3)}" +
+    ".bf-tile::after{content:'';position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(245,197,24,.28),transparent 70%)}" +
+    ".bf-tile b{display:block;font-size:26px;font-weight:800;line-height:1.05;letter-spacing:-.02em}.bf-tile small{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a8477;font-weight:700;margin-bottom:7px}.bf-tile span{display:block;font-size:12px;color:#6B675C;margin-top:5px;line-height:1.4}" +
+    ".bf-tile .bf-bars{display:flex;gap:3px;align-items:flex-end;height:22px;margin-top:9px}.bf-tile .bf-bars i{flex:1;border-radius:3px 3px 1px 1px;background:linear-gradient(180deg,#e9e3d3,#ddd5c0)}.bf-tile .bf-bars i.on{background:linear-gradient(180deg,#FFE063,#C8963E);box-shadow:0 4px 10px -4px rgba(200,150,62,.8)}" +
+    /* sections */
+    ".bf-sec{margin-top:44px}.bf-sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;position:relative}" +
+    ".bf-sec-h::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(200,150,62,.55),rgba(200,150,62,.08) 60%,transparent)}" +
+    ".bf-sec h2{margin:6px 0 6px;font-size:24px;font-weight:800;letter-spacing:-.015em;display:flex;align-items:center;gap:12px}" +
+    ".bf-sec h2 .bf-md{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#1a1a2e;background:linear-gradient(145deg,#FFE063,#DEBA6F);box-shadow:0 10px 20px -10px rgba(200,150,62,.9),inset 0 1px 0 rgba(255,255,255,.6)}.bf-sec h2 .bf-md .bf-ic{width:19px;height:19px}" +
+    ".bf-sec .bf-sub{font-size:13.5px;color:#6B675C;max-width:680px;line-height:1.55}" +
     ".bf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.bf-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}" +
-    ".bf-card{background:#fff;border:1px solid #ece8de;border-radius:16px;padding:18px 20px;box-shadow:0 14px 30px -26px rgba(20,18,10,.55)}" +
-    ".bf-card h3{margin:0 0 8px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:9px}.bf-card h3 .bf-ic{color:#B8912E;width:20px;height:20px}" +
-    ".bf-card p,.bf-card li{font-size:13.5px;line-height:1.55;color:#3d3b35;margin:0}.bf-card ul{margin:0;padding-left:18px}.bf-card li+li{margin-top:6px}" +
-    ".bf-table{width:100%;border-collapse:collapse;font-size:13.5px}.bf-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6B675C;padding:8px 10px;border-bottom:1px solid #ece8de}.bf-table td{padding:11px 10px;border-bottom:1px solid #f1eee6}.bf-table tr:last-child td{border-bottom:0}.bf-table td b{font-weight:800}" +
-    ".bf-table tr.me td{background:linear-gradient(90deg,rgba(255,216,79,.22),transparent)}" +
-    ".bf-est{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.bf-est label{font-size:12px;color:#6B675C;display:block}.bf-est input{display:block;width:100%;margin-top:4px;font:inherit;font-size:14px;padding:9px 11px;border:1px solid #ddd7c8;border-radius:10px;box-sizing:border-box;background:#fff}" +
-    ".bf-est-out{margin-top:14px;padding:14px 16px;border-radius:12px;background:#FAF9F5;border:1px dashed #ddd7c8;font-size:13.5px;line-height:1.55}.bf-est-out b{font-weight:800}" +
-    ".bf-steps{counter-reset:s;list-style:none;padding:0;margin:0}.bf-steps li{counter-increment:s;position:relative;padding-left:38px;font-size:13.5px;line-height:1.5;color:#3d3b35}.bf-steps li+li{margin-top:10px}" +
-    ".bf-steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;color:#1a1a2e;background:linear-gradient(180deg,#FFD84F,#F0BE12);box-shadow:0 6px 14px -8px rgba(245,197,24,.9)}" +
-    ".bf-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 15px;border-radius:12px;font:700 13px Outfit,Inter,system-ui,sans-serif;border:1px solid #ddd7c8;background:#fff;color:#1a1a2e;cursor:pointer;text-decoration:none;transition:transform .12s,box-shadow .15s}.bf-btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(20,18,10,.6)}" +
-    ".bf-btn.gold{background:linear-gradient(180deg,#FFD84F,#F0BE12);border-color:transparent;box-shadow:0 10px 22px -10px rgba(245,197,24,.7)}.bf-btn .bf-ic{width:16px;height:16px}" +
-    ".bf-yr{display:inline-flex;border:1px solid #ddd7c8;border-radius:999px;overflow:hidden;background:#fff}.bf-yr button{font:700 12.5px Outfit,Inter,system-ui,sans-serif;padding:7px 14px;border:0;background:transparent;cursor:pointer;color:#6B675C}.bf-yr button.on{background:#1a1a2e;color:#FFD43B}" +
-    ".bf-hol{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}" +
-    ".bf-hd{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #ece8de;border-radius:14px;padding:12px 14px}.bf-hd.past{opacity:.55}" +
-    ".bf-hd .bf-dt{width:46px;height:46px;border-radius:12px;background:#1a1a2e;color:#fff;display:grid;place-items:center;line-height:1;flex:none}.bf-hd .bf-dt b{font-size:17px;font-weight:800;color:#FFD43B}.bf-hd .bf-dt small{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}" +
-    ".bf-hd .bf-nm{font-weight:700;font-size:13.5px}.bf-hd .bf-wd{font-size:12px;color:#6B675C}.bf-hd .bf-obs{font-size:11px;color:#B8912E;font-weight:700}" +
-    ".bf-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}" +
-    ".bf-lk{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #ece8de;border-radius:14px;padding:14px 16px;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .15s}.bf-lk:hover{transform:translateY(-2px);box-shadow:0 14px 28px -20px rgba(20,18,10,.7);border-color:#C8963E}" +
-    ".bf-lk .bf-ic{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#FFD84F,#C8963E);color:#1a1a2e;padding:8px;box-sizing:border-box}.bf-lk b{display:block;font-size:14px}.bf-lk span{display:block;font-size:12.5px;color:#6B675C;margin-top:2px;line-height:1.45}" +
-    ".bf-ct{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid #ece8de;border-radius:14px;padding:12px 14px}.bf-ct .bf-av{width:38px;height:38px;border-radius:50%;background:#1a1a2e;color:#FFD43B;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}" +
-    ".bf-ct .bf-tp{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6B675C;font-weight:700}.bf-ct b{display:block;font-size:14px}.bf-ct a{color:#B8912E;font-size:12.5px;text-decoration:none}.bf-ct small{display:block;color:#6B675C;font-size:12px}" +
-    ".bf-foot{margin-top:34px;font-size:12px;color:#6B675C;display:flex;gap:8px;align-items:center}.bf-foot .bf-ic{width:14px;height:14px}" +
+    /* cards */
+    ".bf-card{position:relative;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid rgba(236,232,222,.9);border-radius:18px;padding:20px 22px;box-shadow:0 1px 0 #fff inset,0 20px 40px -30px rgba(30,26,10,.5);transition:transform .18s,box-shadow .18s}" +
+    ".bf-card:hover{transform:translateY(-2px);box-shadow:0 1px 0 #fff inset,0 28px 50px -28px rgba(30,26,10,.55),0 0 0 1px rgba(200,150,62,.25)}" +
+    ".bf-card h3{margin:0 0 10px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:10px}" +
+    ".bf-card h3 .bf-md{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#8a6a1c;background:linear-gradient(145deg,#FFF4C2,#F3E2A8);box-shadow:inset 0 1px 0 #fff,0 6px 14px -8px rgba(200,150,62,.8)}.bf-card h3 .bf-md .bf-ic{width:16px;height:16px}" +
+    ".bf-card p,.bf-card li{font-size:13.5px;line-height:1.6;color:#3d3b35;margin:0}.bf-card ul{margin:0;padding-left:0;list-style:none}.bf-card li{position:relative;padding-left:18px}.bf-card li::before{content:'';position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:linear-gradient(145deg,#FFD84F,#C8963E);box-shadow:0 2px 6px -2px rgba(200,150,62,.9)}.bf-card li+li{margin-top:7px}" +
+    ".bf-card.dark{background:linear-gradient(150deg,#1b1b36,#141428);border-color:rgba(255,255,255,.08);color:#e8e8f4}.bf-card.dark h3{color:#fff}.bf-card.dark p,.bf-card.dark li{color:#cfd0e6}" +
+    /* PTO tiers */
+    ".bf-tiers{display:grid;gap:10px}.bf-tier{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid #efebe2;background:#fff;transition:background .2s,border-color .2s,transform .2s}" +
+    ".bf-tier .bf-no{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:13px;color:#6B675C;background:#F3F0E8}.bf-tier .bf-tl{font-weight:800;font-size:14px}.bf-tier .bf-ts{font-size:12px;color:#6B675C;margin-top:2px}" +
+    ".bf-tier .bf-tr{text-align:right}.bf-tier .bf-tr b{display:block;font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1}.bf-tier .bf-tr span{font-size:11px;color:#6B675C;text-transform:uppercase;letter-spacing:.08em;font-weight:700}" +
+    ".bf-tier .bf-bar{grid-column:1/-1;height:6px;border-radius:99px;background:#F1EDE3;overflow:hidden}.bf-tier .bf-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#DEBA6F,#F5C518);box-shadow:0 0 12px rgba(245,197,24,.5)}" +
+    ".bf-tier.me{background:linear-gradient(135deg,#1b1b36,#23214a);border-color:transparent;color:#fff;transform:scale(1.015);box-shadow:0 24px 40px -24px rgba(20,20,45,.8)}.bf-tier.me .bf-no{background:linear-gradient(145deg,#FFE063,#DEBA6F);color:#1a1a2e}.bf-tier.me .bf-ts,.bf-tier.me .bf-tr span{color:#cfd0e6}.bf-tier.me .bf-bar{background:rgba(255,255,255,.12)}" +
+    /* estimator */
+    ".bf-est{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.bf-est label{font-size:12px;color:#6B675C;display:block}.bf-est input{display:block;width:100%;margin-top:5px;font:inherit;font-size:14px;padding:10px 12px;border:1px solid #ddd7c8;border-radius:12px;box-sizing:border-box;background:#fff;box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}" +
+    ".bf-est-out{margin-top:16px;display:grid;grid-template-columns:118px 1fr;gap:16px;align-items:center;padding:16px;border-radius:16px;background:linear-gradient(160deg,#FAF8F1,#F3EFE4);border:1px solid #ECE6D6;font-size:13.5px;line-height:1.6;box-shadow:inset 0 1px 0 #fff}.bf-est-out b{font-weight:800}.bf-est-out.empty{grid-template-columns:1fr;color:#6B675C}" +
+    ".bf-ring{position:relative;width:118px;height:118px}.bf-ring svg{width:100%;height:100%;transform:rotate(-90deg)}.bf-ring .bf-rt{fill:none;stroke:#E8E2D3;stroke-width:10}.bf-ring .bf-rv{fill:none;stroke:url(#bfGold);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.1s cubic-bezier(.22,.8,.3,1);filter:drop-shadow(0 2px 6px rgba(245,197,24,.55))}" +
+    ".bf-ring .bf-rc{position:absolute;inset:0;display:grid;place-items:center;text-align:center;line-height:1}.bf-ring .bf-rc b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em}.bf-ring .bf-rc small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8477;font-weight:700;margin-top:3px}" +
+    /* steps */
+    ".bf-steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.bf-steps li{counter-increment:s;position:relative;padding:18px 18px 16px 18px;font-size:13.5px;line-height:1.55;color:#3d3b35;border-radius:14px;background:#fff;border:1px solid #efebe2;box-shadow:0 14px 30px -26px rgba(30,26,10,.6)}" +
+    ".bf-steps li::before{content:counter(s);display:grid;place-items:center;width:30px;height:30px;margin-bottom:10px;border-radius:10px;font-weight:800;font-size:13px;color:#1a1a2e;background:linear-gradient(145deg,#FFE063,#F0BE12);box-shadow:0 10px 18px -10px rgba(245,197,24,1),inset 0 1px 0 rgba(255,255,255,.6)}" +
+    /* buttons */
+    ".bf-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:13px;font:700 13px Outfit,Inter,system-ui,sans-serif;border:1px solid #ddd7c8;background:linear-gradient(180deg,#fff,#F8F6F0);color:#1a1a2e;cursor:pointer;text-decoration:none;box-shadow:inset 0 1px 0 #fff,0 8px 18px -12px rgba(30,26,10,.6);transition:transform .12s,box-shadow .15s}.bf-btn:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff,0 14px 26px -14px rgba(30,26,10,.7)}" +
+    ".bf-btn.gold{background:linear-gradient(180deg,#FFE063,#F0BE12);border-color:transparent;box-shadow:0 12px 24px -10px rgba(245,197,24,.8),inset 0 1px 0 rgba(255,255,255,.6)}.bf-btn .bf-ic{width:16px;height:16px}" +
+    ".bf-yr{display:inline-flex;border:1px solid #ddd7c8;border-radius:999px;overflow:hidden;background:#fff;box-shadow:inset 0 1px 0 #fff,0 6px 14px -10px rgba(30,26,10,.6)}.bf-yr button{font:700 12.5px Outfit,Inter,system-ui,sans-serif;padding:8px 16px;border:0;background:transparent;cursor:pointer;color:#6B675C}.bf-yr button.on{background:linear-gradient(145deg,#1b1b36,#23214a);color:#FFD43B}" +
+    /* holidays */
+    ".bf-strip{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;margin:4px 0 16px;padding:14px 14px 12px;border-radius:18px;background:linear-gradient(150deg,#1b1b36,#141428);box-shadow:0 30px 50px -34px rgba(20,20,45,.8),inset 0 1px 0 rgba(255,255,255,.06);position:relative;overflow:hidden}" +
+    ".bf-strip::after{content:'';position:absolute;inset:0;opacity:.08;mix-blend-mode:overlay;background-image:" + NOISE + ";pointer-events:none}" +
+    ".bf-mo{position:relative;z-index:1;text-align:center;padding:8px 2px 6px;border-radius:10px;color:#9a9bb8;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}.bf-mo.now{background:rgba(255,216,79,.08);color:#FFD43B;box-shadow:inset 0 0 0 1px rgba(255,216,79,.25)}" +
+    ".bf-mo .bf-dots{display:flex;justify-content:center;gap:4px;margin-top:8px;min-height:8px}.bf-mo .bf-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.14)}.bf-mo .bf-dots i.on{background:linear-gradient(145deg,#FFE063,#DEBA6F);box-shadow:0 0 10px rgba(255,216,79,.6)}.bf-mo .bf-dots i.next{box-shadow:0 0 0 3px rgba(255,216,79,.25),0 0 14px rgba(255,216,79,.9);animation:bfPulse 2s infinite}" +
+    "@keyframes bfPulse{0%,100%{box-shadow:0 0 0 3px rgba(255,216,79,.25),0 0 14px rgba(255,216,79,.9)}50%{box-shadow:0 0 0 6px rgba(255,216,79,.12),0 0 18px rgba(255,216,79,.7)}}" +
+    ".bf-hol{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}" +
+    ".bf-hd{position:relative;display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid #efebe2;border-radius:16px;padding:14px 16px;box-shadow:0 1px 0 #fff inset,0 16px 34px -28px rgba(30,26,10,.6);transition:transform .18s,box-shadow .18s}.bf-hd:hover{transform:translateY(-2px)}.bf-hd.past{opacity:.5;filter:saturate(.6)}" +
+    ".bf-hd.next{border-color:transparent;background:linear-gradient(150deg,#1b1b36,#23214a);color:#fff;box-shadow:0 26px 44px -26px rgba(20,20,45,.9)}.bf-hd.next .bf-wd{color:#cfd0e6}.bf-hd.next .bf-tag{position:absolute;right:12px;top:10px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#1a1a2e;background:linear-gradient(180deg,#FFE063,#F0BE12);padding:3px 8px;border-radius:999px}" +
+    ".bf-hd .bf-dt{width:50px;height:50px;border-radius:14px;background:linear-gradient(160deg,#23214a,#141428);color:#fff;display:grid;place-items:center;line-height:1;flex:none;box-shadow:0 10px 18px -10px rgba(20,20,45,.9),inset 0 1px 0 rgba(255,255,255,.1)}.bf-hd.next .bf-dt{background:linear-gradient(160deg,#FFE063,#DEBA6F);color:#1a1a2e}.bf-hd .bf-dt b{font-size:18px;font-weight:800;color:#FFD43B}.bf-hd.next .bf-dt b{color:#1a1a2e}.bf-hd .bf-dt small{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:3px;opacity:.85}" +
+    ".bf-hd .bf-nm{font-weight:800;font-size:13.5px}.bf-hd .bf-wd{font-size:12px;color:#6B675C;margin-top:1px}.bf-hd .bf-obs{font-size:11px;color:#B8912E;font-weight:700;margin-top:2px}.bf-hd.next .bf-obs{color:#FFD43B}" +
+    /* links & contacts */
+    ".bf-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}" +
+    ".bf-lk{display:flex;gap:14px;align-items:flex-start;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid #efebe2;border-radius:16px;padding:16px 18px;text-decoration:none;color:inherit;box-shadow:0 1px 0 #fff inset,0 16px 34px -28px rgba(30,26,10,.6);transition:transform .15s,box-shadow .18s,border-color .18s}.bf-lk:hover{transform:translateY(-3px);box-shadow:0 1px 0 #fff inset,0 26px 44px -26px rgba(30,26,10,.7),0 0 0 1px rgba(200,150,62,.35)}" +
+    ".bf-lk .bf-md{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:#1a1a2e;background:linear-gradient(145deg,#FFE063,#DEBA6F);box-shadow:0 10px 20px -10px rgba(200,150,62,1),inset 0 1px 0 rgba(255,255,255,.6)}.bf-lk .bf-md .bf-ic{width:18px;height:18px}.bf-lk b{display:block;font-size:14px}.bf-lk span{display:block;font-size:12.5px;color:#6B675C;margin-top:3px;line-height:1.45}.bf-lk .bf-go{margin-left:auto;align-self:center;color:#B8912E;opacity:0;transform:translateX(-4px);transition:opacity .15s,transform .15s}.bf-lk:hover .bf-go{opacity:1;transform:none}" +
+    ".bf-ct{display:flex;gap:14px;align-items:center;background:linear-gradient(180deg,#fff,#FCFBF8);border:1px solid #efebe2;border-radius:16px;padding:14px 16px;box-shadow:0 1px 0 #fff inset,0 16px 34px -28px rgba(30,26,10,.6)}" +
+    ".bf-ct .bf-av{position:relative;width:44px;height:44px;border-radius:50%;background:linear-gradient(160deg,#23214a,#141428);color:#FFD43B;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none;box-shadow:0 10px 18px -10px rgba(20,20,45,.9)}.bf-ct .bf-av::after{content:'';position:absolute;inset:-3px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,#FFE063,#DEBA6F,#FFE063);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}" +
+    ".bf-ct .bf-tp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a8477;font-weight:700}.bf-ct b{display:block;font-size:14px;margin-top:1px}.bf-ct a{color:#B8912E;font-size:12.5px;text-decoration:none;font-weight:600}.bf-ct small{display:block;color:#6B675C;font-size:12px;margin-top:1px}" +
+    ".bf-foot{margin-top:40px;font-size:12px;color:#6B675C;display:flex;gap:8px;align-items:center;padding-top:16px;border-top:1px solid rgba(200,150,62,.2)}.bf-foot .bf-ic{width:14px;height:14px}" +
     ".bf-loading,.bf-empty{padding:50px 0;text-align:center;color:#6B675C}" +
-    "@media(max-width:820px){.bf{padding:20px 16px 50px}.bf-hero{grid-template-columns:1fr;padding:24px 20px}.bf-grid.two{grid-template-columns:1fr}.bf-hero h1{font-size:28px}.bf-est{grid-template-columns:1fr}}" +
+    "@media(max-width:1000px){.bf-tiles{grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}.bf-hol{grid-template-columns:repeat(2,minmax(0,1fr))}}" +
+    "@media(max-width:820px){.bf{padding:20px 16px 50px}.bf-hero{grid-template-columns:1fr;padding:26px 22px}.bf-hero .bf-ring{display:none}.bf-grid.two{grid-template-columns:1fr}.bf-hero h1{font-size:30px}.bf-est{grid-template-columns:1fr}.bf-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-strip{grid-template-columns:repeat(6,minmax(0,1fr))}.bf-hol{grid-template-columns:1fr}.bf-est-out{grid-template-columns:1fr;justify-items:center;text-align:center}}" +
+    "@media(prefers-reduced-motion:reduce){.bf-hero::before,.bf-mo .bf-dots i.next{animation:none}}" +
     /* admin editor */
     ".bfa{font-family:Outfit,Inter,system-ui,sans-serif}.bfa .bf-ic{display:inline-flex;width:16px;height:16px;flex:none}" +
     ".bfa-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}.bfa-bar .sp{flex:1}.bfa-status{font-size:12.5px;color:#6B675C}.bfa-status.bad{color:#b42318}.bfa-status.good{color:#15803d}" +
@@ -317,68 +357,77 @@
   function initials(n) { return String(n || "?").split(/[\s._-]+/).map(function (s) { return s.charAt(0); }).join("").slice(0, 2).toUpperCase(); }
   function list(items) { return "<ul>" + (items || []).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>"; }
 
+  function md(name) { return '<span class="bf-md">' + ic(name) + '</span>'; }
   function renderTab() {
     var root = document.getElementById("bfRoot"); if (!root) return;
     var d = DATA; if (!d) { root.innerHTML = '<div class="bf-loading">Loading…</div>'; return; }
     var t = today(), nh = nextHoliday(d.holidays);
     var daysTo = nh ? Math.round((nh.date - t) / 86400000) : null;
     var tiers = d.pto.tiers || [];
+    var maxDays = Math.max.apply(null, tiers.map(function (x) { return +x.days || 0; }).concat([1]));
     var hols = holidaysFor(d.holidays, year);
+    var nhKey = nh && nh.date ? iso(nh.date) : "";
     var savedStart = ""; try { savedStart = localStorage.getItem("hq_bf_start") || ""; } catch (e) {}
+    var paidCount = (d.holidays.paid || []).length, floatCount = d.holidays.floating.count || 0;
 
     var html = '<div class="bf">' +
       '<div class="bf-eyebrow">' + ic("gift") + 'Benefits &amp; PTO</div>' +
-      '<div class="bf-hero"><div><div class="bf-k">' + ic("sun") + 'For every team member</div><h1>Time off, holidays and benefits, in one place.</h1><div class="bf-dek">' + esc(d.intro) + '</div></div>' +
-        '<div class="bf-next"><div class="bf-k">' + ic("calendar") + 'Next paid holiday</div>' +
+      /* hero */
+      '<div class="bf-hero"><div class="bf-ring"></div><div><div class="bf-k">' + ic("sun") + 'For every team member</div><h1>Time off, holidays and benefits, <em>in one place.</em></h1><div class="bf-dek">' + esc(d.intro) + '</div>' +
+        '<div class="bf-chips"><span class="bf-chip">' + ic("palm") + 'Up to ' + esc(maxDays) + ' PTO days a year</span><span class="bf-chip">' + ic("sun") + paidCount + ' paid holidays + ' + floatCount + ' floating</span><span class="bf-chip">' + ic("heart") + 'Medical, dental, vision &amp; more</span></div></div>' +
+        '<div class="bf-next">' + (nh && daysTo != null ? '<div class="bf-big">' + daysTo + '</div>' : '') + '<div class="bf-k">' + ic("calendar") + 'Next paid holiday</div>' +
           (nh ? '<b>' + esc(nh.name) + '</b><span>' + fmt(nh.date, true) + (nh.actual && iso(nh.actual) !== iso(nh.date) ? ' (observed)' : '') + '</span><span class="bf-count">' + ic("clock") + (daysTo === 0 ? "Today" : daysTo === 1 ? "Tomorrow" : daysTo + " days away") + '</span>' : '<b>Set in Admin</b>') +
         '</div></div>' +
+      /* stat tiles */
       '<div class="bf-tiles">' +
-        tiers.map(function (tr) { return '<div class="bf-tile"><small>' + esc(tr.label) + '</small><b>' + esc(tr.days) + ' days</b><span>' + esc(tr.hours) + ' hours a year · ' + esc(tr.perPeriod) + ' hrs per paycheck</span></div>'; }).join("") +
+        tiers.map(function (tr, i) { return '<div class="bf-tile"><small>' + esc(tr.label) + '</small><b>' + esc(tr.days) + ' days</b><span>' + esc(tr.hours) + ' hrs a year · ' + esc(tr.perPeriod) + ' hrs per paycheck</span><div class="bf-bars">' + tiers.map(function (_, j) { return '<i class="' + (j <= i ? "on" : "") + '" style="height:' + (40 + Math.round(60 * (+tiers[j].days || 0) / maxDays)) + '%"></i>'; }).join("") + '</div></div>'; }).join("") +
         '<div class="bf-tile"><small>Carryover</small><b>' + esc(d.pto.carryoverHours) + ' hrs</b><span>up to ' + Math.round(d.pto.carryoverHours / 8) + ' days into next year</span></div>' +
-        '<div class="bf-tile"><small>Paid holidays</small><b>' + (d.holidays.paid || []).length + ' + ' + (d.holidays.floating.count || 0) + '</b><span>company holidays + floating</span></div>' +
+        '<div class="bf-tile"><small>Paid holidays</small><b>' + paidCount + ' + ' + floatCount + '</b><span>company holidays + floating</span></div>' +
       '</div>';
 
     /* PTO */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Paid time off</div><h2>' + ic("palm") + 'How PTO accrues</h2><div class="bf-sub">One bucket for sick, vacation and personal time. Your rate is set by years of service and accrues every weekly paycheck.</div></div>' +
+    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Paid time off</div><h2>' + md("palm") + 'How PTO accrues</h2><div class="bf-sub">One bucket for sick, vacation and personal time. Your rate is set by years of service and lands with every weekly paycheck.</div></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (d.pto.balanceUrl ? '<a class="bf-btn" target="_blank" rel="noopener" href="' + esc(d.pto.balanceUrl) + '">' + ic("eye") + esc(d.pto.balanceLabel || "See my balance") + '</a>' : '') + (d.pto.requestUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.pto.requestUrl) + '">' + ic("calendar") + esc(d.pto.requestLabel || "Request time off") + '</a>' : '') + '</div></div>' +
       '<div class="bf-grid two">' +
-        '<div class="bf-card"><h3>' + ic("trend") + 'Accrual by years of service</h3><table class="bf-table"><thead><tr><th>Years of service</th><th>Annual PTO</th><th>Per weekly paycheck</th></tr></thead><tbody id="bfTierBody">' +
-          tiers.map(function (tr, i) { return '<tr data-i="' + i + '"><td><b>' + esc(tr.label) + '</b></td><td>' + esc(tr.days) + ' days <span style="color:#6B675C">(' + esc(tr.hours) + ' hrs)</span></td><td>' + esc(tr.perPeriod) + ' hrs</td></tr>'; }).join("") +
-          '</tbody></table></div>' +
-        '<div class="bf-card"><h3>' + ic("clock") + 'Estimate what you\'ve accrued this year</h3><div class="bf-est"><label>Your start date<input type="date" id="bfStart" value="' + esc(savedStart) + '"></label><button class="bf-btn" id="bfEstBtn">' + ic("arrow") + 'Estimate</button></div><div class="bf-est-out" id="bfEstOut">Enter your start date to see your tier and a rough year-to-date accrual. It\'s an estimate, not your balance; what you\'ve used isn\'t subtracted' + (d.pto.balanceUrl ? ', and your real balance lives in the payroll portal' : '') + '.</div></div>' +
-        '<div class="bf-card"><h3>' + ic("check") + 'The rules</h3>' + list(d.pto.rules) + '</div>' +
-        '<div class="bf-card"><h3>' + ic("heart") + 'Using PTO when you\'re sick</h3>' + list(d.pto.sick) + '</div>' +
-        '<div class="bf-card" style="grid-column:1/-1"><h3>' + ic("calendar") + 'How to request time off</h3><ol class="bf-steps">' + (d.pto.request || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ol></div>' +
-      '</div></div>';
+        '<div class="bf-card"><h3>' + md("trend") + 'Accrual by years of service</h3><div class="bf-tiers" id="bfTierBody">' +
+          tiers.map(function (tr, i) { return '<div class="bf-tier" data-i="' + i + '"><div class="bf-no">' + (i + 1) + '</div><div><div class="bf-tl">' + esc(tr.label) + '</div><div class="bf-ts">' + esc(tr.hours) + ' hours a year · ' + esc(tr.perPeriod) + ' hrs every paycheck</div></div><div class="bf-tr"><b>' + esc(tr.days) + '</b><span>days</span></div><div class="bf-bar"><i style="width:' + Math.round(100 * (+tr.days || 0) / maxDays) + '%"></i></div></div>'; }).join("") +
+          '</div></div>' +
+        '<div class="bf-card"><h3>' + md("clock") + 'Estimate what you\'ve accrued this year</h3><div class="bf-est"><label>Your start date<input type="date" id="bfStart" value="' + esc(savedStart) + '"></label><button class="bf-btn gold" id="bfEstBtn">' + ic("arrow") + 'Estimate</button></div><div class="bf-est-out empty" id="bfEstOut">Enter your start date to see your tier and a rough year-to-date accrual. It\'s an estimate, not your balance; what you\'ve used isn\'t subtracted' + (d.pto.balanceUrl ? ', and your real balance lives in the payroll portal' : '') + '.</div></div>' +
+        '<div class="bf-card"><h3>' + md("check") + 'The rules</h3>' + list(d.pto.rules) + '</div>' +
+        '<div class="bf-card"><h3>' + md("heart") + 'Using PTO when you\'re sick</h3>' + list(d.pto.sick) + '</div>' +
+      '</div>' +
+      '<div style="margin-top:14px"><div class="bf-eyebrow" style="margin:10px 0 10px">How to request time off</div><ol class="bf-steps">' + (d.pto.request || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join("") + '</ol></div></div>';
 
     /* Holidays */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Holidays</div><h2>' + ic("sun") + 'Paid holidays ' + year + '</h2><div class="bf-sub">Full-time team members get these days paid. When a holiday lands on a weekend it\'s observed on the nearest weekday.</div></div>' +
+    var byMonth = {}; hols.forEach(function (h) { if (h.date) { var m = h.date.getMonth(); (byMonth[m] = byMonth[m] || []).push(h); } });
+    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Holidays</div><h2>' + md("sun") + 'Paid holidays ' + year + '</h2><div class="bf-sub">Full-time team members get these days paid. When a holiday lands on a weekend it\'s observed on the nearest weekday.</div></div>' +
       '<div class="bf-yr"><button data-y="' + t.getFullYear() + '" class="' + (year === t.getFullYear() ? "on" : "") + '">' + t.getFullYear() + '</button><button data-y="' + (t.getFullYear() + 1) + '" class="' + (year === t.getFullYear() + 1 ? "on" : "") + '">' + (t.getFullYear() + 1) + '</button></div></div>' +
+      '<div class="bf-strip">' + MONTHS.map(function (m, i) { var hs = byMonth[i] || []; return '<div class="bf-mo' + (year === t.getFullYear() && i === t.getMonth() ? " now" : "") + '" title="' + esc(hs.map(function (h) { return h.name; }).join(", ")) + '">' + m + '<div class="bf-dots">' + hs.map(function (h) { return '<i class="on' + (iso(h.date) === nhKey ? " next" : "") + '"></i>'; }).join("") + '</div></div>'; }).join("") + '</div>' +
       '<div class="bf-hol">' + hols.map(function (h) {
         if (!h.date) return '<div class="bf-hd"><div class="bf-dt"><b>?</b></div><div><div class="bf-nm">' + esc(h.name) + '</div><div class="bf-wd">Date set in Admin</div></div></div>';
-        var past = h.date < t, obs = h.actual && iso(h.actual) !== iso(h.date);
-        return '<div class="bf-hd' + (past ? " past" : "") + '"><div class="bf-dt"><b>' + h.date.getDate() + '</b><small>' + MONTHS[h.date.getMonth()] + '</small></div><div><div class="bf-nm">' + esc(h.name) + '</div><div class="bf-wd">' + DAYS[h.date.getDay()] + '</div>' + (obs ? '<div class="bf-obs">Observed · falls on ' + DAYS[h.actual.getDay()].slice(0, 3) + ' ' + MONTHS[h.actual.getMonth()] + ' ' + h.actual.getDate() + '</div>' : '') + '</div></div>';
+        var past = h.date < t, obs = h.actual && iso(h.actual) !== iso(h.date), isNext = iso(h.date) === nhKey;
+        return '<div class="bf-hd' + (past ? " past" : "") + (isNext ? " next" : "") + '">' + (isNext ? '<span class="bf-tag">Up next</span>' : '') + '<div class="bf-dt"><b>' + h.date.getDate() + '</b><small>' + MONTHS[h.date.getMonth()] + '</small></div><div><div class="bf-nm">' + esc(h.name) + '</div><div class="bf-wd">' + DAYS[h.date.getDay()] + '</div>' + (obs ? '<div class="bf-obs">Observed · falls on ' + DAYS[h.actual.getDay()].slice(0, 3) + ' ' + MONTHS[h.actual.getMonth()] + ' ' + h.actual.getDate() + '</div>' : '') + '</div></div>';
       }).join("") + '</div>' +
-      '<div class="bf-grid two" style="margin-top:14px"><div class="bf-card"><h3>' + ic("gift") + (d.holidays.floating.count || 0) + ' floating holidays</h3><p>' + esc(d.holidays.floating.note) + '</p>' + ((d.holidays.floating.list || []).length ? '<p style="margin-top:8px"><b>Approved list:</b> ' + esc(d.holidays.floating.list.join(", ")) + '</p>' : '') + '</div>' +
-      '<div class="bf-card"><h3>' + ic("info") + 'Good to know</h3>' + list(d.holidays.notes) + '</div></div></div>';
+      '<div class="bf-grid two" style="margin-top:14px"><div class="bf-card"><h3>' + md("gift") + floatCount + ' floating holidays</h3><p>' + esc(d.holidays.floating.note) + '</p>' + ((d.holidays.floating.list || []).length ? '<p style="margin-top:8px"><b>Approved list:</b> ' + esc(d.holidays.floating.list.join(", ")) + '</p>' : '') + '</div>' +
+      '<div class="bf-card"><h3>' + md("info") + 'Good to know</h3>' + list(d.holidays.notes) + '</div></div></div>';
 
     /* Other leave */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Other leave</div><h2>' + ic("shield") + 'When life happens</h2><div class="bf-sub">Paid and protected time beyond PTO. TMX helps with the paperwork for any of these.</div></div></div>' +
-      '<div class="bf-grid">' + (d.leave || []).map(function (l) { return '<div class="bf-card"><h3>' + ic(l.icon || "info") + esc(l.title) + '</h3><p>' + esc(l.body) + '</p></div>'; }).join("") + '</div></div>';
+    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Other leave</div><h2>' + md("shield") + 'When life happens</h2><div class="bf-sub">Paid and protected time beyond PTO. TMX helps with the paperwork for any of these.</div></div></div>' +
+      '<div class="bf-grid">' + (d.leave || []).map(function (l) { return '<div class="bf-card"><h3>' + md(l.icon || "info") + esc(l.title) + '</h3><p>' + esc(l.body) + '</p></div>'; }).join("") + '</div></div>';
 
     /* Benefits */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Benefits</div><h2>' + ic("heart") + 'The benefits package</h2><div class="bf-sub">Plan year ' + esc(d.benefits.planYear) + '. ' + esc(d.benefits.eligibility) + '</div></div>' +
+    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Benefits</div><h2>' + md("heart") + 'The benefits package</h2><div class="bf-sub">Plan year ' + esc(d.benefits.planYear) + '. ' + esc(d.benefits.eligibility) + '</div></div>' +
       (d.benefits.guideUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.benefits.guideUrl) + '">' + ic("file") + esc(d.benefits.guideLabel || "Benefits guide") + '</a>' : '') + '</div>' +
-      '<div class="bf-grid">' + (d.benefits.items || []).map(function (b) { return '<div class="bf-card"><h3>' + ic(b.icon || "check") + esc(b.name) + '</h3><p>' + esc(b.blurb) + '</p></div>'; }).join("") + '</div>' +
-      '<div class="bf-card" style="margin-top:14px"><h3>' + ic("info") + 'Enrollment and changes</h3>' + list(d.benefits.notes) + '</div></div>';
+      '<div class="bf-grid">' + (d.benefits.items || []).map(function (b) { return '<div class="bf-card"><h3>' + md(b.icon || "check") + esc(b.name) + '</h3><p>' + esc(b.blurb) + '</p></div>'; }).join("") + '</div>' +
+      '<div class="bf-card dark" style="margin-top:14px"><h3>' + md("info") + 'Enrollment and changes</h3>' + list(d.benefits.notes) + '</div></div>';
 
     /* Links */
     var links = (d.links || []).filter(function (l) { return l.url; });
-    if (links.length) html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Helpful links</div><h2>' + ic("link") + 'Where things live</h2></div></div><div class="bf-links">' +
-      links.map(function (l) { return '<a class="bf-lk" target="_blank" rel="noopener" href="' + esc(l.url) + '">' + ic(l.icon || "link") + '<div><b>' + esc(l.label) + '</b><span>' + esc(l.blurb) + '</span></div></a>'; }).join("") + '</div></div>';
+    if (links.length) html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Helpful links</div><h2>' + md("link") + 'Where things live</h2></div></div><div class="bf-links">' +
+      links.map(function (l) { return '<a class="bf-lk" target="_blank" rel="noopener" href="' + esc(l.url) + '">' + md(l.icon || "link") + '<div><b>' + esc(l.label) + '</b><span>' + esc(l.blurb) + '</span></div><span class="bf-go">' + ic("arrow") + '</span></a>'; }).join("") + '</div></div>';
 
     /* Contacts */
-    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Who to ask</div><h2>' + ic("user") + 'Questions go to</h2></div></div><div class="bf-links">' +
+    html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Who to ask</div><h2>' + md("user") + 'Questions go to</h2></div></div><div class="bf-links">' +
       (d.contacts || []).map(function (c) { return '<div class="bf-ct"><div class="bf-av">' + esc(initials(c.name)) + '</div><div><div class="bf-tp">' + esc(c.topic) + '</div><b>' + esc(c.name) + '</b>' + (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + (c.note ? '<small>' + esc(c.note) + '</small>' : '') + '</div></div>'; }).join("") + '</div></div>';
 
     html += '<div class="bf-foot">' + ic("book") + 'Source: ' + esc(d.source) + (META && META.updated_at ? ' · Last updated in HQ ' + new Date(META.updated_at).toLocaleDateString() : '') + '. If anything here differs from the handbook, the handbook wins.</div></div>';
@@ -387,19 +436,22 @@
     root.querySelectorAll(".bf-yr button").forEach(function (b) { b.addEventListener("click", function () { year = +b.getAttribute("data-y"); renderTab(); }); });
     var go = function () {
       var v = root.querySelector("#bfStart").value, st = parseISO(v), out = root.querySelector("#bfEstOut");
-      if (!st) { out.innerHTML = "Pick your start date first."; return; }
+      if (!st) { out.className = "bf-est-out empty"; out.innerHTML = "Pick your start date first."; return; }
       try { localStorage.setItem("hq_bf_start", v); } catch (e) {}
       var e = estimate(d.pto, st);
-      root.querySelectorAll("#bfTierBody tr").forEach(function (tr) { tr.classList.toggle("me", tiers[+tr.getAttribute("data-i")] === e.tier); });
+      root.querySelectorAll("#bfTierBody .bf-tier").forEach(function (tr) { tr.classList.toggle("me", tiers[+tr.getAttribute("data-i")] === e.tier); });
       var yrs = Math.floor(e.years), mos = Math.floor((e.years - yrs) * 12);
-      out.innerHTML = 'You\'ve been with Spark <b>' + yrs + ' year' + (yrs === 1 ? "" : "s") + (mos ? ", " + mos + " month" + (mos === 1 ? "" : "s") : "") + '</b>, so you\'re in the <b>' + esc(e.tier.label) + '</b> tier: <b>' + esc(e.tier.days) + ' days</b> (' + esc(e.tier.hours) + ' hours) a year, accruing <b>' + esc(e.tier.perPeriod) + ' hours</b> each paycheck. ' +
-        'Across the <b>' + e.periods + '</b> paychecks so far in ' + t.getFullYear() + ', that\'s roughly <b>' + e.hours + ' hours</b> (' + (Math.round(e.hours / 8 * 10) / 10) + ' days) accrued, before anything you\'ve used or carried over.';
+      var pct = Math.max(0, Math.min(1, e.hours / (+e.tier.hours || 1))), C = 2 * Math.PI * 50;
+      out.className = "bf-est-out";
+      out.innerHTML = '<div class="bf-ring"><svg viewBox="0 0 118 118"><defs><linearGradient id="bfGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE063"/><stop offset="1" stop-color="#C8963E"/></linearGradient></defs><circle class="bf-rt" cx="59" cy="59" r="50"/><circle class="bf-rv" cx="59" cy="59" r="50" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '"/></svg><div class="bf-rc"><div><b>' + e.hours + '</b><small>hrs so far</small></div></div></div>' +
+        '<div>You\'ve been with Spark <b>' + yrs + ' year' + (yrs === 1 ? "" : "s") + (mos ? ", " + mos + " month" + (mos === 1 ? "" : "s") : "") + '</b>, so you\'re in the <b>' + esc(e.tier.label) + '</b> tier: <b>' + esc(e.tier.days) + ' days</b> (' + esc(e.tier.hours) + ' hours) a year, <b>' + esc(e.tier.perPeriod) + ' hours</b> each paycheck. ' +
+        'Across the <b>' + e.periods + '</b> paychecks so far in ' + t.getFullYear() + ', that\'s roughly <b>' + e.hours + ' hours</b> (' + (Math.round(e.hours / 8 * 10) / 10) + ' days), about ' + Math.round(pct * 100) + '% of the year\'s accrual, before anything you\'ve used or carried over.</div>';
+      var rv = out.querySelector(".bf-rv"); if (rv) requestAnimationFrame(function () { rv.style.strokeDashoffset = (C * (1 - pct)).toFixed(1); });
     };
     root.querySelector("#bfEstBtn").addEventListener("click", go);
     root.querySelector("#bfStart").addEventListener("keydown", function (ev) { if (ev.key === "Enter") go(); });
     if (savedStart) go();
   }
-
   function openTab() {
     document.querySelectorAll(".nav-item").forEach(function (b) { b.classList.remove("active"); });
     var btn = document.querySelector('.nav-item[data-tab="' + TAB + '"]'); if (btn) btn.classList.add("active");
