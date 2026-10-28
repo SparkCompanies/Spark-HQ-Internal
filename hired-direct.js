@@ -1,4 +1,4 @@
-/* HIRED_DIRECT_v2 — "Hired Direct" sidebar tab
+/* HIRED_DIRECT_v2.1 — "HD Conversion Hub", a sub-item under Salesforce in the sidebar
    Loaded into the HQ shell by spark-home.html (same path as benefits.js, my-links.js, viewas.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -51,6 +51,9 @@
   /* ---------- CSS ---------- */
   var CSS = "" +
     ".sidebar .nav-item[data-tab=\"" + TAB + "\"].hide-for-role{display:flex!important}" +
+    ".sidebar .nav-item.hdx-sub{position:relative;padding:6px 20px 6px 56px!important;font-size:12.5px!important;gap:8px!important;min-height:0!important}" +
+    ".sidebar .nav-item.hdx-sub .ico{width:14px!important;opacity:.85}" +
+    ".sidebar .nav-item.hdx-sub::after{content:'';position:absolute;left:35px;top:-6px;height:calc(50% + 6px);width:12px;background:none!important;border-left:1.5px solid rgba(100,116,139,.32);border-bottom:1.5px solid rgba(100,116,139,.32);border-bottom-left-radius:7px;pointer-events:none}" +
     ".nav-item[data-tab=\"" + TAB + "\"] .hdx-badge{margin-left:auto;min-width:18px;height:18px;padding:0 6px;border-radius:999px;background:#F5C518;color:#111;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}" +
     "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1a2e;background:" +
       "radial-gradient(1200px 500px at 85% -120px,rgba(245,197,24,.14),transparent 60%),radial-gradient(900px 420px at -10% 30%,rgba(200,150,62,.10),transparent 60%),linear-gradient(180deg,#FBFAF6 0%,#F6F3EC 100%)}" +
@@ -185,7 +188,7 @@
 
     var html = '<div class="hdx">' +
       '<div class="hdx-hero"><div class="hdx-ring"></div>' +
-        '<div class="hdx-k">' + ic("star") + "Hired direct</div>" +
+        '<div class="hdx-k">' + ic("star") + "HD Conversion Hub</div>" +
         "<h1>They got hired on. <em>Now make the call.</em></h1>" +
         '<div class="hdx-dek">When a client hires one of our contract team members direct, it shows up here. That person is the happiest one in the building, and they know people just like them. Call, congratulate, ask who they know that’s looking, and send a card.</div>' +
         '<div class="hdx-steps"><span class="hdx-step"><b>1</b>Call and congratulate</span><span class="hdx-step"><b>2</b>Ask for referrals</span><span class="hdx-step"><b>3</b>Mail a handwritten card</span></div>' +
@@ -261,13 +264,13 @@
     try { window.scrollTo(0, 0); } catch (e) {}
     render(); load(true).then(render);
   }
-  var NAV_HTML = '<span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg></span>Hired Direct';
+  var NAV_HTML = '<span class="ico"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg></span>HD Conversion Hub';
   function placeNav() {
     var after = document.querySelector('.nav-item[data-tab="salesforce"]') || document.querySelector('.nav-item[data-tab="home"]');
     var nav = after ? after.parentNode : document.querySelector(".sidebar nav, .sidebar");
     if (!nav) return null;
     var btn = document.createElement("button");
-    btn.className = "nav-item"; btn.setAttribute("data-tab", TAB); btn.innerHTML = NAV_HTML;
+    btn.className = "nav-item hdx-sub"; btn.setAttribute("data-tab", TAB); btn.title = "Hired Direct conversions: call, ask for referrals, send a card"; btn.innerHTML = NAV_HTML;
     if (after && after.nextSibling) nav.insertBefore(btn, after.nextSibling); else nav.appendChild(btn);
     btn.addEventListener("click", openTab);
     new MutationObserver(function () { heal(btn); }).observe(btn, { attributes: true, attributeFilter: ["style", "hidden"] });
