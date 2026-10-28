@@ -44,6 +44,7 @@ jobs:
           cp access.js site/ 2>/dev/null || true
           # TRAFFIC_BY_PERSON_v1: per-person usage under Admin > Where people go.
           cp traffic.js site/ 2>/dev/null || true
+             cp benefits.js site/ 2>/dev/null || true
           if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
