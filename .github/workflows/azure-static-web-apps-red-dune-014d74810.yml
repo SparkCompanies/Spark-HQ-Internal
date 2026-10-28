@@ -48,6 +48,8 @@ jobs:
           cp benefits.js site/ 2>/dev/null || true
           # HIRED_DIRECT_v2: HD Conversion Hub tab, loaded by spark-home.html the same way.
           cp hired-direct.js site/ 2>/dev/null || true
+          # BLUEPRINTS_v1: Blueprint Builder tab, loaded by spark-home.html the same way.
+          cp blueprints.js site/ 2>/dev/null || true
           if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"

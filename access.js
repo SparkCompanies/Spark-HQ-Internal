@@ -17,7 +17,8 @@
 
   var WORKER = "https://spark-hq-worker.sparkcompanies.workers.dev";
   var RESTRICTED = [
-    { key: "tab:srleadership", label: "Sr Leadership", hint: "Executive meeting hub. Only the leadership group." }
+    { key: "tab:srleadership", label: "Sr Leadership", hint: "Executive meeting hub. Only the leadership group." },
+    { key: "tab:blueprints", label: "Blueprint Builder", hint: "One Page Blueprints for producers. Super admins always have it." }
   ];
   var ROLES = [
     ["member", "Member", "The day-to-day view: training, career paths, directory, tools."],
