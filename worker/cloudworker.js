@@ -1282,6 +1282,221 @@ async function greetingsRun(env, opts) {
 }
 __name(greetingsRun, "greetingsRun");
 
+
+// ---------- HIRED_DIRECT_v1: "client hired them direct" coaching nudge to the recruiter ----------
+// Every 30 min the worker looks for Asymbl placements whose Termination Reason was set to
+// "Client Hired Direct". For each one it has not seen before, it emails the candidate's recruiter
+// (the Candidate owner; falls back to the placement's Recruiter, then the placement owner) a short
+// coaching note: call and congratulate them, ask for referrals, and send a card — the candidate's
+// mailing address is in the email. Every send is recorded in spark_hq_hired_direct so a redeploy,
+// a retry or a manual run can never double-send, and that same row is the recruiter's follow-up
+// item on the HQ home page (called / card sent).
+//
+// Env (Cloudflare dashboard):
+//   HIRED_DIRECT_ENABLED   "on" to actually send (same kill-switch pattern as GREETINGS_ENABLED)
+//   HIRED_DIRECT_FALLBACK  address that gets the nudge when no recruiter email can be found (default: G_FROM)
+//   HIRED_DIRECT_LOOKBACK  days of placement history to scan each run (default 30)
+//   REFERRAL_FORM_URL      link to the referral form, shown in the email when set
+//   REFERRAL_BONUS_TEXT    one line on the payout, e.g. "$250 once they hit 520 approved hours" (default below)
+//   SF_LIGHTNING_URL       e.g. https://spark-companies.lightning.force.com (for the "open in Salesforce" link)
+const HD_REASON = "Client Hired Direct";
+const HD_FROM = (env) => G_FROM(env);
+const HD_FALLBACK = (env) => String(env.HIRED_DIRECT_FALLBACK || G_FROM(env)).toLowerCase();
+const HD_BONUS = (env) => String(env.REFERRAL_BONUS_TEXT || "Referral bonus pays out once the person they refer is placed and hits 520 approved hours.");
+const hdSoqlStr = (s) => String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+function hdFirst(name) { const s = String(name || "").trim(); return s ? s.split(/\s+/)[0] : "there"; }
+function hdDate(iso) {
+  if (!iso) return "";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); if (!m) return String(iso);
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+function hdAddr(a) {
+  a = a || {};
+  const l1 = String(a.street || "").replace(/\s*\n\s*/g, ", ").trim();
+  const l2 = [a.city, a.state].filter(Boolean).join(", ") + (a.zip ? " " + a.zip : "");
+  return [l1, l2.trim()].filter(Boolean);
+}
+
+// Pull "Client Hired Direct" placements from the last N days with the candidate's contact details
+// and the people who could own the follow-up. Three reads, no joins across polymorphic owners:
+// placements -> contacts (by Id) -> users (by Id).
+async function hdCollect(env, opts) {
+  opts = opts || {};
+  const days = Math.min(Math.max(parseInt(opts.days || env.HIRED_DIRECT_LOOKBACK || "30", 10) || 30, 1), 365);
+  let where = "Termination_Reason__c = '" + HD_REASON + "' AND LastModifiedDate = LAST_N_DAYS:" + days;
+  if (opts.placementId) where = "Id = '" + hdSoqlStr(opts.placementId) + "'";
+  const soql = "SELECT Id, Name, OwnerId, Status__c, Division__c, Job_Title__c, bpats__Start_Date__c, Terminated_Date__c, Termination_Reason__c, Termination_Description__c, LastModifiedDate, " +
+    "bpats__ATS_Candidate__c, bpats__ATS_Candidate__r.Name, bpats__Account__c, bpats__Account__r.Name, bpats__ATS_Job__c, bpats__ATS_Job__r.Name, Recruiter__c, Account_Manager__c " +
+    "FROM bpats__Placement__c WHERE " + where + " ORDER BY LastModifiedDate DESC";
+  const pr = await runSalesforceQueryAll(env, soql);
+  if (!pr.ok) throw new Error(pr.error || "placement query failed");
+  const placements = pr.records || [];
+  if (!placements.length) return { days, placements: [], soql };
+
+  // Candidate = Contact in this org (Asymbl keeps pay rate, shift prefs etc. on Contact).
+  const candIds = Array.from(new Set(placements.map((p) => p.bpats__ATS_Candidate__c).filter(Boolean)));
+  const contacts = {};
+  if (candIds.length) {
+    const cr = await runSalesforceQueryAll(env, "SELECT Id, FirstName, LastName, Name, Email, Phone, MobilePhone, MailingStreet, MailingCity, MailingState, MailingPostalCode, OwnerId FROM Contact WHERE Id IN ('" + candIds.map(hdSoqlStr).join("','") + "')");
+    if (cr.ok) (cr.records || []).forEach((c) => { contacts[c.Id] = c; });
+    else console.error("hired-direct: contact query failed", cr.error);
+  }
+
+  const userIds = new Set();
+  placements.forEach((p) => {
+    const c = contacts[p.bpats__ATS_Candidate__c];
+    [c && c.OwnerId, p.Recruiter__c, p.OwnerId].forEach((id) => { if (id && /^005/.test(id)) userIds.add(id); });
+  });
+  const users = {};
+  if (userIds.size) {
+    const ur = await runSalesforceQueryAll(env, "SELECT Id, Name, Email, IsActive FROM User WHERE Id IN ('" + Array.from(userIds).map(hdSoqlStr).join("','") + "')");
+    if (ur.ok) (ur.records || []).forEach((u) => { users[u.Id] = u; });
+    else console.error("hired-direct: user query failed", ur.error);
+  }
+
+  const out = placements.map((p) => {
+    const c = contacts[p.bpats__ATS_Candidate__c] || {};
+    // Who gets the nudge: Candidate owner first (that is who worked the person), then the
+    // placement's Recruiter field, then whoever owns the placement. Inactive users are skipped.
+    const chain = [{ id: c.OwnerId, via: "candidate owner" }, { id: p.Recruiter__c, via: "placement recruiter" }, { id: p.OwnerId, via: "placement owner" }];
+    let rec = null;
+    for (const k of chain) {
+      const u = k.id && users[k.id];
+      if (u && u.IsActive !== false && u.Email) { rec = { id: u.Id, name: u.Name, email: String(u.Email).toLowerCase(), via: k.via }; break; }
+    }
+    return {
+      placementId: p.Id, placementName: p.Name || "", status: p.Status__c || "", division: p.Division__c || "",
+      jobTitle: p.Job_Title__c || (p.bpats__ATS_Job__r && p.bpats__ATS_Job__r.Name) || "",
+      client: (p.bpats__Account__r && p.bpats__Account__r.Name) || "", accountId: p.bpats__Account__c || null,
+      startDate: p.bpats__Start_Date__c || null, terminatedDate: p.Terminated_Date__c || null, modified: p.LastModifiedDate || null,
+      note: p.Termination_Description__c || "",
+      candidateId: p.bpats__ATS_Candidate__c || null,
+      candidateName: c.Name || (p.bpats__ATS_Candidate__r && p.bpats__ATS_Candidate__r.Name) || "",
+      candidateFirst: c.FirstName || hdFirst((p.bpats__ATS_Candidate__r && p.bpats__ATS_Candidate__r.Name) || ""),
+      candidateEmail: c.Email || "", candidatePhone: c.MobilePhone || c.Phone || "",
+      address: { street: c.MailingStreet || "", city: c.MailingCity || "", state: c.MailingState || "", zip: c.MailingPostalCode || "" },
+      recruiter: rec
+    };
+  });
+  return { days, placements: out, soql };
+}
+__name(hdCollect, "hdCollect");
+
+function hdEmail(p, env) {
+  const first = hdFirst(p.recruiter && p.recruiter.name);
+  const cand = p.candidateName || "your candidate";
+  const cf = p.candidateFirst || hdFirst(cand);
+  const client = p.client || "the client";
+  const sfBase = String(env.SF_LIGHTNING_URL || "https://spark-companies.lightning.force.com").replace(/\/$/, "");
+  const sfLink = sfBase + "/lightning/r/bpats__Placement__c/" + p.placementId + "/view";
+  const hqLink = String(env.HQ_URL || "https://hq.sparktalentinc.com").replace(/\/$/, "") + "/#hired-direct";
+  const addr = hdAddr(p.address);
+  const bonus = HD_BONUS(env);
+  const formUrl = String(env.REFERRAL_FORM_URL || "").trim();
+  const subject = cand + " got hired on at " + client + " — call them today";
+
+  const intro = client + " just hired " + cand + " direct" + (p.jobTitle ? " (" + p.jobTitle + ")" : "") + ". That's the whole point of what we do, and it happened on your desk. Nice work.";
+  const why = "Here's the part people skip: " + cf + " is about to be the happiest person in that building, and happy people talk. Everyone they know who's looking for work is a referral sitting right there. The call you make today is worth more than any job post you'll put up this month.";
+  const steps = [
+    "Call " + cf + " today. Not a text. Congratulate them, mean it, and ask how the first week went.",
+    "Then ask the easy question: \"Who do you know that's looking? I'd love to help them the way I helped you.\" Get names and numbers on the call if you can.",
+    "Tell them how the referral bonus works. " + bonus + (formUrl ? " Send them the referral form so it's in their hands before you hang up." : ""),
+    "Drop a card in the mail this week. Handwritten, two or three lines. The address is below."
+  ];
+  const text = first + " —\n\n" + intro + "\n\n" + why + "\n\n" + steps.map((s, i) => (i + 1) + ". " + s).join("\n") +
+    "\n\n" + cand + "\n" + (p.candidatePhone ? p.candidatePhone + "\n" : "") + (p.candidateEmail ? p.candidateEmail + "\n" : "") + (addr.length ? addr.join("\n") + "\n" : "No mailing address on the Contact — grab it on the call.\n") +
+    (formUrl ? "\nReferral form: " + formUrl : "") + "\nPlacement in Salesforce: " + sfLink + "\nMark it done in HQ: " + hqLink + "\n\nAllie\nVP of Operations, Spark Companies";
+
+  const row = (label, val) => val ? '<tr><td style="padding:3px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8d8778;width:92px;vertical-align:top;">' + gEsc(label) + '</td><td style="padding:3px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111111;">' + val + '</td></tr>' : '';
+  const html =
+'<!doctype html><html><body style="margin:0;padding:0;background:#f4f2ec;">' +
+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f2ec;padding:28px 12px;"><tr><td align="center">' +
+'<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e7e3d8;">' +
+  '<tr><td style="background:#0d0e1a;padding:30px 34px 26px;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:3px;color:#8d8778;font-weight:bold;">SPARK COMPANIES</td></tr>' +
+    '<tr><td style="padding-top:4px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:34px;height:3px;background:#FFC800;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>' +
+    '<tr><td style="padding-top:20px;font-family:Arial,Helvetica,sans-serif;font-size:30px;line-height:1.05;letter-spacing:1px;color:#FFC800;font-weight:bold;">HIRED DIRECT</td></tr>' +
+    '<tr><td style="padding-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:4px;color:#b9b2a0;font-weight:bold;">' + gEsc(cand.toUpperCase()) + ' &middot; ' + gEsc(client.toUpperCase()) + '</td></tr>' +
+    '</table></td></tr>' +
+  '<tr><td style="padding:30px 34px 10px;font-family:Arial,Helvetica,sans-serif;font-size:17px;color:#111111;font-weight:bold;">' + gEsc(first) + ' —</td></tr>' +
+  [intro, why].map((l) => '<tr><td style="padding:0 34px 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#33302a;">' + gEsc(l) + '</td></tr>').join('') +
+  '<tr><td style="padding:0 34px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">' +
+    steps.map((s, i) => '<tr><td style="padding:0 0 12px;vertical-align:top;width:30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#B8912E;">' + (i + 1) + '.</td><td style="padding:0 0 12px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#33302a;">' + gEsc(s) + '</td></tr>').join('') +
+  '</table></td></tr>' +
+  '<tr><td style="padding:8px 34px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf9f6;border:1px solid #eceae2;border-radius:12px;"><tr><td style="padding:16px 18px;">' +
+    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:10.5px;letter-spacing:2.5px;color:#B8912E;font-weight:bold;padding-bottom:8px;">FOR THE CALL AND THE CARD</div>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0">' +
+      row("Name", gEsc(cand)) +
+      row("Phone", p.candidatePhone ? '<a href="tel:' + gEsc(p.candidatePhone.replace(/[^0-9+]/g, "")) + '" style="color:#111111;text-decoration:none;">' + gEsc(p.candidatePhone) + '</a>' : '') +
+      row("Email", p.candidateEmail ? '<a href="mailto:' + gEsc(p.candidateEmail) + '" style="color:#111111;text-decoration:none;">' + gEsc(p.candidateEmail) + '</a>' : '') +
+      row("Address", addr.length ? addr.map(gEsc).join("<br>") : '<span style="color:#9a9486;">Not on the Contact &mdash; grab it on the call and add it in Salesforce.</span>') +
+      row("Role", gEsc([p.jobTitle, p.client].filter(Boolean).join(" at "))) +
+      row("Started", gEsc(hdDate(p.startDate))) +
+    '</table></td></tr></table></td></tr>' +
+  '<tr><td style="padding:0 34px 26px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#7c766a;">' +
+    (formUrl ? '<a href="' + gEsc(formUrl) + '" style="color:#B8912E;font-weight:bold;text-decoration:none;">Referral form</a> &nbsp;&middot;&nbsp; ' : '') +
+    '<a href="' + gEsc(sfLink) + '" style="color:#B8912E;font-weight:bold;text-decoration:none;">Placement in Salesforce</a> &nbsp;&middot;&nbsp; ' +
+    '<a href="' + gEsc(hqLink) + '" style="color:#B8912E;font-weight:bold;text-decoration:none;">Mark it done in HQ</a></td></tr>' +
+  '<tr><td style="padding:0 34px 30px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#33302a;">Allie<br><span style="font-size:12.5px;color:#7c766a;">VP of Operations, Spark Companies</span></td></tr>' +
+  '<tr><td style="background:#faf9f6;border-top:1px solid #eceae2;padding:14px 34px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#9a9486;letter-spacing:.5px;">JUST WATCH US</td></tr>' +
+'</table></td></tr></table></body></html>';
+  return { subject, html, text };
+}
+__name(hdEmail, "hdEmail");
+
+async function hdRun(env, opts) {
+  opts = opts || {};
+  const live = !opts.dry && String(env.HIRED_DIRECT_ENABLED || "").toLowerCase() === "on";
+  const col = await hdCollect(env, { days: opts.days, placementId: opts.placementId });
+  let list = col.placements;
+
+  // Already nudged? One row per placement, ever. Fail closed if the ledger can't be read.
+  let seen = {};
+  if (list.length && !opts.sendTo) {
+    let r = null;
+    try { r = await sbService(env, "GET", "spark_hq_hired_direct?select=placement_id&placement_id=in.(" + list.map((p) => '"' + p.placementId + '"').join(",") + ")&limit=1000"); } catch (e) { r = null; }
+    if (!r || !r.ok || !Array.isArray(r.data)) {
+      return { ok: false, live: false, days: col.days, found: list.length, error: "The spark_hq_hired_direct ledger is unreadable, so nothing was sent. Run hired-direct.sql in Supabase first.", results: [] };
+    }
+    r.data.forEach((x) => { seen[x.placement_id] = 1; });
+  }
+  const todo = opts.resend ? list : list.filter((p) => !seen[p.placementId]);
+  if ((live || opts.sendTo) && todo.length && (!env.GREETINGS_CLIENT_ID || !env.GREETINGS_CLIENT_SECRET)) {
+    return { ok: false, live: false, days: col.days, found: list.length, error: "Sender app is not configured (GREETINGS_CLIENT_ID / GREETINGS_CLIENT_SECRET). Nothing was sent.", results: [] };
+  }
+  const token = (live || opts.sendTo) ? await getSendToken(env) : null;
+  const from = HD_FROM(env);
+  const results = [];
+  for (const p of todo) {
+    const to = opts.sendTo || (p.recruiter && p.recruiter.email) || HD_FALLBACK(env);
+    const msg = hdEmail(p, env);
+    const base = { placementId: p.placementId, candidate: p.candidateName, client: p.client, to, recruiter: p.recruiter, subject: msg.subject, hasAddress: hdAddr(p.address).length > 0 };
+    if (!live && !opts.sendTo) { results.push(Object.assign(base, { sent: false, why: opts.dry ? "dry run" : "HIRED_DIRECT_ENABLED is off" })); continue; }
+    try {
+      const r = await fetch("https://graph.microsoft.com/v1.0/users/" + encodeURIComponent(from) + "/sendMail", {
+        method: "POST", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ message: { subject: msg.subject, body: { contentType: "HTML", content: msg.html }, toRecipients: [{ emailAddress: { address: to } }] }, saveToSentItems: true })
+      });
+      const ok = r.ok || r.status === 202;
+      results.push(Object.assign(base, { sent: ok, why: ok ? "" : (await r.text()).slice(0, 180) }));
+      if (ok && !opts.sendTo) {
+        try {
+          await sbService(env, "POST", "spark_hq_hired_direct", {
+            placement_id: p.placementId, placement_name: p.placementName, division: p.division,
+            candidate_id: p.candidateId, candidate_name: p.candidateName, candidate_email: p.candidateEmail, candidate_phone: p.candidatePhone,
+            address: p.address, client: p.client, job_title: p.jobTitle, start_date: p.startDate, terminated_date: p.terminatedDate,
+            recruiter_email: to, recruiter_name: p.recruiter ? p.recruiter.name : null, recruiter_via: p.recruiter ? p.recruiter.via : "fallback",
+            sent_at: new Date().toISOString()
+          });
+        } catch (e) { console.error("hired-direct: ledger write failed", e && e.message); }
+      }
+    } catch (e) { results.push(Object.assign(base, { sent: false, why: String(e && e.message).slice(0, 120) })); }
+  }
+  return { ok: true, live, days: col.days, found: list.length, alreadySent: list.length - todo.length, results };
+}
+__name(hdRun, "hdRun");
+
 // CAREER_XLSX_v1 parser
 // CAREER_XLSX_v1 parser: turns the free-form career path worksheets into HQ's career path shape.
 // Input: 2D arrays of displayed cell text (Graph usedRange "text").
@@ -2745,6 +2960,64 @@ var worker_default = {
         return json(out, 200, origin);
       } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
     }
+    if (url.pathname === "/hired-direct/preview" || url.pathname === "/hired-direct/run") {
+      // HIRED_DIRECT_v1: admin only. preview = never sends; run honours ?dry, HIRED_DIRECT_ENABLED,
+      // sendTo (a single test recipient, never recorded) and placementId (one specific placement).
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      const gate = await verifyAdmin(request, env);
+      if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+      try {
+        if (url.pathname === "/hired-direct/preview") {
+          const col = await hdCollect(env, { days: url.searchParams.get("days") || "", placementId: url.searchParams.get("placementId") || "" });
+          const i = parseInt(url.searchParams.get("i") || "0", 10) || 0;
+          if (url.searchParams.get("html") === "1") {
+            const p = col.placements[i] || { placementId: "a0X000000000000", candidateName: "Sample Candidate", candidateFirst: "Sample", client: "Sample Client", jobTitle: "CNC Operator", startDate: "2026-08-03", candidatePhone: "(248) 555-0100", candidateEmail: "sample@example.com", address: { street: "901 Wilshire Dr Suite 585", city: "Troy", state: "MI", zip: "48084" }, recruiter: { name: gate.email.split("@")[0], email: gate.email } };
+            return new Response(hdEmail(p, env).html, { status: 200, headers: Object.assign({ "Content-Type": "text/html; charset=utf-8" }, corsHeaders(origin)) });
+          }
+          return json({ ok: true, enabled: String(env.HIRED_DIRECT_ENABLED || "").toLowerCase() === "on", from: HD_FROM(env), fallback: HD_FALLBACK(env), days: col.days, soql: col.soql, placements: col.placements.map((p) => Object.assign({ subject: hdEmail(p, env).subject }, p)) }, 200, origin);
+        }
+        if (request.method !== "POST") return json({ error: "POST required" }, 405, origin);
+        let b = {}; try { b = await request.json(); } catch (e) {}
+        const out = await hdRun(env, { dry: !!b.dry, days: b.days || "", placementId: b.placementId || "", sendTo: b.sendTo || "", resend: !!b.resend });
+        try { await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "hired-direct.run", target: String(out.results.length), detail: JSON.stringify({ live: out.live, days: out.days, sent: out.results.filter((r) => r.sent).length }) }); } catch (e) {}
+        return json(out, 200, origin);
+      } catch (e) { return json({ error: String(e && e.message || e).slice(0, 200) }, 502, origin); }
+    }
+    if (url.pathname === "/hired-direct") {
+      // HIRED_DIRECT_v1: the recruiter's follow-up list. GET = my open items (admins: ?all=1 for everyone's).
+      // POST { placementId, called?: bool, card?: bool, notes?: string } = mark my item (admins may mark any).
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const me = String(who.email).toLowerCase();
+      let admin = false;
+      try { const a = await verifyAdmin(request, env); admin = !!a.ok; } catch (e) { admin = false; }
+      if (request.method === "GET") {
+        const all = admin && url.searchParams.get("all") === "1";
+        const since = new Date(Date.now() - 120 * 864e5).toISOString();
+        const q = "spark_hq_hired_direct?select=*&sent_at=gte." + encodeURIComponent(since) + (all ? "" : "&recruiter_email=eq." + encodeURIComponent(me)) + "&order=sent_at.desc&limit=300";
+        const r = await sbService(env, "GET", q);
+        if (!r.ok) return json({ error: "Could not read follow-ups", detail: r.data }, 502, origin);
+        return json({ ok: true, me, admin, all, items: r.data || [] }, 200, origin);
+      }
+      if (request.method !== "POST") return json({ error: "POST required" }, 405, origin);
+      let b = {}; try { b = await request.json(); } catch (e) {}
+      const pid = String(b.placementId || "").replace(/[^A-Za-z0-9]/g, "");
+      if (!pid) return json({ error: "placementId required" }, 400, origin);
+      const cur = await sbService(env, "GET", "spark_hq_hired_direct?select=placement_id,recruiter_email&placement_id=eq." + pid + "&limit=1");
+      const row = cur.ok && Array.isArray(cur.data) && cur.data[0];
+      if (!row) return json({ error: "Not found" }, 404, origin);
+      if (!admin && String(row.recruiter_email || "").toLowerCase() !== me) return json({ error: "Not your follow-up" }, 403, origin);
+      const now = new Date().toISOString(), patch = {};
+      if (typeof b.called === "boolean") patch.called_at = b.called ? now : null;
+      if (typeof b.card === "boolean") patch.card_sent_at = b.card ? now : null;
+      if (typeof b.notes === "string") patch.notes = b.notes.slice(0, 2000);
+      if (!Object.keys(patch).length) return json({ error: "Nothing to update" }, 400, origin);
+      patch.updated_by = me;
+      const w = await sbService(env, "PATCH", "spark_hq_hired_direct?placement_id=eq." + pid, patch);
+      if (!w.ok) return json({ error: "Could not save", detail: w.data }, 502, origin);
+      return json({ ok: true, item: Array.isArray(w.data) ? w.data[0] : w.data }, 200, origin);
+    }
     if (url.pathname === "/jwu") {
       // JWU_WALL_v1: shout-outs in The Pulse tagged #JWU (last 30 days) + this week's most-tagged person.
       const who = await verifyUser(request, env);
@@ -3190,35 +3463,6 @@ var worker_default = {
         if (!r.ok) return json({ error: "Could not save", detail: r.data }, 502, origin);
         await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "help_route_save", target: row.slug, detail: JSON.stringify(row) }).catch(function(){});
         return json({ ok: true, row: Array.isArray(r.data) ? r.data[0] : r.data }, 200, origin);
-      }
-      return json({ error: "Method not allowed" }, 405, origin);
-    }
-    if (url.pathname === "/benefits-info") {
-      // BENEFITS_v1: the Benefits & PTO tab. One JSON document (PTO tiers, holidays, benefits, links, contacts).
-      // Any signed-in team member reads; admins (profiles.role admin/superadmin) save the whole document.
-      // Table: spark_hq_benefits_info (id int primary key, data jsonb not null, updated_at timestamptz default now(), updated_by text)
-      // SQL to create it is in worker/benefits-info.sql. Until the row exists, GET returns data:null and the tab shows its built-in defaults.
-      if (request.method === "GET") {
-        const who = await verifyUser(request, env);
-        if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
-        const r = await sbService(env, "GET", "spark_hq_benefits_info?id=eq.1&select=data,updated_at,updated_by");
-        if (!r.ok) return json({ ok: true, data: null, missing: true, detail: r.data }, 200, origin);
-        const rows = Array.isArray(r.data) ? r.data : [];
-        if (!rows.length) return json({ ok: true, data: null }, 200, origin);
-        return json({ ok: true, data: rows[0].data, updated_at: rows[0].updated_at, updated_by: rows[0].updated_by }, 200, origin);
-      }
-      if (request.method === "POST") {
-        const gate = await verifyAdmin(request, env);
-        if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
-        let body;
-        try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
-        if (!body || typeof body.data !== "object" || body.data === null) return json({ error: "data object required" }, 400, origin);
-        if (JSON.stringify(body.data).length > 2e5) return json({ error: "payload too large" }, 413, origin);
-        const row = { id: 1, data: body.data, updated_at: new Date().toISOString(), updated_by: gate.email };
-        const r = await sbService(env, "POST", "spark_hq_benefits_info?on_conflict=id", row);
-        if (!r.ok) return json({ error: "Could not save (does spark_hq_benefits_info exist?)", detail: r.data }, 502, origin);
-        await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "benefits_info_save", target: "benefits-info", detail: JSON.stringify({ bytes: JSON.stringify(body.data).length }) }).catch(function(){});
-        return json({ ok: true, updated_by: gate.email, updated_at: row.updated_at }, 200, origin);
       }
       return json({ error: "Method not allowed" }, 405, origin);
     }
@@ -11245,6 +11489,7 @@ var worker_default = {
     if (cron === "0 13 * * *") { ctx.waitUntil(greetingsRun(env, {}).catch(function(e) { console.error("greetings cron failed", e && e.message); })); }
     // SRLEAD_v7: every 30 minutes, route new Teams recordings of Sr Leadership meetings into the hub
     if (cron === "*/30 * * * *") { ctx.waitUntil(srleadRecordingSweep(env).catch(function(e) { console.error("srlead sweep failed", e && e.message); })); }
+    if (cron === "*/30 * * * *") { ctx.waitUntil(hdRun(env, {}).catch(function(e) { console.error("hired-direct cron failed", e && e.message); })); }
     if (!cron || cron === "0 12 * * 4") { ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); })); }
   }
 };
