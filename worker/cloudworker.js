@@ -3193,6 +3193,35 @@ var worker_default = {
       }
       return json({ error: "Method not allowed" }, 405, origin);
     }
+    if (url.pathname === "/benefits-info") {
+      // BENEFITS_v1: the Benefits & PTO tab. One JSON document (PTO tiers, holidays, benefits, links, contacts).
+      // Any signed-in team member reads; admins (profiles.role admin/superadmin) save the whole document.
+      // Table: spark_hq_benefits_info (id int primary key, data jsonb not null, updated_at timestamptz default now(), updated_by text)
+      // SQL to create it is in worker/benefits-info.sql. Until the row exists, GET returns data:null and the tab shows its built-in defaults.
+      if (request.method === "GET") {
+        const who = await verifyUser(request, env);
+        if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+        const r = await sbService(env, "GET", "spark_hq_benefits_info?id=eq.1&select=data,updated_at,updated_by");
+        if (!r.ok) return json({ ok: true, data: null, missing: true, detail: r.data }, 200, origin);
+        const rows = Array.isArray(r.data) ? r.data : [];
+        if (!rows.length) return json({ ok: true, data: null }, 200, origin);
+        return json({ ok: true, data: rows[0].data, updated_at: rows[0].updated_at, updated_by: rows[0].updated_by }, 200, origin);
+      }
+      if (request.method === "POST") {
+        const gate = await verifyAdmin(request, env);
+        if (!gate.ok) return json({ error: gate.reason || "Unauthorized" }, 401, origin);
+        let body;
+        try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        if (!body || typeof body.data !== "object" || body.data === null) return json({ error: "data object required" }, 400, origin);
+        if (JSON.stringify(body.data).length > 2e5) return json({ error: "payload too large" }, 413, origin);
+        const row = { id: 1, data: body.data, updated_at: new Date().toISOString(), updated_by: gate.email };
+        const r = await sbService(env, "POST", "spark_hq_benefits_info?on_conflict=id", row);
+        if (!r.ok) return json({ error: "Could not save (does spark_hq_benefits_info exist?)", detail: r.data }, 502, origin);
+        await sbService(env, "POST", "spark_hq_audit", { actor: gate.email, action: "benefits_info_save", target: "benefits-info", detail: JSON.stringify({ bytes: JSON.stringify(body.data).length }) }).catch(function(){});
+        return json({ ok: true, updated_by: gate.email, updated_at: row.updated_at }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
     if (url.pathname === "/signin-log") {
       // SIGNIN_LOG_v1: the HQ shell posts here on every sign-in / sign-out; admins read the log back.
       // Table: spark_hq_signin_log (id bigserial, ts timestamptz default now(), email text, event text, ip text, city text, region text, country text, user_agent text, device text, origin text)
