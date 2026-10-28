@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.1 — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.2 (scorecard one-pager) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -171,28 +171,51 @@
     ".bp-prevwrap{position:sticky;top:16px}",
     ".bp-prevlab{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#9a8a5c;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}",
     /* one-pager (shared with print / Word export) */
-    ".op{background:#fff;border-radius:6px;box-shadow:0 30px 60px -30px rgba(20,18,10,.55),0 0 0 1px #ece8de;overflow:hidden;font-family:Outfit,Inter,Arial,sans-serif;color:#1a1915}",
-    ".op-head{background:linear-gradient(118deg,#0D0E1A 0%,#1b1b30 100%);color:#fff;padding:20px 24px 18px;position:relative}",
-    ".op-head::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#FFC800,#DEBA6F)}",
+    /* one-pager: scorecard layout (shared with print / Word export; every rule starts with .op so export can lift them) */
+    ".op{background:#fff;border-radius:14px;box-shadow:0 34px 70px -34px rgba(20,18,10,.55),0 0 0 1px #ece8de;overflow:hidden;font-family:Outfit,Inter,Arial,sans-serif;color:#1a1915;position:relative}",
+    ".op-head{position:relative;isolation:isolate;overflow:hidden;color:#fff;padding:18px 22px 46px;background:linear-gradient(120deg,#0D0E1A 0%,#16172a 55%,#231f36 100%)}",
+    ".op-head::before{content:'';position:absolute;z-index:-1;right:-70px;top:-90px;width:260px;height:260px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,200,0,.30),transparent 70%)}",
+    ".op-head::after{content:'';position:absolute;z-index:-1;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,#FFC800,#DEBA6F 60%,transparent)}",
     ".op-top{display:flex;justify-content:space-between;align-items:center;gap:12px}",
-    ".op-logo{height:30px;width:auto;max-width:150px}",
-    ".op-tag{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:#FFC800;font-weight:700}",
-    ".op-name{font-size:24px;font-weight:800;letter-spacing:-.01em;margin:14px 0 2px;line-height:1.1}",
-    ".op-title{font-size:13px;color:#d6d6e8}",
-    ".op-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}",
-    ".op-meta span{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.1);color:#f1f1f8}",
-    ".op-meta span.g{background:#FFC800;color:#0D0E1A}",
-    ".op-body{padding:16px 22px 18px}",
-    ".op-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}",
-    ".op-nums div{border:1px solid #efe9d8;border-radius:10px;padding:8px 10px;background:#fbf9f3}",
-    ".op-nums b{display:block;font-size:16px;font-weight:800}.op-nums span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#8a7a52;font-weight:700}",
-    ".op-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}",
-    ".op-h{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#B8912E;font-weight:800;margin:0 0 6px;padding-bottom:4px;border-bottom:1.5px solid #f1e6c4}",
-    ".op ul,.op ol{margin:0;padding-left:17px;font-size:12px;line-height:1.5}",
-    ".op li{margin:1px 0}",
-    ".op-g{font-size:11px;font-weight:700;margin:6px 0 2px;color:#4a4636}",
-    ".op-empty{font-size:11.5px;color:#a19b88;font-style:italic}",
-    ".op-foot{display:flex;justify-content:space-between;gap:8px;padding:9px 22px;border-top:1px solid #f1ede3;font-size:9.5px;color:#9a9484;letter-spacing:.06em}",
+    ".op-logo{height:28px;width:auto;max-width:150px}",
+    ".op-tag{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:#FFC800;font-weight:800;padding:4px 9px;border:1px solid rgba(255,200,0,.35);border-radius:999px}",
+    ".op-name{font-size:25px;font-weight:800;letter-spacing:-.015em;margin:14px 0 2px;line-height:1.08}",
+    ".op-title{font-size:12.5px;color:#cfd0e6}",
+    ".op-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}",
+    ".op-meta span{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);color:#eeeef7}",
+    ".op-meta span.g{background:#FFC800;border-color:#FFC800;color:#0D0E1A}",
+    ".op-nums{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:-32px 16px 0}",
+    ".op-num{display:flex;gap:9px;align-items:center;background:#fff;border:1px solid #efe6c9;border-top:3px solid #FFC800;border-radius:12px;padding:9px 11px;box-shadow:0 14px 26px -18px rgba(20,18,10,.55)}",
+    ".op-num .ico{width:28px;height:28px;border-radius:9px;background:#0D0E1A;color:#FFC800;display:grid;place-items:center;flex:none}",
+    ".op-num .ico svg,.op-hd svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}",
+    ".op-num b{display:block;font-size:17px;font-weight:800;line-height:1.05;letter-spacing:-.01em}",
+    ".op-num span{display:block;font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:#8a7a52;font-weight:700;margin-top:2px}",
+    ".op-body{padding:14px 18px 14px}",
+    ".op-sec{margin-top:12px}",
+    ".op-hd{display:flex;align-items:center;gap:7px;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:#9a7a1e;font-weight:800;margin:0 0 7px}",
+    ".op-hd::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#efdfa8,transparent)}",
+    ".op-hd svg{color:#C8963E;width:13px;height:13px}",
+    ".op-goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:7px}",
+    ".op-goal{background:linear-gradient(180deg,#fffdf6,#fbf6e6);border:1px solid #f0e3b8;border-radius:11px;padding:8px 10px}",
+    ".op-goal b{display:block;font-size:20px;font-weight:800;line-height:1;color:#0D0E1A;letter-spacing:-.02em}",
+    ".op-goal span{display:block;font-size:10px;line-height:1.3;color:#5d584a;margin-top:4px}",
+    ".op-extra{margin:6px 0 0;padding:0;list-style:none;font-size:11px;color:#5d584a}",
+    ".op-extra li{padding-left:12px;position:relative;margin:2px 0}",
+    ".op-extra li::before{content:'';position:absolute;left:2px;top:6px;width:4px;height:4px;border-radius:50%;background:#C8963E}",
+    ".op-cols{display:grid;grid-template-columns:1.1fr 1fr;gap:4px 16px}",
+    ".op-chips{display:flex;flex-wrap:wrap;gap:5px}",
+    ".op-chip{font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;background:#0D0E1A;color:#fff;border-left:3px solid #FFC800}",
+    ".op-chip.lt{background:#f6f2e6;color:#2b2818;border-left-color:#C8963E;font-weight:500}",
+    ".op-chip i{font-style:normal;color:#C8963E;font-weight:800;margin-right:5px}",
+    ".op-g{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a7a52;margin:7px 0 4px}",
+    ".op-steps{list-style:none;margin:0;padding:0;position:relative}",
+    ".op-steps::before{content:'';position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:linear-gradient(#FFC800,#efdfa8)}",
+    ".op-steps li{position:relative;display:flex;align-items:center;gap:8px;margin:0 0 4px;font-size:11.5px;line-height:1.3}",
+    ".op-steps li b{position:relative;width:20px;height:20px;border-radius:50%;background:#0D0E1A;color:#FFC800;font-size:10px;font-weight:800;display:grid;place-items:center;flex:none;box-shadow:0 0 0 2px #fff}",
+    ".op-steps li em{font-style:normal;font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:1px 6px;border-radius:999px;background:#f6f2e6;color:#8a7a52;margin-left:auto}",
+    ".op-notes{font-size:11.5px;line-height:1.5;white-space:pre-wrap;color:#3d3a2e;background:#fbf9f3;border-radius:10px;padding:8px 10px}",
+    ".op-empty{font-size:11px;color:#a19b88;font-style:italic}",
+    ".op-foot{display:flex;justify-content:space-between;gap:8px;padding:8px 18px;border-top:1px solid #f1ede3;background:#fbf9f3;font-size:9px;color:#9a9484;letter-spacing:.08em;text-transform:uppercase}",
     /* rules */
     ".bp-rt{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #ece8de;border-radius:14px;overflow:hidden;font-size:13px}",
     ".bp-rt th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9484;font-weight:700;padding:10px 12px;background:#fbf9f3;border-bottom:1px solid #ece8de}",
@@ -203,7 +226,7 @@
     ".bp-rt input.w{width:100%}",
     ".bp-seg{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}",
     "@media(max-width:1100px){.bp-ed{grid-template-columns:1fr}.bp-prevwrap{position:static}}",
-    "@media(max-width:720px){.bp{padding:16px 14px 80px}.bp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.bp-f{grid-template-columns:1fr}.bp-hero{padding:22px 20px}.bp-hero h1{font-size:26px}.op-cols{grid-template-columns:1fr}.bp-btn{white-space:normal}.bp-sec h4,.bp-flag,.bp-prevlab,.bp-edtop{flex-wrap:wrap}.bp-targets,.op-nums{grid-template-columns:1fr 1fr}.bp-rt{min-width:640px}}"
+    "@media(max-width:720px){.bp{padding:16px 14px 80px}.bp-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.bp-f{grid-template-columns:1fr}.bp-hero{padding:22px 20px}.bp-hero h1{font-size:26px}.op-cols{grid-template-columns:1fr}.bp-btn{white-space:normal}.bp-sec h4,.bp-flag,.bp-prevlab,.bp-edtop{flex-wrap:wrap}.bp-targets{grid-template-columns:1fr 1fr}.op-nums{grid-template-columns:1fr;margin-top:-30px}.bp-rt{min-width:640px}}"
   ].join("\n");
   function injectCss() { if (document.getElementById("blueprintsCss")) return; var s = document.createElement("style"); s.id = "blueprintsCss"; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -223,37 +246,65 @@
 
   /* ---------- one-pager ---------- */
   function logoUrl(company, abs, png) { var k = LOGOS[company] || "spark-companies"; return (abs ? location.origin : "") + "/brand/" + k + "-reversed." + (png ? "png" : "svg"); }
+  var OPI = {
+    hc: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+    dh: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+    ch: "M3 17l6-6 4 4 8-8M14 7h7v7",
+    kpi: "M3 3v18h18M7 14l4-4 3 3 5-6",
+    roles: "M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2",
+    contacts: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6",
+    s4: "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
+    notes: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"
+  };
+  function opi(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + OPI[k] + '"/></svg>'; }
+  /* "Maintain a minimum of 10 candidates in process" -> { n: "10", l: "candidates in process" } */
+  function goal(s) {
+    var t = String(s || "").trim().replace(/^(always\s+)?(maintain\s+)?(a\s+)?minimum\s+of\s+/i, "");
+    var m = t.match(/^(\$?\d[\d,]*\+?)\s+(.+)$/);
+    return m ? { n: m[1], l: m[2].replace(/\s+at all times$/i, "") } : null;
+  }
   function onePager(d, abs, png) {
     var L = line(d.serviceLine) || {};
     var hc = d.hc !== "" && d.hc != null ? d.hc : (L.hc != null ? L.hc : "");
     var groups = (d.titleGroups || []).filter(function (g) { return g.titles && g.titles.length; });
-    function list(arr, ordered) {
-      arr = (arr || []).filter(function (x) { return String(x || "").trim(); });
-      if (!arr.length) return '<div class="op-empty">Not set yet</div>';
-      return "<" + (ordered ? "ol" : "ul") + ">" + arr.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</" + (ordered ? "ol" : "ul") + ">";
-    }
-    var roles = !groups.length ? '<div class="op-empty">Not set yet</div>' : groups.map(function (g) { return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + list(g.titles); }).join("");
+    function clean(arr) { return (arr || []).filter(function (x) { return String(x || "").trim(); }); }
+    var empty = '<div class="op-empty">Not set yet</div>';
+    var kp = clean(d.kpis), goals = [], extra = [];
+    kp.forEach(function (k) { var g = goal(k); if (g) goals.push(g); else extra.push(k); });
+    var kpiHtml = !kp.length ? empty :
+      (goals.length ? '<div class="op-goals">' + goals.map(function (g) { return '<div class="op-goal"><b>' + esc(g.n) + "</b><span>" + esc(g.l) + "</span></div>"; }).join("") + "</div>" : "") +
+      (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
+    var many = allTitles(d).length > 8;  /* long lists (Kristin's 27) read better as light chips */
+    var roles = !groups.length ? empty : groups.map(function (g) {
+      return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + '<div class="op-chips">' + g.titles.map(function (t) { return '<span class="op-chip' + (many ? " lt" : "") + '">' + esc(t) + "</span>"; }).join("") + "</div>";
+    }).join("");
+    var ct = clean(d.contacts);
+    var contacts = !ct.length ? empty : '<div class="op-chips">' + ct.map(function (c, i) { return '<span class="op-chip lt"><i>' + (i + 1) + "</i>" + esc(c) + "</span>"; }).join("") + "</div>";
+    var st = clean(d.s4);
+    var steps = !st.length ? empty : '<ol class="op-steps">' + st.map(function (x, i) {
+      var m = String(x).replace(/\)\s*\)\s*$/, ")").match(/^(.*?)\s*\(([^()]+)\)\s*$/);
+      return "<li><b>" + (i + 1) + "</b><span>" + esc(m ? m[1] : x) + "</span>" + (m ? "<em>" + esc(m[2]) + "</em>" : "") + "</li>";
+    }).join("") + "</ol>";
     var meta = [];
     if (d.serviceLine) meta.push('<span class="g">' + esc(d.serviceLine) + "</span>");
     if (d.secondaryServiceLine) meta.push("<span>+ " + esc(d.secondaryServiceLine) + "</span>");
     if (d.territory || d.region) meta.push("<span>" + esc(d.territory || d.region) + "</span>");
     if (d.dhFocused) meta.push("<span>Direct hire focused</span>");
+    function sec(icon, title, body) { return '<div class="op-sec"><div class="op-hd">' + opi(icon) + esc(title) + "</div>" + body + "</div>"; }
     return '<div class="op">' +
       '<div class="op-head"><div class="op-top"><img class="op-logo" alt="' + esc(d.company || "Spark Companies") + '" src="' + logoUrl(d.company, abs, png) + '"><div class="op-tag">One Page Blueprint</div></div>' +
         '<div class="op-name">' + esc(d.name || "Team member") + "</div>" +
         '<div class="op-title">' + esc([d.title, d.role && String(d.title || "").indexOf(d.role) < 0 ? d.role : ""].filter(Boolean).join(" · ") || "Title") + "</div>" +
         (meta.length ? '<div class="op-meta">' + meta.join("") + "</div>" : "") + "</div>" +
+      '<div class="op-nums">' +
+        '<div class="op-num"><span class="ico">' + opi("hc") + "</span><div><b>" + esc(hc === "" ? "—" : hc) + "</b><span>Headcount</span></div></div>" +
+        '<div class="op-num"><span class="ico">' + opi("dh") + "</span><div><b>" + money(L.direct) + "</b><span>Direct hire target</span></div></div>" +
+        '<div class="op-num"><span class="ico">' + opi("ch") + "</span><div><b>" + (L.charge != null ? money(L.charge) : "Case by case") + "</b><span>Weekly charge</span></div></div></div>" +
       '<div class="op-body">' +
-        '<div class="op-nums"><div><b>' + esc(hc === "" ? "—" : hc) + "</b><span>Headcount expectation</span></div>" +
-          "<div><b>" + money(L.direct) + "</b><span>Direct hire target</span></div>" +
-          "<div><b>" + (L.charge != null ? money(L.charge) : "Case by case") + "</b><span>Weekly charge target</span></div></div>" +
-        '<div class="op-cols">' +
-          '<div><div class="op-h">KPI expectations</div>' + list(d.kpis) + "</div>" +
-          '<div><div class="op-h">' + esc(d.rolesHeading || "Focused Roles") + "</div>" + roles + "</div>" +
-          '<div><div class="op-h">Target customer contacts</div>' + list(d.contacts, true) + "</div>" +
-          '<div><div class="op-h">S4 process</div>' + list(d.s4, true) + "</div>" +
-        "</div>" +
-        (d.notes ? '<div style="margin-top:12px"><div class="op-h">Notes</div><div style="font-size:12px;line-height:1.5;white-space:pre-wrap">' + esc(d.notes) + "</div></div>" : "") +
+        sec("kpi", "Weekly goals", kpiHtml) +
+        '<div class="op-cols"><div>' + sec("roles", d.rolesHeading || "Focused Roles", roles) + "</div>" +
+          "<div>" + sec("s4", "S4 process", steps) + sec("contacts", "Target customer contacts", contacts) + "</div></div>" +
+        (d.notes ? sec("notes", "Notes", '<div class="op-notes">' + esc(d.notes) + "</div>") : "") +
       "</div>" +
       '<div class="op-foot"><span>' + esc(d.company || "Spark Companies") + (d.reportsTo ? " · Reports to " + esc(d.reportsTo) : "") + "</span><span>Updated " + esc(fmtDate(new Date().toISOString())) + "</span></div>" +
     "</div>";
