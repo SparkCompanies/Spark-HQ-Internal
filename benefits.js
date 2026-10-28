@@ -1,4 +1,4 @@
-/* BENEFITS_v1.3 — Benefits & PTO tab + Admin > Benefits & PTO editor
+/* BENEFITS_v1.4 — Benefits & PTO tab + Admin > Benefits & PTO editor
    Loaded into the HQ shell by spark-home.html (same path as my-links.js, viewas.js, access.js and traffic.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -309,6 +309,22 @@
     ".bf-lk{display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;transition:border-color .15s}.bf-lk:hover{border-color:#C8963E}.bf-lk .ib{width:38px;height:38px;border-radius:10px;background:#FFF4C2;color:#8a6a1c;display:grid;place-items:center;flex:none}.bf-lk b{display:block;font-size:14px}.bf-lk span{display:block;font-size:12.5px;color:#6B675C;margin-top:2px}" +
     ".bf-src{margin-top:34px;font-size:12px;color:#8a8477;display:flex;gap:7px;align-items:center}.bf-src .bf-ic{width:14px;height:14px}" +
     ".bf-loading,.bf-empty{padding:50px 0;text-align:center;color:#6B675C}" +
+    /* GOLD_ACCENTS_v1: more Spark yellow around the boxes */
+    "#view-" + TAB + "{background:radial-gradient(900px 340px at 100% -60px,rgba(255,212,59,.16),transparent 65%),#FAF9F5}" +
+    ".bf-card{position:relative;border:1px solid rgba(232,190,60,.55);box-shadow:0 0 0 3px rgba(255,212,59,.10),0 14px 30px -24px rgba(150,110,20,.55);overflow:hidden;transition:box-shadow .18s,border-color .18s,transform .18s}" +
+    ".bf-card::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#FFD43B,#F0BE12 55%,#DEBA6F)}" +
+    ".bf-card:hover{border-color:#F0BE12;box-shadow:0 0 0 4px rgba(255,212,59,.22),0 20px 36px -24px rgba(150,110,20,.6);transform:translateY(-1px)}" +
+    ".bf-card h3 .bf-ic,.bf-sec>h2 .bf-ic,.bf-sec-top h2 .bf-ic{color:#1a1a2e;background:#FFD43B;border-radius:7px;padding:4px;width:24px;height:24px;box-sizing:border-box}" +
+    ".bf-tabs{border:1px solid rgba(232,190,60,.6);box-shadow:0 0 0 3px rgba(255,212,59,.12),0 10px 24px -22px rgba(150,110,20,.6)}.bf-tabs button.on{background:#FFD43B;color:#1a1a2e}.bf-tabs button.on .bf-ic{color:#1a1a2e}.bf-tabs button:hover{background:#FFF6CC}" +
+    ".bf-next{border:1px solid rgba(232,190,60,.6);box-shadow:0 0 0 3px rgba(255,212,59,.14),0 10px 24px -20px rgba(150,110,20,.6)}" +
+    ".bf-tier.me,.bf-hd.next{border-color:#F0BE12;box-shadow:0 0 0 3px #FFD43B,0 18px 32px -22px rgba(150,110,20,.7)}" +
+    ".bf-hd .bf-dt{background:#FFF4C2;color:#1a1a2e}.bf-hd.next .bf-dt{background:#1a1a2e;color:#FFD43B}" +
+    ".bf-plan .ded{background:linear-gradient(180deg,#FFF8DC,#FFF1B8);border:1px solid rgba(232,190,60,.45)}" +
+    ".bf-fl span{background:#FFF8DC;border-color:rgba(232,190,60,.55)}.bf-find{border-color:rgba(232,190,60,.7)}.bf-find span{background:#FFD43B;color:#1a1a2e}" +
+    ".bf-seg{border-color:rgba(232,190,60,.7)}.bf-seg button.on{background:#FFD43B;color:#1a1a2e}" +
+    ".bf-banner{background:linear-gradient(90deg,#FFF3C4,#FFF9E3);border-color:#F0D277}" +
+    ".bf-lk .ib{background:#FFD43B;color:#1a1a2e}.bf-ct .av{box-shadow:0 0 0 2px #FFD43B}" +
+    ".bf-btn{border-color:rgba(232,190,60,.7)}.bf-meter{background:#FFF1C2}" +
     "@media(max-width:900px){.bf-row.c3,.bf-row.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-steps{grid-template-columns:1fr}}" +
     "@media(max-width:640px){.bf{padding:18px 16px 50px}.bf-row.c2,.bf-row.c3,.bf-row.c4{grid-template-columns:1fr}.bf-head h1{font-size:25px}.bf-find input{width:120px}}" +
     /* admin editor */
