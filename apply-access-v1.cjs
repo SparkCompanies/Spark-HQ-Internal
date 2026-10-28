@@ -51,8 +51,11 @@ replaceOnce(
 // 1c. Members get Spark Boards and Software & Tools in their sidebar (they were only in manager/super admin lists).
 replaceOnce(
   "member navItems: add boards + tools",
-  "navItems: ['home','command','people','leadership','terrmap','chargecc','training','standard','careers','brand' /* BRAND_HUB_v1 */]",
-  "navItems: ['home','command','people','leadership','boards','terrmap','chargecc','training','standard','careers','tools','brand' /* BRAND_HUB_v1 */ /* ACCESS_v1: boards + tools for everyone */]"
+  /* ACCESS_v1.1: anchor updated after PLUGIN_BOARD_v1 added 'piboard' to this list. The old anchor stopped matching, the
+     script wrote nothing, and every deploy since then silently skipped the whole patch — so Career Paths, Directory and
+     Software & Tools stayed behind the permission gate for members. */
+  "navItems: ['home','command','people','leadership','terrmap','chargecc','piboard','training','standard','careers','brand' /* BRAND_HUB_v1 */]",
+  "navItems: ['home','command','people','leadership','boards','terrmap','chargecc','piboard','training','standard','careers','tools','brand' /* BRAND_HUB_v1 */ /* ACCESS_v1: boards + tools for everyone */]"
 );
 
 // 2. Drop the browser-local role demo switcher from the super admin sub-nav.
