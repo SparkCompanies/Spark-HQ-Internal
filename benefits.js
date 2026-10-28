@@ -1,4 +1,4 @@
-/* BENEFITS_v1.1 — Benefits & PTO tab + Admin > Benefits & PTO editor
+/* BENEFITS_v1.2 — Benefits & PTO tab + Admin > Benefits & PTO editor
    Loaded into the HQ shell by spark-home.html (same path as my-links.js, viewas.js, access.js and traffic.js;
    index.html is too large to edit on github.com). Nothing in index.html changes.
 
@@ -62,7 +62,7 @@
       floating: {
         count: 2,
         note: "Two floating holidays each calendar year, for a holiday that's personally meaningful to you from the Company's approved floating holiday list. Unused floating holidays don't carry over and can't be exchanged for pay.",
-        list: []
+        list: ["Martin Luther King Jr. Day", "Epiphany", "Orthodox Christmas Day", "Tu BiShvat", "National Freedom Day", "Valentine's Day", "Presidents' Day", "Isra and Mi'raj", "Ash Wednesday", "St. Patrick's Day", "Ramadan (first day)", "Maundy Thursday", "Good Friday", "Easter Sunday", "Easter Monday", "Orthodox Holy Saturday", "Orthodox Easter Monday", "Passover (first day)", "Last Day of Passover", "Yom HaShoah", "Lailat al-Qadr", "Eid al-Fitr", "Tax Day", "Yom Ha'atzmaut", "National Day of Prayer", "Cinco de Mayo", "Pentecost", "Whit Monday", "Shavuot", "D-Day", "Flag Day", "Corpus Christi", "Juneteenth", "Tisha B'Av", "The Prophet's Birthday", "Leif Erikson Day", "Columbus Day", "First Day of Sukkot", "Halloween", "All Saints' Day", "All Souls' Day", "Election Day", "Veterans Day", "Chanukah (first day)", "Last Day of Chanukah", "Kwanzaa (first day)", "Day After Christmas", "New Year's Eve"]
       },
       notes: [
         "Full-time team members (regularly scheduled 30+ hours a week) receive paid holidays.",
@@ -96,7 +96,27 @@
         "COBRA: if your employment ends or your hours drop, you and your covered dependents can usually continue group health coverage for up to 18 months at your own cost."
       ],
       guideUrl: "",
-      guideLabel: "Open the benefits guide"
+      guideLabel: "Open the benefits guide",
+      medical: {
+        carrier: "Priority Health",
+        switchDate: "2026-12-01",
+        current: { label: "Dec 1, 2025 to Nov 30, 2026", plans: [
+          { name: "$3,000 HMO", type: "HMO Traditional", network: "In-network only", ded: "$3,000 / $6,000", oop: "$6,850 / $13,700", coins: "20%", pcp: "$35", spec: "$50", er: "$250", uc: "$75", rx: "$20 / $60 / $80", note: "Lowest deductible of the HMO options; no out-of-network coverage." },
+          { name: "$1,500 POS", type: "POS Traditional", network: "In + out of network", ded: "$1,500 / $3,000", oop: "$8,150 / $16,300", coins: "20%", pcp: "$40", spec: "$60", er: "$250", uc: "$60", rx: "$10 / $40 / $80", note: "Lowest deductible overall and you can go out of network (40% after a $3,000 / $6,000 deductible)." },
+          { name: "$6,350 HSA", type: "POS with Health Savings Account", network: "In + out of network", ded: "$6,350 / $12,700", oop: "$7,000 / $14,000", coins: "0% after deductible", pcp: "0% after deductible", spec: "0% after deductible", er: "0% after deductible", uc: "0% after deductible", rx: "$0 after deductible", note: "You pay everything up to the deductible, then the plan pays 100% in network. Pairs with a tax-free HSA." }
+        ] },
+        next: { label: "Dec 1, 2026 to Nov 30, 2027", plans: [
+          { name: "$4,000 HMO", type: "HMO Traditional", network: "In-network only", ded: "$4,000 / $8,000", oop: "$9,200 / $18,400", coins: "20%", pcp: "$40", spec: "$55", er: "$250", uc: "$40", rx: "$20 / $60 / $80", note: "No out-of-network coverage. Mail order: 90-day supply at 2.5x the retail copay." },
+          { name: "$2,400 POS", type: "POS Traditional", network: "In + out of network", ded: "$2,400 / $4,800", oop: "$10,150 / $20,300", coins: "20%", pcp: "$50", spec: "$65", er: "$250", uc: "$65", rx: "$20 / $60 / $80", note: "Out of network: 40% after a $4,800 / $9,600 deductible. Mail order: 90-day supply at 2x the retail copay." },
+          { name: "$7,000 HSA", type: "POS with Health Savings Account", network: "In + out of network", ded: "$7,000 / $14,000", oop: "$8,050 / $16,100", coins: "0% after deductible", pcp: "0% after deductible", spec: "0% after deductible", er: "$250", uc: "0% after deductible", rx: "$20 / $60 / $80 after deductible", note: "Plan pays 100% in network once you meet the deductible. Pairs with a tax-free HSA." }
+        ] },
+        footnote: "Deductibles and out-of-pocket maximums are shown individual / family, in network, per calendar year. Copays are for in-network care. Rx shows the Tier 1 / 2 / 3 retail copays; specialty tiers are 20% up to a cap. Full details are in the plan summaries."
+      },
+      other: [
+        { name: "Dental", icon: "smile", carrier: "Delta Dental PPO", rows: [["Deductible", "$75 person / $225 family (PPO and Premier); $50 / $150 out of network. Waived for preventive."], ["Annual maximum", "$1,000 per person"], ["Preventive", "Covered in full in the PPO network (exams, cleanings, x-rays)"], ["Basic", "You pay 20% (fillings, scaling); 40% at Premier or out of network"], ["Major", "You pay 50% (crowns, root canals, implants)"], ["Orthodontia", "You pay 50%, adults and children, $1,000 lifetime maximum"]] },
+        { name: "Vision", icon: "eye", carrier: "EyeMed, Insight network", rows: [["Eye exam", "$10 copay, once every 12 months"], ["Lenses", "$25 copay (single, bifocal or trifocal), once every 12 months"], ["Frames", "$110 allowance, once every 24 months"], ["Contacts", "$110 allowance instead of lenses and frames; medically necessary contacts covered in full"], ["LASIK", "15% discount"]] },
+        { name: "Life and disability", icon: "shield", carrier: "Supplemental coverage, cost by age and amount", rows: [["Supplemental life, you", "Up to $500,000 in $10,000 steps"], ["Supplemental life, spouse", "Up to $500,000 in $5,000 steps"], ["Supplemental life, children", "Up to $10,000 in $2,000 steps"], ["Short-term disability", "Income protection for a short-term illness or injury; voluntary"], ["Long-term disability", "Income protection if a disability lasts beyond the short-term period; voluntary"]] }
+      ]
     },
     links: [
       { label: "Team Member Handbook", url: "", blurb: "The full Spark Portfolio Internal Team Member Handbook (TMX SharePoint).", icon: "book" },
@@ -155,6 +175,7 @@
     arrow: '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
     palm: '<svg viewBox="0 0 24 24"><path d="M12 22V9M12 9c-2-4-6-5-9-3 3 0 6 1 9 3zm0 0c2-4 6-5 9-3-3 0-6 1-9 3zm0 0c-3-3-3-7-1-9 1 3 1 6 1 9zm0 0c3-3 3-7 1-9-1 3-1 6-1 9z"/></svg>',
     info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
     save: '<svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
     refresh: '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
     plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
@@ -233,6 +254,9 @@
   /* ---------- CSS ---------- */
   var NOISE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E\")";
   var CSS = "" +
+    /* Baseline for every signed-in team member: outrank the shell's .hide-for-role{display:none!important} for our buttons */
+    ".sidebar .nav-item[data-tab=\"" + TAB + "\"].hide-for-role{display:flex!important}" +
+    ".admin-subnav-item[data-admin-tab=\"" + ADMIN_TAB + "\"].hide-for-role{display:flex!important}" +
     "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1a2e;background:" +
       "radial-gradient(1200px 500px at 85% -120px,rgba(245,197,24,.14),transparent 60%),radial-gradient(900px 420px at -10% 30%,rgba(200,150,62,.10),transparent 60%),linear-gradient(180deg,#FBFAF6 0%,#F6F3EC 100%)}" +
     ".bf{max-width:1140px;margin:0 auto;padding:28px 32px 80px;position:relative}" +
@@ -318,6 +342,30 @@
     "@media(max-width:1000px){.bf-tiles{grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0 0}.bf-hol{grid-template-columns:repeat(2,minmax(0,1fr))}}" +
     "@media(max-width:820px){.bf{padding:20px 16px 50px}.bf-hero{grid-template-columns:1fr;padding:26px 22px}.bf-hero .bf-ring{display:none}.bf-grid.two{grid-template-columns:1fr}.bf-hero h1{font-size:30px}.bf-est{grid-template-columns:1fr}.bf-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.bf-strip{grid-template-columns:repeat(6,minmax(0,1fr))}.bf-hol{grid-template-columns:1fr}.bf-est-out{grid-template-columns:1fr;justify-items:center;text-align:center}}" +
     "@media(prefers-reduced-motion:reduce){.bf-hero::before,.bf-mo .bf-dots i.next{animation:none}}" +
+    /* floating holidays */
+    ".bf-float{position:relative;margin-top:14px;border-radius:22px;padding:24px 26px 22px;overflow:hidden;color:#1a1a2e;background:linear-gradient(160deg,#FFF9E3 0%,#FBF3D6 45%,#F6E9C4 100%);border:1px solid rgba(200,150,62,.35);box-shadow:0 30px 60px -36px rgba(120,90,20,.6),inset 0 1px 0 #fff}" +
+    ".bf-float::before{content:'';position:absolute;right:-80px;top:-120px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(255,216,79,.55),rgba(255,216,79,0) 68%);pointer-events:none}" +
+    ".bf-float::after{content:'';position:absolute;inset:0;opacity:.07;mix-blend-mode:multiply;background-image:" + NOISE + ";pointer-events:none}" +
+    ".bf-float>*{position:relative;z-index:1}.bf-float-h{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:16px}.bf-float .bf-k{color:#8a6a1c}.bf-float h3{margin:8px 0 6px;font-size:22px;font-weight:800;letter-spacing:-.015em}.bf-float p{margin:0;font-size:13.5px;line-height:1.55;color:#5c5540;max-width:620px}" +
+    ".bf-float-find{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(200,150,62,.4);border-radius:999px;padding:6px 8px 6px 14px;box-shadow:0 10px 24px -16px rgba(120,90,20,.6);color:#8a6a1c;flex:0 0 auto}.bf-float-find input{border:0;outline:0;font:inherit;font-size:13px;background:transparent;min-width:170px;color:#1a1a2e}.bf-float-find span{font-size:11px;font-weight:800;background:#1a1a2e;color:#FFD43B;border-radius:999px;padding:4px 9px}" +
+    ".bf-chips2{display:flex;flex-wrap:wrap;gap:8px}.bf-fchip{display:inline-flex;align-items:center;padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:#2b2615;background:linear-gradient(180deg,#fff,#FBF7EA);border:1px solid rgba(200,150,62,.35);box-shadow:0 8px 16px -12px rgba(120,90,20,.7),inset 0 1px 0 #fff;transition:transform .12s,box-shadow .15s}.bf-fchip:hover{transform:translateY(-2px);box-shadow:0 14px 22px -12px rgba(120,90,20,.8),inset 0 1px 0 #fff}" +
+    ".bf-float-none{font-size:13px;color:#8a6a1c;padding:10px 0 0}" +
+    /* medical plans */
+    ".bf-med{position:relative;margin-top:14px;border-radius:22px;padding:24px 26px 22px;overflow:hidden;color:#fff;background:linear-gradient(150deg,#1b1b36 0%,#141428 60%,#1f1a3a 100%);box-shadow:0 36px 70px -36px rgba(20,20,45,.85),inset 0 1px 0 rgba(255,255,255,.06)}" +
+    ".bf-med::before{content:'';position:absolute;left:-120px;bottom:-200px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(255,212,59,.22),transparent 68%);filter:blur(20px);pointer-events:none}.bf-med::after{content:'';position:absolute;inset:0;opacity:.08;mix-blend-mode:overlay;background-image:" + NOISE + ";pointer-events:none}.bf-med>*{position:relative;z-index:1}" +
+    ".bf-med-h{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:18px}.bf-med .bf-k{color:#FFD43B}.bf-med h3{margin:8px 0 4px;font-size:22px;font-weight:800;letter-spacing:-.015em;color:#fff}.bf-med-h p{margin:4px 0 0;font-size:13px;color:#cfd0e6}.bf-med-h p b{color:#FFD43B}" +
+    ".bf-yr.dark{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.06);box-shadow:none}.bf-yr.dark button{color:#cfd0e6}.bf-yr.dark button.on{background:linear-gradient(180deg,#FFE063,#F0BE12);color:#1a1a2e}" +
+    ".bf-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}" +
+    ".bf-plan{position:relative;border-radius:18px;padding:18px 18px 16px;background:linear-gradient(170deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 24px 40px -30px rgba(0,0,0,.8);transition:transform .18s}.bf-plan:hover{transform:translateY(-3px)}" +
+    ".bf-plan.mid{border-color:rgba(255,216,79,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 0 1px rgba(255,216,79,.2),0 30px 50px -30px rgba(245,197,24,.45)}" +
+    ".bf-plan-nm{font-size:19px;font-weight:800;letter-spacing:-.01em;color:#fff}.bf-plan-ty{font-size:11.5px;color:#b9bad4;margin-top:3px}" +
+    ".bf-plan-ded{margin:14px 0 12px;padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08)}.bf-plan-ded small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9a9bb8;font-weight:700}.bf-plan-ded b{display:block;font-size:30px;font-weight:800;line-height:1.05;margin-top:4px;background:linear-gradient(92deg,#FFE57A,#F5C518 60%,#DEBA6F);-webkit-background-clip:text;background-clip:text;color:transparent}.bf-plan-ded span{display:block;font-size:11.5px;color:#b9bad4;margin-top:3px}" +
+    ".bf-plan dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:12.5px}.bf-plan dt{color:#b9bad4}.bf-plan dt i{display:block;font-style:normal;font-size:10px;color:#7f80a0}.bf-plan dd{margin:0;text-align:right;font-weight:700;color:#fff}" +
+    ".bf-plan-note{margin:12px 0 0;padding-top:10px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;line-height:1.5;color:#cfd0e6}" +
+    ".bf-med-foot{display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:11.5px;line-height:1.5;color:#9a9bb8}.bf-med-foot .bf-ic{width:14px;height:14px;margin-top:2px;color:#FFD43B}" +
+    ".bf-kv .bf-carrier{font-size:12px;font-weight:700;color:#B8912E;margin:-4px 0 10px}.bf-kv dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:13px}.bf-kv dt{color:#6B675C;font-weight:600;white-space:nowrap}.bf-kv dd{margin:0;color:#3d3b35;line-height:1.5}" +
+    "@media(max-width:1000px){.bf-plans{grid-template-columns:1fr}.bf-kv dl{grid-template-columns:1fr}.bf-kv dt{margin-top:4px}}" +
+    ".bfa-plans input{min-width:90px;font-size:12px;padding:6px 8px}.bfa-plans td:first-child input{min-width:110px}.bfa-plans td:last-child input{min-width:220px}" +
     /* admin editor */
     ".bfa{font-family:Outfit,Inter,system-ui,sans-serif}.bfa .bf-ic{display:inline-flex;width:16px;height:16px;flex:none}" +
     ".bfa-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}.bfa-bar .sp{flex:1}.bfa-status{font-size:12.5px;color:#6B675C}.bfa-status.bad{color:#b42318}.bfa-status.good{color:#15803d}" +
@@ -358,6 +406,26 @@
   function list(items) { return "<ul>" + (items || []).map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ul>"; }
 
   function md(name) { return '<span class="bf-md">' + ic(name) + '</span>'; }
+  var medYear = null; // "current" | "next", null = decide from the switch date
+  function renderMedical(m) {
+    if (!m || !m.current || !(m.current.plans || []).length) return "";
+    var sw = parseISO(m.switchDate), hasNext = m.next && (m.next.plans || []).length;
+    var autoNext = !!(sw && today() >= sw && hasNext);
+    var which = medYear || (autoNext ? "next" : "current");
+    if (which === "next" && !hasNext) which = "current";
+    var set = m[which], daysToSwitch = sw ? Math.round((sw - today()) / 86400000) : null;
+    var ROWS = [["ded", "Deductible", "individual / family"], ["oop", "Out-of-pocket max", "individual / family"], ["coins", "Coinsurance", "your share after deductible"], ["pcp", "Primary care visit"], ["spec", "Specialist visit"], ["uc", "Urgent care"], ["er", "Emergency room"], ["rx", "Prescriptions", "tier 1 / 2 / 3 retail"]];
+    var html = '<div class="bf-med"><div class="bf-med-h"><div><div class="bf-k">' + ic("heart") + 'Medical plans · ' + esc(m.carrier || "") + '</div><h3>' + (which === "next" ? "Starting " + esc(m.next.label) : "Plan year " + esc(set.label)) + '</h3>' +
+      (which === "current" && hasNext && daysToSwitch != null && daysToSwitch > 0 && daysToSwitch < 120 ? '<p>New plan designs start in <b>' + daysToSwitch + ' days</b>. Flip the toggle to preview them before open enrollment.</p>' : '') + '</div>' +
+      (hasNext ? '<div class="bf-yr dark"><button data-med="current" class="' + (which === "current" ? "on" : "") + '">Current</button><button data-med="next" class="' + (which === "next" ? "on" : "") + '">From ' + esc((m.next.label || "").split(" to ")[0]) + '</button></div>' : '') + '</div>' +
+      '<div class="bf-plans">' + (set.plans || []).map(function (p, i) {
+        return '<div class="bf-plan' + (i === 1 ? " mid" : "") + '"><div class="bf-plan-top"><div class="bf-plan-nm">' + esc(p.name) + '</div><div class="bf-plan-ty">' + esc(p.type) + (p.network ? ' · ' + esc(p.network) : '') + '</div></div>' +
+          '<div class="bf-plan-ded"><small>Deductible</small><b>' + esc((p.ded || "").split("/")[0].trim()) + '</b><span>' + esc(p.ded) + '</span></div>' +
+          '<dl>' + ROWS.slice(1).map(function (r) { return p[r[0]] ? '<dt>' + r[1] + (r[2] ? '<i>' + r[2] + '</i>' : '') + '</dt><dd>' + esc(p[r[0]]) + '</dd>' : ''; }).join("") + '</dl>' +
+          (p.note ? '<p class="bf-plan-note">' + esc(p.note) + '</p>' : '') + '</div>';
+      }).join("") + '</div>' + (m.footnote ? '<div class="bf-med-foot">' + ic("info") + esc(m.footnote) + '</div>' : '') + '</div>';
+    return html;
+  }
   function renderTab() {
     var root = document.getElementById("bfRoot"); if (!root) return;
     var d = DATA; if (!d) { root.innerHTML = '<div class="bf-loading">Loading…</div>'; return; }
@@ -408,8 +476,12 @@
         var past = h.date < t, obs = h.actual && iso(h.actual) !== iso(h.date), isNext = iso(h.date) === nhKey;
         return '<div class="bf-hd' + (past ? " past" : "") + (isNext ? " next" : "") + '">' + (isNext ? '<span class="bf-tag">Up next</span>' : '') + '<div class="bf-dt"><b>' + h.date.getDate() + '</b><small>' + MONTHS[h.date.getMonth()] + '</small></div><div><div class="bf-nm">' + esc(h.name) + '</div><div class="bf-wd">' + DAYS[h.date.getDay()] + '</div>' + (obs ? '<div class="bf-obs">Observed · falls on ' + DAYS[h.actual.getDay()].slice(0, 3) + ' ' + MONTHS[h.actual.getMonth()] + ' ' + h.actual.getDate() + '</div>' : '') + '</div></div>';
       }).join("") + '</div>' +
-      '<div class="bf-grid two" style="margin-top:14px"><div class="bf-card"><h3>' + md("gift") + floatCount + ' floating holidays</h3><p>' + esc(d.holidays.floating.note) + '</p>' + ((d.holidays.floating.list || []).length ? '<p style="margin-top:8px"><b>Approved list:</b> ' + esc(d.holidays.floating.list.join(", ")) + '</p>' : '') + '</div>' +
-      '<div class="bf-card"><h3>' + md("info") + 'Good to know</h3>' + list(d.holidays.notes) + '</div></div></div>';
+      '<div class="bf-card" style="margin-top:14px"><h3>' + md("info") + 'Good to know</h3>' + list(d.holidays.notes) + '</div>' +
+      /* floating holidays */
+      '<div class="bf-float"><div class="bf-float-h"><div><div class="bf-k">' + ic("gift") + 'Floating holidays</div><h3>' + floatCount + ' days a year, your pick.</h3><p>' + esc(d.holidays.floating.note) + '</p></div>' +
+        ((d.holidays.floating.list || []).length ? '<div class="bf-float-find">' + ic("search") + '<input type="search" id="bfFloatFind" placeholder="Find a holiday" aria-label="Find a floating holiday"><span id="bfFloatCount">' + d.holidays.floating.list.length + '</span></div>' : '') + '</div>' +
+        ((d.holidays.floating.list || []).length ? '<div class="bf-chips2" id="bfFloatList">' + d.holidays.floating.list.map(function (h) { return '<span class="bf-fchip">' + esc(h) + '</span>'; }).join("") + '</div><div class="bf-float-none" id="bfFloatNone" style="display:none">Nothing on the list matches. Ask TMX if you think it should be added.</div>' : '<div class="bf-float-none">The approved list will show here once it\'s added in Admin.</div>') +
+      '</div></div>';
 
     /* Other leave */
     html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Other leave</div><h2>' + md("shield") + 'When life happens</h2><div class="bf-sub">Paid and protected time beyond PTO. TMX helps with the paperwork for any of these.</div></div></div>' +
@@ -419,6 +491,8 @@
     html += '<div class="bf-sec"><div class="bf-sec-h"><div><div class="bf-eyebrow">Benefits</div><h2>' + md("heart") + 'The benefits package</h2><div class="bf-sub">Plan year ' + esc(d.benefits.planYear) + '. ' + esc(d.benefits.eligibility) + '</div></div>' +
       (d.benefits.guideUrl ? '<a class="bf-btn gold" target="_blank" rel="noopener" href="' + esc(d.benefits.guideUrl) + '">' + ic("file") + esc(d.benefits.guideLabel || "Benefits guide") + '</a>' : '') + '</div>' +
       '<div class="bf-grid">' + (d.benefits.items || []).map(function (b) { return '<div class="bf-card"><h3>' + md(b.icon || "check") + esc(b.name) + '</h3><p>' + esc(b.blurb) + '</p></div>'; }).join("") + '</div>' +
+      renderMedical(d.benefits.medical) +
+      '<div class="bf-grid" style="margin-top:14px">' + (d.benefits.other || []).map(function (o) { return '<div class="bf-card bf-kv"><h3>' + md(o.icon || "check") + esc(o.name) + '</h3>' + (o.carrier ? '<div class="bf-carrier">' + esc(o.carrier) + '</div>' : '') + '<dl>' + (o.rows || []).map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join("") + '</dl></div>'; }).join("") + '</div>' +
       '<div class="bf-card dark" style="margin-top:14px"><h3>' + md("info") + 'Enrollment and changes</h3>' + list(d.benefits.notes) + '</div></div>';
 
     /* Links */
@@ -433,7 +507,14 @@
     html += '<div class="bf-foot">' + ic("book") + 'Source: ' + esc(d.source) + (META && META.updated_at ? ' · Last updated in HQ ' + new Date(META.updated_at).toLocaleDateString() : '') + '. If anything here differs from the handbook, the handbook wins.</div></div>';
     root.innerHTML = html;
 
-    root.querySelectorAll(".bf-yr button").forEach(function (b) { b.addEventListener("click", function () { year = +b.getAttribute("data-y"); renderTab(); }); });
+    root.querySelectorAll(".bf-yr button[data-y]").forEach(function (b) { b.addEventListener("click", function () { year = +b.getAttribute("data-y"); renderTab(); }); });
+    root.querySelectorAll(".bf-yr button[data-med]").forEach(function (b) { b.addEventListener("click", function () { medYear = b.getAttribute("data-med"); var y = window.scrollY; renderTab(); window.scrollTo(0, y); }); });
+    var ff = root.querySelector("#bfFloatFind");
+    if (ff) ff.addEventListener("input", function () {
+      var q = ff.value.toLowerCase().trim(), n = 0;
+      root.querySelectorAll("#bfFloatList .bf-fchip").forEach(function (c) { var on = !q || c.textContent.toLowerCase().indexOf(q) >= 0; c.style.display = on ? "" : "none"; if (on) n++; });
+      root.querySelector("#bfFloatCount").textContent = n; root.querySelector("#bfFloatNone").style.display = n ? "none" : "";
+    });
     var go = function () {
       var v = root.querySelector("#bfStart").value, st = parseISO(v), out = root.querySelector("#bfEstOut");
       if (!st) { out.className = "bf-est-out empty"; out.innerHTML = "Pick your start date first."; return; }
@@ -464,18 +545,43 @@
     load().then(renderTab);
   }
 
-  function mountTab() {
-    if (document.getElementById("view-" + TAB)) return;
-    var after = document.querySelector('.nav-item[data-tab="careers"]') || document.querySelector('.nav-item[data-tab="people"]');
+  var NAV_HTML = '<span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8c-2-3-6-3-6-1s4 1 6 1zm0 0c2-3 6-3 6-1s-4 1-6 1z"/></svg></span>Benefits &amp; PTO';
+  var DIAG = [];
+  function diag(msg) { DIAG.push(new Date().toISOString().slice(11, 19) + " " + msg); if (DIAG.length > 40) DIAG.shift(); try { console.info("[benefits] " + msg); } catch (e) {} }
+  function placeNav() {
+    var after = document.querySelector('.nav-item[data-tab="careers"]') || document.querySelector('.nav-item[data-tab="people"]') || document.querySelector('.nav-item[data-tab="training"]');
     var nav = after ? after.parentNode : document.querySelector(".sidebar nav, .sidebar");
-    if (!nav) return;
+    if (!nav) return null;
     var btn = document.createElement("button");
-    btn.className = "nav-item"; btn.setAttribute("data-tab", TAB);
-    btn.innerHTML = '<span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v9h14v-9"/><path d="M12 8c-2-3-6-3-6-1s4 1 6 1zm0 0c2-3 6-3 6-1s-4 1-6 1z"/></svg></span>Benefits &amp; PTO';
+    btn.className = "nav-item"; btn.setAttribute("data-tab", TAB); btn.innerHTML = NAV_HTML;
     if (after && after.nextSibling) nav.insertBefore(btn, after.nextSibling); else nav.appendChild(btn);
     btn.addEventListener("click", openTab);
-    // Baseline for everyone: the shell's role enforcement hides nav items it doesn't know about. Undo that whenever it runs.
-    new MutationObserver(function () { if (btn.classList.contains("hide-for-role")) btn.classList.remove("hide-for-role"); if (btn.style.display === "none") btn.style.display = ""; }).observe(btn, { attributes: true, attributeFilter: ["class", "style"] });
+    // Baseline for everyone: the shell's role enforcement hides nav items it doesn't know about. Undo that the moment it happens.
+    new MutationObserver(function () { healNav(btn, "observer"); }).observe(btn, { attributes: true, attributeFilter: ["class", "style", "hidden"] });
+    return btn;
+  }
+  function healNav(btn, why) {
+    // The shell's role enforcement adds .hide-for-role to any nav item it doesn't know about, and it re-runs on every
+    // sign-in/role tick. Rather than fight it (remove the class, it comes back, flicker), a stylesheet rule below wins
+    // over .hide-for-role for our two buttons. Here we only undo inline hiding.
+    var fixed = [];
+    if (btn.style.display === "none") { btn.style.display = ""; fixed.push("style"); }
+    if (btn.hasAttribute("hidden")) { btn.removeAttribute("hidden"); fixed.push("hidden"); }
+    if (fixed.length) diag("nav re-shown (" + fixed.join(",") + ") via " + why);
+  }
+  function ensureNav() {
+    // Self-heal: if anything removes or hides the sidebar button after we mount it, put it back. Checks often for the
+    // first 30 s (when sign-in, role enforcement and the View-as picker all run), then every few seconds.
+    var btn = document.querySelector('.nav-item[data-tab="' + TAB + '"]');
+    if (!btn) { btn = placeNav(); if (btn) diag("nav button was removed from the DOM; re-inserted"); return; }
+    if (!btn.parentNode || !document.body.contains(btn)) { btn = placeNav(); if (btn) diag("nav button was detached; re-inserted"); return; }
+    healNav(btn, "poll");
+    if (getComputedStyle(btn).display === "none") diag("nav button still hidden after heal; parent=" + (btn.parentNode && btn.parentNode.className) + " parentDisplay=" + getComputedStyle(btn.parentNode).display);
+  }
+  function mountTab() {
+    if (document.getElementById("view-" + TAB)) return;
+    var btn = placeNav();
+    if (!btn) return;
 
     var view = document.createElement("div");
     view.id = "view-" + TAB; view.className = "tab-page cream"; view.style.display = "none";
@@ -488,6 +594,8 @@
       var b = e.target && e.target.closest && e.target.closest(".nav-item[data-tab]");
       if (b && b.getAttribute("data-tab") !== TAB) view.style.display = "none";
     }, true);
+
+    var n = 0; var fast = setInterval(function () { ensureNav(); if (++n >= 75) { clearInterval(fast); setInterval(ensureNav, 2500); } }, 400);
   }
 
   /* ---------- admin editor ---------- */
@@ -526,6 +634,20 @@
       (d.benefits.items || []).map(function (b, i) { return '<tr><td><input data-b="' + i + '" data-k="name" value="' + esc(b.name) + '"></td><td>' + iconSel("bfa_bic" + i, b.icon) + '</td><td><input data-b="' + i + '" data-k="blurb" value="' + esc(b.blurb) + '"></td><td><button class="bfa-x" data-del-ben="' + i + '">' + ic("trash") + '</button></td></tr>'; }).join("") +
       '</tbody></table><button class="bfa-add" id="bfaAddBen">' + ic("plus") + 'Add a benefit</button>' + area("Enrollment and changes", "bfa_benNotes", d.benefits.notes, "one per line") + '</div>';
 
+    var m = d.benefits.medical || (d.benefits.medical = { carrier: "", switchDate: "", current: { label: "", plans: [] }, next: { label: "", plans: [] }, footnote: "" });
+    var PCOLS = [["name", "Plan"], ["type", "Type"], ["network", "Network"], ["ded", "Deductible"], ["oop", "OOP max"], ["coins", "Coinsurance"], ["pcp", "PCP"], ["spec", "Specialist"], ["uc", "Urgent care"], ["er", "ER"], ["rx", "Rx 1/2/3"], ["note", "Note"]];
+    var planTable = function (key, set) { return '<table class="bfa-plans"><thead><tr>' + PCOLS.map(function (c) { return '<th>' + c[1] + '</th>'; }).join("") + '<th></th></tr></thead><tbody>' +
+      (set.plans || []).map(function (p, i) { return '<tr>' + PCOLS.map(function (c) { return '<td><input data-med="' + key + '" data-i="' + i + '" data-k="' + c[0] + '" value="' + esc(p[c[0]] || "") + '"></td>'; }).join("") + '<td><button class="bfa-x" data-del-plan="' + key + ':' + i + '">' + ic("trash") + '</button></td></tr>'; }).join("") +
+      '</tbody></table><button class="bfa-add" data-add-plan="' + key + '">' + ic("plus") + 'Add a plan</button>'; };
+    html += '<div class="bfa-sec"><h3>' + ic("heart") + 'Medical plans</h3><p class="hint">Two sets: the plan year in effect now and the one that starts on the switch date. The tab shows the current set until that date, then flips on its own; team members can preview the next set with a toggle. Deductible and OOP max are typed as "individual / family".</p>' +
+      '<div class="bfa-grid">' + field("Carrier", "bfa_medCarrier", m.carrier) + field("Switch date (YYYY-MM-DD)", "bfa_medSwitch", m.switchDate, "2026-12-01") + field("Current plan year label", "bfa_medCurLbl", (m.current || {}).label) + field("Next plan year label", "bfa_medNextLbl", (m.next || {}).label) + '</div>' +
+      '<div class="hint" style="margin-top:6px"><b>Current plan year</b></div>' + planTable("current", m.current || { plans: [] }) +
+      '<div class="hint" style="margin-top:14px"><b>Next plan year</b> (leave empty if not decided yet)</div>' + planTable("next", m.next || { plans: [] }) +
+      area("Footnote under the plans", "bfa_medFoot", m.footnote) + '</div>';
+    html += '<div class="bfa-sec"><h3>' + ic("smile") + 'Dental, vision, life and disability</h3><p class="hint">One card each. Rows are one per line as <code>Label | Detail</code>.</p>' +
+      (d.benefits.other || []).map(function (o, i) { return '<div class="bfa-grid"><div>' + field("Card title", "bfa_oth_name" + i, o.name) + field("Carrier / subtitle", "bfa_oth_carrier" + i, o.carrier) + '<label>Icon ' + iconSel("bfa_oth_icon" + i, o.icon) + '</label></div>' + area("Rows", "bfa_oth_rows" + i, (o.rows || []).map(function (r) { return r[0] + " | " + r[1]; }), "Label | Detail") + '</div><div style="text-align:right;margin:-6px 0 10px"><button class="bfa-x" data-del-oth="' + i + '">' + ic("trash") + ' Remove this card</button></div>'; }).join("") +
+      '<button class="bfa-add" id="bfaAddOth">' + ic("plus") + 'Add a card</button></div>';
+
     html += '<div class="bfa-sec"><h3>' + ic("link") + 'Helpful links</h3><p class="hint">A link with no URL is kept here but hidden on the tab.</p><table><thead><tr><th style="width:22%">Label</th><th style="width:28%">URL</th><th>Blurb</th><th style="width:12%">Icon</th><th></th></tr></thead><tbody>' +
       (d.links || []).map(function (l, i) { return '<tr><td><input data-lk="' + i + '" data-k="label" value="' + esc(l.label) + '"></td><td><input data-lk="' + i + '" data-k="url" value="' + esc(l.url) + '" placeholder="https://…"></td><td><input data-lk="' + i + '" data-k="blurb" value="' + esc(l.blurb) + '"></td><td>' + iconSel("bfa_kic" + i, l.icon) + '</td><td><button class="bfa-x" data-del-link="' + i + '">' + ic("trash") + '</button></td></tr>'; }).join("") +
       '</tbody></table><button class="bfa-add" id="bfaAddLink">' + ic("plus") + 'Add a link</button></div>';
@@ -540,6 +662,10 @@
     el.querySelector("#bfaAddBen").addEventListener("click", function () { collect(); ED.benefits.items.push({ name: "", icon: "check", blurb: "" }); renderEditor(); });
     el.querySelector("#bfaAddLink").addEventListener("click", function () { collect(); ED.links.push({ label: "", url: "", blurb: "", icon: "link" }); renderEditor(); });
     el.querySelector("#bfaAddCt").addEventListener("click", function () { collect(); ED.contacts.push({ topic: "", name: "", email: "", note: "" }); renderEditor(); });
+    el.querySelectorAll("[data-add-plan]").forEach(function (b) { b.addEventListener("click", function () { collect(); var k = b.getAttribute("data-add-plan"); ED.benefits.medical[k] = ED.benefits.medical[k] || { label: "", plans: [] }; ED.benefits.medical[k].plans.push({ name: "", type: "", network: "", ded: "", oop: "", coins: "", pcp: "", spec: "", uc: "", er: "", rx: "", note: "" }); renderEditor(); }); });
+    el.querySelectorAll("[data-del-plan]").forEach(function (b) { b.addEventListener("click", function () { collect(); var p = b.getAttribute("data-del-plan").split(":"); ED.benefits.medical[p[0]].plans.splice(+p[1], 1); renderEditor(); }); });
+    el.querySelector("#bfaAddOth").addEventListener("click", function () { collect(); (ED.benefits.other = ED.benefits.other || []).push({ name: "", icon: "check", carrier: "", rows: [] }); renderEditor(); });
+    el.querySelectorAll("[data-del-oth]").forEach(function (b) { b.addEventListener("click", function () { collect(); ED.benefits.other.splice(+b.getAttribute("data-del-oth"), 1); renderEditor(); }); });
     el.querySelectorAll("[data-del-tier]").forEach(function (b) { b.addEventListener("click", function () { collect(); ED.pto.tiers.splice(+b.getAttribute("data-del-tier"), 1); renderEditor(); }); });
     el.querySelectorAll("[data-del-leave]").forEach(function (b) { b.addEventListener("click", function () { collect(); ED.leave.splice(+b.getAttribute("data-del-leave"), 1); renderEditor(); }); });
     el.querySelectorAll("[data-del-ben]").forEach(function (b) { b.addEventListener("click", function () { collect(); ED.benefits.items.splice(+b.getAttribute("data-del-ben"), 1); renderEditor(); }); });
@@ -569,6 +695,11 @@
     d.benefits.planYear = v("bfa_planYear"); d.benefits.guideUrl = v("bfa_guideUrl").trim(); d.benefits.guideLabel = v("bfa_guideLbl"); d.benefits.eligibility = v("bfa_elig"); d.benefits.notes = lines(v("bfa_benNotes"));
     el.querySelectorAll("[data-b]").forEach(function (n) { var b = d.benefits.items[+n.getAttribute("data-b")]; if (b) b[n.getAttribute("data-k")] = n.value; });
     d.benefits.items.forEach(function (b, i) { var s = el.querySelector("#bfa_bic" + i); if (s) b.icon = s.value; });
+    var m = d.benefits.medical || (d.benefits.medical = { current: { plans: [] }, next: { plans: [] } });
+    m.carrier = v("bfa_medCarrier"); m.switchDate = v("bfa_medSwitch").trim(); m.footnote = v("bfa_medFoot");
+    m.current = m.current || { plans: [] }; m.next = m.next || { plans: [] }; m.current.label = v("bfa_medCurLbl"); m.next.label = v("bfa_medNextLbl");
+    el.querySelectorAll("input[data-med]").forEach(function (n) { var set = m[n.getAttribute("data-med")], p = set && set.plans[+n.getAttribute("data-i")]; if (p) p[n.getAttribute("data-k")] = n.value.trim(); });
+    (d.benefits.other || []).forEach(function (o, i) { o.name = v("bfa_oth_name" + i); o.carrier = v("bfa_oth_carrier" + i); var s = el.querySelector("#bfa_oth_icon" + i); if (s) o.icon = s.value; o.rows = lines(v("bfa_oth_rows" + i)).map(function (l) { var q = l.split("|"); return [(q[0] || "").trim(), (q.slice(1).join("|") || "").trim()]; }).filter(function (r) { return r[0]; }); });
     el.querySelectorAll("[data-lk]").forEach(function (n) { var l = d.links[+n.getAttribute("data-lk")]; if (l) l[n.getAttribute("data-k")] = n.value.trim(); });
     d.links.forEach(function (l, i) { var s = el.querySelector("#bfa_kic" + i); if (s) l.icon = s.value; });
     el.querySelectorAll("[data-c]").forEach(function (n) { var c = d.contacts[+n.getAttribute("data-c")]; if (c) c[n.getAttribute("data-k")] = n.value.trim(); });
@@ -608,7 +739,7 @@
       b.innerHTML = "<span>Benefits &amp; PTO</span>";
       after.parentNode.insertBefore(b, after.nextSibling);
       b.addEventListener("click", function () { if (window.switchAdminTab) window.switchAdminTab(ADMIN_TAB); setTimeout(loadEditor, 60); });
-      new MutationObserver(function () { if (b.classList.contains("hide-for-role")) b.classList.remove("hide-for-role"); }).observe(b, { attributes: true, attributeFilter: ["class"] });
+      /* .hide-for-role on this button is overridden by the stylesheet rule injected above, so no observer is needed. */
     }
   }
 
@@ -618,7 +749,7 @@
     var ready = document.querySelector('.nav-item[data-tab="home"]') && document.getElementById("view-admin") && window.SPARK_SB && window.SPARK_SB.getToken;
     if (!ready) { if (t < 80) setTimeout(function () { boot(t + 1); }, 600); return; }
     injectCss(); mountTab(); mountAdmin();
-    window.hqBenefits = { open: openTab, reload: function () { return load(true).then(renderTab); } };
+    window.hqBenefits = { open: openTab, reload: function () { return load(true).then(renderTab); }, diag: function () { return DIAG.slice(); } };
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { boot(); }); else boot();
 })();
