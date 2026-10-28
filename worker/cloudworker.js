@@ -1303,6 +1303,9 @@ const HD_REASON = "Client Hired Direct";
 const HD_FROM = (env) => G_FROM(env);
 const HD_FALLBACK = (env) => String(env.HIRED_DIRECT_FALLBACK || G_FROM(env)).toLowerCase();
 const HD_BONUS = (env) => String(env.REFERRAL_BONUS_TEXT || "Referral bonus pays out once the person they refer is placed and hits 520 approved hours.");
+const HD_DOMAINS = (env) => String(env.HIRED_DIRECT_DOMAINS || "sparkcompanies.com,sparktalentinc.com,ignitesearch.com,flexworkforceco.com,sparkpackaginginc.com,johnjosephpartners.com").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
+let hdDomainList = null;
+const hdSparkEmail = (email) => { const d = String(email || "").toLowerCase().split("@")[1] || ""; return !!d && (hdDomainList || HD_DOMAINS({})).indexOf(d) > -1; };
 const hdSoqlStr = (s) => String(s == null ? "" : s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 function hdFirst(name) { const s = String(name || "").trim(); return s ? s.split(/\s+/)[0] : "there"; }
 function hdDate(iso) {
@@ -1323,6 +1326,7 @@ function hdAddr(a) {
 // placements -> contacts (by Id) -> users (by Id).
 async function hdCollect(env, opts) {
   opts = opts || {};
+  hdDomainList = HD_DOMAINS(env);
   const days = Math.min(Math.max(parseInt(opts.days || env.HIRED_DIRECT_LOOKBACK || "30", 10) || 30, 1), 365);
   let where = "Termination_Reason__c = '" + HD_REASON + "' AND LastModifiedDate = LAST_N_DAYS:" + days;
   if (opts.placementId) where = "Id = '" + hdSoqlStr(opts.placementId) + "'";
@@ -1363,7 +1367,8 @@ async function hdCollect(env, opts) {
     let rec = null;
     for (const k of chain) {
       const u = k.id && users[k.id];
-      if (u && u.IsActive !== false && u.Email) { rec = { id: u.Id, name: u.Name, email: String(u.Email).toLowerCase(), via: k.via }; break; }
+      // Integration and vendor users (Asymbl, etc.) never get the nudge; only a Spark team member does.
+      if (u && u.IsActive !== false && u.Email && hdSparkEmail(u.Email)) { rec = { id: u.Id, name: u.Name, email: String(u.Email).toLowerCase(), via: k.via }; break; }
     }
     return {
       placementId: p.Id, placementName: p.Name || "", status: p.Status__c || "", division: p.Division__c || "",
@@ -1379,7 +1384,11 @@ async function hdCollect(env, opts) {
       recruiter: rec
     };
   });
-  return { days, placements: out, soql };
+  // The SOQL window keys off LastModifiedDate (so a reason set today on an old placement is caught),
+  // but a placement whose termination itself is older than the window is stale and is left alone.
+  const cutoff = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  const fresh = out.filter((p) => !p.terminatedDate || String(p.terminatedDate).slice(0, 10) >= cutoff);
+  return { days, placements: fresh, skippedStale: out.length - fresh.length, soql };
 }
 __name(hdCollect, "hdCollect");
 
