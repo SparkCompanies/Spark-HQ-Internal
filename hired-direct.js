@@ -60,7 +60,7 @@
     ".hdx{max-width:1140px;margin:0 auto;padding:28px 32px 80px}" +
     ".hdx-ic{display:inline-flex;width:16px;height:16px;flex:none}.hdx-ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}" +
     /* hero */
-    ".hdx-hero{position:relative;border-radius:26px;overflow:hidden;color:#fff;padding:34px 40px 36px;isolation:isolate;" +
+    ".hdx-hero{position:relative;border-radius:26px;overflow:hidden;color:#fff;padding:34px 40px 36px;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:center;" +
       "background:linear-gradient(118deg,#141428 0%,#1b1b36 48%,#2a2347 100%);box-shadow:0 40px 80px -36px rgba(20,20,45,.75),0 2px 0 rgba(255,255,255,.06) inset}" +
     ".hdx-hero::before{content:'';position:absolute;inset:-40%;z-index:-1;background:radial-gradient(closest-side at 18% 30%,rgba(255,212,59,.38),transparent 70%),radial-gradient(closest-side at 85% 110%,rgba(200,150,62,.32),transparent 70%);filter:blur(30px)}" +
     ".hdx-ring{position:absolute;right:-110px;top:-150px;width:400px;height:400px;border-radius:50%;border:1px solid rgba(255,212,59,.22);box-shadow:0 0 0 60px rgba(255,212,59,.04),0 0 0 120px rgba(255,212,59,.025);z-index:-1;pointer-events:none}" +
@@ -69,6 +69,17 @@
     ".hdx-hero h1 em{font-style:normal;background:linear-gradient(92deg,#FFE57A,#F5C518 60%,#DEBA6F);-webkit-background-clip:text;background-clip:text;color:transparent}" +
     ".hdx-dek{color:#cfd0e6;font-size:14.5px;line-height:1.65;max-width:640px}" +
     ".hdx-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}" +
+    /* #JWU sign-off: big, gold, slightly italic, with a soft glow and a sheen that sweeps across it */
+    ".hdx-jwu{text-align:right;padding-right:6px;user-select:none}" +
+    ".hdx-jwu .t{position:relative;display:inline-block;font:900 92px/.86 Outfit,Inter,system-ui,sans-serif;letter-spacing:-.035em;transform:skewX(-8deg);" +
+      "background:linear-gradient(176deg,#FFF3B0 0%,#FFD43B 38%,#F5C518 58%,#C8963E 100%);-webkit-background-clip:text;background-clip:text;color:transparent;" +
+      "filter:drop-shadow(0 10px 30px rgba(245,197,24,.35)) drop-shadow(0 2px 0 rgba(0,0,0,.35))}" +
+    ".hdx-jwu .t::after{content:'#JWU';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.75) 46%,transparent 62%);background-size:260% 100%;background-position:120% 0;" +
+      "-webkit-background-clip:text;background-clip:text;color:transparent;animation:hdxSheen 5.5s ease-in-out infinite}" +
+    "@keyframes hdxSheen{0%,55%{background-position:120% 0}85%,100%{background-position:-60% 0}}" +
+    "@media(prefers-reduced-motion:reduce){.hdx-jwu .t::after{animation:none;opacity:0}}" +
+    ".hdx-jwu .s{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:12px;font-size:11px;font-weight:700;letter-spacing:.34em;text-transform:uppercase;color:#d8d6ea}" +
+    ".hdx-jwu .s::before{content:'';width:34px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#F5C518)}" +
     ".hdx-step{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#eceaf6}" +
     ".hdx-step b{color:#FFD43B;font-weight:800}" +
     /* stats */
@@ -113,7 +124,7 @@
     ".hdx-empty{text-align:center;padding:48px 20px;background:#fff;border:1px dashed #e2dccb;border-radius:16px;color:#6b6a64;font-size:14px}" +
     ".hdx-empty b{display:block;color:#111;font-size:16px;margin-bottom:4px}" +
     ".hdx-err{padding:12px 16px;border-radius:12px;background:#fdecea;color:#8a1c12;font-size:13px;margin-bottom:12px}" +
-    "@media(max-width:820px){.hdx{padding:18px 16px 60px}.hdx-hero{padding:26px 22px}.hdx-hero h1{font-size:28px}.hdx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hdx-row{grid-template-columns:1fr}.hdx-acts{flex-direction:row}.hdx-qw{margin-left:0;width:100%}.hdx-q{width:100%}}";
+    "@media(max-width:820px){.hdx{padding:18px 16px 60px}.hdx-hero{padding:26px 22px;grid-template-columns:1fr;gap:18px}.hdx-hero h1{font-size:28px}.hdx-jwu{text-align:left}.hdx-jwu .t{font-size:60px}.hdx-jwu .s{justify-content:flex-start}.hdx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.hdx-row{grid-template-columns:1fr}.hdx-acts{flex-direction:row}.hdx-qw{margin-left:0;width:100%}.hdx-q{width:100%}}";
   function injectCss() { if (document.getElementById("hiredDirectCss")) return; var s = document.createElement("style"); s.id = "hiredDirectCss"; s.textContent = CSS; document.head.appendChild(s); }
 
   /* ---------- data ---------- */
@@ -188,10 +199,13 @@
 
     var html = '<div class="hdx">' +
       '<div class="hdx-hero"><div class="hdx-ring"></div>' +
-        '<div class="hdx-k">' + ic("star") + "HD Conversion Hub</div>" +
-        "<h1>They got hired on. <em>Now make the call.</em></h1>" +
-        '<div class="hdx-dek">When a client hires one of our contract team members direct, it shows up here. That person is the happiest one in the building, and they know people just like them. Call, congratulate, ask who they know that’s looking, and send a card.</div>' +
-        '<div class="hdx-steps"><span class="hdx-step"><b>1</b>Call and congratulate</span><span class="hdx-step"><b>2</b>Ask for referrals</span><span class="hdx-step"><b>3</b>Mail a handwritten card</span></div>' +
+        "<div>" +
+          '<div class="hdx-k">' + ic("star") + "HD Conversion Hub</div>" +
+          "<h1>They got hired on. <em>Now make the call.</em></h1>" +
+          '<div class="hdx-dek">This is the best kind of goodbye. A client wanted them for keeps. Call and celebrate, ask who else they know that’s looking for work, and drop a card in the mail.</div>' +
+          '<div class="hdx-steps"><span class="hdx-step"><b>1</b>Call and congratulate</span><span class="hdx-step"><b>2</b>Ask for referrals</span><span class="hdx-step"><b>3</b>Mail a handwritten card</span></div>' +
+        "</div>" +
+        '<div class="hdx-jwu" aria-label="#JWU, Just Watch Us"><div class="t">#JWU</div><div class="s">Just watch us</div></div>' +
       "</div>" +
       '<div class="hdx-stats">' +
         '<div class="hdx-stat gold"><div class="v">' + open + '</div><div class="l">Open follow-ups</div></div>' +
