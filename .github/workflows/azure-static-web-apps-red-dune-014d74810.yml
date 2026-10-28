@@ -44,7 +44,10 @@ jobs:
           cp access.js site/ 2>/dev/null || true
           # TRAFFIC_BY_PERSON_v1: per-person usage under Admin > Where people go.
           cp traffic.js site/ 2>/dev/null || true
-             cp benefits.js site/ 2>/dev/null || true
+          # BENEFITS_v1: Benefits & PTO tab, loaded by spark-home.html the same way.
+          cp benefits.js site/ 2>/dev/null || true
+          # HIRED_DIRECT_v2: HD Conversion Hub tab, loaded by spark-home.html the same way.
+          cp hired-direct.js site/ 2>/dev/null || true
           if [ -d brand ]; then mkdir -p site/brand && cp brand/* site/brand/; fi
           cp staticwebapp.config.json site/staticwebapp.config.json
           echo "Staged $(ls site/*.html | wc -l) pages:"
