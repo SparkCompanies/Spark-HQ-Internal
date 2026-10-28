@@ -3177,7 +3177,7 @@ window.addEventListener('load',function(){setTimeout(function(){try{
   }
   function render() {
     var host = document.getElementById("hdWrap"); if (!host) return;
-    if (!S.items.length) { host.style.display = "none"; host.innerHTML = ""; return; }
+    if (!S.items.length && !S.admin) { host.style.display = "none"; host.innerHTML = ""; return; }
     var open = S.items.filter(function (i) { return !(i.called_at && i.card_sent_at); });
     host.innerHTML = ""; host.style.display = "";
     var card = el("div", "hd-card"), head = el("div", "hd-head"), tw = el("div");
@@ -3194,7 +3194,7 @@ window.addEventListener('load',function(){setTimeout(function(){try{
   }
   function wantsJump() { try { return location.hash === "#hired-direct" || (window.parent && window.parent !== window && window.parent.location.hash === "#hired-direct"); } catch (e) { return false; } }
   function jump() { var h = document.getElementById("hdWrap"); if (h && h.style.display !== "none") h.scrollIntoView({ behavior: "smooth", block: "start" }); }
-  function load() { api("GET").then(function (d) { S.items = d.items || []; S.admin = !!d.admin; S.all = !!d.all; render(); if (wantsJump()) setTimeout(jump, 200); }).catch(function () { /* never let this break Home */ }); }
+  function load() { api("GET").then(function (d) { S.items = d.items || []; S.admin = !!d.admin; S.all = !!d.all; if (S.admin && !S.all && !S.items.length && !S.triedAll) { S.triedAll = true; S.all = true; return load(); } render(); if (wantsJump()) setTimeout(jump, 200); }).catch(function () { /* never let this break Home */ }); }
   window.addEventListener("hashchange", function () { if (wantsJump()) jump(); });
   function go() { var n = 0; var iv = setInterval(function () { n++; if (document.getElementById("hdWrap") && tok()) { clearInterval(iv); load(); setInterval(load, 300000); } else if (n > 80) clearInterval(iv); }, 250); }
   if (document.readyState !== "loading") go(); else document.addEventListener("DOMContentLoaded", go);
