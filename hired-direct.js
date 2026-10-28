@@ -190,7 +190,7 @@
       '<div class="hdx-hero"><div class="hdx-ring"></div>' +
         '<div class="hdx-k">' + ic("star") + "HD Conversion Hub</div>" +
         "<h1>They got hired on. <em>Now make the call.</em></h1>" +
-        '<div class="hdx-dek">When a client hires one of our contract team members direct, it shows up here. That person is the happiest one in the building, and they know people just like them. Call, congratulate, ask who they know that’s looking, and send a card.</div>' +
+        '<div class="hdx-dek">Every name here is someone a client liked enough to hire on full time. They’re excited, they trust you, and they know people who need work. Call to celebrate with them, ask who they know that’s looking, and mail a card.</div>' +
         '<div class="hdx-steps"><span class="hdx-step"><b>1</b>Call and congratulate</span><span class="hdx-step"><b>2</b>Ask for referrals</span><span class="hdx-step"><b>3</b>Mail a handwritten card</span></div>' +
       "</div>" +
       '<div class="hdx-stats">' +
