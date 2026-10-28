@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1 — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.1 — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -89,7 +89,7 @@
 
   /* ---------- CSS ---------- */
   var CSS = [
-    ".sidebar .nav-item[data-tab='" + TAB + "']{display:flex}",
+    ".sidebar .nav-item[data-tab='" + TAB + "'],.sidebar .nav-item[data-tab='" + TAB + "'].hide-for-role{display:flex!important}",
     ".sidebar .nav-item.bp-sub{position:relative;padding:6px 20px 6px 56px!important;font-size:12.5px!important;gap:8px!important;min-height:0!important}",
     ".sidebar .nav-item.bp-sub .ico{width:14px!important;opacity:.85}",
     ".sidebar .nav-item.bp-sub::after{content:'';position:absolute;left:35px;top:-6px;height:calc(50% + 6px);width:12px;border-left:1.5px solid rgba(100,116,139,.32);border-bottom:1.5px solid rgba(100,116,139,.32);border-bottom-left-radius:7px;pointer-events:none}",
