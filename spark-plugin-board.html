@@ -164,6 +164,18 @@ table.sup td.money.ok{color:var(--muted)}
 .modal input{width:84px;border:1px solid var(--line-2);border-radius:6px;padding:5px 7px}
 .modal .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 
+/* region dropdown (sidebar) */
+.regsel{padding:4px 22px 6px}
+.regsel select{width:100%;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:9px 10px;background:var(--card);font-weight:600;font-size:14px;color:var(--ink)}
+.regsel select:focus{border-color:var(--y);outline:none;box-shadow:0 0 0 3px var(--y-soft)}
+.regsel .meta{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+.regsel .meta b{color:var(--ink)}
+.regsel .meta .warn{color:var(--red);font-weight:600}
+.tag-dc{display:inline-block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border-radius:3px;padding:1px 4px;background:var(--blue-soft);color:var(--blue);margin-left:4px;vertical-align:1px}
+.tag-src{display:inline-block;font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;border-radius:3px;padding:1px 4px;background:var(--paper-2);color:var(--muted);margin-left:4px;vertical-align:1px}
+.modal select{border:1px solid var(--line-2);border-radius:6px;padding:5px 7px;background:var(--card);font-size:13px;min-width:160px}
+.modal .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+
 /* TV mode */
 body.tv .sidebar,body.tv .topbar{display:none}
 body.tv .shell{grid-template-columns:1fr}
@@ -197,13 +209,26 @@ body.tv .tv-exit{display:block}
     <div class="nav-h">Home</div>
     <a class="nav-item" href="https://hq.sparktalentinc.com"><span class="ico">⌂</span>Spark HQ</a>
     <button class="nav-item soon"><span class="ico">◎</span>Command Center<span class="tag">v2</span></button>
-    <div class="nav-h">Teams · by business unit</div>
-    <div id="nav-units"></div>
+    <div class="nav-h">Teams · by region</div>
+    <div class="regsel">
+      <select id="region-select" aria-label="Select region">
+        <option value="">Select region</option>
+        <option value="central">Central</option>
+        <option value="detroit">&nbsp;&nbsp;&nbsp;↳ Detroit</option>
+        <option value="northeast">Northeast</option>
+        <option value="northwest">Northwest</option>
+        <option value="southwest">Southwest</option>
+        <option value="southeast">Southeast</option>
+        <option value="nashville">&nbsp;&nbsp;&nbsp;↳ Nashville</option>
+        <option value="datacenter">Data Center</option>
+      </select>
+      <div class="meta" id="region-meta"></div>
+    </div>
     <div class="nav-h">Company intel</div>
     <button class="nav-item soon"><span class="ico">▦</span>Region Compare<span class="tag">v2</span></button>
     <button class="nav-item soon"><span class="ico">▦</span>Fulfillment Data<span class="tag">v2</span></button>
     <div class="sb-foot">
-      <div class="row"><button id="btn-targets">Targets</button><span>·</span><button id="btn-diag">Data check</button></div>
+      <div class="row"><button id="btn-targets">Targets</button><span>·</span><button id="btn-regions">Region map</button><span>·</span><button id="btn-diag">Data check</button></div>
       <div class="build">Plugin Board v1 · HQ worker · <span id="who-foot"></span></div>
     </div>
   </aside>
@@ -219,11 +244,11 @@ body.tv .tv-exit{display:block}
   </header>
 
   <main class="main">
-    <div class="crumb" id="crumb">Teams</div>
+    <div class="crumb" id="crumb">Teams · by region</div>
     <div class="titlebar">
       <div>
         <h1 id="title">Req Focus</h1>
-        <div class="sub">Who is on what today · coverage vs open balance · every row opens its Salesforce job</div>
+        <div class="sub" id="subtitle">Who is on what today · coverage vs open balance · every row opens its Salesforce job</div>
       </div>
       <div class="chips" id="chips"></div>
     </div>
@@ -298,7 +323,7 @@ const CONFIG = {
   WORKER_URL: "https://spark-hq-worker.sparkcompanies.workers.dev",
   HQ_URL: "https://hq.sparktalentinc.com",
   // Salesforce base used for "open this job" links. Leave blank to open HQ's Salesforce tab instead.
-  SF_BASE: ""
+  SF_BASE: "https://spark-companies.lightning.force.com"
 };
 const Auth = {
   token: null, user: null, viaHQ: false, _refreshing: null,
@@ -360,9 +385,53 @@ const API = {
    DATA MODEL
    ========================================================================== */
 const S = {
-  raw: null, jobs: [], byJob: {}, units: [], unit: 'ALL', svc: 'ALL', q: '',
-  state: {}, targets: {}, focus: {}, week: null, hl: null
+  raw: null, jobs: [], byJob: {}, units: [], region: '', svc: 'ALL', q: '',
+  state: {}, targets: {}, focus: {}, regionMap: null, week: null, hl: null
 };
+
+/* ---------- REGION MODEL ----------
+   Eight regions. Detroit sits inside Central, Nashville inside Southeast, Data Center is national.
+   A req gets ONE region. Order of precedence:
+     1. Data Center  — classification / sub-classification / title says "data center"
+     2. Business Unit on the job, through the editable map (Region map in the sidebar footer)
+     3. Business Unit on the account, same map (flagged "via account")
+     4. Southeast + a Tennessee location → Nashville (flagged "via location")
+     5. none → counted as "no region"; still shows under Select region (all)                     */
+const REGIONS = {
+  central:   { label: 'Central',    parent: null },
+  detroit:   { label: 'Detroit',    parent: 'central' },
+  northeast: { label: 'Northeast',  parent: null },
+  northwest: { label: 'Northwest',  parent: null },
+  southwest: { label: 'Southwest',  parent: null },
+  southeast: { label: 'Southeast',  parent: null },
+  nashville: { label: 'Nashville',  parent: 'southeast' },
+  datacenter:{ label: 'Data Center',parent: null }
+};
+const DEFAULT_REGION_MAP = {
+  bu: { 'Central': 'central', 'MI Metro': 'detroit', 'Northeast': 'northeast', 'Northwest': 'northwest', 'Southwest': 'southwest', 'Southeast': 'southeast' },
+  dcAlsoGeo: false
+};
+const DC_RE = /data\s*cent(er|re)/i;
+const TN_RE = /nashville|franklin|murfreesboro|smyrna|la ?vergne|lebanon|clarksville|chattanooga|knoxville|memphis|\bTN\b|tennessee/i;
+function regionMap() { return S.regionMap || DEFAULT_REGION_MAP; }
+function regionLabel(k) { return k ? (REGIONS[k] ? REGIONS[k].label : k) : 'All regions'; }
+// f = { bu, acctBu, cls, sub, title, loc }  → { key, geo, via }
+function regionOf(f) {
+  const m = regionMap();
+  const isDC = DC_RE.test([f.cls, f.sub, f.title].join(' ')) || m.bu[f.bu] === 'datacenter' || m.bu[f.acctBu] === 'datacenter';
+  let geo = m.bu[f.bu] || null, via = geo ? 'job' : null;
+  if (!geo && f.acctBu && m.bu[f.acctBu]) { geo = m.bu[f.acctBu]; via = 'account'; }
+  if (geo && (geo === 'southeast') && TN_RE.test(f.loc || '')) { geo = 'nashville'; via = via === 'job' ? 'location' : via; }
+  if (isDC) return { key: 'datacenter', geo: geo && geo !== 'datacenter' ? geo : null, via: 'datacenter' };
+  return { key: geo || '', geo: geo || null, via: via || 'none' };
+}
+// does a row with region r (and geo fallback g) belong in the selected view sel? '' = everything
+function inRegion(r, g, sel) {
+  if (!sel) return true;
+  if (r === sel || (REGIONS[r] && REGIONS[r].parent === sel)) return true;
+  if (r === 'datacenter' && regionMap().dcAlsoGeo && g && (g === sel || (REGIONS[g] && REGIONS[g].parent === sel))) return true;
+  return false;
+}
 const num = v => (v == null || v === '' || isNaN(+v)) ? 0 : +v;
 const day = 86400000;
 function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x; }
@@ -421,8 +490,8 @@ function buildModel(raw) {
     const k = stageKey(stName, stType);
     const p = pipe[a.bpats__Job__c] || (pipe[a.bpats__Job__c] = { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, movedWk:0 });
     p[k] = (p[k] || 0) + 1;
-    const mod = a.LastModifiedDate ? new Date(a.LastModifiedDate) : null;
-    const inWeek = mod && mod >= S.week && mod < weekEnd;
+    const csd = a.bpats__Current_Stage_Date__c ? new Date(a.bpats__Current_Stage_Date__c + 'T00:00:00') : (a.LastModifiedDate ? new Date(a.LastModifiedDate) : null);
+    const inWeek = csd && csd >= S.week && csd < weekEnd;
     if (k === 'pre' && inWeek) p.preWk++;
     if (['sub','iv','pnd','off','onb'].includes(k)) {
       p.inproc++;
@@ -433,33 +502,36 @@ function buildModel(raw) {
     }
   });
 
-  // placements → active HC, starts/terms this week and 90d, by BU
-  const hc = {}, startsWk = {}, termsWk = {}, starts90 = {}, terms90 = {};
-  (raw.placements || []).forEach(pl => {
-    const bu = (pl.bpats__ATS_Job__r && pl.bpats__ATS_Job__r.Subdivision__c) || 'Unassigned';
+  // placements → Active HC (Placement Status = Active), starts/terms this week and 90d, HC by client. Region via the job.
+  S.pl = (raw.placements || []).map(pl => {
+    const j = pl.bpats__ATS_Job__r || {}, a = pl.bpats__Account__r || {};
+    const reg = regionOf({ bu: j.Subdivision__c, acctBu: a.Subdivision__c, cls: j.Job_Classification__c, sub: j.Job_Subclassification__c, title: j.bpats__Job_Title__c, loc: j.bpats__Location__c });
     const st = pl.bpats__Start_Date__c ? new Date(pl.bpats__Start_Date__c + 'T00:00:00') : null;
     const tm = pl.Terminated_Date__c ? new Date(pl.Terminated_Date__c + 'T00:00:00') : null;
-    const active = st && st <= today && !tm;
-    if (active) hc[bu] = (hc[bu] || 0) + 1;
-    if (st && st >= S.week && st < weekEnd) startsWk[bu] = (startsWk[bu] || 0) + 1;
-    if (tm && tm >= S.week && tm < weekEnd) termsWk[bu] = (termsWk[bu] || 0) + 1;
-    if (st && st >= new Date(today - 90 * day) && st <= today) starts90[bu] = (starts90[bu] || 0) + 1;
-    if (tm && tm >= new Date(today - 90 * day)) terms90[bu] = (terms90[bu] || 0) + 1;
+    const status = pl.Status__c || '';
+    const active = status ? status === 'Active' : !!(st && st <= today && !tm);
+    return { id: pl.Id, region: reg.key, geo: reg.geo, client: a.Name || '', status, reason: pl.Termination_Reason__c || '', st, tm, active,
+      startWk: !!(st && st >= S.week && st < weekEnd), termWk: !!(tm && tm >= S.week && tm < weekEnd),
+      start90: !!(st && st >= new Date(today - 90 * day) && st <= today), term90: !!(tm && tm >= new Date(today - 90 * day)) };
   });
-  S.hc = hc; S.startsWk = startsWk; S.termsWk = termsWk; S.starts90 = starts90; S.terms90 = terms90;
 
   // jobs
   S.jobs = (raw.jobs || []).map(j => {
     const p = pipe[j.Id] || { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, movedWk:0 };
     const open = Math.max(0, num(j.bpats__Number_of_Openings__c) - num(j.bpats__Openings_Filled__c));
     const rec = (j.Recruiter__r && j.Recruiter__r.Name) || '';
+    const acct = j.bpats__Account__r || {};
+    const reg = regionOf({ bu: j.Subdivision__c, acctBu: acct.Subdivision__c, cls: j.Job_Classification__c, sub: j.Job_Subclassification__c, title: j.bpats__Job_Title__c, loc: j.bpats__Location__c });
     const bill = num(j.bpats__Bill_Rate__c), pay = num(j.bpats__Pay_Rate__c), burden = num(j.Burden_Percent__c);
     const gp = (bill && pay) ? Math.max(0, bill - pay * (1 + burden / 100)) : null;
     let cov = 'none';
     if (open > 0 && p.inproc >= open) cov = 'ok'; else if (p.inproc > 0) cov = 'part';
     return {
       id: j.Id, name: j.Name, title: j.bpats__Job_Title__c || j.Name, client: j.bpats__Account_Name__c || '(no account)',
-      unit: j.Subdivision__c || 'Unassigned', svc: j.Job_Classification__c || 'Unassigned', sub: j.Job_Subclassification__c || '',
+      unit: j.Subdivision__c || 'Unassigned', acctUnit: acct.Subdivision__c || '', acctStatus: acct.Status__c || '', industry: acct.Industry || '',
+      company: j.Division__c || acct.Division__c || '', loc: j.bpats__Location__c || '',
+      region: reg.key, geo: reg.geo, via: reg.via,
+      svc: j.Job_Classification__c || 'Unassigned', sub: j.Job_Subclassification__c || '',
       openings: num(j.bpats__Number_of_Openings__c), filled: num(j.bpats__Openings_Filled__c), open,
       recruiter: rec, am: (j.Account_Manager__r && j.Account_Manager__r.Name) || '', support: (j.User__r && j.User__r.Name) || '',
       hm: (j.bpats__Hiring_Manager__r && j.bpats__Hiring_Manager__r.Name) || '',
@@ -474,11 +546,12 @@ function buildModel(raw) {
   const cnt = {};
   S.jobs.forEach(j => { if (j.open > 0) cnt[j.unit] = (cnt[j.unit] || 0) + 1; });
   S.units = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b)).map(u => ({ name: u, n: cnt[u] }));
-  if (S.unit !== 'ALL' && !cnt[S.unit]) S.unit = 'ALL';
+  S.noRegion = S.jobs.filter(j => j.open > 0 && !j.region).length;
 }
 
+function regionJobs() { return S.jobs.filter(j => inRegion(j.region, j.geo, S.region)); }
 function visibleJobs() {
-  return S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0)
+  return regionJobs().filter(j => (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0)
     .filter(j => !S.q || (j.client + ' ' + j.title + ' ' + j.recruiter + ' ' + j.name).toLowerCase().includes(S.q))
     .sort((a, b) => b.score - a.score || b.open - a.open || (a.age || 0) - (b.age || 0));
 }
@@ -487,19 +560,20 @@ function visibleJobs() {
    RENDER
    ========================================================================== */
 function renderNav() {
-  const all = S.jobs.filter(j => j.open > 0).length;
-  let h = `<button class="nav-item ${S.unit === 'ALL' ? 'active' : ''}" data-unit="ALL"><span class="ico">◎</span>All teams<span class="cnt">${all}</span></button>`;
-  S.units.forEach(u => {
-    const bad = u.name === 'Unassigned';
-    h += `<button class="nav-item ${S.unit === u.name ? 'active' : ''}" data-unit="${esc(u.name)}"><span class="ico">◎</span>${esc(u.name)}<span class="cnt ${bad ? 'alert' : ''}">${u.n}</span></button>`;
-  });
-  document.getElementById('nav-units').innerHTML = h;
-  document.querySelectorAll('#nav-units .nav-item').forEach(b => b.onclick = () => { S.unit = b.dataset.unit; S.hl = null; renderAll(); });
+  const sel = document.getElementById('region-select');
+  if (sel.value !== S.region) sel.value = S.region;
+  const open = regionJobs().filter(j => j.open > 0);
+  const viaAcct = open.filter(j => j.via === 'account').length, viaLoc = open.filter(j => j.via === 'location').length;
+  let m = `<b>${open.length}</b> open reqs${S.region ? ' in ' + esc(regionLabel(S.region)) : ' across all regions'}`;
+  if (!S.region && S.noRegion) m += ` · <span class="warn">${S.noRegion} with no region</span>`;
+  if (viaAcct) m += ` · ${viaAcct} placed via account unit`;
+  if (viaLoc) m += ` · ${viaLoc} placed via location`;
+  document.getElementById('region-meta').innerHTML = m;
 }
 
 function renderChips() {
   const svcs = {};
-  S.jobs.filter(j => j.open > 0 && (S.unit === 'ALL' || j.unit === S.unit)).forEach(j => svcs[j.svc] = (svcs[j.svc] || 0) + 1);
+  regionJobs().filter(j => j.open > 0).forEach(j => svcs[j.svc] = (svcs[j.svc] || 0) + 1);
   const names = Object.keys(svcs).sort((a, b) => svcs[b] - svcs[a]);
   if (S.svc !== 'ALL' && !svcs[S.svc]) S.svc = 'ALL';
   let h = `<span class="lbl">Service line</span><button class="chip ${S.svc === 'ALL' ? 'on' : ''}" data-svc="ALL">All</button>`;
@@ -510,19 +584,21 @@ function renderChips() {
 }
 
 function renderHeader() {
-  const unitLbl = S.unit === 'ALL' ? 'All teams' : S.unit;
-  document.getElementById('crumb').textContent = 'Teams › ' + unitLbl;
-  document.getElementById('title').textContent = 'Req Focus — ' + unitLbl;
-  document.title = unitLbl + ' · Plugin Board';
+  const lbl = regionLabel(S.region);
+  const r = REGIONS[S.region];
+  document.getElementById('crumb').textContent = r && r.parent ? 'Teams › ' + regionLabel(r.parent) + ' › ' + lbl : 'Teams › ' + lbl;
+  document.getElementById('title').textContent = 'Req Focus — ' + lbl;
+  document.getElementById('subtitle').textContent = S.region === 'datacenter'
+    ? 'National team · any req whose classification or title says Data Center · every row opens its Salesforce job'
+    : (S.region ? 'Who is on what today · coverage vs open balance · every row opens its Salesforce job' : 'Pick a region in the sidebar, or read the whole company here');
+  document.title = lbl + ' · Plugin Board';
 }
 
-function unitStat(map) {
-  if (S.unit === 'ALL') return Object.values(map).reduce((a, b) => a + b, 0);
-  return map[S.unit] || 0;
-}
+function regionPl() { return S.pl.filter(p => inRegion(p.region, p.geo, S.region)); }
+function plStat(flag) { return regionPl().filter(p => p[flag]).length; }
 
 function renderKpis() {
-  const rows = S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && (S.svc === 'ALL' || j.svc === S.svc));
+  const rows = regionJobs().filter(j => (S.svc === 'ALL' || j.svc === S.svc));
   const openRows = rows.filter(j => j.open > 0);
   const openBal = openRows.reduce((a, j) => a + j.open, 0);
   const covered = openRows.filter(j => j.cov === 'ok').length;
@@ -532,8 +608,10 @@ function renderKpis() {
   const stallPct = inproc ? Math.round(stalled / inproc * 100) : 0;
   const preWk = rows.reduce((a, j) => a + j.p.preWk, 0);
   const subWk = rows.reduce((a, j) => a + j.p.subWk, 0);
-  const hc = unitStat(S.hc), sw = unitStat(S.startsWk), tw = unitStat(S.termsWk), s90 = unitStat(S.starts90), t90 = unitStat(S.terms90);
-  const t = S.targets[S.unit] || {};
+  const hc = plStat('active'), sw = plStat('startWk'), tw = plStat('termWk'), s90 = plStat('start90'), t90 = plStat('term90');
+  const reasons = {}; regionPl().filter(p => p.termWk).forEach(p => { reasons[p.reason || 'No reason'] = (reasons[p.reason || 'No reason'] || 0) + 1; });
+  const reasonTxt = Object.keys(reasons).map(k => k + ': ' + reasons[k]).join(' · ');
+  const t = S.targets[S.region || 'ALL'] || {};
   const tHC = num(t.hc), tPre = num(t.pre), tSub = num(t.sub);
   const avgScore = openRows.length ? Math.round(openRows.reduce((a, j) => a + j.score, 0) / openRows.length) : 0;
   const low = openRows.filter(j => j.score < 40).length;
@@ -545,9 +623,9 @@ function renderKpis() {
     tile('open', 'Open balance', openBal, `on ${openRows.length} reqs`, low ? `<div class="d2 dn">▲ ${low} reqs score below 40</div>` : '', S.hl === 'open') +
     tile('cov', 'Covered', covPct + '<small>%</small>', 'pipeline ≥ open balance', bar(covPct, 100), S.hl === 'cov') +
     tile('inproc', 'In process', inproc, 'Submittal → Onboarding', `<div class="d2 ${stallPct > 30 ? 'dn' : ''}">${stalled} stalled · ${stallPct}%</div>`, S.hl === 'inproc') +
-    tile('pre', 'Pre-screens wk', preWk, tPre ? `target ${tPre}` : 'moved into pre-screen this week', bar(preWk, tPre, true), S.hl === 'pre') +
-    tile('sub', 'Submittals wk', subWk, tSub ? `target ${tSub}` : 'moved into submittal this week', bar(subWk, tSub, true), S.hl === 'sub') +
-    tile('score', 'Starts · terms wk', `<span class="g">${sw}</span><small> / </small><span class="r">${tw}</span>`, `net ${sw - tw >= 0 ? '+' : ''}${sw - tw} · avg req score ${avgScore}`, '', S.hl === 'score');
+    tile('pre', 'Pre-screens wk', '<span style="color:var(--muted-2)">—</span>', 'pre-screens are activities, not an ATS stage', '<div class="d2" style="color:var(--muted-2)">source pending (see Data check)</div>', S.hl === 'pre') +
+    tile('sub', 'Submittals wk', subWk, tSub ? `target ${tSub}` : 'entered Submit this week', bar(subWk, tSub, true), S.hl === 'sub') +
+    tile('score', 'Starts · terms wk', `<span class="g">${sw}</span><small> / </small><span class="r">${tw}</span>`, `net ${sw - tw >= 0 ? '+' : ''}${sw - tw} · avg req score ${avgScore}`, reasonTxt ? `<div class="d2" title="${esc(reasonTxt)}">terms: ${esc(reasonTxt.length > 48 ? reasonTxt.slice(0, 46) + '…' : reasonTxt)}</div>` : '', S.hl === 'score');
   document.querySelectorAll('.kpi').forEach(k => k.onclick = () => { S.hl = S.hl === k.dataset.hl ? null : k.dataset.hl; renderKpis(); });
 }
 
@@ -562,7 +640,7 @@ function renderJobs() {
     const covTxt = j.cov === 'ok' ? 'COVERED' : j.cov === 'part' ? 'PARTIAL' : (j.recruiter ? 'UNCOVERED' : 'NOBODY');
     return `<tr class="row" data-id="${j.id}">
       <td><span class="score ${sc}" title="${boxes}">${j.score}</span></td>
-      <td class="client" title="${esc(j.client)}">${esc(j.client)}</td>
+      <td class="client" title="${esc(j.client)}${j.company ? ' · ' + esc(j.company) : ''}${j.acctStatus ? ' · account ' + esc(j.acctStatus) : ''} · unit ${esc(j.unit)}${j.via === 'account' ? ' (region via account)' : j.via === 'location' ? ' (region via location)' : ''}">${esc(j.client)}${!S.region && j.region ? `<span class="tag-src">${esc(regionLabel(j.region))}</span>` : ''}${!S.region && !j.region ? '<span class="tag-src" style="color:var(--red)">no region</span>' : ''}${j.region === 'datacenter' && S.region !== 'datacenter' ? '<span class="tag-dc">DC</span>' : ''}</td>
       <td title="${esc(j.title)} (${esc(j.name)})">${esc(j.title)}</td>
       <td><span class="svc ${svcClass(j.svc)}" title="${esc(j.svc)}${j.sub ? ' · ' + esc(j.sub) : ''}">${esc(svcShort(j.svc))}</span></td>
       <td class="num"><b>${j.open}</b></td>${cell(j.p.sub, 'Submittal')}${cell(j.p.iv, 'Interview')}${cell(j.p.pnd, 'Pending offer')}${cell(j.p.off, 'Offer')}${cell(j.p.onb, 'Onboarding')}
@@ -583,17 +661,17 @@ function openJob(id) {
 
 /* ---------- focus board ---------- */
 const DAYS = ['mon','tue','wed','thu','fri'];
-function focusKey() { return 'focus:' + ymd(S.week) + ':' + (S.unit === 'ALL' ? 'ALL' : S.unit); }
+function focusKey() { return 'focus:' + ymd(S.week) + ':' + (S.region || 'ALL'); }
 function renderFocus() {
   document.getElementById('week-lbl').textContent = 'week of ' + S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const jobs = S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && j.open > 0).sort((a, b) => a.client.localeCompare(b.client) || a.title.localeCompare(b.title));
+  const jobs = regionJobs().filter(j => j.open > 0).sort((a, b) => a.client.localeCompare(b.client) || a.title.localeCompare(b.title));
   const picks = S.focus[focusKey()] || {};
   const recs = {};
   jobs.forEach(j => { if (j.recruiter) recs[j.recruiter] = true; });
   Object.keys(picks).forEach(r => recs[r] = true);
   const names = Object.keys(recs).sort();
   const tb = document.getElementById('focus-body');
-  if (!names.length) { tb.innerHTML = `<tr><td colspan="7" class="empty">No recruiters on open reqs in this unit yet. Assign a Recruiter on the job in Salesforce and they appear here.</td></tr>`; document.getElementById('focus-note').textContent = ''; return; }
+  if (!names.length) { tb.innerHTML = `<tr><td colspan="7" class="empty">No recruiters on open reqs in this region yet. Assign a Recruiter on the job in Salesforce and they appear here.</td></tr>`; document.getElementById('focus-note').textContent = ''; return; }
   const opts = jobs.map(j => `<option value="${j.id}">${esc(j.client)} — ${esc(j.title)}</option>`).join('');
   let filled = 0;
   tb.innerHTML = names.map(r => {
@@ -624,7 +702,8 @@ function renderFocus() {
 
 /* ---------- where to put support ---------- */
 function renderSupport() {
-  const jobs = S.jobs.filter(j => (S.unit === 'ALL' || j.unit === S.unit) && (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0);
+  const jobs = regionJobs().filter(j => (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0);
+  const hcBy = {}; regionPl().filter(p => p.active).forEach(p => { hcBy[p.client] = (hcBy[p.client] || 0) + 1; });
   const picks = S.focus[focusKey()] || {};
   const focusedBy = {};
   Object.keys(picks).forEach(r => DAYS.forEach(d => { const j = S.byJob[picks[r][d]]; if (j) (focusedBy[j.client] || (focusedBy[j.client] = {}))[r] = true; }));
@@ -637,12 +716,12 @@ function renderSupport() {
     const c = by[name]; const gap = Math.max(0, c.open - c.pipe);
     const gp = c.gps.length ? c.gps.reduce((a, b) => a + b, 0) / c.gps.length : 0;
     const who = Object.keys(focusedBy[name] || {});
-    return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who };
+    return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who, hc: hcBy[name] || 0 };
   }).sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap)).slice(0, 12);
   const tb = document.getElementById('sup-body');
   if (!rows.length) { tb.innerHTML = `<tr><td colspan="6" class="empty">Nothing open here.</td></tr>`; return; }
   tb.innerHTML = rows.map(r => `<tr>
-    <td class="client" title="${esc(r.name)}">${esc(r.name)}</td>
+    <td class="client" title="${esc(r.name)} · ${r.hc} active HC">${esc(r.name)}</td>
     <td class="n">${r.open}</td><td class="n">${r.pipe}</td>
     <td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
     <td class="money ${r.gap ? '' : 'ok'}" title="${r.noRate ? r.noRate + ' req(s) without bill/pay rate' : 'avg GP/hr ' + money(r.gp)}">${r.gap ? money(r.risk) : '$0'}${r.noRate ? ' <span style="color:var(--muted-2)">*</span>' : ''}</td>
@@ -661,10 +740,11 @@ function showGate() { document.getElementById('gate').classList.remove('hidden')
 
 async function loadState() {
   try {
-    const keys = ['targets', focusKey()].concat(S.units.map(u => 'focus:' + ymd(S.week) + ':' + u.name));
+    const keys = ['targets', 'regions', 'focus:' + ymd(S.week) + ':ALL'].concat(Object.keys(REGIONS).map(k => 'focus:' + ymd(S.week) + ':' + k));
     const r = await API.call('/pi-state-load?keys=' + encodeURIComponent(keys.join(',')));
     S.state = r.state || {};
     S.targets = (S.state.targets && S.state.targets.value) || {};
+    if (S.state.regions && S.state.regions.value && S.state.regions.value.bu) { S.regionMap = S.state.regions.value; buildModel(S.raw); }
     Object.keys(S.state).forEach(k => { if (k.startsWith('focus:')) S.focus[k] = S.state[k].value || {}; });
   } catch (e) {
     // state routes not deployed yet: board still works, picks just don't persist
@@ -693,12 +773,12 @@ async function load(fresh) {
 
 /* ---------- modals ---------- */
 function openTargets() {
-  const units = ['ALL'].concat(S.units.map(u => u.name));
+  const units = ['ALL'].concat(Object.keys(REGIONS));
   const root = document.getElementById('modal-root');
   root.innerHTML = `<div class="modal"><div class="box">
-    <h2>Targets</h2><p>Per business unit. Used by the Active HC, Pre-screens and Submittals tiles. Saved to Spark HQ.</p>
-    <table><thead><tr><th>Unit</th><th>HC target</th><th>Pre-screens / wk</th><th>Submittals / wk</th></tr></thead><tbody>
-    ${units.map(u => { const t = S.targets[u] || {}; return `<tr><td>${u === 'ALL' ? 'All teams' : esc(u)}</td>
+    <h2>Targets</h2><p>Per region. Used by the Active HC, Pre-screens and Submittals tiles. Saved to Spark HQ.</p>
+    <table><thead><tr><th>Region</th><th>HC target</th><th>Pre-screens / wk</th><th>Submittals / wk</th></tr></thead><tbody>
+    ${units.map(u => { const t = S.targets[u] || {}; return `<tr><td>${u === 'ALL' ? 'All regions' : esc(regionLabel(u))}</td>
       <td><input type="number" data-u="${esc(u)}" data-f="hc" value="${t.hc || ''}"></td>
       <td><input type="number" data-u="${esc(u)}" data-f="pre" value="${t.pre || ''}"></td>
       <td><input type="number" data-u="${esc(u)}" data-f="sub" value="${t.sub || ''}"></td></tr>`; }).join('')}
@@ -714,6 +794,34 @@ function openTargets() {
     catch (e) { toast('Targets kept for this session only (state routes not deployed yet)'); }
   };
 }
+function openRegions() {
+  const m = JSON.parse(JSON.stringify(regionMap()));
+  const bus = {};
+  S.jobs.filter(j => j.open > 0).forEach(j => { bus[j.unit] = (bus[j.unit] || 0) + 1; if (j.acctUnit) bus[j.acctUnit] = bus[j.acctUnit] || 0; });
+  Object.keys(m.bu).forEach(b => bus[b] = bus[b] || 0);
+  const names = Object.keys(bus).sort((a, b) => bus[b] - bus[a] || a.localeCompare(b));
+  const opts = v => `<option value="">— no region —</option>` + Object.keys(REGIONS).map(k => `<option value="${k}" ${v === k ? 'selected' : ''}>${REGIONS[k].label}</option>`).join('');
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal"><div class="box">
+    <h2>Region map</h2><p>Which Salesforce Business Unit lands in which region. Applies to jobs, placements and headcount. Saved to Spark HQ for everyone.</p>
+    <table><thead><tr><th>Business Unit (Salesforce)</th><th style="text-align:center">Open reqs</th><th>Region</th></tr></thead><tbody>
+    ${names.map(b => `<tr><td>${esc(b)}</td><td style="text-align:center;color:var(--muted)">${bus[b]}</td><td><select data-bu="${esc(b)}">${opts(m.bu[b] || '')}</select></td></tr>`).join('')}
+    </tbody></table>
+    <div class="hint">
+      <label><input type="checkbox" id="rm-dc" ${m.dcAlsoGeo ? 'checked' : ''}> Data Center reqs also appear in their geographic region (default: Data Center only)</label><br>
+      Fixed rules on top of this map: anything whose classification, sub-classification or title says "Data Center" is Data Center; Southeast reqs with a Tennessee location are Nashville; a unit with no region falls back to the account's unit.
+    </div>
+    <div class="acts"><button class="btn ghost" id="m-cancel">Cancel</button><button class="btn" id="m-save">Save region map</button></div>
+  </div></div>`;
+  root.querySelector('#m-cancel').onclick = () => root.innerHTML = '';
+  root.querySelector('#m-save').onclick = async () => {
+    const nm = { bu: {}, dcAlsoGeo: root.querySelector('#rm-dc').checked };
+    root.querySelectorAll('select[data-bu]').forEach(s => { if (s.value) nm.bu[s.dataset.bu] = s.value; });
+    S.regionMap = nm; root.innerHTML = ''; buildModel(S.raw); renderAll();
+    try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key: 'regions', value: nm }) }); toast('Region map saved'); }
+    catch (e) { toast('Region map kept for this session only (' + e.message.slice(0, 60) + ')'); }
+  };
+}
 function openDiag() {
   const d = (S.raw && S.raw.diag) || {};
   const root = document.getElementById('modal-root');
@@ -721,7 +829,9 @@ function openDiag() {
   root.innerHTML = `<div class="modal"><div class="box">
     <h2>Data check</h2><p>What the HQ worker pulled from Salesforce on the last load. "Dropped" = columns Salesforce rejected and the board worked around; tell Bedros if any appear.</p>
     <table><thead><tr><th>Query</th><th>Rows</th><th>Dropped columns</th><th>Error</th></tr></thead><tbody>${line('jobs')}${line('applicants')}${line('placements')}</tbody></table>
-    <p style="margin-top:12px">Worker: ${CONFIG.WORKER_URL}<br>As of: ${S.raw ? S.raw.asOf : '—'}${S.raw && S.raw.cached ? ' (cached, Refresh for fresh)' : ''}</p>
+    <p style="margin-top:12px">Worker: ${CONFIG.WORKER_URL}<br>As of: ${S.raw ? S.raw.asOf : '—'}${S.raw && S.raw.cached ? ' (cached, Refresh for fresh)' : ''}<br>
+    Open reqs with no region: ${S.noRegion || 0} (fix in Region map).<br>
+    Pre-screens: ATS stages are Source → Submit → Interview → Pending Feedback → Offer → Onboarding → Placement, so pre-screens have to come from activity records. Tile stays blank until that source is confirmed.</p>
     <div class="acts"><button class="btn" id="m-ok">Close</button></div>
   </div></div>`;
   root.querySelector('#m-ok').onclick = () => root.innerHTML = '';
@@ -739,6 +849,8 @@ function openDiag() {
   document.getElementById('btn-tv').onclick = () => document.body.classList.add('tv');
   document.getElementById('btn-tv-exit').onclick = () => document.body.classList.remove('tv');
   document.getElementById('btn-targets').onclick = openTargets;
+  document.getElementById('btn-regions').onclick = openRegions;
+  document.getElementById('region-select').onchange = e => { S.region = e.target.value; S.hl = null; S.svc = 'ALL'; renderAll(); };
   document.getElementById('btn-diag').onclick = openDiag;
   document.getElementById('q').oninput = e => { S.q = e.target.value.trim().toLowerCase(); renderJobs(); };
   load(false);
