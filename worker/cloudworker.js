@@ -3475,6 +3475,76 @@ var worker_default = {
       }
       return json({ error: "Method not allowed" }, 405, origin);
     }
+    // ===== BLUEPRINTS_v1 — Blueprint Builder (One Page Blueprints for producers) =====
+    // Access: HQ super admins, or anyone granted tab:blueprints (Admin > Access restricted area; Fletcher seeded in blueprints.sql).
+    // Tables: spark_hq_blueprint_rules (one jsonb doc, id 1) + spark_hq_blueprints (one row per team member). SQL in worker/blueprints.sql.
+    if (url.pathname === "/blueprints" || url.pathname === "/blueprints/rules") {
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      let allowed = false;
+      const adm = await verifyAdmin(request, env).catch(() => ({ ok: false }));
+      if (adm.ok) allowed = true;
+      if (!allowed) {
+        try {
+          const userTok = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+          const pr = await fetch(env.SUPABASE_URL + "/rest/v1/rpc/my_permissions", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + userTok, "apikey": env.SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
+            body: JSON.stringify({ p_email: who.email })
+          });
+          if (pr.ok) { const perms = (await pr.json()) || {}; if (perms["tab:blueprints"] === true) allowed = true; }
+        } catch (e) {}
+      }
+      if (!allowed) return json({ error: "You don't have access to the Blueprint Builder." }, 403, origin);
+      const isId = (v) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+      const audit = (action, target, detail) => sbService(env, "POST", "spark_hq_audit", { actor: who.email, action, target: String(target || ""), detail: JSON.stringify(detail || {}) }).catch(function(){});
+      if (url.pathname === "/blueprints/rules") {
+        if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+        let body; try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        if (!body || typeof body.data !== "object" || body.data === null) return json({ error: "data object required" }, 400, origin);
+        if (JSON.stringify(body.data).length > 4e5) return json({ error: "payload too large" }, 413, origin);
+        const row = { id: 1, data: body.data, updated_at: new Date().toISOString(), updated_by: who.email };
+        const r = await sbService(env, "POST", "spark_hq_blueprint_rules?on_conflict=id", row);
+        if (!r.ok) return json({ error: "Could not save rules (run worker/blueprints.sql?)", detail: r.data }, 502, origin);
+        await audit("blueprint_rules_save", "rules", { bytes: JSON.stringify(body.data).length });
+        return json({ ok: true, updated_at: row.updated_at, updated_by: who.email }, 200, origin);
+      }
+      if (request.method === "GET") {
+        const [ru, bp] = await Promise.all([
+          sbService(env, "GET", "spark_hq_blueprint_rules?id=eq.1&select=data,updated_at,updated_by"),
+          sbService(env, "GET", "spark_hq_blueprints?select=id,name,status,data,created_at,updated_at,updated_by&order=name.asc")
+        ]);
+        if (!ru.ok || !bp.ok) return json({ ok: true, missing: true, rules: null, blueprints: [], me: who.email, error: "Blueprint tables not found. Run worker/blueprints.sql in Supabase." }, 200, origin);
+        const rr = Array.isArray(ru.data) && ru.data[0] ? ru.data[0] : null;
+        return json({ ok: true, me: who.email, admin: !!adm.ok, rules: rr ? rr.data : null, rulesUpdatedAt: rr ? rr.updated_at : null, rulesUpdatedBy: rr ? rr.updated_by : null, blueprints: bp.data || [] }, 200, origin);
+      }
+      if (request.method === "POST") {
+        let body; try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        const data = body && body.data;
+        if (!data || typeof data !== "object") return json({ error: "data object required" }, 400, origin);
+        const name = String(data.name || "").trim().slice(0, 120);
+        if (!name) return json({ error: "Team member name is required" }, 400, origin);
+        if (JSON.stringify(data).length > 1e5) return json({ error: "payload too large" }, 413, origin);
+        const status = ["draft", "published", "imported"].indexOf(body.status) >= 0 ? body.status : "draft";
+        const row = { name, status, data, updated_at: new Date().toISOString(), updated_by: who.email };
+        if (body.id) { if (!isId(body.id)) return json({ error: "Bad id" }, 400, origin); row.id = body.id; }
+        const r = await sbService(env, "POST", "spark_hq_blueprints" + (row.id ? "?on_conflict=id" : ""), row);
+        if (!r.ok) return json({ error: "Could not save blueprint", detail: r.data }, 502, origin);
+        const saved = Array.isArray(r.data) ? r.data[0] : r.data;
+        await audit("blueprint_save", name, { id: saved && saved.id, status });
+        return json({ ok: true, blueprint: saved }, 200, origin);
+      }
+      if (request.method === "DELETE") {
+        const id = url.searchParams.get("id") || "";
+        if (!isId(id)) return json({ error: "Bad id" }, 400, origin);
+        const r = await sbService(env, "DELETE", "spark_hq_blueprints?id=eq." + id);
+        if (!r.ok) return json({ error: "Could not delete", detail: r.data }, 502, origin);
+        await audit("blueprint_delete", id, {});
+        return json({ ok: true }, 200, origin);
+      }
+      return json({ error: "Method not allowed" }, 405, origin);
+    }
     if (url.pathname === "/benefits-info") {
       // BENEFITS_v1: the Benefits & PTO tab. One JSON document (PTO tiers, holidays, benefits, links, contacts).
       // Any signed-in team member reads; admins (profiles.role admin/superadmin) save the whole document.
