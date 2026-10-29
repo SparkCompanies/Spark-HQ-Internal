@@ -398,6 +398,8 @@
     "RPO": ["VP of HR", "Talent Acquisition Director", "HR Director", "Operations Director"],
     "BPO": ["VP of HR", "HR Director", "Controller", "Operations Director"]
   };
+  /* TARGET_ACCOUNTS_v1: target customer contacts belong to account managers (ARM) and business development, not recruiters */
+  function ownsAccounts(d) { return !!d.role && !/^recruiter$/i.test(String(d.role).trim()); }
   function stdContacts(ln) { var C = (S.rules && S.rules.contacts) || DEF_CONTACTS; return (C[ln] || []).slice(); }
   function refFor(d) {
     var own = (d.kpis || []).filter(function (k) { return /^\s*references?\b/i.test(k); })[0];
@@ -1087,7 +1089,7 @@
       if (dense) return '<div class="op-dense">' + (g.group ? "<b>" + esc(g.group) + "</b>" : "") + g.titles.map(esc).join(" · ") + "</div>";
       return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + '<div class="op-chips">' + g.titles.map(function (t) { return '<span class="op-chip">' + esc(t) + "</span>"; }).join("") + "</div>";
     }).join("");
-    var skHtml = skillsPage(d), subHtml = subPage(d);
+    var skHtml = skillsPage(d), subHtml = subPage(d), nS4 = 2 + (subHtml ? 1 : 0) + (ownsAccounts(d) ? 1 : 0);
     var ct = clean(d.contacts); if (!ct.length) ct = stdContacts(d.serviceLine);
     var contacts = !ct.length ? empty : "<ol" + (ct.length > 4 ? ' class="two"' : "") + ">" + ct.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ol>";
     var st = clean(d.s4);
@@ -1115,11 +1117,11 @@
         '<div class="op-tiles' + (goals.length >= 5 ? " many six" + (goals.length >= 6 ? " seven" : "") : goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 7) + ',minmax(0,1fr))">' + tiles + "</div>" +
         strip +
         (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
-        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "own these", skHtml + (allTitles(d).some(function (t) { return t.length <= 40; }) ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).filter(function (t) { return t.length <= 40; }).slice(0, 4).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + nsec(subHtml ? 3 : 2, "Target customer contacts", clean(d.contacts).length ? "" : "standard", contacts) + "</div>" +
+        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "own these", skHtml + (allTitles(d).some(function (t) { return t.length <= 40; }) ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).filter(function (t) { return t.length <= 40; }).slice(0, 4).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + (ownsAccounts(d) ? nsec(subHtml ? 3 : 2, "Target customer contacts", clean(d.contacts).length ? "" : "standard", contacts) : "") + "</div>" +
           "<div>" + (terrHtml ? '<div class="op-sec"><div class="op-nh">Territory <em>- ' + esc(terr.all ? "national" : "primary region") + "</em></div>" + terrHtml + "</div>" : "") + "</div></div>" +
         (subHtml ? nsec(2, "Sub-core skillsets", "work these when your core has no openings in your area", subHtml) : "") +
-        nsec(subHtml ? 4 : 3, "S4 process", "work your pipeline in this order", steps) +
-        (roadOf(d).length ? nsec(subHtml ? 5 : 4, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
+        nsec(nS4, "S4 process", "work your pipeline in this order", steps) +
+        (roadOf(d).length ? nsec(nS4 + 1, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
         (d.notes ? sec("Notes", '<div class="op-notes">' + esc(d.notes) + "</div>") : "") +
       "</div>" +
       '<div class="op-foot"><span>' + esc(d.company || "Spark Companies") + " · One Page Blueprint · " + esc(d.serviceLine || "") + "</span><span>" + esc(d.name || "") + " · Updated " + esc(fmtDate(new Date().toISOString())) + "</span></div>" +
@@ -1428,10 +1430,13 @@
     h += '<div class="bp-add"><input data-k="customTitle" id="bpCustomTitle" placeholder="Title not in the library? Type it and press Enter"><button class="bp-btn sm ghost" data-act="addgrp" title="Split titles into groups">' + ic("plus") + "Group</button></div></div>";
     // 6 contacts
     var sug = []; S.list.forEach(function (b) { var x = b.data || {}; if (x.serviceLine === d.serviceLine) (x.contacts || []).forEach(function (c) { if (sug.indexOf(c) < 0 && (d.contacts || []).indexOf(c) < 0) sug.push(c); }); });
+    if (!ownsAccounts(d)) h += '<div class="bp-sec">' + secH(6, "Target customer contacts") + '<div class="bp-hint" style="margin-top:0">Recruiters don\'t carry target accounts, so this section isn\'t on their page. It shows for Account Recruiting Managers and Business Development.</div>';
+    else {
     h += '<div class="bp-sec">' + secH(6, "Target customer contacts") + listEditor("contacts", d.contacts, "Add a contact title", true);
     var sc = stdContacts(d.serviceLine);
     if (!(d.contacts || []).length && sc.length) h += '<div class="bp-hint">None set, so the page shows the standard for ' + esc(d.serviceLine) + ": " + sc.map(esc).join(", ") + '.<button class="bp-btn sm" data-act="stdcontacts">' + ic("plus") + "Start from these</button></div>";
     if (sug.length) h += '<div class="bp-hint">Used on other ' + esc(d.serviceLine) + ' blueprints</div><div class="bp-chips" style="margin-top:6px">' + sug.slice(0, 8).map(function (c) { return '<button class="bp-chip sug" data-act="addsug" data-t="' + esc(c) + '">' + ic("plus") + esc(c) + "</button>"; }).join("") + "</div>";
+    }
     h += "</div>";
     // 7 s4 + notes
     var s4same = JSON.stringify(d.s4) === JSON.stringify(S.rules.s4);
