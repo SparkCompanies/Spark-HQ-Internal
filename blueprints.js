@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v2.2 (skillsets) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v2.3 (better than the kit) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -363,18 +363,46 @@
   }
   /* one-pager block: core skillsets with their titles, then sub-core */
   function skillsPage(d) {
-    var co = coreOf(d), su = subOf(d); if (!co.length && !su.length) return "";
+    var co = coreOf(d); if (!co.length) return "";
     skReady();
-    var pick = allTitles(d);
-    return '<div class="op-sk">' + co.map(function (c) {
+    var pick = allTitles(d), map = (S.rules && S.rules.skillMap) || {};
+    return '<div class="op-sk">' + co.map(function (c, i) {
       var inf = SK_INFO && SK_INFO[c], tt = inf ? inf.titles.slice() : [];
       /* titles they picked that belong to this skillset lead the line */
-      var mine = pick.filter(function (t) { return skillFor(t, inf ? [inf.line] : [], (S.rules && S.rules.skillMap) || {}) === c; });
-      tt = mine.concat(tt.filter(function (t) { return mine.map(skNorm).indexOf(skNorm(t)) < 0; })).slice(0, 4);
-      return '<div class="r"><b>' + esc(skName(c)) + "</b><span>" + tt.map(esc).join(" · ") + "</span></div>";
-    }).join("") + "</div>" +
-      (su.length ? '<div class="op-sub"><b>Sub-core</b>' + su.map(function (c) { return esc(skName(c)); }).join(" · ") + "</div>" : "");
+      var mine = pick.filter(function (t) { return t.length <= 36 && skillFor(t, inf ? [inf.line] : [], map) === c; });
+      tt = mine.concat(tt.filter(function (t) { return mine.map(skNorm).indexOf(skNorm(t)) < 0; })).slice(0, 3);
+      return '<div class="r"><span class="n">' + (i + 1) + '</span><div><b>' + esc(skName(c)) + '</b><div class="op-chips">' + tt.map(function (t) { return '<span class="op-chip">' + esc(t) + "</span>"; }).join("") + "</div></div></div>";
+    }).join("") + "</div>";
   }
+  /* sub-core: a row of cards under the main block (work these when the core has no openings) */
+  function subPage(d) {
+    var su = subOf(d); if (!su.length) return "";
+    skReady();
+    return '<div class="op-subs" style="grid-template-columns:repeat(' + su.length + ',minmax(0,1fr))">' + su.map(function (c, i) {
+      var inf = SK_INFO && SK_INFO[c];
+      return '<div class="c"><b><span class="n">' + (i + 1) + "</span>" + esc(skName(c)) + "</b><span>" + esc(inf ? inf.titles.slice(0, 2).join(" · ") : "") + "</span></div>";
+    }).join("") + "</div>";
+  }
+  /* FLETCHER_DEFAULTS_v1: standard target contacts per service line (from his kit), used when a blueprint has none of its own */
+  var DEF_CONTACTS = {
+    "Professional/Office Clerical": ["HR Director / VP of HR", "Controller / CFO", "Director of Program Management", "Director of Operations / Plant Manager", "Purchasing / Supply Chain Manager", "VP of Sales"],
+    "Light Industrial": ["Plant Manager", "Production Manager", "Operations Manager", "HR Manager", "Warehouse / Distribution Manager", "Shift Supervisor"],
+    "Skilled Trades": ["Plant Manager", "Maintenance Manager", "Tooling Manager", "Operations Manager", "Quality Manager", "Production Manager"],
+    "Skilled Trades - Automation": ["Plant Manager", "Electrical Supervisor", "Build Supervisor", "Pipe Supervisor", "General Manager", "Quality Manager"],
+    "Skilled Trades - Data Center": ["Electrical Contractor PM", "Site Superintendent", "Critical Facilities Manager", "Project Executive", "Site Operations Manager", "Safety Manager"],
+    "Technical": ["Director of Engineering", "Engineering Manager", "Manufacturing Manager", "Quality Manager", "Director of Operations", "VP of Manufacturing"],
+    "Technical - Automation": ["Director of Engineering", "Controls Manager", "Engineering Manager", "Program Director", "Director of Operations", "Quality Manager"],
+    "RPO": ["VP of HR", "Talent Acquisition Director", "HR Director", "Operations Director"],
+    "BPO": ["VP of HR", "HR Director", "Controller", "Operations Director"]
+  };
+  function stdContacts(ln) { var C = (S.rules && S.rules.contacts) || DEF_CONTACTS; return (C[ln] || []).slice(); }
+  function refFor(d) {
+    var own = (d.kpis || []).filter(function (k) { return /^\s*references?\b/i.test(k); })[0];
+    if (own) return own.replace(/^\s*references?\s*:?\s*/i, "");
+    var k = kpiRule(d.role, d.serviceLine); return k && k.reference && k.reference !== "N/A" ? k.reference : "";
+  }
+  /* goals that differ from the role + service line standard (Fletcher's app always shows the standard) */
+  function goalsOff(d) { var std = standardKpis(d.role, d.serviceLine); return std.length && JSON.stringify(std) !== JSON.stringify(d.kpis || []); }
   /* ---- link + reprint ---- */
   function slug(n) { return normN(n).replace(/ /g, "-"); }
   function bpLink(d) { return location.origin + "/#blueprint/" + slug(d.name); }
@@ -406,6 +434,8 @@
       if (k.company && k.company !== d.company) ch.push("Company: " + (d.company || "blank") + " → " + k.company);
       if (k.leader && normN(k.leader) !== normN(d.leader)) ch.push("Leader: " + (d.leader || "blank") + " → " + k.leader);
       if (JSON.stringify(k.core) !== JSON.stringify(coreOf(d)) || JSON.stringify(k.sub) !== JSON.stringify(subOf(d))) ch.push("Skillsets: " + k.core.length + " core, " + k.sub.length + " sub-core");
+      var after = { role: k.role || d.role, serviceLine: k.line || d.serviceLine, kpis: d.kpis };
+      if (S.kitGoals && goalsOff(after)) ch.push("Weekly goals set to the " + roleShort(after.role) + " · " + after.serviceLine + " standard");
       (ch.length ? plan.upd : plan.same).push({ k: k, b: b, ch: ch });
     });
     plan.notInKit = S.list.filter(function (b) { return !used[b.id]; }).map(function (b) { return b.name; });
@@ -421,6 +451,7 @@
       var d = clone(u.b.data || {}), k = u.k;
       d.role = k.role || d.role; d.serviceLine = k.line || d.serviceLine; d.region = k.region || d.region; d.company = k.company || d.company;
       if (k.leader) d.leader = k.leader; d.core = k.core.slice(); d.sub = k.sub.slice();
+      if (S.kitGoals && goalsOff(d)) d.kpis = standardKpis(d.role, d.serviceLine);
       d.kitNote = { at: at, src: src, changes: u.ch };
       return { id: u.b.id, status: u.b.status, data: d };
     }).concat(plan.add.map(function (a) {
@@ -451,6 +482,7 @@
     h += '<div class="bp-hint" style="margin-top:0">His kit sorts every service line into skillset families and gives ' + KIT.docs.length + " producers 5 core and 5 sub-core skillsets plus a leader. Applying it keeps everything HQ added (territory, goals, contacts, daily road, the 365 link) and notes what changed on each blueprint.</div>";
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
       (inRules ? '<span class="bp-hint ok" style="margin:0">' + ic("check") + "His skillsets are in the rules</span>" : '<button class="bp-btn sm" data-act="kitskills">' + ic("sliders") + "Put his skillsets in the rules</button>") +
+      '<label class="bp-chk" style="font-size:12.5px"><input type="checkbox" data-act="kitgoals"' + (S.kitGoals ? " checked" : "") + "> Also reset weekly goals to the standard (" + S.list.filter(function (b) { return !isInactive(b) && goalsOff(b.data || {}); }).length + " differ today)</label>" +
       (plan && (plan.upd.length || plan.add.length) ? '<button class="bp-btn sm gold" data-act="kitapply"' + (S.saving ? " disabled" : "") + ">" + ic("check") + "Apply to " + plan.upd.length + " blueprint" + (plan.upd.length === 1 ? "" : "s") + " + create " + plan.add.length + " new</button>" :
         '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint matches his update</span>") + "</div>";
     if (plan) {
@@ -817,8 +849,15 @@
     ".op-body{padding:10px 14px 2px}.op-sec{margin-top:9px}.op-nh{margin:0 0 6px;font-size:9px}.op-nh b{font-size:9px;padding:1px 5px}.op-hd{font-size:8.5px;margin:0 0 5px}",
     ".op-tiles{gap:6px}.op-tile,.op-tiles.many .op-tile{padding:7px 9px 8px;border-radius:10px}.op-tile .k{font-size:7.5px;min-height:18px}.op-tile b,.op-tiles.many b{font-size:22px;margin:3px 0 3px}.op-tile .s{font-size:8.5px}",
     ".op-main{gap:0 14px}.op-chips{gap:4px}.op-chip{font-size:10px;padding:2px 8px}.op-g{font-size:8.5px;margin:5px 0 3px}",
-    ".op-sk{display:grid;gap:4px}.op-sk .r{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline;font-size:10.5px;line-height:1.35;padding:3px 0;border-bottom:1px dashed #EFE6C9}",
-    ".op-sk .r b{font-weight:800;color:#111}.op-sk .r span{color:#4a463a}",
+    ".op-sk{display:grid;gap:0}.op-sk .r{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #EFE9DA}.op-sk .r:last-child{border-bottom:0}",
+    ".op-sk .r .n,.op-subs .n{flex:none;width:16px;height:16px;border-radius:50%;background:#FFC800;color:#111;font-size:9px;font-weight:800;display:inline-grid;place-items:center;margin-top:1px}",
+    ".op-sk .r b{display:block;font-size:11px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#111;margin-bottom:2px}.op-sk .op-chip{font-size:9px;padding:1px 7px}.op-sk .op-chips{gap:3px}",
+    ".op-subs{display:grid;gap:6px}.op-subs .c{background:#fff;border:1px solid #ECE7DA;border-radius:9px;padding:5px 7px;min-width:0}",
+    ".op-subs .c b{display:flex;gap:5px;align-items:flex-start;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;line-height:1.2;color:#111}.op-subs .n{width:14px;height:14px;font-size:8px;background:#111;color:#FFC800;margin-top:0}",
+    ".op-subs .c>span{display:block;font-size:8.5px;line-height:1.3;color:#6B675C;margin-top:3px}",
+    ".op-tiles.six b{font-size:20px}.op-tiles.six .op-tile .k{font-size:7px}.op-tiles.six .op-tile{padding:7px 8px 8px}",
+    ".op-strip{display:flex;justify-content:space-between;gap:10px;margin-top:6px;border:1px solid #ECE7DA;border-radius:8px;background:#fff;padding:5px 10px;font-size:10px;color:#2b2818}.op-strip div{min-width:0}",
+    ".op-strip i{font-style:normal;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9a7a1e;margin-right:6px}.op-strip b{font-weight:800}",
     ".op-sub{font-size:10px;line-height:1.45;color:#2b2818;margin:6px 0 0}.op-sub b{font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9a7a1e;margin-right:6px}",
     ".bp-note.gold{background:#fff3c4;border-color:#FFC800}.bp-note.gold .bp-btn{margin-left:auto;flex:none}",
     ".bp-chip.sk small{font-size:10.5px;font-weight:500;color:#8a8576}.bp-chip.sk em{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 6px;background:#FFC800;color:#111}",
@@ -828,13 +867,14 @@
     ".sk-line{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#111;margin:10px 0 4px}",
     ".sk-picked{display:grid;gap:6px;background:#FBF8EF;border:1px solid #EFE6C9;border-radius:12px;padding:10px 12px;margin:8px 0 6px}.sk-picked>div{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.sk-picked .k{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a7a1e;min-width:96px}",
     ".sk-sug{margin-top:10px;background:#fff;border:1px dashed #d9cfae;border-radius:12px;padding:10px 12px}.sk-sug .k{font-size:12px;font-weight:700;color:#111}",
+    ".bp-group.inactive .bp-card{opacity:.62;background:#FAF8F3}.bp-group.inactive .bp-card:hover{opacity:1}.bp-group.inactive h3{color:#8a8576}",
     ".bp-card .act.rp{background:#fff3c4;color:#7a5b00}",
     "@media (max-width:640px){.sk-fam{grid-template-columns:1fr;gap:4px}}",
     ".op-dense{font-size:10px;line-height:1.45;color:#2b2818;margin:0 0 4px}.op-dense b{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8576}",
     ".op ol{font-size:10.5px;line-height:1.4}.op ol.two{columns:2;column-gap:14px}",
-    ".op-terr{padding:8px 10px}.op-map{max-height:104px}.op-terr .tn{font-size:12px}.op-terr .ts{font-size:9.5px;margin-top:2px}",
-    ".op-s4{padding:3px 6px 7px}.op-s4::before{top:15px}.op-s4 .n{width:22px;height:22px;font-size:11px}.op-s4 .t{font-size:9.5px;min-height:22px}",
-    ".op-road svg{height:32px}.op-road .stops{gap:5px;margin-top:2px}.op-road .sp b{font-size:10px}.op-road .sp span{font-size:8.5px;line-height:1.25}",
+    ".op-terr{padding:8px 10px}.op-map{max-height:86px}.op-terr .tn{font-size:12px}.op-terr .ts{font-size:9.5px;margin-top:2px}",
+    ".op-s4{padding:3px 6px 7px}.op-s4::before{top:15px}.op-s4 .n{width:22px;height:22px;font-size:11px}.op-s4 .t{font-size:9.5px;min-height:0}.op-s4 .st{gap:3px}",
+    ".op-road svg{height:28px}.op-road .stops{gap:5px;margin-top:2px}.op-road .sp b{font-size:10px}.op-road .sp span{font-size:8.5px;line-height:1.25}",
     ".op-extra{margin:6px 0 0;font-size:10px}.op-notes{font-size:10.5px}.op-foot{padding:6px 14px;margin-top:8px;font-size:8px}",
 /* BUCKETS_v1: 01 roles and 02 contacts as cards; contacts move under Territory so the page stays one page */
 ".op-main{grid-template-columns:1.1fr 1fr;grid-template-rows:auto 1fr;gap:9px 14px;margin-top:9px;align-items:start}",
@@ -1021,7 +1061,9 @@
     function sec(title, body) { return '<div class="op-sec"><div class="op-hd">' + esc(title) + "</div>" + body + "</div>"; }
     function nsec(n, title, sub, body) { return '<div class="op-sec"><div class="op-nh"><b>0' + n + "</b>" + esc(title) + (sub ? " <em>- " + esc(sub) + "</em>" : "") + "</div>" + body + "</div>"; }
     var kp = clean(d.kpis), goals = [], extra = [];
-    kp.forEach(function (k) { var g = goal(k); if (g) goals.push(g); else extra.push(k); });
+    kp.forEach(function (k) { var g = goal(k); if (g) goals.push(g); else if (!/^\s*references?\b/i.test(k)) extra.push(k); });
+    var ref = refFor(d), strip = d.serviceLine ? '<div class="op-strip"><div><i>Target margin</i><b>' + money(L.direct) + "</b> per hire · <b>" + (L.charge != null ? money(L.charge) : "case by case") + "</b>" + (L.charge != null ? "/wk contract" : " contract") + "</div>" + (ref ? "<div><i>References</i><b>" + esc(ref) + "</b></div>" : "") + "</div>" : "";
+    var lead = d.leader || d.reportsTo || "";
     var tiles = '<div class="op-tile gold"><div class="k">HC expectation</div><b>' + esc(hc === "" ? "—" : hc) + '</b><div class="s">Headcount on assignment</div></div>' +
       goals.map(function (g, i) {
         var pr = per(g.l), lab = g.l.replace(/\s*(\/\s*week|\/\s*wk|per week|a week|\/\s*day|per day|a day)\s*$/i, "").replace(/^(your|active)\s+/i, function (m) { return m; });
@@ -1040,8 +1082,8 @@
       if (dense) return '<div class="op-dense">' + (g.group ? "<b>" + esc(g.group) + "</b>" : "") + g.titles.map(esc).join(" · ") + "</div>";
       return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + '<div class="op-chips">' + g.titles.map(function (t) { return '<span class="op-chip">' + esc(t) + "</span>"; }).join("") + "</div>";
     }).join("");
-    var skHtml = skillsPage(d);
-    var ct = clean(d.contacts);
+    var skHtml = skillsPage(d), subHtml = subPage(d);
+    var ct = clean(d.contacts); if (!ct.length) ct = stdContacts(d.serviceLine);
     var contacts = !ct.length ? empty : "<ol" + (ct.length > 4 ? ' class="two"' : "") + ">" + ct.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ol>";
     var st = clean(d.s4);
     var steps = !st.length ? empty : '<div class="op-s4" style="grid-template-columns:repeat(' + st.length + ',minmax(0,1fr))">' + st.map(function (x, i) {
@@ -1057,25 +1099,46 @@
     var pills = [];
     pills.push('<span class="g">' + esc(d.company || "Spark Companies") + "</span>");
     if (d.territory || (terr && !terr.all)) pills.push("<span>" + esc(d.territory || terr.name) + "</span>");
-    if (d.serviceLine) pills.push("<span>" + esc(d.serviceLine) + (d.secondaryServiceLine ? " + " + esc(d.secondaryServiceLine) : "") + "</span>");
+    if (d.serviceLine) pills.push("<span>" + esc(d.serviceLine) + (d.secondaryServiceLine && d.secondaryServiceLine !== d.serviceLine ? " + " + esc(d.secondaryServiceLine) : "") + "</span>");
     var tl = String(d.title || d.role || ""), sub = [tl, d.serviceLine && tl.toLowerCase().indexOf(String(d.serviceLine).toLowerCase()) < 0 ? d.serviceLine : ""].filter(Boolean);
     return '<div class="op">' +
       '<div class="op-head">' + HEAD_BOLT + '<div class="op-top"><img class="op-logo" alt="' + esc(d.company || "Spark Companies") + '" src="' + logoUrl(d.company, abs, png) + '"><div class="op-tag">One Page Blueprint</div></div>' +
         '<div class="op-name">' + esc(d.name || "Team member") + "</div>" +
         '<div class="op-title">' + esc(tl || "Title") + (d.dhFocused ? " · Direct hire focused" : "") + "</div>" +
-        '<div class="op-hrow"><div class="op-pills">' + pills.join("") + '</div><div class="op-eff"><div class="k">Effective</div><b>' + esc(fmtDate((d.effective || new Date().toISOString().slice(0, 10)) + "T12:00:00")) + "</b>" +
-          (d.serviceLine ? '<div class="t">' + money(L.direct) + " DH target · " + (L.charge != null ? money(L.charge) + "/wk charge" : "charge case by case") + "</div>" : "") + "</div></div></div>" +
+        '<div class="op-hrow"><div class="op-pills">' + pills.join("") + '</div><div class="op-eff">' + (lead ? '<div class="k">Reports to</div><b>' + esc(lead) + '</b><div class="k" style="margin-top:5px">Effective</div>' : '<div class="k">Effective</div>') + "<b>" + esc(fmtDate((d.effective || new Date().toISOString().slice(0, 10)) + "T12:00:00")) + "</b></div></div></div>" +
       '<div class="op-body">' +
-        '<div class="op-tiles' + (goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 5) + ',minmax(0,1fr))">' + tiles + "</div>" +
+        '<div class="op-tiles' + (goals.length >= 5 ? " many six" : goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 6) + ',minmax(0,1fr))">' + tiles + "</div>" +
+        strip +
         (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
-        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "", skHtml + (groups.length ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).slice(0, 8).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + nsec(2, "Target customer contacts", "", contacts) + "</div>" +
+        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "own these", skHtml + (groups.length ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).filter(function (t) { return t.length <= 40; }).slice(0, 4).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + nsec(subHtml ? 3 : 2, "Target customer contacts", clean(d.contacts).length ? "" : "standard", contacts) + "</div>" +
           "<div>" + (terrHtml ? '<div class="op-sec"><div class="op-nh">Territory <em>- ' + esc(terr.all ? "national" : "primary region") + "</em></div>" + terrHtml + "</div>" : "") + "</div></div>" +
-        nsec(3, "S4 process", "work your pipeline in this order", steps) +
-        (roadOf(d).length ? nsec(4, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
+        (subHtml ? nsec(2, "Sub-core skillsets", "work these when your core has no openings in your area", subHtml) : "") +
+        nsec(subHtml ? 4 : 3, "S4 process", "work your pipeline in this order", steps) +
+        (roadOf(d).length ? nsec(subHtml ? 5 : 4, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
         (d.notes ? sec("Notes", '<div class="op-notes">' + esc(d.notes) + "</div>") : "") +
       "</div>" +
-      '<div class="op-foot"><span>' + esc(d.company || "Spark Companies") + (d.reportsTo ? " · Reports to " + esc(d.reportsTo) : "") + "</span><span>Updated " + esc(fmtDate(new Date().toISOString())) + "</span></div>" +
+      '<div class="op-foot"><span>' + esc(d.company || "Spark Companies") + " · One Page Blueprint · " + esc(d.serviceLine || "") + "</span><span>" + esc(d.name || "") + " · Updated " + esc(fmtDate(new Date().toISOString())) + "</span></div>" +
     "</div>";
+  }
+  /* REPRINT_BATCH_v1: every blueprint that changed since its last PDF, one per page, then each is marked printed */
+  function printMany(list) {
+    if (!list.length) return;
+    var css = CSS.split("\n").filter(function (r) { return r.indexOf(".op") === 0; }).join("\n");
+    var html = '<!doctype html><html><head><meta charset="utf-8"><title>Blueprints to reprint</title><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">' +
+      "<style>@page{size:letter;margin:.4in}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + css + ".op{box-shadow:none;border-radius:0;width:7.7in;margin:0 auto}.pg{break-after:page}.pg:last-child{break-after:auto}</style></head><body>" +
+      list.map(function (b) { return '<div class="pg">' + onePager(b.data || {}, true) + "</div>"; }).join("") +
+      "<script>function fit(){document.querySelectorAll('.op').forEach(function(o){var max=10.15*96,h=o.getBoundingClientRect().height;if(h>max)o.style.zoom=(max/h).toFixed(3);});}<\/script></body></html>";
+    var w = window.open("", "_blank");
+    if (!w) { flash("Your browser blocked the print window. Allow pop-ups for HQ and try again."); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    w.onload = function () { setTimeout(function () { try { w.fit(); } catch (e) {} w.focus(); w.print(); }, 500); };
+    var at = new Date().toISOString();
+    list.reduce(function (p, b) {
+      return p.then(function () {
+        var d = clone(b.data || {}); d.printedAt = at; d.printedSig = printSig(d);
+        return api("POST", "/blueprints", { id: b.id, status: b.status, data: d }).then(function (r) { var i = S.list.indexOf(b); if (i >= 0 && r.blueprint) S.list[i] = r.blueprint; }).catch(function () {});
+      });
+    }, Promise.resolve()).then(function () { flash("Marked " + list.length + " as printed."); });
   }
   function exportDoc(kind) {
     var d = S.cur; if (!d) return;
@@ -1123,9 +1186,12 @@
       '<div class="bp-tabs"><button data-act="view" data-v="list" class="' + (S.view !== "rules" ? "on" : "") + '">' + ic("users") + "Blueprints</button>" +
       '<button data-act="view" data-v="rules" class="' + (S.view === "rules" ? "on" : "") + '">' + ic("sliders") + "Rules</button></div></div>";
   }
+  /* INACTIVE_v1: linked to a 365 account that's gone or disabled, or marked inactive by hand. These sit in their own section and stay out of every count. */
+  function isInactive(b) { var d = (b && b.data) || {}; if (d.inactive) return true; var sy = sync(d); return !!(sy && sy.state === "left"); }
   function counts() {
-    var c = { all: S.list.length, published: 0, attention: 0 };
-    S.list.forEach(function (b) { if (b.status === "published") c.published++; if (needsAttention(b)) c.attention++; });
+    var A = S.list.filter(function (b) { return !isInactive(b); });
+    var c = { all: A.length, published: 0, attention: 0, inactive: S.list.length - A.length };
+    A.forEach(function (b) { if (b.status === "published") c.published++; if (needsAttention(b)) c.attention++; });
     var have = {}; S.list.forEach(function (b) { have[String(b.name).toLowerCase()] = 1; });
     var hasEmail = {}; S.list.forEach(function (b) { var e = b.data && b.data.email; if (e) hasEmail[String(e).toLowerCase()] = 1; var p = personFor(b.data || {}); if (p) hasEmail[p.email] = 1; });
     if (DIR) c.missingList = DIR.list.filter(function (p) { return PRODUCER.test(p.title) && !NOT_PRODUCER.test(p.title) && !hasEmail[p.email] && !have[p.name.toLowerCase()]; })
@@ -1133,8 +1199,8 @@
     else c.missingList = ((S.rules && S.rules.roster) || []).filter(function (r) { return !have[r.name.toLowerCase()]; });
     c.missing = c.missingList.length;
     c.sync = 0; c.blank = 0; c.reprint = 0; c.kit = 0;
-    S.list.forEach(function (b) { if (needsReprint(b)) c.reprint++; if (b.data && b.data.kitNote) c.kit++; });
-    S.list.forEach(function (b) { var sy = sync(b.data || {}); if (sy && (sy.state !== "ok" || sy.issues.length)) c.sync++; if (sy && sy.state === "ok" && (sy.blankTitle || sy.blankMgr)) c.blank++; });
+    A.forEach(function (b) { if (needsReprint(b)) c.reprint++; if (b.data && b.data.kitNote) c.kit++; });
+    A.forEach(function (b) { var sy = sync(b.data || {}); if (sy && (sy.state !== "ok" || sy.issues.length)) c.sync++; if (sy && sy.state === "ok" && (sy.blankTitle || sy.blankMgr)) c.blank++; });
     return c;
   }
   function initials(n) { var p = String(n || "?").trim().split(/\s+/); return ((p[0] || "")[0] || "?").toUpperCase() + ((p.length > 1 ? p[p.length - 1][0] : "") || "").toUpperCase(); }
@@ -1142,9 +1208,10 @@
   function statusDot(b) { var cls = needsAttention(b) ? "warn" : b.status === "published" ? "pub" : b.status === "draft" ? "draft" : ""; return '<span class="bp-dot ' + cls + '" title="' + (cls === "warn" ? "Needs attention" : cls === "pub" ? "Published" : cls === "draft" ? "Draft" : "Imported") + '"></span>'; }
   function listView() {
     var c = counts();
-    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (c.reprint ? stat("reprint", c.reprint, "need a reprint") : "") + (c.kit ? stat("kit", c.kit, "changed by Fletcher's update") : "") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + "</div>";
+    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (c.reprint ? stat("reprint", c.reprint, "need a reprint") : "") + (c.kit ? stat("kit", c.kit, "changed by Fletcher's update") : "") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + (c.inactive ? stat("inactive", c.inactive, "inactive") : "") + "</div>";
     if (DIR && c.blank) h += '<div class="bp-note">' + ic("alert") + "<div>" + c.blank + " blueprint" + (c.blank === 1 ? " belongs" : "s belong") + " to people with no title or manager in Microsoft 365, so those can't be checked. Fill them in on the Directory tab and the check picks them up.</div></div>";
     h += '<div class="bp-bar"><div class="bp-search">' + ic("search") + '<input data-k="q" data-act="q" placeholder="Search name, title, service line, territory" value="' + esc(S.q) + '"></div>' +
+      (c.reprint ? '<button class="bp-btn" data-act="printreprint">' + ic("print") + "Print the " + c.reprint + " that need a reprint</button>" : "") +
       '<button class="bp-btn gold" data-act="new">' + ic("plus") + "New blueprint</button></div>";
     var q = S.q.trim().toLowerCase();
     if (S.filter === "missing") {
@@ -1155,6 +1222,8 @@
       }).join("") + "</div>";
     }
     var items = S.list.filter(function (b) {
+      if (S.filter === "inactive" && !isInactive(b)) return false;
+      if (S.filter !== "all" && S.filter !== "inactive" && isInactive(b)) return false;
       if (S.filter === "published" && b.status !== "published") return false;
       if (S.filter === "attention" && !needsAttention(b)) return false;
       if (S.filter === "reprint" && !needsReprint(b)) return false;
@@ -1166,13 +1235,14 @@
     });
     h += '<div class="bp-legend"><span><i class="bp-dot pub"></i>Published</span><span><i class="bp-dot draft"></i>Draft</span><span><i class="bp-dot"></i>Imported</span><span><i class="bp-dot warn"></i>Needs attention</span><span>Avatar color = territory</span></div>';
     if (!items.length) return h + '<div class="bp-empty">No blueprints match.</div>';
-    var by = {};
-    items.forEach(function (b) { var k = (b.data && b.data.serviceLine) || "No service line yet"; (by[k] = by[k] || []).push(b); });
+    var by = {}, gone = items.filter(isInactive);
+    items.filter(function (b) { return !isInactive(b); }).forEach(function (b) { var k = (b.data && b.data.serviceLine) || "No service line yet"; (by[k] = by[k] || []).push(b); });
     var order = ((S.rules && S.rules.serviceLines) || []).map(function (l) { return l.name; }).concat(["No service line yet"]);
     order.forEach(function (k) {
       if (!by[k]) return;
       h += '<div class="bp-group"><h3>' + esc(k) + "<span>" + by[k].length + '</span></h3><div class="bp-grid">' + by[k].map(card).join("") + "</div></div>";
     });
+    if (gone.length) h += '<div class="bp-group inactive"><h3>Inactive blueprints<span>' + gone.length + '</span></h3><div class="bp-hint" style="margin:-4px 0 10px">Not active in Microsoft 365 anymore, or marked inactive. Kept for the record; they don\'t count anywhere else. Delete one from inside it if you don\'t need it.</div><div class="bp-grid">' + gone.map(card).join("") + "</div></div>";
     return h;
   }
   function stat(key, n, label) { return '<button class="bp-stat ' + (S.filter === key ? "on" : "") + '" data-act="filter" data-f="' + key + '"><b>' + n + "</b>" + esc(label) + "</button>"; }
@@ -1216,13 +1286,15 @@
     // 1 team member
     var sy = sync(d), m365 = "";
     if (DIR && sy) {
-      if (sy.state === "left") m365 = '<div class="bp-flag">' + ic("alert") + "<div><b>Not in Microsoft 365 anymore.</b> " + esc(d.email) + " is gone or disabled. If they've left, delete this blueprint.</div></div>";
+      if (sy.state === "left") m365 = '<div class="bp-flag">' + ic("alert") + "<div><b>Inactive: not in Microsoft 365 anymore.</b> " + esc(d.email) + " is gone or disabled, so this blueprint is in Inactive blueprints. It moves back on its own if the account comes back.</div></div>";
       else if (sy.state === "nomatch") m365 = '<div class="bp-flag">' + ic("alert") + '<div><b>No Microsoft 365 match for this name.</b> Pick their account so title and manager stay in sync.</div><select data-f="email" style="margin-left:auto;max-width:220px;font:13px Outfit,Inter,sans-serif;padding:6px 8px;border:1px solid #e0c4bd;border-radius:8px">' +
         opts(DIR.list.map(function (p) { return { v: p.email, l: p.name + (p.title ? " · " + p.title : "") }; }), "", "Link to…") + "</select></div>";
       else if (sy.issues.length) m365 = '<div class="bp-flag" style="flex-wrap:wrap">' + ic("alert") + "<div style=\"flex:1 1 260px\"><b>Out of sync with Microsoft 365.</b>" + sy.issues.map(function (x) { return '<div style="margin-top:4px">' + esc(x.label) + ": blueprint says <b>" + esc(x.mine) + "</b>, 365 says <b>" + esc(x.theirs) + '</b> <button class="bp-btn sm" data-act="use365" data-f="' + x.f + '">Use 365</button></div>'; }).join("") +
         '<div class="bp-hint" style="margin-top:6px">If 365 is the one that\'s wrong, fix it on the Directory tab.</div></div>' + (sy.issues.length > 1 ? '<button class="bp-btn sm" data-act="use365all">Use all</button>' : "") + "</div>";
       else m365 = '<div class="bp-hint ok" style="margin:0 0 12px">' + ic("check") + "Matches Microsoft 365 (" + esc(sy.p.email) + ")" + (sy.blankMgr ? " · no manager set in 365" : "") + (sy.blankTitle ? " · no title set in 365" : "") + "</div>";
     }
+    if (d.inactive) m365 = '<div class="bp-note">' + ic("users") + '<div><b>Marked inactive.</b> This blueprint is in Inactive blueprints.</div><button class="bp-btn sm" style="margin-left:auto" data-act="setactive">Make active</button></div>' + m365;
+    else if (!(sy && sy.state === "left")) m365 += '<div style="text-align:right;margin:-4px 0 8px"><button class="bp-btn sm ghost" data-act="setinactive" title="Use when they\'ve left but are still in 365, or never had an account">Mark inactive</button></div>';
     h += '<div class="bp-sec">' + secH(1, "Team member") + m365 + '<div class="bp-f">' +
       '<label class="full">Name<input data-k="name" data-f="name" list="bpRoster" value="' + esc(d.name) + '" placeholder="Start typing a name from Microsoft 365"></label>' +
       '<datalist id="bpRoster">' + (DIR ? DIR.list.map(function (p) { return '<option value="' + esc(p.name) + '">' + esc(p.title) + "</option>"; }) : (R.roster || []).map(function (r) { return '<option value="' + esc(r.name) + '">' + esc(r.title) + "</option>"; })).join("") + "</datalist>" +
@@ -1277,6 +1349,8 @@
     // 6 contacts
     var sug = []; S.list.forEach(function (b) { var x = b.data || {}; if (x.serviceLine === d.serviceLine) (x.contacts || []).forEach(function (c) { if (sug.indexOf(c) < 0 && (d.contacts || []).indexOf(c) < 0) sug.push(c); }); });
     h += '<div class="bp-sec">' + secH(6, "Target customer contacts") + listEditor("contacts", d.contacts, "Add a contact title", true);
+    var sc = stdContacts(d.serviceLine);
+    if (!(d.contacts || []).length && sc.length) h += '<div class="bp-hint">None set, so the page shows the standard for ' + esc(d.serviceLine) + ": " + sc.map(esc).join(", ") + '.<button class="bp-btn sm" data-act="stdcontacts">' + ic("plus") + "Start from these</button></div>";
     if (sug.length) h += '<div class="bp-hint">Used on other ' + esc(d.serviceLine) + ' blueprints</div><div class="bp-chips" style="margin-top:6px">' + sug.slice(0, 8).map(function (c) { return '<button class="bp-chip sug" data-act="addsug" data-t="' + esc(c) + '">' + ic("plus") + esc(c) + "</button>"; }).join("") + "</div>";
     h += "</div>";
     // 7 s4 + notes
@@ -1318,7 +1392,7 @@
     S.msg = "Standards added to the rules. Review, then Save rules.";
   }
   function bulkStarts() {
-    var todo = S.list.filter(function (b) { return startsGap(b.data || {}); });
+    var todo = S.list.filter(function (b) { return !isInactive(b) && startsGap(b.data || {}); });
     if (!todo.length) return;
     if (!window.confirm("Add the weekly starts goal to " + todo.length + " blueprints? Each one keeps its other goals and its status.")) return;
     S.saving = true; var done = 0, failed = 0; render();
@@ -1334,7 +1408,7 @@
     if (!S.rulesLine) S.rulesLine = R.serviceLines[0].name;
     if (!S.rulesRole) S.rulesRole = R.roles[0];
     var h = '<div class="bp-note" style="margin-top:0">' + ic("sliders") + "<div>These rules drive every blueprint: targets and headcount per service line, standard KPIs per role, and each service line's title library. Changing a rule doesn't rewrite saved blueprints; it changes what the builder fills in next time. Seeded from " + esc(R.source || "Fletcher's workbooks") + "." + (S.rulesAt ? " Last saved " + esc(fmtDate(S.rulesAt)) + " by " + esc(S.rulesBy) + "." : "") + "</div></div>";
-    var gaps = S.list.filter(function (b) { return startsGap(b.data || {}); });
+    var gaps = S.list.filter(function (b) { return !isInactive(b) && startsGap(b.data || {}); });
     h += '<div class="bp-sec"><h4>Oct 26 leadership standards</h4><div class="bp-hint" style="margin-top:0">7 starts a week for Light Industrial, build/pipe/wire and data center. Skilled Trades stays at 2 starts with a $400 margin. Skilled Trades and technical roles need one reference; Light Industrial needs a contact name and tries the most relevant reference first.</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="bp-btn sm" data-act="oct26rules">' + ic("sliders") + "Put these in the rules</button>" +
       (gaps.length ? '<button class="bp-btn sm gold" data-act="oct26bulk"' + (S.saving ? " disabled" : "") + ">" + ic("plus") + "Add the starts goal to " + gaps.length + " blueprint" + (gaps.length === 1 ? "" : "s") + "</button>" : '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint has its starts goal</span>") + "</div></div>";
@@ -1460,6 +1534,11 @@
       case "sksug": var sc = t.getAttribute("data-c"); if (coreOf(d).indexOf(sc) < 0 && subOf(d).indexOf(sc) < 0) { cycleSkill(d, sc); touch(); } break;
       case "skpull": loadSug(emailFor(d)); break;
       case "kitok": delete d.kitNote; touch(); break;
+      case "stdcontacts": d.contacts = stdContacts(d.serviceLine); touch(); break;
+      case "kitgoals": S.kitGoals = !S.kitGoals; render(); break;
+      case "printreprint": printMany(S.list.filter(function (b) { return !isInactive(b) && needsReprint(b); })); break;
+      case "setinactive": d.inactive = true; touch(); break;
+      case "setactive": delete d.inactive; touch(); break;
       case "kitskills": S.rulesDraft.skills = clone(KIT.skills); S.rulesDraft.skillsSource = KIT.source; S.msg = "Skillsets added. Save rules to keep them."; render(); break;
       case "kitapply": applyKit(); break;
       case "skline": S.skLine = t.getAttribute("data-s"); render(); break;
@@ -1548,6 +1627,7 @@
   function onChange(e) {
     var t = e.target, f = t.getAttribute("data-f");
     /* Text inputs update state on every keystroke (onInput); re-rendering on blur would swallow the click that caused it. */
+    if (t.getAttribute("data-act") === "kitgoals") { S.kitGoals = t.checked; render(); return; }
     if (t.getAttribute("data-act") === "skmap" && S.rulesDraft) { if (t.value) { S.rulesDraft.skillMap = S.rulesDraft.skillMap || {}; S.rulesDraft.skillMap[t.getAttribute("data-n")] = t.value; render(); } return; }
     if (t.getAttribute("data-act") === "roadtag" && S.cur) { if (!Array.isArray(S.cur.road)) S.cur.road = stdRoad(); S.cur.road[+t.getAttribute("data-i")].tag = t.value; S.dirty = true; render(); return; }
     if (!f || !S.cur || (t.tagName !== "SELECT" && t.type !== "checkbox")) return;
