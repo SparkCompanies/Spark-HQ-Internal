@@ -5532,6 +5532,14 @@ var worker_default = {
            "bpats__Account__r.Subdivision__c", "CreatedDate", "LastModifiedDate"],
           "bpats__Job__c", "CreatedDate = THIS_YEAR", "CreatedDate DESC");
 
+        // Activities for the last 14 days: pre-screens are Tasks/Events whose Type (or Subject) says Pre-Screen
+        const tasks = await safeQuery(
+          ["Id", "Type", "Subject", "Status", "ActivityDate", "CreatedDate", "OwnerId", "Owner.Name", "WhatId", "What.Name", "What.Type", "WhoId", "Who.Name"],
+          "Task", "ActivityDate = LAST_N_DAYS:14 OR CreatedDate = LAST_N_DAYS:14", null);
+        const events = await safeQuery(
+          ["Id", "Type", "Subject", "ActivityDate", "StartDateTime", "CreatedDate", "OwnerId", "Owner.Name", "WhatId", "What.Name", "What.Type", "WhoId", "Who.Name"],
+          "Event", "ActivityDate = LAST_N_DAYS:14 OR CreatedDate = LAST_N_DAYS:14", null);
+
         const payload = {
           ok: true,
           asOf: new Date().toISOString(),
@@ -5540,11 +5548,14 @@ var worker_default = {
           applicants: apps.records,
           placements: pls.records,
           ytdJobs: ytd.records,
+          activities: (tasks.records || []).map(function(t) { t._kind = "Task"; return t; }).concat((events.records || []).map(function(e) { e._kind = "Event"; return e; })),
           diag: {
             jobs: { n: jobs.records.length, dropped: jobs.dropped, error: jobs.error || null },
             applicants: { n: apps.records.length, dropped: apps.dropped, error: apps.error || null },
             placements: { n: pls.records.length, dropped: pls.dropped, error: pls.error || null },
-            ytdJobs: { n: ytd.records.length, dropped: ytd.dropped, error: ytd.error || null }
+            ytdJobs: { n: ytd.records.length, dropped: ytd.dropped, error: ytd.error || null },
+            tasks: { n: tasks.records.length, dropped: tasks.dropped, error: tasks.error || null },
+            events: { n: events.records.length, dropped: events.dropped, error: events.error || null }
           }
         };
         // Never cache a Salesforce failure
