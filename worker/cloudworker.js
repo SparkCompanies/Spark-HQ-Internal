@@ -5511,7 +5511,7 @@ var worker_default = {
           "bpats__Job__c", "bpats__Status__c = 'Open'", "CreatedDate DESC");
 
         const apps = await safeQuery(
-          ["Id", "bpats__Job__c", "Stage_name__c", "bpats__Stage__r.Name", "bpats__Stage__r.bpats__Stage_Type__c",
+          ["Id", "bpats__Job__c", "bpats__Candidate__c", "bpats__Applicant_Name__c", "Stage_name__c", "bpats__Stage__r.Name", "bpats__Stage__r.bpats__Stage_Type__c",
            "bpats__Applicant_Status__c", "bpats__Days_in_Current_Stage__c", "bpats__Current_Stage_Date__c", "bpats__Initial_Application_Date__c", "bpats__Recruited_By__r.Name",
            "CreatedDate", "LastModifiedDate"],
           "bpats__ATS_Applicant__c", "bpats__Job__r.bpats__Status__c = 'Open'", null);
@@ -5520,10 +5520,17 @@ var worker_default = {
         const pls = await safeQuery(
           ["Id", "Status__c", "bpats__Start_Date__c", "Terminated_Date__c", "Termination_Reason__c", "bpats__Estimated_End_Date__c", "bpats__ATS_Job__c",
            "bpats__ATS_Job__r.Subdivision__c", "bpats__ATS_Job__r.Job_Classification__c", "bpats__ATS_Job__r.Job_Subclassification__c",
-           "bpats__ATS_Job__r.bpats__Location__c", "bpats__ATS_Job__r.bpats__Job_Title__c", "bpats__ATS_Job__r.Division__c", "bpats__Account__r.Name", "bpats__Account__r.Subdivision__c", "bpats__ATS_Candidate__r.Name"],
+           "bpats__ATS_Job__r.bpats__Location__c", "bpats__ATS_Job__r.bpats__Job_Title__c", "bpats__ATS_Job__r.Division__c", "bpats__ATS_Job__r.Recruiter__r.Name", "bpats__ATS_Job__r.Account_Manager__r.Name", "bpats__Account__r.Name", "bpats__Account__r.Subdivision__c", "bpats__ATS_Candidate__r.Name"],
           "bpats__Placement__c",
           "Status__c = 'Active' OR Status__c = 'Pending Start' OR Terminated_Date__c = LAST_N_DAYS:90 OR bpats__Start_Date__c = LAST_N_DAYS:90 OR bpats__Start_Date__c = NEXT_N_DAYS:30",
           null);
+
+        // Every req opened this year, open or closed: Fulfillment Data (fill rate, wash/loss) and Skill Market history
+        const ytd = await safeQuery(
+          ["Id", "Name", "bpats__Job_Title__c", "bpats__Account_Name__c", "bpats__Status__c", "Close_Reason__c", "Subdivision__c", "Job_Classification__c", "Job_Subclassification__c",
+           "bpats__Number_of_Openings__c", "bpats__Openings_Filled__c", "Recruiter__r.Name", "Account_Manager__r.Name", "Division__c", "bpats__Location__c",
+           "bpats__Account__r.Subdivision__c", "CreatedDate", "LastModifiedDate"],
+          "bpats__Job__c", "CreatedDate = THIS_YEAR", "CreatedDate DESC");
 
         const payload = {
           ok: true,
@@ -5532,10 +5539,12 @@ var worker_default = {
           jobs: jobs.records,
           applicants: apps.records,
           placements: pls.records,
+          ytdJobs: ytd.records,
           diag: {
             jobs: { n: jobs.records.length, dropped: jobs.dropped, error: jobs.error || null },
             applicants: { n: apps.records.length, dropped: apps.dropped, error: apps.error || null },
-            placements: { n: pls.records.length, dropped: pls.dropped, error: pls.error || null }
+            placements: { n: pls.records.length, dropped: pls.dropped, error: pls.error || null },
+            ytdJobs: { n: ytd.records.length, dropped: ytd.dropped, error: ytd.error || null }
           }
         };
         // Never cache a Salesforce failure
@@ -5563,6 +5572,13 @@ var worker_default = {
       }
     }
 
+    if (url.pathname === "/pi-me") {
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const adm = await verifyAdmin(request, env);
+      return json({ ok: true, email: who.email, role: adm.ok ? (adm.role || "admin") : (adm.role || "member"), admin: !!adm.ok }, 200, origin);
+    }
+
     if (url.pathname === "/pi-state-save" && request.method === "POST") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -5570,6 +5586,11 @@ var worker_default = {
         const body = await request.json();
         const key = String(body.key || "").trim().slice(0, 120);
         if (!key || typeof body.value === "undefined") return json({ error: "key and value required" }, 400, origin);
+        // Shared configuration (targets, region map) is admin-only; focus picks are open to every signed-in user.
+        if (!/^focus:/.test(key)) {
+          const adm = await verifyAdmin(request, env);
+          if (!adm.ok) return json({ error: "Only admins can change " + key }, 403, origin);
+        }
         const row = { key, value: body.value, updated_at: new Date().toISOString(), updated_by: who.email };
         const up = await sbService(env, "POST", "pi_board_state?on_conflict=key", [row]);
         if (!up.ok) return json({ error: "state save failed: " + JSON.stringify(up.data).slice(0, 200) }, 502, origin);
@@ -11596,12 +11617,38 @@ var worker_default = {
     if (cron === "0 12 * * 1-5") { ctx.waitUntil(whosOutDigest(env).catch(function(e) { console.error("whos-out digest failed", e && e.message); })); }
     // GREETINGS_v1: daily 9am ET birthday / anniversary send ("0 13 * * *")
     if (cron === "0 13 * * *") { ctx.waitUntil(greetingsRun(env, {}).catch(function(e) { console.error("greetings cron failed", e && e.message); })); }
+    // PLUGIN_BOARD_v1: daily headcount snapshot into pi_board_state (key hc_history) for the 14-day outlook and sparklines
+    if (cron === "0 13 * * *") { ctx.waitUntil(piHcSnapshot(env).catch(function(e) { console.error("pi hc snapshot failed", e && e.message); })); }
     // SRLEAD_v7: every 30 minutes, route new Teams recordings of Sr Leadership meetings into the hub
     if (cron === "*/30 * * * *") { ctx.waitUntil(srleadRecordingSweep(env).catch(function(e) { console.error("srlead sweep failed", e && e.message); })); }
     if (cron === "*/30 * * * *") { ctx.waitUntil(hdRun(env, {}).catch(function(e) { console.error("hired-direct cron failed", e && e.message); })); }
     if (!cron || cron === "0 12 * * 4") { ctx.waitUntil(weeklySalesScheduled({ env, sbService, xeroTokenExchange, runSalesforceQueryAll, runSalesforceQuery }).catch(function(e) { console.error("weekly-sales cron failed", e && e.message); })); }
   }
 };
+// PLUGIN_BOARD_v1: one row per day of active headcount and open balance, grouped the way the board groups them
+async function piHcSnapshot(env) {
+  const day = new Date().toISOString().slice(0, 10);
+  const pl = await runSalesforceQueryAll(env, "SELECT bpats__ATS_Job__r.Subdivision__c, bpats__ATS_Job__r.Job_Classification__c, bpats__ATS_Job__r.Job_Subclassification__c, bpats__ATS_Job__r.bpats__Job_Title__c, bpats__ATS_Job__r.bpats__Location__c, bpats__Account__r.Subdivision__c FROM bpats__Placement__c WHERE Status__c = 'Active'");
+  const jobs = await runSalesforceQueryAll(env, "SELECT Subdivision__c, Job_Classification__c, Job_Subclassification__c, bpats__Job_Title__c, bpats__Location__c, bpats__Number_of_Openings__c, bpats__Openings_Filled__c, bpats__Account__r.Subdivision__c FROM bpats__Job__c WHERE bpats__Status__c = 'Open'");
+  if (!pl.ok || !jobs.ok) throw new Error("snapshot query failed: " + (pl.error || jobs.error));
+  const dc = /data\s*cent(er|re)/i, tn = /nashville|franklin|murfreesboro|smyrna|la ?vergne|lebanon|clarksville|chattanooga|knoxville|memphis|\bTN\b|tennessee/i;
+  const bucket = function(j, a) {
+    j = j || {}; a = a || {};
+    return { bu: j.Subdivision__c || "", abu: a.Subdivision__c || "", dc: dc.test([j.Job_Classification__c, j.Job_Subclassification__c, j.bpats__Job_Title__c].join(" ")), tn: tn.test(j.bpats__Location__c || "") };
+  };
+  const hc = {}, open = {};
+  const keyOf = function(b) { return (b.dc ? "DC|" : "") + (b.bu || ("acct:" + b.abu)) + (b.tn ? "|TN" : ""); };
+  (pl.records || []).forEach(function(r) { const k = keyOf(bucket(r.bpats__ATS_Job__r, r.bpats__Account__r)); hc[k] = (hc[k] || 0) + 1; });
+  (jobs.records || []).forEach(function(r) { const k = keyOf(bucket(r, r.bpats__Account__r)); const bal = Math.max(0, (+r.bpats__Number_of_Openings__c || 0) - (+r.bpats__Openings_Filled__c || 0)); open[k] = (open[k] || 0) + bal; });
+  const cur = await sbService(env, "GET", "pi_board_state?select=value&key=eq.hc_history");
+  let hist = (cur.ok && cur.data && cur.data[0] && Array.isArray(cur.data[0].value)) ? cur.data[0].value : [];
+  hist = hist.filter(function(r) { return r && r.day !== day; });
+  hist.push({ day, hc, open, total: (pl.records || []).length });
+  hist = hist.slice(-200);
+  await sbService(env, "POST", "pi_board_state?on_conflict=key", [{ key: "hc_history", value: hist, updated_at: new Date().toISOString(), updated_by: "cron" }]);
+  return hist.length;
+}
+__name(piHcSnapshot, "piHcSnapshot");
 export {
   worker_default as default
 };
