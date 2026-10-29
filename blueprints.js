@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.5 (metric rings, S4 stepper, daily road) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.6 (header pills + top tiles) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -263,6 +263,23 @@
     ".op-nh b{background:#FFC800;color:#111;border-radius:4px;padding:2px 6px;font-size:10px;letter-spacing:.04em}",
     ".op-nh em{font-style:normal;color:#9a7a1e}",
     ".op-nh::after{content:'';flex:1;height:1px;background:#EFE6C9}",
+    ".op-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}",
+    ".op-tile{background:#fff;border:1px solid #ECE7DA;border-radius:12px;padding:10px 12px 11px;box-shadow:0 8px 18px -16px rgba(20,18,10,.5);min-width:0}",
+    ".op-tile .k{font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a7a1e;font-weight:800;line-height:1.25;min-height:21px}",
+    ".op-tile b{display:block;font-size:30px;font-weight:800;line-height:1;letter-spacing:-.03em;color:#111;margin:4px 0 5px}",
+    ".op-tile .s{font-size:9.5px;line-height:1.3;color:#6B675C}",
+    ".op-tile.gold{background:#FFC800;border-color:#FFC800}.op-tile.gold .k{color:#111}.op-tile.gold .s{color:#3d3200}",
+    ".op-hrow{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:10px}",
+    ".op-pills{display:flex;flex-wrap:wrap;gap:5px}",
+    ".op-pills span{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.35);color:#f1f1f6}",
+    ".op-pills span.g{background:#FFC800;border-color:#FFC800;color:#111}",
+    ".op-eff{text-align:right;flex:none}",
+    ".op-eff .k{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:#FFC800;font-weight:800}",
+    ".op-eff b{display:block;font-size:12px;font-weight:700;color:#fff;margin-top:2px}",
+    ".op-eff .t{font-size:9.5px;color:#b9b9c8;margin-top:3px;white-space:nowrap}",
+    ".op-main{display:grid;grid-template-columns:1.15fr 1fr;gap:0 16px}",
+    ".op-terr.v{grid-template-columns:1fr;gap:8px;margin-top:0}.op-terr.v .tk{display:none}",
+    ".op-tiles.many b{font-size:25px}.op-tiles.many .op-tile{padding:9px 10px 10px}",
     ".op-rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;text-align:center}",
     ".op-ring{display:flex;flex-direction:column;align-items:center;gap:5px}",
     ".op-ring .c{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:#fff;border:3px solid #FFC800;box-shadow:0 0 0 3px #FFF6D6;font-size:16px;font-weight:800;color:#111;letter-spacing:-.02em}",
@@ -452,7 +469,7 @@
         return '<div class="sp"><b>' + esc(st.time) + (st.tag ? "<i>" + esc(st.tag) + "</i>" : "") + "</b><span>" + esc(st.text) + "</span></div>";
       }).join("") + "</div></div>";
   }
-  function per(label) { return /\b(a|per|\/)\s*day\b|daily/i.test(label) ? "Day" : /\b(a|per|\/)\s*week\b|weekly|\/\s*wk/i.test(label) ? "Week" : ""; }
+  function per(label) { return /(\ba|\bper|\/)\s*day\b|daily/i.test(label) ? "Day" : /(\ba|\bper|\/)\s*week\b|weekly|\/\s*wk/i.test(label) ? "Week" : ""; }
   function onePager(d, abs, png) {
     var L = line(d.serviceLine) || {};
     var hc = d.hc !== "" && d.hc != null ? d.hc : (L.hc != null ? L.hc : "");
@@ -463,6 +480,13 @@
     function nsec(n, title, sub, body) { return '<div class="op-sec"><div class="op-nh"><b>0' + n + "</b>" + esc(title) + (sub ? " <em>- " + esc(sub) + "</em>" : "") + "</div>" + body + "</div>"; }
     var kp = clean(d.kpis), goals = [], extra = [];
     kp.forEach(function (k) { var g = goal(k); if (g) goals.push(g); else extra.push(k); });
+    var tiles = '<div class="op-tile gold"><div class="k">HC expectation</div><b>' + esc(hc === "" ? "—" : hc) + '</b><div class="s">Headcount on assignment</div></div>' +
+      goals.map(function (g, i) {
+        var pr = per(g.l), lab = g.l.replace(/\s*(\/\s*week|\/\s*wk|per week|a week|\/\s*day|per day|a day)\s*$/i, "").replace(/^(your|active)\s+/i, function (m) { return m; });
+        var orig = kp[kp.indexOf(kp.filter(function (k) { var x = goal(k); return x && x.n === g.n && x.l === g.l; })[0])] || "";
+        var desc = (/^\s*(always\s+)?(maintain|minimum)/i.test(orig) ? "Minimum " : "") + lab.toLowerCase();
+        return '<div class="op-tile"><div class="k">' + esc(lab) + (pr ? " / " + pr : "") + "</div><b>" + esc(g.n) + '</b><div class="s">' + esc(desc.charAt(0).toUpperCase() + desc.slice(1)) + "</div></div>";
+      }).join("");
     var kpiHtml = !kp.length ? empty :
       (goals.length ? '<div class="op-rings">' + goals.map(function (g) {
         var pr = per(g.l), lab = g.l.replace(/\s*(\/\s*week|\/\s*wk|per week|a week|\/\s*day|per day|a day)\s*$/i, "");
@@ -481,23 +505,26 @@
       return '<div class="st"><div class="n">' + (i + 1) + '</div><div class="t">' + esc(m ? m[1] : x) + "</div>" + (tags.length ? '<div class="tags">' + tags.join("") + "</div>" : "") + "</div>";
     }).join("") + "</div>";
     var terr = terrFor(d), map = mapSvg(terr);
-    var terrHtml = !terr ? "" : '<div class="op-terr">' + (map || "<div></div>") +
+    var terrHtml = !terr ? "" : '<div class="op-terr v">' + (map || "") +
       '<div><div class="tk">Territory</div><div class="tn"><i style="background:' + esc(terr.all ? "#FFC800" : terr.color) + '"></i>' + esc(terr.name) + "</div>" +
         (d.territory ? '<div class="ts"><b>' + esc(d.territory) + "</b></div>" : "") +
         '<div class="ts">' + esc(coverage(terr)) + "</div></div></div>";
+    var pills = [];
+    pills.push('<span class="g">' + esc(d.company || "Spark Companies") + "</span>");
+    if (d.territory || (terr && !terr.all)) pills.push("<span>" + esc(d.territory || terr.name) + "</span>");
+    if (d.serviceLine) pills.push("<span>" + esc(d.serviceLine) + (d.secondaryServiceLine ? " + " + esc(d.secondaryServiceLine) : "") + "</span>");
     var tl = String(d.title || d.role || ""), sub = [tl, d.serviceLine && tl.toLowerCase().indexOf(String(d.serviceLine).toLowerCase()) < 0 ? d.serviceLine : ""].filter(Boolean);
     return '<div class="op">' +
       '<div class="op-head"><div class="op-top"><img class="op-logo" alt="' + esc(d.company || "Spark Companies") + '" src="' + logoUrl(d.company, abs, png) + '"><div class="op-tag">One Page Blueprint</div></div>' +
         '<div class="op-name">' + esc(d.name || "Team member") + "</div>" +
-        '<div class="op-title">' + esc(sub.join(" · ") || "Title") + (d.secondaryServiceLine ? " + " + esc(d.secondaryServiceLine) : "") + (d.dhFocused ? " · Direct hire focused" : "") + "</div></div>" +
+        '<div class="op-title">' + esc(tl || "Title") + (d.dhFocused ? " · Direct hire focused" : "") + "</div>" +
+        '<div class="op-hrow"><div class="op-pills">' + pills.join("") + '</div><div class="op-eff"><div class="k">Effective</div><b>' + esc(fmtDate((d.effective || new Date().toISOString().slice(0, 10)) + "T12:00:00")) + "</b>" +
+          (d.serviceLine ? '<div class="t">' + money(L.direct) + " DH target · " + (L.charge != null ? money(L.charge) + "/wk charge" : "charge case by case") + "</div>" : "") + "</div></div></div>" +
       '<div class="op-body">' +
-        '<div class="op-nums"><div class="op-num"><b>' + esc(hc === "" ? "—" : hc) + "</b><span>Headcount</span></div>" +
-          '<div class="op-num"><b>' + money(L.direct) + "</b><span>Direct hire target</span></div>" +
-          '<div class="op-num"><b>' + (L.charge != null ? money(L.charge) : "Case by case") + "</b><span>Weekly charge</span></div></div>" +
-        terrHtml +
-        nsec(1, "Weekly goals", "hit these every week", kpiHtml) +
-        '<div class="op-sec"><div class="op-nh"><b>02</b>Who you work <em>- titles and buyers</em></div><div class="op-cols"><div><div class="op-hd">' + esc(d.rolesHeading || "Focused Roles") + "</div>" + roles + "</div>" +
-          '<div><div class="op-hd">Target customer contacts</div>' + contacts + "</div></div></div>" +
+        '<div class="op-tiles' + (goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 5) + ',minmax(0,1fr))">' + tiles + "</div>" +
+        (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
+        '<div class="op-main"><div>' + nsec(1, d.rolesHeading || "Top job titles", "", roles) + nsec(2, "Target customer contacts", "", contacts) + "</div>" +
+          "<div>" + (terrHtml ? '<div class="op-sec"><div class="op-nh">Territory <em>- ' + esc(terr.all ? "national" : "primary region") + "</em></div>" + terrHtml + "</div>" : "") + "</div></div>" +
         nsec(3, "S4 process", "work your pipeline in this order", steps) +
         (roadOf(d).length ? nsec(4, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
         (d.notes ? sec("Notes", '<div class="op-notes">' + esc(d.notes) + "</div>") : "") +
@@ -642,6 +669,7 @@
       '<label>Title<input data-k="title" data-f="title" value="' + esc(d.title) + '"></label>' +
       '<label>Role<select data-f="role">' + opts(roles, d.role) + "</select></label>" +
       '<label>Reports to<input data-k="reportsTo" data-f="reportsTo" value="' + esc(d.reportsTo) + '"></label>' +
+      '<label>Effective date<input type="date" data-k="effective" data-f="effective" value="' + esc(d.effective || "") + '"></label>' +
       "</div></div>";
     // 2 territory
     var guess = guessTerr(d), T = terrs();
