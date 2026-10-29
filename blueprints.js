@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.3 (cleaner pages + territory map) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.4 (Microsoft 365 sync) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -73,7 +73,64 @@
       rolesHeading: "Focused Roles", notes: "", flags: [] };
   }
   function allTitles(d) { var o = []; (d.titleGroups || []).forEach(function (g) { (g.titles || []).forEach(function (t) { o.push(t); }); }); return o; }
-  function needsAttention(b) { var d = b.data || {}; return (d.flags && d.flags.length) || !allTitles(d).length || !d.serviceLine; }
+  function needsAttention(b) { var d = b.data || {}; var sy = sync(d); return !!((d.flags && d.flags.length) || !allTitles(d).length || !d.serviceLine || (sy && sy.state !== "ok") || (sy && sy.issues.length)); }
+
+  /* ---------- Microsoft 365 (same /directory feed as the HQ Directory tab) ----------
+     365 owns name, title, company and manager. The blueprint keeps service line, territory, goals and titles. */
+  var DIR = null;
+  function loadDir() {
+    return token().then(function (tk) { return fetch(WORKER + "/directory", { headers: { Authorization: "Bearer " + tk } }); })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !Array.isArray(j.people)) return;
+        var byId = {}, byEmail = {};
+        j.people.forEach(function (p) { byId[p.id] = p; byEmail[p.email] = p; });
+        j.people.forEach(function (p) { p.manager = p.managerId && byId[p.managerId] ? byId[p.managerId].name : ""; });
+        DIR = { list: j.people.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }), byId: byId, byEmail: byEmail };
+      }).catch(function () {});
+  }
+  function normN(s) { return String(s || "").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
+  var NICK = { sam: "samantha", jake: "jacob", chris: "christopher", nick: "nicholas", ben: "benjamin", alex: "alexander", matt: "matthew", mike: "michael", dan: "daniel", kate: "katherine" };
+  function personFor(d) {
+    if (!DIR || !d) return null;
+    var em = String(d.email || "").toLowerCase();
+    if (em) return DIR.byEmail[em] || null;
+    var n = normN(d.name); if (!n) return null;
+    var exact = DIR.list.filter(function (p) { return normN(p.name) === n; });
+    if (exact.length === 1) return exact[0];
+    var parts = n.split(" "), first = parts[0], last = parts[parts.length - 1];
+    var fuzzy = DIR.list.filter(function (p) {
+      var q = normN(p.name).split(" "), pf = q[0], pl = q[q.length - 1];
+      if (pl !== last) return false;
+      return pf === first || pf.indexOf(first) === 0 || first.indexOf(pf) === 0 || NICK[first] === pf || NICK[pf] === first;
+    });
+    return fuzzy.length === 1 ? fuzzy[0] : null;
+  }
+  /* null = can't check yet; state: ok | left (had a 365 email that's gone) | nomatch (no 365 account found by name) */
+  function sync(d) {
+    if (!DIR || !d || !String(d.name || "").trim()) return null;
+    var p = personFor(d);
+    if (!p) return { state: d.email ? "left" : "nomatch", issues: [] };
+    var iss = [];
+    if (p.title && normN(p.title) !== normN(d.title)) iss.push({ f: "title", label: "Title", mine: d.title || "(blank)", theirs: p.title });
+    if (p.manager && normN(p.manager) !== normN(d.reportsTo)) iss.push({ f: "reportsTo", label: "Reports to", mine: d.reportsTo || "(blank)", theirs: p.manager });
+    return { state: "ok", p: p, issues: iss, blankTitle: !p.title, blankMgr: !p.manager };
+  }
+  function companyFor(p) {
+    var dom = String(p.email || "").split("@")[1] || "";
+    if (dom === "ignitesearch.com") return "Ignite";
+    if (dom === "flexworkforceco.com") return "Flex";
+    if (dom === "johnjosephpartners.com") return "JJP";
+    if (dom === "sparktalentinc.com") return "Spark Talent Acquisition";
+    return "Spark Companies";
+  }
+  function applyDir(d, p, fresh) {
+    d.email = p.email; d.name = p.name;
+    if (p.title) d.title = p.title;
+    if (p.manager) d.reportsTo = p.manager;
+    if (fresh) d.company = companyFor(p);
+  }
+  var PRODUCER = /recruit|account recruiting|account executive|account manager|sales|business development/i, NOT_PRODUCER = /internal recruiter|\bvp\b|vice president|president|chief|\bceo\b|\bcro\b|\bcoo\b|payroll|human resources|\bhr\b/i;
 
   var I = {
     plus: "M12 5v14M5 12h14", back: "M15 18l-6-6 6-6", search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5",
@@ -437,8 +494,13 @@
     var c = { all: S.list.length, published: 0, attention: 0 };
     S.list.forEach(function (b) { if (b.status === "published") c.published++; if (needsAttention(b)) c.attention++; });
     var have = {}; S.list.forEach(function (b) { have[String(b.name).toLowerCase()] = 1; });
-    c.missingList = ((S.rules && S.rules.roster) || []).filter(function (r) { return !have[r.name.toLowerCase()]; });
+    var hasEmail = {}; S.list.forEach(function (b) { var e = b.data && b.data.email; if (e) hasEmail[String(e).toLowerCase()] = 1; var p = personFor(b.data || {}); if (p) hasEmail[p.email] = 1; });
+    if (DIR) c.missingList = DIR.list.filter(function (p) { return PRODUCER.test(p.title) && !NOT_PRODUCER.test(p.title) && !hasEmail[p.email] && !have[p.name.toLowerCase()]; })
+      .map(function (p) { var r = rosterFor(p.name) || {}; return { name: p.name, email: p.email, title: p.title, serviceLine: r.serviceLine || "", from365: true }; });
+    else c.missingList = ((S.rules && S.rules.roster) || []).filter(function (r) { return !have[r.name.toLowerCase()]; });
     c.missing = c.missingList.length;
+    c.sync = 0; c.blank = 0;
+    S.list.forEach(function (b) { var sy = sync(b.data || {}); if (sy && (sy.state !== "ok" || sy.issues.length)) c.sync++; if (sy && sy.state === "ok" && (sy.blankTitle || sy.blankMgr)) c.blank++; });
     return c;
   }
   function initials(n) { var p = String(n || "?").trim().split(/\s+/); return ((p[0] || "")[0] || "?").toUpperCase() + ((p.length > 1 ? p[p.length - 1][0] : "") || "").toUpperCase(); }
@@ -446,20 +508,22 @@
   function statusDot(b) { var cls = needsAttention(b) ? "warn" : b.status === "published" ? "pub" : b.status === "draft" ? "draft" : ""; return '<span class="bp-dot ' + cls + '" title="' + (cls === "warn" ? "Needs attention" : cls === "pub" ? "Published" : cls === "draft" ? "Draft" : "Imported") + '"></span>'; }
   function listView() {
     var c = counts();
-    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + stat("missing", c.missing, "on roster without one") + "</div>";
+    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + "</div>";
+    if (DIR && c.blank) h += '<div class="bp-note">' + ic("alert") + "<div>" + c.blank + " blueprint" + (c.blank === 1 ? " belongs" : "s belong") + " to people with no title or manager in Microsoft 365, so those can't be checked. Fill them in on the Directory tab and the check picks them up.</div></div>";
     h += '<div class="bp-bar"><div class="bp-search">' + ic("search") + '<input data-k="q" data-act="q" placeholder="Search name, title, service line, territory" value="' + esc(S.q) + '"></div>' +
       '<button class="bp-btn gold" data-act="new">' + ic("plus") + "New blueprint</button></div>";
     var q = S.q.trim().toLowerCase();
     if (S.filter === "missing") {
       var m = c.missingList.filter(function (r) { return !q || (r.name + " " + r.title + " " + r.serviceLine).toLowerCase().indexOf(q) >= 0; });
-      if (!m.length) return h + '<div class="bp-empty">Everyone on the roster has a blueprint.</div>';
+      if (!m.length) return h + '<div class="bp-empty">Every producer has a blueprint.</div>';
       return h + '<div class="bp-grid">' + m.map(function (r) {
-        return '<button class="bp-card ghostcard" data-act="newfor" data-name="' + esc(r.name) + '"><span class="bp-av">' + ic("plus") + '</span><span class="tx"><div class="nm">' + esc(r.name) + '</div><div class="sub">' + esc(r.title) + " · " + esc(r.serviceLine) + "</div></span></button>";
+        return '<button class="bp-card ghostcard" data-act="newfor" data-name="' + esc(r.name) + '" data-email="' + esc(r.email || "") + '"><span class="bp-av">' + ic("plus") + '</span><span class="tx"><div class="nm">' + esc(r.name) + '</div><div class="sub">' + esc([r.title, r.serviceLine].filter(Boolean).join(" · ")) + "</div></span></button>";
       }).join("") + "</div>";
     }
     var items = S.list.filter(function (b) {
       if (S.filter === "published" && b.status !== "published") return false;
       if (S.filter === "attention" && !needsAttention(b)) return false;
+      if (S.filter === "sync") { var sy = sync(b.data || {}); if (!sy || (sy.state === "ok" && !sy.issues.length)) return false; }
       if (!q) return true;
       var d = b.data || {}, t = terrFor(d);
       return [b.name, d.title, d.serviceLine, d.secondaryServiceLine, d.territory, d.region, d.reportsTo, t && t.name].join(" ").toLowerCase().indexOf(q) >= 0;
@@ -503,9 +567,18 @@
     h += '<div class="bp-ed"><div>';
     (d.flags || []).forEach(function (f, i) { h += '<div class="bp-flag">' + ic("alert") + "<div>" + esc(f) + '</div><button class="bp-btn sm" data-act="unflag" data-i="' + i + '">Resolved</button></div>'; });
     // 1 team member
-    h += '<div class="bp-sec">' + secH(1, "Team member") + '<div class="bp-f">' +
-      '<label class="full">Name<input data-k="name" data-f="name" list="bpRoster" value="' + esc(d.name) + '" placeholder="Start typing a name from the roster"></label>' +
-      '<datalist id="bpRoster">' + (R.roster || []).map(function (r) { return '<option value="' + esc(r.name) + '">' + esc(r.title) + "</option>"; }).join("") + "</datalist>" +
+    var sy = sync(d), m365 = "";
+    if (DIR && sy) {
+      if (sy.state === "left") m365 = '<div class="bp-flag">' + ic("alert") + "<div><b>Not in Microsoft 365 anymore.</b> " + esc(d.email) + " is gone or disabled. If they've left, delete this blueprint.</div></div>";
+      else if (sy.state === "nomatch") m365 = '<div class="bp-flag">' + ic("alert") + '<div><b>No Microsoft 365 match for this name.</b> Pick their account so title and manager stay in sync.</div><select data-f="email" style="margin-left:auto;max-width:220px;font:13px Outfit,Inter,sans-serif;padding:6px 8px;border:1px solid #e0c4bd;border-radius:8px">' +
+        opts(DIR.list.map(function (p) { return { v: p.email, l: p.name + (p.title ? " · " + p.title : "") }; }), "", "Link to…") + "</select></div>";
+      else if (sy.issues.length) m365 = '<div class="bp-flag" style="flex-wrap:wrap">' + ic("alert") + "<div style=\"flex:1 1 260px\"><b>Out of sync with Microsoft 365.</b>" + sy.issues.map(function (x) { return '<div style="margin-top:4px">' + esc(x.label) + ": blueprint says <b>" + esc(x.mine) + "</b>, 365 says <b>" + esc(x.theirs) + '</b> <button class="bp-btn sm" data-act="use365" data-f="' + x.f + '">Use 365</button></div>'; }).join("") +
+        '<div class="bp-hint" style="margin-top:6px">If 365 is the one that\'s wrong, fix it on the Directory tab.</div></div>' + (sy.issues.length > 1 ? '<button class="bp-btn sm" data-act="use365all">Use all</button>' : "") + "</div>";
+      else m365 = '<div class="bp-hint ok" style="margin:0 0 12px">' + ic("check") + "Matches Microsoft 365 (" + esc(sy.p.email) + ")" + (sy.blankMgr ? " · no manager set in 365" : "") + (sy.blankTitle ? " · no title set in 365" : "") + "</div>";
+    }
+    h += '<div class="bp-sec">' + secH(1, "Team member") + m365 + '<div class="bp-f">' +
+      '<label class="full">Name<input data-k="name" data-f="name" list="bpRoster" value="' + esc(d.name) + '" placeholder="Start typing a name from Microsoft 365"></label>' +
+      '<datalist id="bpRoster">' + (DIR ? DIR.list.map(function (p) { return '<option value="' + esc(p.name) + '">' + esc(p.title) + "</option>"; }) : (R.roster || []).map(function (r) { return '<option value="' + esc(r.name) + '">' + esc(r.title) + "</option>"; })).join("") + "</datalist>" +
       '<label>Company<select data-f="company">' + opts(companies, d.company) + "</select></label>" +
       '<label>Title<input data-k="title" data-f="title" value="' + esc(d.title) + '"></label>' +
       '<label>Role<select data-f="role">' + opts(roles, d.role) + "</select></label>" +
@@ -619,9 +692,9 @@
     ["kpis", "s4", "contacts", "flags"].forEach(function (k) { if (!Array.isArray(S.cur[k])) S.cur[k] = []; });
     S.cur.name = S.cur.name || b.name; S.activeGroup = 0; S.libQ = ""; S.libAll = false; S.libBoth = false; S.dirty = false; S.msg = ""; S.view = "edit"; render(); scrollTop();
   }
-  function startNew(name) {
+  function startNew(name, email) {
     S.cur = blank(); S.curId = null; S.curStatus = "draft"; S.activeGroup = 0; S.libQ = ""; S.libAll = false; S.libBoth = false; S.msg = ""; S.view = "edit";
-    if (name) { S.cur.name = name; applyRoster(name, true); }
+    if (name) { S.cur.name = name; applyRoster(name, true); if (email) S.cur.email = email; var p = personFor(S.cur); if (p) applyDir(S.cur, p, true); }
     S.dirty = !!name; render(); scrollTop();
   }
   function applyRoster(name, fresh) {
@@ -639,6 +712,7 @@
     if (!String(d.name || "").trim()) { flash("Add the team member's name first."); return; }
     if (status === "published" && !d.serviceLine) { flash("Pick a service line before publishing."); return; }
     d.titleGroups = (d.titleGroups || []).filter(function (g, i) { return i === 0 || (g.titles && g.titles.length) || g.group; });
+    var pm = personFor(d); if (pm && !d.email) d.email = pm.email;  /* lock the 365 link in once it's matched */
     S.saving = true; S.msg = "Saving…"; render();
     api("POST", "/blueprints", { id: S.curId || undefined, status: status, data: d }).then(function (r) {
       var b = r.blueprint || {};
@@ -659,7 +733,9 @@
         S.view = t.getAttribute("data-v"); S.cur = null; S.dirty = false; S.msg = ""; render(); break;
       case "filter": S.filter = S.filter === t.getAttribute("data-f") ? "all" : t.getAttribute("data-f"); render(); break;
       case "new": startNew(""); break;
-      case "newfor": startNew(t.getAttribute("data-name")); break;
+      case "newfor": startNew(t.getAttribute("data-name"), t.getAttribute("data-email")); break;
+      case "use365": var sy1 = sync(d); (sy1 && sy1.issues || []).forEach(function (x) { if (x.f === t.getAttribute("data-f")) d[x.f] = x.theirs; }); if (sy1 && sy1.p) d.email = sy1.p.email; touch(); break;
+      case "use365all": var sy2 = sync(d); if (sy2 && sy2.p) applyDir(d, sy2.p, false); touch(); break;
       case "open": var b = S.list.filter(function (x) { return x.id === t.getAttribute("data-id"); })[0]; if (b) openBlueprint(b); break;
       case "back": if (!confirmLeave()) return; S.view = "list"; S.cur = null; S.dirty = false; render(); scrollTop(); break;
       case "unflag": d.flags.splice(+t.getAttribute("data-i"), 1); touch(); break;
@@ -731,7 +807,12 @@
     if (act === "libq") { S.libQ = t.value; render(); return; }
     if (f && S.cur && t.type !== "checkbox" && t.tagName !== "SELECT") {
       S.cur[f] = t.value; S.dirty = true;
-      if (f === "name" && rosterFor(t.value) && !S.curId) { applyRoster(t.value, !S.cur.kpis.length); render(); return; }
+      if (f === "name" && !S.curId) {
+        var hitR = rosterFor(t.value) && applyRoster(t.value, !S.cur.kpis.length);
+        var hitD = DIR && DIR.list.filter(function (p) { return normN(p.name) === normN(t.value); })[0];
+        if (hitD) applyDir(S.cur, hitD, true);
+        if (hitR || hitD) { render(); return; }
+      }
       renderSoft(); return;
     }
     if (act === "li") { S.cur[t.getAttribute("data-l")][+t.getAttribute("data-i")] = t.value; S.dirty = true; renderSoft(); return; }
@@ -834,6 +915,7 @@
         if (S.denied) return;
         injectCss(); mountTab(); fromHash();
         loadGeo().then(render);
+        loadDir().then(render);
         window.addEventListener("hashchange", fromHash);
         window.hqBlueprints = { open: openTab, reload: function () { return load().then(render); } };
       });
