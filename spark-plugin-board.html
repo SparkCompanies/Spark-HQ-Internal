@@ -254,6 +254,8 @@ table.sup.wide{table-layout:fixed}
 table.sup.wide th:nth-child(2),table.sup.wide th:nth-child(3),table.sup.wide th:nth-child(4),table.sup.wide th:nth-child(5){width:7%}
 table.sup.wide th:nth-child(6){width:16%}
 body.tv .tscroll{max-height:70vh}
+/* live mode: no explanatory copy on tables (titles and data only) */
+.panel .ph .note,.panel .foot,.main .foot,.sc .foot{display:none !important}
 </style>
 </head>
 <body>
@@ -795,7 +797,7 @@ function vHome() {
     ${tile('score', 'Avg req score · open book', `${c.avgScore}`, `${pct(low, c.open.length)}% of open reqs score < 40 (kill or fix)`)}
   </section>`;
   h += `<div class="rcards">` + TOP_REGIONS.map(k => regionCard(k)).join('') + `</div>`;
-  if (S.noRegion) h += `<p class="foot" style="color:var(--red);font-size:12.5px;margin-top:12px">${S.noRegion} open reqs have no region yet (${S.units.filter(u => !regionMap().bu[u.name]).map(u => u.name).join(', ')}). ${S.admin ? 'Fix in Region map.' : 'An admin can fix this in Region map.'}</p>`;
+  if (S.noRegion) h += `<p class="alert-line" style="color:var(--red);font-size:12.5px;margin-top:12px">${S.noRegion} open reqs have no region yet (${S.units.filter(u => !regionMap().bu[u.name]).map(u => u.name).join(', ')}). ${S.admin ? 'Fix in Region map.' : 'An admin can fix this in Region map.'}</p>`;
   return h;
 }
 function regionCard(k) {
