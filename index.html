@@ -14502,14 +14502,14 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
       desc: 'Most things. Can manage content, view analytics, no system config.',
       who: 'Team Leads · Directors · Entity Presidents',
       adminTabs: ['knowledge'] /* SPARK_ROLE_LOCK_v1: managers keep agent knowledge; switcher/demo panes removed */,
-      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','piboard','weeklysales','match','training','standard','careers','people','tools','brand','leadership','admin']
+      navItems: ['home','jarvis','salesforce','finance','headcount','sparkline','boards','terrmap','chargecc','weeklysales','match','training','standard','careers','people','tools','brand','leadership','admin']
     },
     member: {
       label: 'MEMBER', icon: '○', builtin: true,
       desc: 'The day-to-day view. Training, tools, documents, career paths.',
       who: 'Recruiters · Coordinators · Most of the team',
       adminTabs: [] /* SPARK_ROLE_LOCK_v1: members get no Admin tab */,
-      navItems: ['home','command','people','leadership','terrmap','chargecc','piboard','training','standard','careers','brand' /* BRAND_HUB_v1 */]
+      navItems: ['home','command','people','leadership','terrmap','chargecc','training','standard','careers','brand' /* BRAND_HUB_v1 */]
     }
   };
   let ROLE_PERMISSIONS = (function() {
@@ -14552,7 +14552,9 @@ You are part of "Jarvis" — Spark's internal AI assistant. Respond concisely an
           }
         });
         /* PLUGIN_BOARD_v1 — saved role sets predate the Plugin Board tab, so add it for everyone (after Charge Report) or it stays hidden behind hide-for-role */
-        Object.keys(merged).forEach(function(k){ var ni = merged[k].navItems; if (Array.isArray(ni) && ni.indexOf('piboard') === -1) { var ci = ni.indexOf('chargecc'); if (ci !== -1) ni.splice(ci + 1, 0, 'piboard'); else ni.push('piboard'); } });
+        /* PLUGIN_BOARD_v1.1 — ADMIN-ONLY while the board is being built: super_admin gets the tab, every other role has it removed. Flip PI_BOARD_ADMIN_ONLY to false to open it up. */
+        var PI_BOARD_ADMIN_ONLY = true;
+        Object.keys(merged).forEach(function(k){ var ni = merged[k].navItems; if (!Array.isArray(ni)) return; var allowed = !PI_BOARD_ADMIN_ONLY || k === 'super_admin'; var ix = ni.indexOf('piboard'); if (allowed && ix === -1) { var ci = ni.indexOf('chargecc'); if (ci !== -1) ni.splice(ci + 1, 0, 'piboard'); else ni.push('piboard'); } if (!allowed && ix !== -1) ni.splice(ix, 1); });
         // vMatch — ensure Spark Match nav exists in saved sets
         Object.keys(merged).forEach(function(k){
           var ni = merged[k].navItems;
