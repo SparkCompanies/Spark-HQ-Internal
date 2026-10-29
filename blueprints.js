@@ -828,6 +828,7 @@
     ".sk-line{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#111;margin:10px 0 4px}",
     ".sk-picked{display:grid;gap:6px;background:#FBF8EF;border:1px solid #EFE6C9;border-radius:12px;padding:10px 12px;margin:8px 0 6px}.sk-picked>div{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.sk-picked .k{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a7a1e;min-width:96px}",
     ".sk-sug{margin-top:10px;background:#fff;border:1px dashed #d9cfae;border-radius:12px;padding:10px 12px}.sk-sug .k{font-size:12px;font-weight:700;color:#111}",
+    ".bp-group.inactive .bp-card{opacity:.62;background:#FAF8F3}.bp-group.inactive .bp-card:hover{opacity:1}.bp-group.inactive h3{color:#8a8576}",
     ".bp-card .act.rp{background:#fff3c4;color:#7a5b00}",
     "@media (max-width:640px){.sk-fam{grid-template-columns:1fr;gap:4px}}",
     ".op-dense{font-size:10px;line-height:1.45;color:#2b2818;margin:0 0 4px}.op-dense b{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8576}",
@@ -1123,9 +1124,12 @@
       '<div class="bp-tabs"><button data-act="view" data-v="list" class="' + (S.view !== "rules" ? "on" : "") + '">' + ic("users") + "Blueprints</button>" +
       '<button data-act="view" data-v="rules" class="' + (S.view === "rules" ? "on" : "") + '">' + ic("sliders") + "Rules</button></div></div>";
   }
+  /* INACTIVE_v1: linked to a 365 account that's gone or disabled, or marked inactive by hand. These sit in their own section and stay out of every count. */
+  function isInactive(b) { var d = (b && b.data) || {}; if (d.inactive) return true; var sy = sync(d); return !!(sy && sy.state === "left"); }
   function counts() {
-    var c = { all: S.list.length, published: 0, attention: 0 };
-    S.list.forEach(function (b) { if (b.status === "published") c.published++; if (needsAttention(b)) c.attention++; });
+    var A = S.list.filter(function (b) { return !isInactive(b); });
+    var c = { all: A.length, published: 0, attention: 0, inactive: S.list.length - A.length };
+    A.forEach(function (b) { if (b.status === "published") c.published++; if (needsAttention(b)) c.attention++; });
     var have = {}; S.list.forEach(function (b) { have[String(b.name).toLowerCase()] = 1; });
     var hasEmail = {}; S.list.forEach(function (b) { var e = b.data && b.data.email; if (e) hasEmail[String(e).toLowerCase()] = 1; var p = personFor(b.data || {}); if (p) hasEmail[p.email] = 1; });
     if (DIR) c.missingList = DIR.list.filter(function (p) { return PRODUCER.test(p.title) && !NOT_PRODUCER.test(p.title) && !hasEmail[p.email] && !have[p.name.toLowerCase()]; })
@@ -1133,8 +1137,8 @@
     else c.missingList = ((S.rules && S.rules.roster) || []).filter(function (r) { return !have[r.name.toLowerCase()]; });
     c.missing = c.missingList.length;
     c.sync = 0; c.blank = 0; c.reprint = 0; c.kit = 0;
-    S.list.forEach(function (b) { if (needsReprint(b)) c.reprint++; if (b.data && b.data.kitNote) c.kit++; });
-    S.list.forEach(function (b) { var sy = sync(b.data || {}); if (sy && (sy.state !== "ok" || sy.issues.length)) c.sync++; if (sy && sy.state === "ok" && (sy.blankTitle || sy.blankMgr)) c.blank++; });
+    A.forEach(function (b) { if (needsReprint(b)) c.reprint++; if (b.data && b.data.kitNote) c.kit++; });
+    A.forEach(function (b) { var sy = sync(b.data || {}); if (sy && (sy.state !== "ok" || sy.issues.length)) c.sync++; if (sy && sy.state === "ok" && (sy.blankTitle || sy.blankMgr)) c.blank++; });
     return c;
   }
   function initials(n) { var p = String(n || "?").trim().split(/\s+/); return ((p[0] || "")[0] || "?").toUpperCase() + ((p.length > 1 ? p[p.length - 1][0] : "") || "").toUpperCase(); }
@@ -1142,7 +1146,7 @@
   function statusDot(b) { var cls = needsAttention(b) ? "warn" : b.status === "published" ? "pub" : b.status === "draft" ? "draft" : ""; return '<span class="bp-dot ' + cls + '" title="' + (cls === "warn" ? "Needs attention" : cls === "pub" ? "Published" : cls === "draft" ? "Draft" : "Imported") + '"></span>'; }
   function listView() {
     var c = counts();
-    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (c.reprint ? stat("reprint", c.reprint, "need a reprint") : "") + (c.kit ? stat("kit", c.kit, "changed by Fletcher's update") : "") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + "</div>";
+    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (c.reprint ? stat("reprint", c.reprint, "need a reprint") : "") + (c.kit ? stat("kit", c.kit, "changed by Fletcher's update") : "") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + (c.inactive ? stat("inactive", c.inactive, "inactive") : "") + "</div>";
     if (DIR && c.blank) h += '<div class="bp-note">' + ic("alert") + "<div>" + c.blank + " blueprint" + (c.blank === 1 ? " belongs" : "s belong") + " to people with no title or manager in Microsoft 365, so those can't be checked. Fill them in on the Directory tab and the check picks them up.</div></div>";
     h += '<div class="bp-bar"><div class="bp-search">' + ic("search") + '<input data-k="q" data-act="q" placeholder="Search name, title, service line, territory" value="' + esc(S.q) + '"></div>' +
       '<button class="bp-btn gold" data-act="new">' + ic("plus") + "New blueprint</button></div>";
@@ -1155,6 +1159,8 @@
       }).join("") + "</div>";
     }
     var items = S.list.filter(function (b) {
+      if (S.filter === "inactive" && !isInactive(b)) return false;
+      if (S.filter !== "all" && S.filter !== "inactive" && isInactive(b)) return false;
       if (S.filter === "published" && b.status !== "published") return false;
       if (S.filter === "attention" && !needsAttention(b)) return false;
       if (S.filter === "reprint" && !needsReprint(b)) return false;
@@ -1166,13 +1172,14 @@
     });
     h += '<div class="bp-legend"><span><i class="bp-dot pub"></i>Published</span><span><i class="bp-dot draft"></i>Draft</span><span><i class="bp-dot"></i>Imported</span><span><i class="bp-dot warn"></i>Needs attention</span><span>Avatar color = territory</span></div>';
     if (!items.length) return h + '<div class="bp-empty">No blueprints match.</div>';
-    var by = {};
-    items.forEach(function (b) { var k = (b.data && b.data.serviceLine) || "No service line yet"; (by[k] = by[k] || []).push(b); });
+    var by = {}, gone = items.filter(isInactive);
+    items.filter(function (b) { return !isInactive(b); }).forEach(function (b) { var k = (b.data && b.data.serviceLine) || "No service line yet"; (by[k] = by[k] || []).push(b); });
     var order = ((S.rules && S.rules.serviceLines) || []).map(function (l) { return l.name; }).concat(["No service line yet"]);
     order.forEach(function (k) {
       if (!by[k]) return;
       h += '<div class="bp-group"><h3>' + esc(k) + "<span>" + by[k].length + '</span></h3><div class="bp-grid">' + by[k].map(card).join("") + "</div></div>";
     });
+    if (gone.length) h += '<div class="bp-group inactive"><h3>Inactive blueprints<span>' + gone.length + '</span></h3><div class="bp-hint" style="margin:-4px 0 10px">Not active in Microsoft 365 anymore, or marked inactive. Kept for the record; they don\'t count anywhere else. Delete one from inside it if you don\'t need it.</div><div class="bp-grid">' + gone.map(card).join("") + "</div></div>";
     return h;
   }
   function stat(key, n, label) { return '<button class="bp-stat ' + (S.filter === key ? "on" : "") + '" data-act="filter" data-f="' + key + '"><b>' + n + "</b>" + esc(label) + "</button>"; }
@@ -1216,13 +1223,15 @@
     // 1 team member
     var sy = sync(d), m365 = "";
     if (DIR && sy) {
-      if (sy.state === "left") m365 = '<div class="bp-flag">' + ic("alert") + "<div><b>Not in Microsoft 365 anymore.</b> " + esc(d.email) + " is gone or disabled. If they've left, delete this blueprint.</div></div>";
+      if (sy.state === "left") m365 = '<div class="bp-flag">' + ic("alert") + "<div><b>Inactive: not in Microsoft 365 anymore.</b> " + esc(d.email) + " is gone or disabled, so this blueprint is in Inactive blueprints. It moves back on its own if the account comes back.</div></div>";
       else if (sy.state === "nomatch") m365 = '<div class="bp-flag">' + ic("alert") + '<div><b>No Microsoft 365 match for this name.</b> Pick their account so title and manager stay in sync.</div><select data-f="email" style="margin-left:auto;max-width:220px;font:13px Outfit,Inter,sans-serif;padding:6px 8px;border:1px solid #e0c4bd;border-radius:8px">' +
         opts(DIR.list.map(function (p) { return { v: p.email, l: p.name + (p.title ? " · " + p.title : "") }; }), "", "Link to…") + "</select></div>";
       else if (sy.issues.length) m365 = '<div class="bp-flag" style="flex-wrap:wrap">' + ic("alert") + "<div style=\"flex:1 1 260px\"><b>Out of sync with Microsoft 365.</b>" + sy.issues.map(function (x) { return '<div style="margin-top:4px">' + esc(x.label) + ": blueprint says <b>" + esc(x.mine) + "</b>, 365 says <b>" + esc(x.theirs) + '</b> <button class="bp-btn sm" data-act="use365" data-f="' + x.f + '">Use 365</button></div>'; }).join("") +
         '<div class="bp-hint" style="margin-top:6px">If 365 is the one that\'s wrong, fix it on the Directory tab.</div></div>' + (sy.issues.length > 1 ? '<button class="bp-btn sm" data-act="use365all">Use all</button>' : "") + "</div>";
       else m365 = '<div class="bp-hint ok" style="margin:0 0 12px">' + ic("check") + "Matches Microsoft 365 (" + esc(sy.p.email) + ")" + (sy.blankMgr ? " · no manager set in 365" : "") + (sy.blankTitle ? " · no title set in 365" : "") + "</div>";
     }
+    if (d.inactive) m365 = '<div class="bp-note">' + ic("users") + '<div><b>Marked inactive.</b> This blueprint is in Inactive blueprints.</div><button class="bp-btn sm" style="margin-left:auto" data-act="setactive">Make active</button></div>' + m365;
+    else if (!(sy && sy.state === "left")) m365 += '<div style="text-align:right;margin:-4px 0 8px"><button class="bp-btn sm ghost" data-act="setinactive" title="Use when they\'ve left but are still in 365, or never had an account">Mark inactive</button></div>';
     h += '<div class="bp-sec">' + secH(1, "Team member") + m365 + '<div class="bp-f">' +
       '<label class="full">Name<input data-k="name" data-f="name" list="bpRoster" value="' + esc(d.name) + '" placeholder="Start typing a name from Microsoft 365"></label>' +
       '<datalist id="bpRoster">' + (DIR ? DIR.list.map(function (p) { return '<option value="' + esc(p.name) + '">' + esc(p.title) + "</option>"; }) : (R.roster || []).map(function (r) { return '<option value="' + esc(r.name) + '">' + esc(r.title) + "</option>"; })).join("") + "</datalist>" +
@@ -1318,7 +1327,7 @@
     S.msg = "Standards added to the rules. Review, then Save rules.";
   }
   function bulkStarts() {
-    var todo = S.list.filter(function (b) { return startsGap(b.data || {}); });
+    var todo = S.list.filter(function (b) { return !isInactive(b) && startsGap(b.data || {}); });
     if (!todo.length) return;
     if (!window.confirm("Add the weekly starts goal to " + todo.length + " blueprints? Each one keeps its other goals and its status.")) return;
     S.saving = true; var done = 0, failed = 0; render();
@@ -1334,7 +1343,7 @@
     if (!S.rulesLine) S.rulesLine = R.serviceLines[0].name;
     if (!S.rulesRole) S.rulesRole = R.roles[0];
     var h = '<div class="bp-note" style="margin-top:0">' + ic("sliders") + "<div>These rules drive every blueprint: targets and headcount per service line, standard KPIs per role, and each service line's title library. Changing a rule doesn't rewrite saved blueprints; it changes what the builder fills in next time. Seeded from " + esc(R.source || "Fletcher's workbooks") + "." + (S.rulesAt ? " Last saved " + esc(fmtDate(S.rulesAt)) + " by " + esc(S.rulesBy) + "." : "") + "</div></div>";
-    var gaps = S.list.filter(function (b) { return startsGap(b.data || {}); });
+    var gaps = S.list.filter(function (b) { return !isInactive(b) && startsGap(b.data || {}); });
     h += '<div class="bp-sec"><h4>Oct 26 leadership standards</h4><div class="bp-hint" style="margin-top:0">7 starts a week for Light Industrial, build/pipe/wire and data center. Skilled Trades stays at 2 starts with a $400 margin. Skilled Trades and technical roles need one reference; Light Industrial needs a contact name and tries the most relevant reference first.</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="bp-btn sm" data-act="oct26rules">' + ic("sliders") + "Put these in the rules</button>" +
       (gaps.length ? '<button class="bp-btn sm gold" data-act="oct26bulk"' + (S.saving ? " disabled" : "") + ">" + ic("plus") + "Add the starts goal to " + gaps.length + " blueprint" + (gaps.length === 1 ? "" : "s") + "</button>" : '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint has its starts goal</span>") + "</div></div>";
@@ -1460,6 +1469,8 @@
       case "sksug": var sc = t.getAttribute("data-c"); if (coreOf(d).indexOf(sc) < 0 && subOf(d).indexOf(sc) < 0) { cycleSkill(d, sc); touch(); } break;
       case "skpull": loadSug(emailFor(d)); break;
       case "kitok": delete d.kitNote; touch(); break;
+      case "setinactive": d.inactive = true; touch(); break;
+      case "setactive": delete d.inactive; touch(); break;
       case "kitskills": S.rulesDraft.skills = clone(KIT.skills); S.rulesDraft.skillsSource = KIT.source; S.msg = "Skillsets added. Save rules to keep them."; render(); break;
       case "kitapply": applyKit(); break;
       case "skline": S.skLine = t.getAttribute("data-s"); render(); break;
