@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.4 (Microsoft 365 sync) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.5 (metric rings, S4 stepper, daily road) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -259,6 +259,29 @@
     ".op-terr .ts{font-size:11px;line-height:1.45;color:#5d584a;margin-top:4px}",
     ".op-sec{margin-top:14px}",
     ".op-hd{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:#9a7a1e;font-weight:800;margin:0 0 7px}",
+    ".op-nh{display:flex;align-items:center;gap:8px;margin:0 0 9px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#111}",
+    ".op-nh b{background:#FFC800;color:#111;border-radius:4px;padding:2px 6px;font-size:10px;letter-spacing:.04em}",
+    ".op-nh em{font-style:normal;color:#9a7a1e}",
+    ".op-nh::after{content:'';flex:1;height:1px;background:#EFE6C9}",
+    ".op-rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;text-align:center}",
+    ".op-ring{display:flex;flex-direction:column;align-items:center;gap:5px}",
+    ".op-ring .c{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:#fff;border:3px solid #FFC800;box-shadow:0 0 0 3px #FFF6D6;font-size:16px;font-weight:800;color:#111;letter-spacing:-.02em}",
+    ".op-ring .l{font-size:10.5px;line-height:1.25;color:#2b2818;font-weight:600}",
+    ".op-ring .per{font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#FFC800;background:#111;border-radius:3px;padding:1px 5px}",
+    ".op-s4{display:grid;gap:4px;text-align:center;position:relative;padding:4px 10px 10px;border:1px solid #ECE7DA;border-radius:12px}",
+    ".op-s4::before{content:'';position:absolute;left:8%;right:8%;top:18px;height:2px;background:#EFE6C9}",
+    ".op-s4 .st{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px}",
+    ".op-s4 .n{width:26px;height:26px;border-radius:50%;background:#FFC800;color:#111;font-size:12px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 3px #fff}",
+    ".op-s4 .t{font-size:10px;font-weight:700;line-height:1.2;color:#111;min-height:24px;display:flex;align-items:center}",
+    ".op-s4 .tags{display:flex;gap:3px;flex-wrap:wrap;justify-content:center}",
+    ".op-tag2{font-size:7.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 5px;border-radius:3px;background:#111;color:#FFC800}",
+    ".op-tag2.tools{background:#fff;color:#9a7a1e;border:1px solid #DEBA6F}",
+    ".op-road{position:relative;margin-top:2px}",
+    ".op-road svg{display:block;width:100%;height:46px}",
+    ".op-road .stops{display:grid;gap:6px;margin-top:4px}",
+    ".op-road .sp b{display:block;font-size:11px;font-weight:800;color:#111;white-space:nowrap}",
+    ".op-road .sp b i{font-style:normal;font-size:8px;letter-spacing:.1em;color:#B8912E;margin-left:3px}",
+    ".op-road .sp span{display:block;font-size:9.5px;line-height:1.3;color:#5d584a;margin-top:2px}",
     ".op-goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}",
     ".op-goal{border-left:3px solid #FFC800;padding:2px 0 2px 9px}",
     ".op-goal b{display:block;font-size:19px;font-weight:800;line-height:1;color:#111;letter-spacing:-.02em}",
@@ -401,6 +424,35 @@
     var m = t.match(/^(\$?\d[\d,]*\+?)\s+(.+)$/);
     return m ? { n: m[1], l: m[2].replace(/\s+at all times$/i, "") } : null;
   }
+  /* DAILY ROAD: the producer's day. Standard lives in rules.road; a blueprint can override with its own d.road. */
+  var ROAD_DEFAULT = [
+    { time: "7–9 AM", tag: "", text: "Inbox, job posts and alerts. Renew jobs every 2 days. Build a 25-name call sheet." },
+    { time: "9 AM", tag: "PLUG", text: "Team huddle: activity, movement, commitments, focus." },
+    { time: "9:15–12", tag: "PROD", text: "Work posts and alerts, prospect HMs, InMails, skill-market talent." },
+    { time: "Lunch", tag: "", text: "Recharge. Back on the phones by 1." },
+    { time: "1–4 PM", tag: "PROD", text: "Heavy recruiting: source and submit. ARMs call account HMs." },
+    { time: "4 PM", tag: "PLUG", text: "Team huddle: activity, movement, commitments, focus." },
+    { time: "4:15–5", tag: "PREP", text: "Meetings, sales strategy, client follow-ups, build tomorrow's call list." }
+  ];
+  function stdRoad() { return clone((S.rules && Array.isArray(S.rules.road) && S.rules.road.length) ? S.rules.road : ROAD_DEFAULT); }
+  function roadOf(d) { return Array.isArray(d.road) ? d.road : stdRoad(); }
+  function roadHtml(stops) {
+    var n = stops.length; if (!n) return "";
+    var W = 700, H = 46, mid = 23, amp = 9, pts = [];
+    for (var x = 0; x <= W; x += 10) pts.push(x + "," + (mid + amp * Math.sin(x / W * Math.PI * 2 * 2.5)).toFixed(1));
+    var path = "M" + pts.join("L");
+    var dots = stops.map(function (st, i) {
+      var cx = (i + 0.5) * W / n, cy = mid + amp * Math.sin(cx / W * Math.PI * 2 * 2.5), gold = !st.tag || st.tag === "PLUG";
+      return '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="7" fill="' + (gold ? "#FFC800" : "#9aa0ad") + '" stroke="#fff" stroke-width="2.5"/>';
+    }).join("");
+    return '<div class="op-road"><svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path d="' + path + '" fill="none" stroke="#111219" stroke-width="18" stroke-linecap="round"/>' +
+      '<path d="' + path + '" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="9 8" opacity=".85"/>' + dots + "</svg>" +
+      '<div class="stops" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + stops.map(function (st) {
+        return '<div class="sp"><b>' + esc(st.time) + (st.tag ? "<i>" + esc(st.tag) + "</i>" : "") + "</b><span>" + esc(st.text) + "</span></div>";
+      }).join("") + "</div></div>";
+  }
+  function per(label) { return /\b(a|per|\/)\s*day\b|daily/i.test(label) ? "Day" : /\b(a|per|\/)\s*week\b|weekly|\/\s*wk/i.test(label) ? "Week" : ""; }
   function onePager(d, abs, png) {
     var L = line(d.serviceLine) || {};
     var hc = d.hc !== "" && d.hc != null ? d.hc : (L.hc != null ? L.hc : "");
@@ -408,10 +460,14 @@
     function clean(arr) { return (arr || []).filter(function (x) { return String(x || "").trim(); }); }
     var empty = '<div class="op-empty">Not set yet</div>';
     function sec(title, body) { return '<div class="op-sec"><div class="op-hd">' + esc(title) + "</div>" + body + "</div>"; }
+    function nsec(n, title, sub, body) { return '<div class="op-sec"><div class="op-nh"><b>0' + n + "</b>" + esc(title) + (sub ? " <em>- " + esc(sub) + "</em>" : "") + "</div>" + body + "</div>"; }
     var kp = clean(d.kpis), goals = [], extra = [];
     kp.forEach(function (k) { var g = goal(k); if (g) goals.push(g); else extra.push(k); });
     var kpiHtml = !kp.length ? empty :
-      (goals.length ? '<div class="op-goals">' + goals.map(function (g) { return '<div class="op-goal"><b>' + esc(g.n) + "</b><span>" + esc(g.l) + "</span></div>"; }).join("") + "</div>" : "") +
+      (goals.length ? '<div class="op-rings">' + goals.map(function (g) {
+        var pr = per(g.l), lab = g.l.replace(/\s*(\/\s*week|\/\s*wk|per week|a week|\/\s*day|per day|a day)\s*$/i, "");
+        return '<div class="op-ring"><div class="c">' + esc(g.n) + '</div><div class="l">' + esc(lab) + "</div>" + (pr ? '<span class="per">Per ' + pr + "</span>" : "") + "</div>";
+      }).join("") + "</div>" : "") +
       (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
     var roles = !groups.length ? empty : groups.map(function (g) {
       return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + '<div class="op-chips">' + g.titles.map(function (t) { return '<span class="op-chip">' + esc(t) + "</span>"; }).join("") + "</div>";
@@ -419,10 +475,11 @@
     var ct = clean(d.contacts);
     var contacts = !ct.length ? empty : "<ol>" + ct.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ol>";
     var st = clean(d.s4);
-    var steps = !st.length ? empty : "<ol>" + st.map(function (x) {
-      var m = String(x).replace(/\)\s*\)\s*$/, ")").match(/^(.*?)\s*\(([^()]+)\)\s*$/);
-      return "<li>" + esc(m ? m[1] : x) + (m ? '<span class="op-src">' + esc(m[2]) + "</span>" : "") + "</li>";
-    }).join("") + "</ol>";
+    var steps = !st.length ? empty : '<div class="op-s4" style="grid-template-columns:repeat(' + st.length + ',minmax(0,1fr))">' + st.map(function (x, i) {
+      var m = String(x).replace(/\)\s*\)\s*$/, ")").match(/^(.*?)\s*\(([^()]+)\)\s*$/), src = m ? m[2] : "";
+      var tags = []; if (/tool/i.test(src)) tags.push('<span class="op-tag2 tools">Tools</span>'); if (/system/i.test(src)) tags.push('<span class="op-tag2">System</span>');
+      return '<div class="st"><div class="n">' + (i + 1) + '</div><div class="t">' + esc(m ? m[1] : x) + "</div>" + (tags.length ? '<div class="tags">' + tags.join("") + "</div>" : "") + "</div>";
+    }).join("") + "</div>";
     var terr = terrFor(d), map = mapSvg(terr);
     var terrHtml = !terr ? "" : '<div class="op-terr">' + (map || "<div></div>") +
       '<div><div class="tk">Territory</div><div class="tn"><i style="background:' + esc(terr.all ? "#FFC800" : terr.color) + '"></i>' + esc(terr.name) + "</div>" +
@@ -438,9 +495,11 @@
           '<div class="op-num"><b>' + money(L.direct) + "</b><span>Direct hire target</span></div>" +
           '<div class="op-num"><b>' + (L.charge != null ? money(L.charge) : "Case by case") + "</b><span>Weekly charge</span></div></div>" +
         terrHtml +
-        sec("Weekly goals", kpiHtml) +
-        '<div class="op-cols"><div>' + sec(d.rolesHeading || "Focused Roles", roles) + "</div>" +
-          "<div>" + sec("S4 process", steps) + sec("Target customer contacts", contacts) + "</div></div>" +
+        nsec(1, "Weekly goals", "hit these every week", kpiHtml) +
+        '<div class="op-sec"><div class="op-nh"><b>02</b>Who you work <em>- titles and buyers</em></div><div class="op-cols"><div><div class="op-hd">' + esc(d.rolesHeading || "Focused Roles") + "</div>" + roles + "</div>" +
+          '<div><div class="op-hd">Target customer contacts</div>' + contacts + "</div></div></div>" +
+        nsec(3, "S4 process", "work your pipeline in this order", steps) +
+        (roadOf(d).length ? nsec(4, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
         (d.notes ? sec("Notes", '<div class="op-notes">' + esc(d.notes) + "</div>") : "") +
       "</div>" +
       '<div class="op-foot"><span>' + esc(d.company || "Spark Companies") + (d.reportsTo ? " · Reports to " + esc(d.reportsTo) : "") + "</span><span>Updated " + esc(fmtDate(new Date().toISOString())) + "</span></div>" +
@@ -631,7 +690,15 @@
     // 7 s4 + notes
     var s4same = JSON.stringify(d.s4) === JSON.stringify(S.rules.s4);
     h += '<div class="bp-sec">' + secH(7, "S4 process", s4same ? "" : '<button class="bp-btn sm" data-act="stds4">' + ic("reset") + "Reset to standard</button>") + listEditor("s4", d.s4, "Add a step", true) + "</div>";
-    h += '<div class="bp-sec">' + secH(8, "Notes") + '<div class="bp-f"><label class="full"><textarea data-k="notes" data-f="notes" placeholder="Anything else for this seat (optional)">' + esc(d.notes || "") + "</textarea></label></div></div>";
+    var rd = roadOf(d), rdStd = !Array.isArray(d.road);
+    h += '<div class="bp-sec">' + secH(8, "Daily road", rdStd ? '<span style="font-size:12px;color:#8a8576">Using the standard day</span>' : '<button class="bp-btn sm" data-act="stdroad">' + ic("reset") + "Reset to standard</button>") +
+      '<div class="bp-li">' + rd.map(function (st, i) {
+        return '<div class="it"><input style="flex:0 0 92px" data-k="rt' + i + '" data-act="road" data-i="' + i + '" data-p="time" value="' + esc(st.time) + '">' +
+          '<select data-act="roadtag" data-i="' + i + '" style="flex:0 0 84px;font:13px Outfit,Inter,sans-serif;padding:8px;border:1px solid #E0DACB;border-radius:10px;background:#fff">' + ["", "PLUG", "PROD", "PREP"].map(function (t) { return '<option value="' + t + '"' + (t === (st.tag || "") ? " selected" : "") + ">" + (t || "—") + "</option>"; }).join("") + "</select>" +
+          '<input data-k="rx' + i + '" data-act="road" data-i="' + i + '" data-p="text" value="' + esc(st.text) + '">' +
+          '<button class="bp-x" title="Remove" data-act="roadrm" data-i="' + i + '">' + ic("x") + "</button></div>";
+      }).join("") + '</div><div class="bp-add"><button class="bp-btn sm" data-act="roadadd">' + ic("plus") + "Add a stop</button></div></div>";
+    h += '<div class="bp-sec">' + secH(9, "Notes") + '<div class="bp-f"><label class="full"><textarea data-k="notes" data-f="notes" placeholder="Anything else for this seat (optional)">' + esc(d.notes || "") + "</textarea></label></div></div>";
     h += "</div>";
     h += '<div class="bp-prevwrap"><div class="bp-prevlab"><span>Live preview</span><span>Prints on one letter page</span></div>' + onePager(d) + "</div>";
     h += "</div>";
@@ -741,6 +808,9 @@
       case "unflag": d.flags.splice(+t.getAttribute("data-i"), 1); touch(); break;
       case "stdkpi": d.kpis = standardKpis(d.role, d.serviceLine); touch(); break;
       case "stds4": d.s4 = clone(S.rules.s4); touch(); break;
+      case "stdroad": delete d.road; touch(); break;
+      case "roadadd": d.road = roadOf(d); d.road.push({ time: "", tag: "", text: "" }); touch(); break;
+      case "roadrm": d.road = roadOf(d); d.road.splice(+t.getAttribute("data-i"), 1); touch(); break;
       case "grp": if (e.target.closest("button")) return; S.activeGroup = +t.getAttribute("data-g"); render(); break;
       case "addgrp": d.titleGroups.push({ group: "", titles: [] }); S.activeGroup = d.titleGroups.length - 1; touch(); break;
       case "rmgrp": var gi = +t.getAttribute("data-g"); var moved = d.titleGroups[gi].titles || []; d.titleGroups.splice(gi, 1); d.titleGroups[0].titles = (d.titleGroups[0].titles || []).concat(moved.filter(function (x) { return d.titleGroups[0].titles.indexOf(x) < 0; })); S.activeGroup = 0; touch(); break;
@@ -815,6 +885,7 @@
       }
       renderSoft(); return;
     }
+    if (act === "road") { if (!Array.isArray(S.cur.road)) S.cur.road = stdRoad(); S.cur.road[+t.getAttribute("data-i")][t.getAttribute("data-p")] = t.value; S.dirty = true; renderSoft(); return; }
     if (act === "li") { S.cur[t.getAttribute("data-l")][+t.getAttribute("data-i")] = t.value; S.dirty = true; renderSoft(); return; }
     if (act === "gname") { S.cur.titleGroups[+t.getAttribute("data-g")].group = t.value; S.dirty = true; renderSoft(); return; }
     if (act === "rline") { var l = S.rulesDraft.serviceLines[+t.getAttribute("data-i")], p = t.getAttribute("data-p"); l[p] = p === "note" ? t.value : num(t.value); renderSoft(true); return; }
@@ -834,6 +905,7 @@
   function onChange(e) {
     var t = e.target, f = t.getAttribute("data-f");
     /* Text inputs update state on every keystroke (onInput); re-rendering on blur would swallow the click that caused it. */
+    if (t.getAttribute("data-act") === "roadtag" && S.cur) { if (!Array.isArray(S.cur.road)) S.cur.road = stdRoad(); S.cur.road[+t.getAttribute("data-i")].tag = t.value; S.dirty = true; render(); return; }
     if (!f || !S.cur || (t.tagName !== "SELECT" && t.type !== "checkbox")) return;
     if (t.type === "checkbox") S.cur[f] = t.checked;
     else S.cur[f] = t.value;
