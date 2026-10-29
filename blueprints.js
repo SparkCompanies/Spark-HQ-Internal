@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.9 (Oct 26 standards) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v2.0 (My Blueprint + Salesforce actuals) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -79,6 +79,61 @@
   function startsStd(d) { var k = kpiRule(d.role, d.serviceLine); return k && /^\d+$/.test(String(k.starts)) ? +k.starts : 0; }
   function hasStarts(d) { return (d.kpis || []).some(function (x) { return /\d/.test(x) && /\bstarts?\b/i.test(x); }); }
   function startsGap(d) { var n = startsStd(d); return n && !hasStarts(d) ? n : 0; }
+  /* ---------- MY_BLUEPRINT_v1: Salesforce actuals vs the blueprint's weekly goals ---------- */
+  var ACT = { this: null, last: null, loading: {} };
+  function mondayOf(offsetWeeks) { var d = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" })); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 7 * (offsetWeeks || 0)); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function loadActuals(which) {
+    which = which || "this";
+    if (ACT.loading[which]) return ACT.loading[which];
+    ACT.loading[which] = api("GET", "/blueprints/actuals?week=" + mondayOf(which === "last" ? -1 : 0)).then(function (d) { ACT[which] = d; return d; })
+      .catch(function (e) { ACT[which] = { error: e.message }; }).then(function (x) { ACT.loading[which] = null; return x; });
+    return ACT.loading[which];
+  }
+  var METRICS = [
+    [/\bstarts?\b/i, "starts", "Starts"], [/submi(t|ss)/i, "submittals", "Submittals"], [/pre-?\s?screen/i, "preScreens", "Pre-screens"],
+    [/new (client )?meeting/i, "newMeetings", "New meetings"], [/meeting/i, "meetings", "Meetings"], [/in process|active candidates|candidates in/i, "inProcess", "In process"],
+    [/interview/i, "interviews", "Interviews"], [/\bcalls?\b/i, "calls", "Calls"]
+  ];
+  function goalRows(d) {
+    var out = [], used = {};
+    (d.kpis || []).forEach(function (k) {
+      var g = goal(k); if (!g) return;
+      var n = parseFloat(String(g.n).replace(/[$,+]/g, "")); if (!n) return;
+      for (var i = 0; i < METRICS.length; i++) if (METRICS[i][0].test(k)) {
+        var key = METRICS[i][1]; if (used[key]) return; used[key] = 1;
+        var daily = per(g.l) === "Day";
+        out.push({ key: key, label: METRICS[i][2], target: daily ? n * 5 : n, snapshot: key === "inProcess", text: k, daily: daily });
+        return;
+      }
+    });
+    return out;
+  }
+  function emailFor(d) { if (d.email) return String(d.email).toLowerCase(); var p = personFor(d); return p ? p.email : ""; }
+  function workdaysIn(which) { if (which === "last") return 5; var et = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" })); var dow = (et.getDay() + 6) % 7; return Math.min(5, dow + (et.getHours() >= 17 ? 1 : 0.5)); }
+  function scorecard(d, which, email) {
+    which = which || "this";
+    var A = ACT[which];
+    var tabs = '<div class="bp-wk"><button data-act="actwk" data-w="this" class="' + (which === "this" ? "on" : "") + '">This week</button><button data-act="actwk" data-w="last" class="' + (which === "last" ? "on" : "") + '">Last week</button></div>';
+    var head = '<div class="sc-head"><div><div class="sc-k">From Salesforce</div><b>' + (which === "this" ? "This week so far" : "Last week") + "</b></div>" + tabs + "</div>";
+    if (!A) { loadActuals(which).then(render); return '<div class="sc">' + head + '<div class="op-empty">Loading Salesforce numbers…</div></div>'; }
+    if (A.error) return '<div class="sc">' + head + '<div class="op-empty">Couldn\'t load Salesforce numbers: ' + esc(A.error) + "</div></div>";
+    email = email || emailFor(d);
+    var me = A.people && A.people[email];
+    var rows = goalRows(d);
+    if (!email) return '<div class="sc">' + head + '<div class="op-empty">Link this blueprint to a Microsoft 365 account to see Salesforce numbers.</div></div>';
+    if (!rows.length) return '<div class="sc">' + head + '<div class="op-empty">No numeric weekly goals on this blueprint yet.</div></div>';
+    me = me || { starts: 0, submittals: 0, interviews: 0, preScreens: 0, calls: 0, meetings: 0, newMeetings: 0, inProcess: 0, r4: { starts: 0, submittals: 0, interviews: 0 } };
+    var frac = workdaysIn(which) / 5;
+    var h = '<div class="sc">' + head + '<div class="sc-rows">' + rows.map(function (r) {
+      var v = me[r.key] || 0, pct = Math.min(100, Math.round(v / r.target * 100)), pace = r.snapshot ? r.target : Math.ceil(r.target * frac - 1e-9);
+      var state = v >= r.target ? "met" : (v >= pace ? "on" : "behind");
+      var note = state === "met" ? "Goal met" : r.snapshot ? (r.target - v) + " to go" : (which === "this" ? (state === "on" ? "On pace" : "Behind pace (" + pace + " by now)") : "Missed by " + (r.target - v));
+      return '<div class="sc-row ' + state + '"><div class="sc-l"><b>' + esc(r.label) + "</b><span>" + esc(note) + '</span></div><div class="sc-bar"><i style="width:' + pct + '%"></i></div><div class="sc-v"><b>' + v + "</b> / " + r.target + (r.daily ? '<em title="' + esc(r.text) + '">daily x5</em>' : "") + "</div></div>";
+    }).join("") + "</div>";
+    var r4 = me.r4 || {}, s2i = r4.submittals ? Math.round(r4.interviews / r4.submittals * 100) : null, i2s = r4.interviews ? Math.round(r4.starts / r4.interviews * 100) : null;
+    h += '<div class="sc-ratios"><span>Last 4 weeks:</span><span><b>' + (s2i == null ? "—" : s2i + "%") + "</b> submit to interview</span><span><b>" + (i2s == null ? "—" : i2s + "%") + "</b> interview to start</span><span><b>" + (r4.starts || 0) + "</b> starts</span></div>";
+    return h + "</div>";
+  }
   function addStarts(d) { var n = startsGap(d); if (n) d.kpis = [n + " starts per week"].concat(d.kpis || []); return n; }
 
   /* ---------- Microsoft 365 (same /directory feed as the HQ Directory tab) ----------
@@ -153,11 +208,11 @@
 
   /* ---------- CSS ---------- */
   var CSS = [
-    ".sidebar .nav-item[data-tab='" + TAB + "'],.sidebar .nav-item[data-tab='" + TAB + "'].hide-for-role{display:flex!important}",
+    ".sidebar .nav-item[data-tab='" + TAB + "'],.sidebar .nav-item[data-tab='" + TAB + "'].hide-for-role,.sidebar .nav-item[data-tab='myblueprint'],.sidebar .nav-item[data-tab='myblueprint'].hide-for-role{display:flex!important}",
     ".sidebar .nav-item.bp-sub{position:relative;padding:6px 20px 6px 56px!important;font-size:12.5px!important;gap:8px!important;min-height:0!important}",
     ".sidebar .nav-item.bp-sub .ico{width:14px!important;opacity:.85}",
     ".sidebar .nav-item.bp-sub::after{content:'';position:absolute;left:35px;top:-6px;height:calc(50% + 6px);width:12px;border-left:1.5px solid rgba(100,116,139,.32);border-bottom:1.5px solid rgba(100,116,139,.32);border-bottom-left-radius:7px;pointer-events:none}",
-    "#view-" + TAB + "{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1915;background:#F7F5EF;min-height:100vh}",
+    "#view-" + TAB + ",#view-myblueprint{font-family:Outfit,Inter,system-ui,sans-serif;color:#1a1915;background:#F7F5EF;min-height:100vh}",
     ".bp{max-width:1280px;margin:0 auto;padding:28px 32px 90px}",
     ".bp-i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}",
     /* header */
@@ -242,6 +297,21 @@
     ".bp-flag .bp-btn{margin-left:auto}",
     ".bp-prevwrap{position:sticky;top:74px}",
     ".bp-prevlab{font-size:12px;color:#8a8576;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}",
+    ".sc{background:#fff;border:1px solid #E9E4D8;border-radius:12px;padding:12px 14px;margin-bottom:14px}",
+    ".sc-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.sc-head b{font-size:14px}",
+    ".sc-k{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#9a7a1e;font-weight:800}",
+    ".bp-wk{display:inline-flex;background:#F1EDE3;border-radius:9px;padding:2px}.bp-wk button{border:0;background:transparent;font:600 12px Outfit,Inter,sans-serif;color:#6B675C;padding:5px 10px;border-radius:7px;cursor:pointer}.bp-wk button.on{background:#fff;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.1)}",
+    ".sc-rows{display:flex;flex-direction:column;gap:9px}",
+    ".sc-row{display:grid;grid-template-columns:150px 1fr 84px;gap:10px;align-items:center}",
+    ".sc-l b{display:block;font-size:13px}.sc-l span{font-size:11px;color:#8a8576}",
+    ".sc-bar{height:9px;border-radius:99px;background:#F1EDE3;overflow:hidden}.sc-bar i{display:block;height:100%;border-radius:99px;background:#FFC800}",
+    ".sc-row.met .sc-bar i{background:#2f9e5b}.sc-row.met .sc-l span{color:#2f7a4a}.sc-row.behind .sc-l span{color:#a3341f}",
+    ".sc-v{text-align:right;font-size:12px;color:#8a8576}.sc-v b{font-size:16px;color:#111}.sc-v em{display:block;font-style:normal;font-size:9.5px}",
+    ".sc-ratios{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;padding-top:10px;border-top:1px solid #F1EDE3;font-size:12px;color:#6B675C}.sc-ratios b{color:#111}",
+    ".bp-card .act{font-size:11px;font-weight:700;color:#6B675C;background:#F3EFE3;border-radius:999px;padding:2px 8px;white-space:nowrap}.bp-card .act.met{background:#e7f6ec;color:#1f7a3f}",
+    ".mb-ack{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #E9E4D8;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px}",
+    ".mb-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,600px);gap:24px;align-items:start}",
+    "@media(max-width:1100px){.mb-grid{grid-template-columns:1fr}}@media(max-width:560px){.sc-row{grid-template-columns:1fr 70px}.sc-bar{grid-column:1/-1;order:3}}",
     ".bp-terrpick{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}",
     ".bp-terrpick .bp-chip i{width:9px;height:9px;border-radius:50%;display:inline-block}",
     /* one-pager (shared with print / Word export; every rule starts with .op so export can lift them) */
@@ -655,7 +725,14 @@
   function card(b) {
     var d = b.data || {}, t = terrFor(d);
     return '<button class="bp-card" data-act="open" data-id="' + esc(b.id) + '">' + avatar(d, b.name) + '<span class="tx"><div class="nm">' + esc(b.name) + '</div><div class="sub">' +
-      esc([d.title || d.role, t ? t.name.replace(/^National /, "") : ""].filter(Boolean).join(" · ")) + "</div></span>" + statusDot(b) + "</button>";
+      esc([d.title || d.role, t ? t.name.replace(/^National /, "") : ""].filter(Boolean).join(" · ")) + "</div></span>" + startsChip(d) + statusDot(b) + "</button>";
+  }
+
+  function startsChip(d) {
+    var A = ACT.this; if (!A || !A.people) return "";
+    var g = goalRows(d).filter(function (r) { return r.key === "starts"; })[0]; if (!g) return "";
+    var me = A.people[emailFor(d)] || {}; var v = me.starts || 0;
+    return '<span class="act' + (v >= g.target ? " met" : "") + '" title="Starts this week vs goal">' + v + "/" + g.target + "</span>";
   }
 
   /* ---------- editor ---------- */
@@ -756,7 +833,7 @@
       }).join("") + '</div><div class="bp-add"><button class="bp-btn sm" data-act="roadadd">' + ic("plus") + "Add a stop</button></div></div>";
     h += '<div class="bp-sec">' + secH(9, "Notes") + '<div class="bp-f"><label class="full"><textarea data-k="notes" data-f="notes" placeholder="Anything else for this seat (optional)">' + esc(d.notes || "") + "</textarea></label></div></div>";
     h += "</div>";
-    h += '<div class="bp-prevwrap"><div class="bp-prevlab"><span>Live preview</span><span class="bp-fit"></span></div>' + onePager(d) + "</div>";
+    h += '<div class="bp-prevwrap">' + (S.curId ? scorecard(d, S.actWeek) : "") + '<div class="bp-prevlab"><span>Live preview</span><span class="bp-fit"></span></div>' + onePager(d) + "</div>";
     h += "</div>";
     return h;
   }
@@ -893,6 +970,7 @@
       case "stdkpi": d.kpis = standardKpis(d.role, d.serviceLine); touch(); break;
       case "stds4": d.s4 = clone(S.rules.s4); touch(); break;
       case "addstarts": addStarts(d); touch(); break;
+      case "actwk": S.actWeek = t.getAttribute("data-w"); render(); break;
       case "oct26rules": applyOct26Rules(); render(); break;
       case "oct26bulk": bulkStarts(); break;
       case "stdroad": delete d.road; touch(); break;
@@ -1083,10 +1161,86 @@
         injectCss(); mountTab(); fromHash();
         loadGeo().then(render);
         loadDir().then(render);
+        loadActuals("this").then(render);
         window.addEventListener("hashchange", fromHash);
         window.hqBlueprints = { open: openTab, reload: function () { return load().then(render); } };
       });
     });
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { boot(); }); else boot();
+
+  /* ---------- MY_BLUEPRINT_v1: every producer's own page (published blueprints only) ---------- */
+  var MB = { root: null, bp: null, ack: null, me: "", week: "this", saving: false };
+  var MTAB = "myblueprint";
+  function loadMine() {
+    return api("GET", "/blueprints/mine").then(function (d) { MB.bp = d.blueprint; MB.ack = d.ack; MB.me = d.me || ""; if (!S.rules && d.rules) S.rules = d.rules; return !!MB.bp; }).catch(function () { return false; });
+  }
+  function renderMine() {
+    if (!MB.root || !MB.bp) return;
+    var d = MB.bp.data || {}, acked = MB.ack && MB.ack.version === MB.bp.updated_at;
+    var h = '<div class="bp"><div class="bp-head"><div><div class="bp-k">My Blueprint</div><h1>' + esc(d.name || "") + "</h1><p>Your seat, your weekly goals, and how this week is tracking in Salesforce.</p></div>" +
+      '<button class="bp-btn" data-mb="print">' + ic("print") + "Print / PDF</button></div>";
+    h += '<div class="mb-ack">' + (acked ? '<span class="bp-hint ok" style="margin:0">' + ic("check") + "You confirmed this blueprint on " + esc(fmtDate(MB.ack.acked_at)) + ".</span>"
+      : "<span><b>New or updated blueprint.</b> Read it through, then confirm you've got it.</span>" + '<button class="bp-btn gold" data-mb="ack"' + (MB.saving ? " disabled" : "") + ">" + ic("check") + "I've read my blueprint</button>") + "</div>";
+    h += '<div class="mb-grid"><div>' + scorecard(d, MB.week, MB.me).replace(/data-act="actwk"/g, 'data-mb="wk"') +
+      '<div class="bp-hint">Numbers come from Salesforce: starts from placement credits, submittals and interviews from stage moves you made, pre-screens and calls from logged tasks, meetings from calendar events. If something looks off, check that it\'s logged in Salesforce.</div></div>' +
+      "<div>" + onePager(d) + "</div></div></div>";
+    MB.root.innerHTML = h;
+  }
+  function wireMine(el) {
+    MB.root = el;
+    el.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-mb]"); if (!t) return;
+      var a = t.getAttribute("data-mb");
+      if (a === "wk") { MB.week = t.getAttribute("data-w"); if (!ACT[MB.week]) loadActuals(MB.week).then(renderMine); renderMine(); }
+      if (a === "print") { var keep = S.cur; S.cur = MB.bp.data; exportDoc("print"); S.cur = keep; }
+      if (a === "ack") {
+        MB.saving = true; renderMine();
+        api("POST", "/blueprints/ack", { id: MB.bp.id, version: MB.bp.updated_at }).then(function (r) { MB.ack = { acked_at: r.acked_at, version: MB.bp.updated_at }; })
+          .catch(function (er) { window.alert(er.message); }).then(function () { MB.saving = false; renderMine(); });
+      }
+    });
+  }
+  function openMine() {
+    document.querySelectorAll(".nav-item").forEach(function (b) { b.classList.remove("active"); });
+    var btn = document.querySelector('.nav-item[data-tab="' + MTAB + '"]'); if (btn) btn.classList.add("active");
+    var v = document.getElementById("view-" + MTAB);
+    if (v && v.parentNode) Array.prototype.forEach.call(v.parentNode.children, function (p) { if (p !== v && /^view-/.test(p.id || "")) p.style.display = "none"; });
+    document.querySelectorAll(".tab-page").forEach(function (p) { if (p !== v) p.style.display = "none"; });
+    if (v) v.style.display = "";
+    scrollTop(); renderMine();
+    loadActuals(MB.week).then(renderMine);
+  }
+  var MNAV = '<span class="ico"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M13 2L4.5 13.5h6l-1 8.5L19 10h-6z"/></svg></span>My Blueprint';
+  function placeMineNav() {
+    var after = document.querySelector('.nav-item[data-tab="careers"]') || document.querySelector('.nav-item[data-tab="home"]');
+    var nav = after ? after.parentNode : null; if (!nav) return null;
+    var btn = document.createElement("button");
+    btn.className = "nav-item"; btn.setAttribute("data-tab", MTAB); btn.title = "Your One Page Blueprint and this week's numbers"; btn.innerHTML = MNAV;
+    if (after.nextSibling) nav.insertBefore(btn, after.nextSibling); else nav.appendChild(btn);
+    btn.addEventListener("click", openMine);
+    return btn;
+  }
+  function mountMine() {
+    if (document.getElementById("view-" + MTAB)) return;
+    if (!placeMineNav()) return;
+    var view = document.createElement("div");
+    view.id = "view-" + MTAB; view.className = "tab-page cream"; view.style.display = "none";
+    view.innerHTML = '<div id="mbRoot"></div>';
+    var anchor = document.getElementById("view-admin");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(view, anchor); else document.body.appendChild(view);
+    wireMine(view.querySelector("#mbRoot"));
+    document.addEventListener("click", function (e) { var b = e.target && e.target.closest && e.target.closest(".nav-item[data-tab]"); if (b && b.getAttribute("data-tab") !== MTAB) view.style.display = "none"; }, true);
+    setInterval(function () { if (!document.querySelector('.nav-item[data-tab="' + MTAB + '"]')) placeMineNav(); }, 2500);
+    if (location.hash === "#" + MTAB) setTimeout(openMine, 300);
+  }
+  function bootMine(t) {
+    t = t || 0;
+    var ready = document.querySelector('.nav-item[data-tab="home"]') && document.getElementById("view-admin") && window.SPARK_SB && window.SPARK_SB.getToken;
+    if (!ready) { if (t < 80) setTimeout(function () { bootMine(t + 1); }, 700); return; }
+    token().then(function (tk) {
+      if (!tk) { if (t < 80) setTimeout(function () { bootMine(t + 1); }, 1500); return; }
+      loadMine().then(function (has) { if (!has) return; injectCss(); mountMine(); loadGeo().then(renderMine); window.addEventListener("hashchange", function () { if (location.hash === "#" + MTAB) openMine(); }); });
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { boot(); bootMine(); }); else { boot(); bootMine(); }
 })();
