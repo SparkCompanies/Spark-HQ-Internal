@@ -243,6 +243,8 @@ table.list td.dim{color:var(--muted)}
 .sc .foot{font-size:11.5px;color:var(--muted);margin-top:8px}
 @media (max-width:1280px){ .grid4{grid-template-columns:repeat(2,minmax(0,1fr))} .grid2{grid-template-columns:1fr} }
 @media (max-width:860px){ .sc .nums{grid-template-columns:repeat(2,1fr)} }
+table.jobs th{cursor:pointer;user-select:none} table.jobs th.on,table.sup th.on{color:var(--ink)}
+table.sup th{cursor:pointer;user-select:none}
 </style>
 </head>
 <body>
@@ -728,18 +730,19 @@ function hcSeries(sel) {
 }
 function stageTag(k) { return `<span class="stage ${k}">${STAGE_LABEL[k] || k}</span>`; }
 function whoTag(n) { return n ? `<span class="who" title="${esc(n)}">${esc(n)}</span>` : '<span class="who none">unassigned</span>'; }
-function sortable(list, key, defKey, defDir) {
-  const s = S.sort[S.view] || { key: defKey, dir: defDir };
+function sortId(t) { return S.view + ':' + (t || 'main'); }
+function sortable(list, key, defKey, defDir, t) {
+  const s = S.sort[sortId(t)] || { key: defKey, dir: defDir };
   const k = s.key, d = s.dir === 'asc' ? 1 : -1;
-  return list.slice().sort((a, b) => { const x = key(a, k), y = key(b, k); return (typeof x === 'string' ? x.localeCompare(y) : (x - y)) * d; });
+  return list.slice().sort((a, b) => { let x = key(a, k), y = key(b, k); if (x == null) x = typeof y === 'string' ? '' : -Infinity; if (y == null) y = typeof x === 'string' ? '' : -Infinity; return (typeof x === 'string' ? x.localeCompare(y) : (x - y)) * d; });
 }
-function th(label, key, cls = '') { const s = S.sort[S.view] || {}; return `<th class="${cls} ${s.key === key ? 'on' : ''}" data-sort="${key}">${label}${s.key === key ? (s.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>`; }
+function th(label, key, cls = '', t) { const s = S.sort[sortId(t)] || {}; return `<th class="${cls} ${s.key === key ? 'on' : ''}" data-sort="${key}" data-table="${t || 'main'}" title="Sort by ${label}">${label}${s.key === key ? (s.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>`; }
 function wire(root) {
   root.querySelectorAll('.kpi[data-hl]').forEach(k => k.onclick = () => { S.hl = S.hl === k.dataset.hl ? null : k.dataset.hl; renderAll(); });
   root.querySelectorAll('tr[data-job]').forEach(tr => tr.onclick = e => { if (e.target.closest('select,a,button')) return; openJob(tr.dataset.job); });
   root.querySelectorAll('[data-open-cand]').forEach(a => a.onclick = e => { e.stopPropagation(); openRec('bpats__Candidate__c', a.dataset.openCand); });
   root.querySelectorAll('.rcard[data-region]').forEach(c => c.onclick = () => { S.region = c.dataset.region; setView('focus'); });
-  root.querySelectorAll('th[data-sort]').forEach(h => h.onclick = () => { const cur = S.sort[S.view] || {}; S.sort[S.view] = { key: h.dataset.sort, dir: cur.key === h.dataset.sort && cur.dir === 'desc' ? 'asc' : 'desc' }; renderAll(); });
+  root.querySelectorAll('th[data-sort]').forEach(h => h.onclick = () => { const id = sortId(h.dataset.table); const cur = S.sort[id] || {}; S.sort[id] = { key: h.dataset.sort, dir: cur.key === h.dataset.sort && cur.dir === 'desc' ? 'asc' : 'desc' }; renderAll(); });
   root.querySelectorAll('select[data-rec]').forEach(sel => sel.onchange = () => savePick(sel.dataset.key, sel.dataset.rec, sel.dataset.day, sel.value));
 }
 async function savePick(key, rec, d, val) {
@@ -842,18 +845,18 @@ function vFocus() {
       <div style="overflow-x:auto">${jobsTable(rows)}</div>
       <div class="foot">${rows.length} open reqs shown · ${rows.filter(j => j.score < 40).length} score below 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.</div>
     </section>
-    <div style="display:grid;gap:16px">
-      ${focusBoard(S.region)}
-      ${supportPanel()}
-    </div>
+    ${supportPanel()}
   </div>`;
   return h;
 }
 function jobsTable(rows, showRegion) {
   if (!rows.length) return `<div class="empty">No open reqs match. Clear the search or pick another service line.</div>`;
   const cell = (n, k) => `<td class="num ${n ? '' : 'z'}" title="${k}">${n || '0'}</td>`;
-  return `<table class="jobs"><colgroup><col style="width:52px"><col style="width:160px"><col style="width:180px"><col style="width:96px"><col style="width:40px"><col style="width:40px"><col style="width:36px"><col style="width:40px"><col style="width:40px"><col style="width:40px"><col style="width:84px"><col style="width:44px"><col style="width:120px"></colgroup>
-    <thead><tr><th>Score</th><th>Client</th><th>Job</th><th>Svc line</th><th class="num" title="Open balance">Opn</th><th class="num">Sub</th><th class="num">IV</th><th class="num">Pnd</th><th class="num">Off</th><th class="num">Onb</th><th>Coverage</th><th class="num">Age</th><th>Recruiter</th></tr></thead>
+  const rank = { none: 0, part: 1, ok: 2 };
+  const s = S.sort[sortId('jobs')];
+  if (s) rows = sortable(rows, (j, k) => ({ score: j.score, client: j.client, title: j.title, svc: j.svc, open: j.open, sub: j.p.sub, iv: j.p.iv, pnd: j.p.pnd, off: j.p.off, onb: j.p.onb, cov: rank[j.cov], age: j.age == null ? -1 : j.age, recruiter: j.recruiter || '' })[k], 'score', 'desc', 'jobs');
+  return `<table class="jobs list"><colgroup><col style="width:52px"><col style="width:160px"><col style="width:180px"><col style="width:96px"><col style="width:40px"><col style="width:40px"><col style="width:36px"><col style="width:40px"><col style="width:40px"><col style="width:40px"><col style="width:84px"><col style="width:44px"><col style="width:120px"></colgroup>
+    <thead><tr>${th('Score', 'score', '', 'jobs')}${th('Client', 'client', '', 'jobs')}${th('Job', 'title', '', 'jobs')}${th('Svc line', 'svc', '', 'jobs')}${th('Opn', 'open', 'num', 'jobs')}${th('Sub', 'sub', 'num', 'jobs')}${th('IV', 'iv', 'num', 'jobs')}${th('Pnd', 'pnd', 'num', 'jobs')}${th('Off', 'off', 'num', 'jobs')}${th('Onb', 'onb', 'num', 'jobs')}${th('Coverage', 'cov', '', 'jobs')}${th('Age', 'age', 'num', 'jobs')}${th('Recruiter', 'recruiter', '', 'jobs')}</tr></thead>
     <tbody>${rows.map(j => {
       const sc = j.score >= 80 ? 'g' : j.score >= 40 ? 'a' : 'r';
       const boxes = `Target Rate ${j.boxes.rate ? '✓' : '✗'} · Top 5 Skills ${j.boxes.skills ? '✓' : '✗'} · HM Alignment ${j.boxes.hm ? '✓' : '✗'} · Interview Time ${j.boxes.iv ? '✓' : '✗'}`;
@@ -900,11 +903,13 @@ function supportPanel() {
   const by = {}; jobs.forEach(j => { const c = by[j.client] || (by[j.client] = { open: 0, pipe: 0, gps: [], noRate: 0 }); c.open += j.open; c.pipe += j.p.inproc; if (j.gp == null) c.noRate++; else c.gps.push(j.gp); });
   const rows = Object.keys(by).map(name => { const c = by[name]; const gap = Math.max(0, c.open - c.pipe); const gp = c.gps.length ? c.gps.reduce((a, b) => a + b, 0) / c.gps.length : 0; const who = Object.keys(focusedBy[name] || {});
     return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who, hc: hcBy[name] || 0 }; })
-    .sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap)).slice(0, 12);
+    .sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap));
+  const ss = S.sort[sortId('sup')];
+  const shown = (ss ? sortable(rows, (r, k) => ({ client: r.name, hc: r.hc, open: r.open, pipe: r.pipe, gap: r.gap, risk: r.risk, who: r.who.length })[k], 'risk', 'desc', 'sup') : rows).slice(0, 14);
   return `<section class="panel">
-    <div class="ph"><div class="k">Where to put support</div><h2>Gap × GP/hr × 40 = weekly GP at risk</h2><span class="note">unsupported clients first</span></div>
-    <table class="sup"><thead><tr><th>Client</th><th class="n">HC</th><th class="n">Open</th><th class="n">Pipe</th><th class="n">Gap</th><th>GP $/wk at risk</th><th>Focused by</th></tr></thead>
-    <tbody>${rows.map(r => `<tr><td class="client" title="${esc(r.name)}">${esc(r.name)}</td><td class="n">${r.hc}</td><td class="n">${r.open}</td><td class="n">${r.pipe}</td><td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
+    <div class="ph"><div class="k">Where to put support</div><h2>Gap × GP/hr × 40 = weekly GP at risk</h2><span class="note">unsupported clients first · ${rows.length} clients</span></div>
+    <table class="sup list"><thead><tr>${th('Client', 'client', '', 'sup')}${th('HC', 'hc', 'n', 'sup')}${th('Open', 'open', 'n', 'sup')}${th('Pipe', 'pipe', 'n', 'sup')}${th('Gap', 'gap', 'n', 'sup')}${th('GP $/wk at risk', 'risk', '', 'sup')}${th('Focused by', 'who', '', 'sup')}</tr></thead>
+    <tbody>${shown.map(r => `<tr><td class="client" title="${esc(r.name)}">${esc(r.name)}</td><td class="n">${r.hc}</td><td class="n">${r.open}</td><td class="n">${r.pipe}</td><td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
       <td class="money ${r.gap ? '' : 'ok'}" title="${r.noRate ? r.noRate + ' req(s) without bill/pay rate' : 'avg GP/hr ' + money(r.gp)}">${r.gap ? money(r.risk) : '$0'}${r.noRate ? ' <span style="color:var(--muted-2)">*</span>' : ''}</td>
       <td>${r.who.length ? r.who.map(w => `<span class="who">${esc(w.split(' ')[0])}</span>`).join(' ') : '<span class="who none">nobody</span>'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing open here.</td></tr>'}</tbody></table>
     <div class="foot">GP/hr = bill − pay × (1 + burden) averaged over the client's open reqs. Reqs without a bill or pay rate count as $0 and are marked.</div>
@@ -962,8 +967,9 @@ function vCoverage() {
 function candRow(a, extraCols = '') {
   return `<tr class="row" data-job="${a.job.id}"><td>${a.cand ? `<a href="#" data-open-cand="${a.cand}" style="font-weight:600">${esc(a.name)}</a>` : `<b>${esc(a.name)}</b>`}</td><td>${stageTag(a.stage)}</td><td class="n"><span class="days ${a.stalled ? 'bad' : ''}">${a.dis}d</span></td><td class="client">${esc(a.job.client)}</td><td>${esc(a.job.title)}</td><td><span class="reg-tag">${esc(regionLabel(a.job.region) || 'none')}</span></td>${extraCols}<td>${whoTag(a.rec)}</td></tr>`;
 }
-function candTable(list, extraTh = '', extraCol = a => '') {
-  return `<div style="overflow-x:auto"><table class="list" style="min-width:860px"><thead><tr><th>Candidate</th><th>Stage</th><th class="n">Days</th><th>Client</th><th>Job</th><th>Region</th>${extraTh}<th>Recruiter</th></tr></thead>
+function candTable(list, extraTh = '', extraCol = a => '', t = 'cand', defKey = 'days', defDir = 'desc') {
+  list = sortable(list, (a, k) => ({ name: a.name, stage: INPROC.indexOf(a.stage), days: a.dis, client: a.job.client, job: a.job.title, region: regionLabel(a.job.region), rec: a.rec || '', moved: a.csd ? a.csd.getTime() : 0 })[k], defKey, defDir, t);
+  return `<div style="overflow-x:auto"><table class="list" style="min-width:860px"><thead><tr>${th('Candidate', 'name', '', t)}${th('Stage', 'stage', '', t)}${th('Days', 'days', 'n', t)}${th('Client', 'client', '', t)}${th('Job', 'job', '', t)}${th('Region', 'region', '', t)}${extraTh}${th('Recruiter', 'rec', '', t)}</tr></thead>
     <tbody>${list.map(a => candRow(a, extraCol(a))).join('') || '<tr><td colspan="9" class="empty">Nobody here.</td></tr>'}</tbody></table></div>`;
 }
 function stageChips(list, cur) { const c = {}; list.forEach(a => c[a.stage] = (c[a.stage] || 0) + 1); return `<div class="filters"><button class="chip ${!cur ? 'on' : ''}" data-stage="">All ${list.length}</button>${INPROC.filter(k => c[k]).map(k => `<button class="chip ${cur === k ? 'on' : ''}" data-stage="${k}">${STAGE_LABEL[k]} ${c[k]}</button>`).join('')}</div>`; }
@@ -983,8 +989,8 @@ function vStalled() {
 function vInproc() {
   const list = qFilter(svcFilter(appsIn(S.region)).filter(a => INPROC.includes(a.stage)), a => a.name + ' ' + a.job.client + ' ' + a.job.title + ' ' + a.rec);
   const cur = S.hl && INPROC.includes(S.hl) ? S.hl : '';
-  const shown = sortable(cur ? list.filter(a => a.stage === cur) : list, (a, k) => ({ days: a.dis, stage: INPROC.indexOf(a.stage), client: a.job.client, rec: a.rec })[k], 'stage', 'desc');
-  return `<section class="panel">${stageChips(list, cur)}${candTable(shown, '<th>Moved</th>', a => `<td class="dim">${a.inWeek ? 'this week' : fmtD(a.csd)}</td>`)}<div class="foot">${list.length} candidates in process · ${list.filter(a => a.inWeek).length} moved stage this week · Source never counts as in process.</div></section>`;
+  const shown = cur ? list.filter(a => a.stage === cur) : list;
+  return `<section class="panel">${stageChips(list, cur)}${candTable(shown, th('Moved', 'moved', '', 'cand'), a => `<td class="dim">${a.inWeek ? 'this week' : fmtD(a.csd)}</td>`, 'cand', 'stage', 'desc')}<div class="foot">${list.length} candidates in process · ${list.filter(a => a.inWeek).length} moved stage this week · Source never counts as in process.</div></section>`;
 }
 function vInts() {
   const apps = svcFilter(appsIn(S.region));
@@ -992,7 +998,8 @@ function vInts() {
   const pl = regionPl();
   const starts = pl.filter(p => p.startWk).sort((a, b) => a.st - b.st), terms = pl.filter(p => p.termWk).sort((a, b) => a.tm - b.tm), next = pl.filter(p => p.startNext || (p.status === 'Pending Start' && p.st && p.st >= S.weekEnd)).sort((a, b) => a.st - b.st);
   const plRow = p => `<tr class="row" data-job="${p.jobId || ''}"><td><b>${esc(p.cand || 'Candidate')}</b></td><td class="client">${esc(p.client)}</td><td>${esc(p.title)}</td><td><span class="reg-tag">${esc(regionLabel(p.region) || 'none')}</span></td><td class="dim">${fmtD(p.st)}${p.tm ? ' → ' + fmtD(p.tm) : ''}</td><td class="dim">${esc(p.reason || p.status)}</td><td>${whoTag(p.rec)}</td></tr>`;
-  const plTable = (list, when) => `<div style="overflow-x:auto"><table class="list"><thead><tr><th>Candidate</th><th>Client</th><th>Job</th><th>Region</th><th>${when}</th><th>Status</th><th>Recruiter</th></tr></thead><tbody>${list.map(plRow).join('') || `<tr><td colspan="7" class="empty">None.</td></tr>`}</tbody></table></div>`;
+  const plTable = (list, when, t) => { list = sortable(list, (p, k) => ({ cand: p.cand, client: p.client, title: p.title, region: regionLabel(p.region), date: (p.tm || p.st) ? (p.tm || p.st).getTime() : 0, status: p.reason || p.status, rec: p.rec || '' })[k], 'date', 'asc', t);
+    return `<div style="overflow-x:auto"><table class="list"><thead><tr>${th('Candidate', 'cand', '', t)}${th('Client', 'client', '', t)}${th('Job', 'title', '', t)}${th('Region', 'region', '', t)}${th(when, 'date', '', t)}${th('Status', 'status', '', t)}${th('Recruiter', 'rec', '', t)}</tr></thead><tbody>${list.map(plRow).join('') || `<tr><td colspan="7" class="empty">None.</td></tr>`}</tbody></table></div>`; };
   return `<section class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
     ${tile('iv', 'Interviews this week', ivs.length, 'entered Interview stage this week')}
     ${tile('st', 'Starts this week', `<span class="g">${starts.length}</span>`, `${pl.filter(p => p.startWk && p.status === 'Pending Start').length} still pending`)}
@@ -1000,10 +1007,10 @@ function vInts() {
     ${tile('nx', 'Pending starts ahead', next.length, 'start date after this week')}
   </section>
   <div class="grid2">
-    <section class="panel"><div class="ph"><div class="k">Interviews · this week</div></div>${candTable(ivs, '<th>Interview</th>', a => `<td class="dim">${fmtD(a.csd)}</td>`)}</section>
-    <section class="panel"><div class="ph"><div class="k">Starts · this week</div></div>${plTable(starts, 'Start')}</section>
-    <section class="panel"><div class="ph"><div class="k">Terms · this week</div></div>${plTable(terms, 'Start → term')}</section>
-    <section class="panel"><div class="ph"><div class="k">Pending starts · ahead</div></div>${plTable(next, 'Start')}</section>
+    <section class="panel"><div class="ph"><div class="k">Interviews · this week</div></div>${candTable(ivs, th('Interview', 'moved', '', 'ivs'), a => `<td class="dim">${fmtD(a.csd)}</td>`, 'ivs', 'moved', 'asc')}</section>
+    <section class="panel"><div class="ph"><div class="k">Starts · this week</div></div>${plTable(starts, 'Start', 'starts')}</section>
+    <section class="panel"><div class="ph"><div class="k">Terms · this week</div></div>${plTable(terms, 'Start → term', 'terms')}</section>
+    <section class="panel"><div class="ph"><div class="k">Pending starts · ahead</div></div>${plTable(next, 'Start', 'next')}</section>
   </div>`;
 }
 
