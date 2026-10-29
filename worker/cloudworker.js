@@ -3478,6 +3478,116 @@ var worker_default = {
     // ===== BLUEPRINTS_v1 — Blueprint Builder (One Page Blueprints for producers) =====
     // Access: HQ super admins, or anyone granted tab:blueprints (Admin > Access restricted area; Fletcher seeded in blueprints.sql).
     // Tables: spark_hq_blueprint_rules (one jsonb doc, id 1) + spark_hq_blueprints (one row per team member). SQL in worker/blueprints.sql.
+    // ===== MY_BLUEPRINT_v1 — actuals from Salesforce, a producer's own blueprint, and acknowledgment =====
+    // /blueprints/actuals?week=YYYY-MM-DD (Monday). Blueprint admins (super admin or tab:blueprints) get everyone; anyone else gets only themselves.
+    // How things are counted (all by the Salesforce user who did the work):
+    //   starts      = placements starting in the week where the person holds a placement credit (recruiter, sales or full desk)
+    //   submittals  = applicants the person moved into the "Submit" stage that week (stage history, distinct applicants)
+    //   interviews  = applicants the person moved into "Interview" that week
+    //   pre-screens = Tasks with "Pre-Screen" in the subject, owned by the person, created that week
+    //   calls       = other call Tasks (TaskSubtype = Call) owned by the person, created that week
+    //   meetings    = Events titled Meeting / Virtual Meeting / New Meeting that week; new meetings = "New Meeting"
+    //   in process  = applicants the person submitted in the last 45 days who are still at Submit, Interview, Pending Feedback or Offer
+    if (url.pathname === "/blueprints/actuals" || url.pathname === "/blueprints/mine" || url.pathname === "/blueprints/ack") {
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+      const who = await verifyUser(request, env);
+      if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      const me = String(who.email || "").toLowerCase();
+      let allowed = false;
+      const adm = await verifyAdmin(request, env).catch(() => ({ ok: false }));
+      if (adm.ok) allowed = true;
+      if (!allowed) {
+        try {
+          const userTok = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+          const pr = await fetch(env.SUPABASE_URL + "/rest/v1/rpc/my_permissions", { method: "POST", headers: { "Authorization": "Bearer " + userTok, "apikey": env.SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ p_email: who.email }) });
+          if (pr.ok) { const perms = (await pr.json()) || {}; if (perms["tab:blueprints"] === true) allowed = true; }
+        } catch (e) {}
+      }
+      const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+      const nameMatchesEmail = (name, email) => { const p = norm(name).split(" "); const local = String(email).split("@")[0].toLowerCase().replace(/[^a-z]/g, ""); return p.length > 1 && (local === p[0][0] + p[p.length - 1] || local === p[0] + p[p.length - 1] || local === p[0] + "." + p[p.length - 1]); };
+
+      if (url.pathname === "/blueprints/mine") {
+        const r = await sbService(env, "GET", "spark_hq_blueprints?select=id,name,status,data,updated_at&status=eq.published");
+        if (!r.ok) return json({ ok: true, blueprint: null }, 200, origin);
+        const rows = r.data || [];
+        const mine = rows.find((b) => String(b.data && b.data.email || "").toLowerCase() === me) || rows.find((b) => !(b.data && b.data.email) && nameMatchesEmail(b.name, me)) || null;
+        let ack = null;
+        if (mine) { const a = await sbService(env, "GET", "spark_hq_blueprint_acks?select=acked_at,version&email=eq." + encodeURIComponent(me) + "&blueprint_id=eq." + mine.id + "&order=acked_at.desc&limit=1"); if (a.ok && a.data && a.data[0]) ack = a.data[0]; }
+        const rules = await sbService(env, "GET", "spark_hq_blueprint_rules?id=eq.1&select=data");
+        return json({ ok: true, me, blueprint: mine, ack, rules: rules.ok && rules.data && rules.data[0] ? rules.data[0].data : null }, 200, origin);
+      }
+      if (url.pathname === "/blueprints/ack") {
+        if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
+        let body; try { body = await request.json(); } catch (e) { return json({ error: "Bad JSON" }, 400, origin); }
+        const id = String(body && body.id || "");
+        if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Bad id" }, 400, origin);
+        const row = { email: me, blueprint_id: id, version: String(body.version || "").slice(0, 40), acked_at: new Date().toISOString() };
+        const r = await sbService(env, "POST", "spark_hq_blueprint_acks", row);
+        if (!r.ok) return json({ error: "Could not save (run worker/blueprints-mine.sql?)", detail: r.data }, 502, origin);
+        return json({ ok: true, acked_at: row.acked_at }, 200, origin);
+      }
+
+      // ---- actuals ----
+      const etOffset = (d) => { const s2 = d.toLocaleString("en-US", { timeZone: "America/New_York", timeZoneName: "shortOffset" }); const m = /GMT([+-]\d+)/.exec(s2); return m ? -parseInt(m[1], 10) : 5; };
+      let wk = (url.searchParams.get("week") || "").trim();
+      const today = new Date();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(wk)) { const et = new Date(today.toLocaleString("en-US", { timeZone: "America/New_York" })); const dow = (et.getDay() + 6) % 7; et.setDate(et.getDate() - dow); wk = et.getFullYear() + "-" + String(et.getMonth() + 1).padStart(2, "0") + "-" + String(et.getDate()).padStart(2, "0"); }
+      const addDays = (ymd, n) => { const d = new Date(ymd + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+      const wkEnd = addDays(wk, 6), r4Start = addDays(wk, -21), ipStart = addDays(wk, -45);
+      const dt = (ymd) => { const h = etOffset(new Date(ymd + "T12:00:00Z")); return ymd + "T" + String(h).padStart(2, "0") + ":00:00Z"; };
+      const W0 = dt(wk), W1 = dt(addDays(wk, 7)), R0 = dt(r4Start), IP0 = dt(ipStart);
+      const cacheKey = "bpAct:" + wk;
+      globalThis.__bpActCache = globalThis.__bpActCache || {};
+      const hit = globalThis.__bpActCache[cacheKey];
+      let people;
+      const diag = {};
+      if (hit && Date.now() - hit.at < 10 * 60 * 1000) { people = hit.people; diag.cached = true; }
+      else {
+        const q = async (name, soql) => { const r = await runSalesforceQueryAll(env, soql); if (!r.ok) { diag[name] = r.error; return []; } diag[name] = (r.records || []).length; return r.records || []; };
+        const [users, calls, screens, meets, newMeets, hist, creds] = await Promise.all([
+          q("users", "SELECT Id, Name, Email FROM User WHERE IsActive = true"),
+          q("calls", "SELECT OwnerId, COUNT(Id) c FROM Task WHERE TaskSubtype = 'Call' AND (NOT Subject LIKE '%Pre-Screen%') AND CreatedDate >= " + W0 + " AND CreatedDate < " + W1 + " GROUP BY OwnerId"),
+          q("screens", "SELECT OwnerId, COUNT(Id) c FROM Task WHERE Subject LIKE '%Pre-Screen%' AND CreatedDate >= " + W0 + " AND CreatedDate < " + W1 + " GROUP BY OwnerId"),
+          q("meetings", "SELECT OwnerId, COUNT(Id) c FROM Event WHERE Subject IN ('Meeting','Virtual Meeting','New Meeting') AND ActivityDate >= " + wk + " AND ActivityDate <= " + wkEnd + " GROUP BY OwnerId"),
+          q("newMeetings", "SELECT OwnerId, COUNT(Id) c FROM Event WHERE Subject = 'New Meeting' AND ActivityDate >= " + wk + " AND ActivityDate <= " + wkEnd + " GROUP BY OwnerId"),
+          q("history", "SELECT ParentId, CreatedById, CreatedDate, NewValue, Parent.Stage_name__c, Parent.bpats__Applicant_Status__c FROM bpats__ATS_Applicant__History WHERE Field = 'bpats__Stage__c' AND DataType = 'Text' AND CreatedDate >= " + IP0 + " AND CreatedDate < " + W1),
+          q("credits", "SELECT bpats__Placement__c, bpats__User__c, bpats__Placement__r.bpats__Start_Date__c FROM bpats__Placement_Credit__c WHERE bpats__Is_Void__c = false AND bpats__Placement__r.bpats__Start_Date__c >= " + r4Start + " AND bpats__Placement__r.bpats__Start_Date__c <= " + wkEnd)
+        ]);
+        const byId = {}; users.forEach((u) => { byId[u.Id] = { name: u.Name, email: String(u.Email || "").toLowerCase() }; });
+        people = {};
+        const P = (uid) => { const u = byId[uid]; if (!u || !u.email) return null; return people[u.email] || (people[u.email] = { name: u.name, starts: 0, submittals: 0, interviews: 0, preScreens: 0, calls: 0, meetings: 0, newMeetings: 0, inProcess: 0, r4: { starts: 0, submittals: 0, interviews: 0 } }); };
+        calls.forEach((r) => { const p = P(r.OwnerId); if (p) p.calls = r.c || 0; });
+        screens.forEach((r) => { const p = P(r.OwnerId); if (p) p.preScreens = r.c || 0; });
+        meets.forEach((r) => { const p = P(r.OwnerId); if (p) p.meetings = r.c || 0; });
+        newMeets.forEach((r) => { const p = P(r.OwnerId); if (p) p.newMeetings = r.c || 0; });
+        const seen = {}, ACTIVE = { "Submit": 1, "Interview": 1, "Pending Feedback": 1, "Offer": 1 };
+        hist.forEach((h) => {
+          const stage = String(h.NewValue || ""), when = String(h.CreatedDate || "");
+          if (stage !== "Submit" && stage !== "Interview") return;
+          const p = P(h.CreatedById); if (!p) return;
+          const inWeek = when >= W0.slice(0, 19) && when < W1.slice(0, 19), inR4 = when >= R0.slice(0, 19);
+          const k = h.CreatedById + "|" + h.ParentId + "|" + stage;
+          if (stage === "Submit") {
+            const par = h.Parent || {};
+            if (!seen[k + "|ip"] && ACTIVE[par.Stage_name__c] && par.bpats__Applicant_Status__c !== "Inactive") { seen[k + "|ip"] = 1; p.inProcess++; }
+          }
+          const f = stage === "Submit" ? "submittals" : "interviews";
+          if (inWeek && !seen[k + "|w"]) { seen[k + "|w"] = 1; p[f]++; }
+          if (inR4 && !seen[k + "|4"]) { seen[k + "|4"] = 1; p.r4[f]++; }
+        });
+        const sc = {};
+        creds.forEach((c) => {
+          const p = P(c.bpats__User__c); if (!p) return;
+          const k = c.bpats__User__c + "|" + c.bpats__Placement__c; if (sc[k]) return; sc[k] = 1;
+          const sd = c.bpats__Placement__r && c.bpats__Placement__r.bpats__Start_Date__c || "";
+          if (sd >= wk && sd <= wkEnd) p.starts++;
+          p.r4.starts++;
+        });
+        globalThis.__bpActCache[cacheKey] = { at: Date.now(), people };
+      }
+      const out = allowed ? people : (people[me] ? { [me]: people[me] } : {});
+      return json({ ok: true, all: allowed, week: { start: wk, end: wkEnd, r4Start }, people: out, diag: allowed ? diag : undefined }, 200, origin);
+    }
     if (url.pathname === "/blueprints" || url.pathname === "/blueprints/rules") {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
       const who = await verifyUser(request, env);
