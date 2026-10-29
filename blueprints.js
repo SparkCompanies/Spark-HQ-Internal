@@ -1145,6 +1145,86 @@
       });
     }, Promise.resolve()).then(function () { flash("Marked " + list.length + " as printed."); });
   }
+  /* WORD_DOCX_v1: Word used to get the page as HTML, which Word can't lay out (no grid, no SVG), so it looked broken.
+     Now the exact one-pager is drawn at print resolution and placed on a real .docx letter page, so Word matches the PDF.
+     To change wording, edit the blueprint here and download again. */
+  var H2C = null;
+  function loadH2C() {
+    if (window.html2canvas) return Promise.resolve(window.html2canvas);
+    return H2C || (H2C = new Promise(function (ok, no) { var sc = document.createElement("script"); sc.src = "/brand/vendor/html2canvas-1.4.1.min.js"; sc.onload = function () { ok(window.html2canvas); }; sc.onerror = function () { H2C = null; no(new Error("Couldn't load the Word exporter.")); }; document.head.appendChild(sc); }));
+  }
+  var CRC = null;
+  function crc32(u8) { if (!CRC) { CRC = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC[n] = c >>> 0; } } var x = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) x = CRC[(x ^ u8[i]) & 255] ^ (x >>> 8); return (x ^ 0xFFFFFFFF) >>> 0; }
+  /* a plain (stored) zip: enough for a .docx */
+  function zipStore(files) {
+    var enc = new TextEncoder(), parts = [], cen = [], off = 0;
+    function u16(v) { return [v & 255, (v >>> 8) & 255]; } function u32(v) { return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), data = typeof f.data === "string" ? enc.encode(f.data) : f.data, crc = crc32(data);
+      var head = [].concat(u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0x21), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0));
+      parts.push(new Uint8Array(head), name, data);
+      cen.push(new Uint8Array([].concat(u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0x21), u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(off))), name);
+      off += head.length + name.length + data.length;
+    });
+    var cenLen = cen.reduce(function (a, b) { return a + b.length; }, 0);
+    var end = new Uint8Array([].concat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cenLen), u32(off), u16(0)));
+    return new Blob(parts.concat(cen, [end]), { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  }
+  function docxWithImage(png, wIn, hIn, title) {
+    var EMU = 914400, cx = Math.round(wIn * EMU), cy = Math.round(hIn * EMU);
+    var x = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+    var doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>' +
+      '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:docPr id="1" name="' + x(title) + '" descr="' + x(title) + '"/>' +
+      '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="blueprint.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImg"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
+      '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>' +
+      '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="360" w:right="360" w:bottom="360" w:left="360" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr></w:body></w:document>';
+    return zipStore([
+      { name: "[Content_Types].xml", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>' },
+      { name: "_rels/.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>' },
+      { name: "docProps/core.xml", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + x(title) + '</dc:title><dc:creator>Spark HQ</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date().toISOString().slice(0, 19) + 'Z</dcterms:created></cp:coreProperties>' },
+      { name: "word/document.xml", data: doc },
+      { name: "word/_rels/document.xml.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdImg" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/blueprint.png"/></Relationships>' },
+      { name: "word/media/blueprint.png", data: png }
+    ]);
+  }
+  function exportWord(d) {
+    flash("Building the Word file…");
+    var host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:-10000px;top:0;width:7.7in;background:#fff;z-index:-1";
+    host.innerHTML = onePager(d, true, true);
+    var op = host.firstChild; op.style.boxShadow = "none"; op.style.borderRadius = "0"; op.style.width = "7.7in";
+    document.body.appendChild(host);
+    /* the canvas renderer skips some inline SVG (CSS filters, auto widths, z-index -1), so swap each SVG for an image of itself at its laid-out size */
+    Array.prototype.slice.call(op.querySelectorAll("svg")).forEach(function (sv) {
+      var cs = getComputedStyle(sv), abs = cs.position === "absolute";
+      var w = abs ? parseFloat(cs.width) : sv.getBoundingClientRect().width, h = abs ? parseFloat(cs.height) : sv.getBoundingClientRect().height;
+      if (!w || !h) return;
+      var c = sv.cloneNode(true); c.setAttribute("xmlns", "http://www.w3.org/2000/svg"); c.setAttribute("width", w); c.setAttribute("height", h); c.removeAttribute("class"); c.removeAttribute("style");
+      var im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(c));
+      im.style.cssText = "display:block;width:" + w + "px;height:" + h + "px;max-width:none;max-height:none;" +
+        (abs ? "position:absolute;left:" + cs.left + ";top:" + cs.top + ";transform:" + cs.transform + ";z-index:" + (+cs.zIndex < 0 ? 0 : cs.zIndex) + ";" : "");
+      /* the header bolt sits behind the text; the renderer can't do z-index -1, so lift the text over it instead */
+      if (+cs.zIndex < 0) Array.prototype.forEach.call(sv.parentNode.children, function (k) { if (k !== sv) { k.style.position = k.style.position || "relative"; k.style.zIndex = "1"; } });
+      sv.parentNode.replaceChild(im, sv);
+    });
+    var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    Promise.all([loadH2C(), fonts]).then(function (r) {
+      var imgs = Array.prototype.slice.call(op.querySelectorAll("img")).map(function (im) { return im.complete ? null : new Promise(function (ok) { im.onload = im.onerror = ok; }); });
+      return Promise.all(imgs).then(function () { return new Promise(function (ok) { setTimeout(ok, 150); }); }).then(function () { return r[0](op, { scale: 3, backgroundColor: "#ffffff", useCORS: true, logging: false }); });
+    }).then(function (cv) {
+      return new Promise(function (ok) { cv.toBlob(function (b) { ok({ b: b, w: cv.width, h: cv.height }); }, "image/png"); });
+    }).then(function (im) {
+      return im.b.arrayBuffer().then(function (buf) {
+        var maxW = 7.7, maxH = 10.2, w = maxW, h = maxW * im.h / im.w;
+        if (h > maxH) { h = maxH; w = maxH * im.w / im.h; }  /* same "fit to one page" the PDF does */
+        var blob = docxWithImage(new Uint8Array(buf), w, h, (d.name || "Team member") + " - One Page Blueprint");
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+        a.download = (d.name || "Blueprint").replace(/[^\w .-]+/g, "") + " - Blueprint.docx";
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+        flash("Word file downloaded.");
+      });
+    }).catch(function (e) { flash(e.message || "Couldn't build the Word file."); }).then(function () { host.remove(); });
+  }
   function exportDoc(kind) {
     var d = S.cur; if (!d) return;
     var css = CSS.split("\n").filter(function (r) { return r.indexOf(".op") === 0; }).join("\n");
@@ -1152,13 +1232,7 @@
       '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">' +
       "<style>@page{size:letter;margin:.4in}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + css + ".op{box-shadow:none;border-radius:0;width:7.7in;margin:0 auto}</style></head><body>" + onePager(d, true, kind === "word") +
       (kind === "word" ? "" : "<script>function fit(){var o=document.querySelector('.op'),max=10.15*96,h=o.getBoundingClientRect().height;if(h>max)document.body.style.zoom=(max/h).toFixed(3);}<\/script>") + "</body></html>";
-    if (kind === "word") {
-      var blob = new Blob(["﻿" + html], { type: "application/msword" });
-      var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-      a.download = (d.name || "Blueprint").replace(/[^\w .-]+/g, "") + " - Blueprint.doc";
-      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-      return;
-    }
+    if (kind === "word") { exportWord(d); return; }
     var w = window.open("", "_blank");
     if (!w) { flash("Your browser blocked the print window. Allow pop-ups for HQ and try again."); return; }
     w.document.open(); w.document.write(html); w.document.close();
