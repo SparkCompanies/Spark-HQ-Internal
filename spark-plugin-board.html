@@ -401,7 +401,7 @@ const API = {
    DATA MODEL
    ========================================================================== */
 const S = {
-  raw: null, jobs: [], byJob: {}, apps: [], pl: [], ytd: [], units: [], region: '', view: 'home', svc: 'ALL', q: '',
+  raw: null, jobs: [], byJob: {}, apps: [], pl: [], ytd: [], acts: [], units: [], region: '', view: 'home', svc: 'ALL', q: '',
   state: {}, targets: {}, focus: {}, regionMap: null, hcHistory: [], week: null, hl: null, admin: false, sort: {}
 };
 const num = v => (v == null || v === '' || isNaN(+v)) ? 0 : +v;
@@ -595,6 +595,25 @@ function buildModel(raw) {
       trades: tradesOf(j.bpats__Job_Title__c), created: pDate(j.CreatedDate), modified: pDate(j.LastModifiedDate) };
   });
 
+  // activities → pre-screens. Type or Subject says pre-screen. Region: the job it was logged on, else the owner's home region (where most of their open reqs sit).
+  const PRE_RE = /pre.?screen/i;
+  const ownerHome = {};
+  S.jobs.filter(j => j.open > 0 && j.recruiter && j.region).forEach(j => { const o = ownerHome[j.recruiter] || (ownerHome[j.recruiter] = {}); o[j.region] = (o[j.region] || 0) + 1; });
+  Object.keys(ownerHome).forEach(n => { const o = ownerHome[n]; ownerHome[n] = Object.keys(o).sort((a, b) => o[b] - o[a])[0]; });
+  S.actTypes = {};
+  S.acts = (raw.activities || []).map(t => {
+    const type = t.Type || '', subj = t.Subject || '';
+    const d = pDate(t.ActivityDate) || pDate(t.StartDateTime) || pDate(t.CreatedDate);
+    const owner = (t.Owner && t.Owner.Name) || '';
+    const job = S.byJob[t.WhatId] || null;
+    const isPre = PRE_RE.test(type) || PRE_RE.test(subj);
+    const inWeek = d && d >= S.week && d < weekEnd;
+    if (inWeek) { const k = (type || '(no type)') + (t._kind === 'Event' ? ' · event' : ''); S.actTypes[k] = (S.actTypes[k] || 0) + 1; }
+    const region = job ? job.region : (ownerHome[owner] || '');
+    return { id: t.Id, kind: t._kind, type, subj, d, owner, job, isPre, inWeek, region, geo: job ? job.geo : null, who: (t.Who && t.Who.Name) || '' };
+  });
+  S.acts.filter(a => a.isPre && a.inWeek).forEach(a => { if (a.job) a.job.p.preWk++; });
+
   const cnt = {};
   S.jobs.forEach(j => { if (j.open > 0) cnt[j.unit] = (cnt[j.unit] || 0) + 1; });
   S.units = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b)).map(u => ({ name: u, n: cnt[u] }));
@@ -605,6 +624,7 @@ function buildModel(raw) {
 function jobsIn(sel) { return S.jobs.filter(j => inRegion(j.region, j.geo, sel)); }
 function plIn(sel) { return S.pl.filter(p => inRegion(p.region, p.geo, sel)); }
 function appsIn(sel) { return S.apps.filter(a => inRegion(a.job.region, a.job.geo, sel)); }
+function preIn(sel) { return S.acts.filter(a => a.isPre && a.inWeek && inRegion(a.region, a.geo, sel)); }
 function ytdIn(sel) { return S.ytd.filter(j => inRegion(j.region, j.geo, sel)); }
 function regionJobs() { return jobsIn(S.region); }
 function regionPl() { return plIn(S.region); }
@@ -622,6 +642,7 @@ function regionStats(sel) {
   const inproc = apps.filter(a => INPROC.includes(a.stage)).length;
   const stalled = apps.filter(a => a.stalled).length;
   const subWk = apps.filter(a => a.stage === 'sub' && a.inWeek).length;
+  const preWk = preIn(sel).length;
   const ivWk = apps.filter(a => a.stage === 'iv' && a.inWeek).length;
   const hc = pl.filter(p => p.active).length, sw = pl.filter(p => p.startWk).length, tw = pl.filter(p => p.termWk).length;
   const s90 = pl.filter(p => p.start90).length, t90 = pl.filter(p => p.term90).length;
@@ -632,10 +653,10 @@ function regionStats(sel) {
   const hcT = num(t.hc), subT = num(t.sub), preT = num(t.pre);
   // health = ½ HC % of target + ½ activity %, ON TRACK ≥100 · CLOSE 80–99 · BEHIND <80 (v357)
   let health = null;
-  if (hcT || subT) { const a = hcT ? Math.min(150, hc / hcT * 100) : null, b = subT ? Math.min(150, subWk / subT * 100) : null; health = Math.round(a != null && b != null ? (a + b) / 2 : (a != null ? a : b)); }
+  if (hcT || subT || preT) { const a = hcT ? Math.min(150, hc / hcT * 100) : null; const acts = [subT ? Math.min(150, subWk / subT * 100) : null, preT ? Math.min(150, preWk / preT * 100) : null].filter(x => x != null); const b = acts.length ? acts.reduce((x, y) => x + y, 0) / acts.length : null; health = Math.round(a != null && b != null ? (a + b) / 2 : (a != null ? a : b)); }
   const outlook = hc + pl.filter(p => p.status === 'Pending Start' && p.st && p.st <= new Date(S.today.getTime() + 14 * day)).length;
   const bySvc = {}; open.forEach(j => { const s = bySvc[j.svc] || (bySvc[j.svc] = { open: 0, n: 0, score: 0 }); s.open += j.open; s.n++; s.score += j.score; });
-  return { sel, jobs, open, openBal, covered, covPct: pct(covered, open.length), inproc, stalled, stallPct: pct(stalled, inproc), subWk, ivWk, hc, hcT, subT, preT, sw, tw, s90, t90, avgScore, low, nobody, health, outlook, bySvc };
+  return { sel, jobs, open, openBal, covered, covPct: pct(covered, open.length), inproc, stalled, stallPct: pct(stalled, inproc), subWk, ivWk, preWk, hc, hcT, subT, preT, sw, tw, s90, t90, avgScore, low, nobody, health, outlook, bySvc };
 }
 function healthBadge(h) { if (h == null) return '<span class="badge na">no target</span>'; return h >= 100 ? '<span class="badge ok">On track</span>' : h >= 80 ? '<span class="badge close">Close</span>' : '<span class="badge behind">Behind</span>'; }
 
@@ -785,6 +806,7 @@ function regionCard(k) {
     <div class="stat"><span>Covered %</span>${mini(s.covPct, 100, covCls)}<b>${s.covPct}%</b></div>
     <div class="stat"><span>In process</span><span></span><b>${s.inproc}</b></div>
     <div class="stat"><span>Stalled %</span>${mini(s.stallPct, 100, s.stallPct > 30 ? 'r' : 'a')}<b>${s.stallPct}%</b></div>
+    <div class="stat"><span>Pre-screens wk</span>${mini(s.preWk, s.preT, 'g')}<b>${s.preWk}${s.preT ? `<span style="color:var(--muted);font-weight:500">/${s.preT}</span>` : ''}</b></div>
     <div class="stat"><span>Submittals wk</span>${mini(s.subWk, s.subT, 'g')}<b>${s.subWk}${s.subT ? `<span style="color:var(--muted);font-weight:500">/${s.subT}</span>` : ''}</b></div>
     <div class="stat"><span>Interviews wk</span><span></span><b>${s.ivWk}</b></div>
     <div class="stat"><span>Starts · terms wk</span><span></span><b><span style="color:var(--green)">${s.sw}</span> · <span style="color:var(--red)">${s.tw}</span></b></div>
@@ -809,6 +831,7 @@ function vCompare() {
       ${line('Covered %', r => r.covPct, x => x + '%')}
       ${line('In process', r => r.inproc)}
       ${line('Stalled', r => r.stalled + ' (' + r.stallPct + '%)')}
+      ${line('Pre-screens wk', r => r.preWk + (r.preT ? ' / ' + r.preT : ''))}
       ${line('Submittals wk', r => r.subWk + (r.subT ? ' / ' + r.subT : ''))}
       ${line('Interviews wk', r => r.ivWk)}
       ${line('Starts · terms wk', r => `<span style="color:var(--green)">${r.sw}</span> · <span style="color:var(--red)">${r.tw}</span>`)}
@@ -835,7 +858,7 @@ function vFocus() {
     ${tile('open', 'Open balance', c.openBal, `on ${c.open.length} reqs`, c.low ? `<div class="d2 dn">▲ ${c.low} reqs score below 40</div>` : '')}
     ${tile('cov', 'Covered', c.covPct + '<small>%</small>', 'pipeline ≥ open balance', bar(c.covPct, 100))}
     ${tile('inproc', 'In process', c.inproc, 'Submittal → Onboarding', `<div class="d2 ${c.stallPct > 30 ? 'dn' : ''}">${c.stalled} stalled · ${c.stallPct}%</div>`)}
-    ${tile('pre', 'Pre-screens wk', '<span style="color:var(--muted-2)">—</span>', 'pre-screens are activities, not an ATS stage', '<div class="d2" style="color:var(--muted-2)">source pending</div>')}
+    ${tile('pre', 'Pre-screens wk', c.preWk, c.preT ? `target ${c.preT}` : 'activities typed Pre-Screen this week', bar(c.preWk, c.preT, true))}
     ${tile('sub', 'Submittals wk', c.subWk, c.subT ? `target ${c.subT}` : 'entered Submit this week', bar(c.subWk, c.subT, true))}
     ${tile('starts', 'Starts · terms wk', `<span class="g">${c.sw}</span><small> / </small><span class="r">${c.tw}</span>`, `net ${c.sw - c.tw >= 0 ? '+' : ''}${c.sw - c.tw} · avg req score ${c.avgScore}`, reasonTxt ? `<div class="d2" title="${esc(reasonTxt)}">terms: ${esc(reasonTxt.length > 48 ? reasonTxt.slice(0, 46) + '…' : reasonTxt)}</div>` : '')}
   </section>
@@ -882,11 +905,11 @@ function focusBoard(sel, compact) {
   let filled = 0;
   const body = names.map(r => {
     const mine = jobs.filter(j => j.recruiter === r);
-    const pre = mine.reduce((a, j) => a + j.p.preWk, 0), sub = mine.reduce((a, j) => a + j.p.subWk, 0);
+    const pre = S.acts.filter(a => a.isPre && a.inWeek && a.owner === r).length, sub = mine.reduce((a, j) => a + j.p.subWk, 0);
     const row = picks[r] || {};
     const cells = DAYS.map(d => { const v = row[d] || ''; const j = v && S.byJob[v]; if (v) filled++; const cls = j ? ('set' + (j.p.inproc ? '' : ' miss')) : '';
       return `<td><select class="${cls}" data-key="${key}" data-rec="${esc(r)}" data-day="${d}" title="${j ? esc(j.client + ' — ' + j.title) : 'pick a req'}"><option value="">— pick —</option>${opts.replace(`value="${v}"`, `value="${v}" selected`)}</select></td>`; }).join('');
-    return `<tr><td>${whoTag(r)}</td>${cells}<td class="psb" title="pre-screens · submittals this week on this recruiter's reqs"><b>${pre}</b> ${sub}</td></tr>`;
+    return `<tr><td>${whoTag(r)}</td>${cells}<td class="psb" title="pre-screens logged by this recruiter this week · submittals on their reqs"><b>${pre}</b> ${sub}</td></tr>`;
   }).join('');
   return `<section class="panel">
     <div class="ph"><div class="k">Focus board · week of ${S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${sel ? ' · ' + esc(regionLabel(sel)) : ''}</div><h2>One req per person per day</h2><span class="note">${filled} of ${names.length * 5} slots picked</span></div>
@@ -1068,17 +1091,18 @@ function vScorecards() {
   const jobs = regionJobs(), apps = appsIn(S.region), pl = regionPl(), ytd = ytdIn(S.region);
   const build = (key, label) => {
     const p = {};
-    const get = n => p[n] || (p[n] = { n, open: 0, bal: 0, cov: 0, inproc: 0, stalled: 0, sub: 0, iv: 0, starts: 0, terms: 0, hc: 0, score: 0, yFill: 0, yOpen: 0 });
+    const get = n => p[n] || (p[n] = { n, open: 0, bal: 0, cov: 0, inproc: 0, stalled: 0, pre: 0, sub: 0, iv: 0, starts: 0, terms: 0, hc: 0, score: 0, yFill: 0, yOpen: 0 });
+    if (key === 'recruiter') S.acts.filter(a => a.isPre && a.inWeek && a.owner && inRegion(a.region, a.geo, S.region)).forEach(a => get(a.owner).pre++);
     jobs.filter(j => j.open > 0 && j[key]).forEach(j => { const o = get(j[key]); o.open++; o.bal += j.open; if (j.cov === 'ok') o.cov++; o.score += j.score; });
     apps.forEach(a => { const n = key === 'recruiter' ? a.rec : a.job.am; if (!n) return; const o = get(n); if (INPROC.includes(a.stage)) o.inproc++; if (a.stalled) o.stalled++; if (a.stage === 'sub' && a.inWeek) o.sub++; if (a.stage === 'iv' && a.inWeek) o.iv++; });
     pl.forEach(x => { const n = key === 'recruiter' ? x.rec : x.am; if (!n) return; const o = get(n); if (x.startWk) o.starts++; if (x.termWk) o.terms++; if (x.active) o.hc++; });
     ytd.forEach(j => { const n = key === 'recruiter' ? j.rec : j.am; if (!n) return; const o = get(n); o.yOpen += j.openings; o.yFill += j.filled; });
-    const list = Object.values(p).sort((a, b) => (b.sub + b.iv + b.starts * 2) - (a.sub + a.iv + a.starts * 2) || b.open - a.open);
+    const list = Object.values(p).sort((a, b) => (b.pre + b.sub + b.iv + b.starts * 2) - (a.pre + a.sub + a.iv + a.starts * 2) || b.open - a.open);
     return `<h2 style="font-size:15px;margin:14px 0 8px">${label}</h2><div class="sc-grid">${list.map(o => `<div class="sc"><h4>${whoTag(o.n)}<span class="dim" style="color:var(--muted);font-weight:500;font-size:12px">${o.open} open · ${o.bal} bal · ${pct(o.cov, o.open)}% covered</span></h4>
-      <div class="nums"><div><b>${o.sub}</b><span>Subs wk</span></div><div><b>${o.iv}</b><span>Interviews wk</span></div><div><b style="color:var(--green)">${o.starts}</b><span>Starts wk</span></div><div><b style="color:${o.terms ? 'var(--red)' : 'inherit'}">${o.terms}</b><span>Terms wk</span></div></div>
+      <div class="nums" style="grid-template-columns:repeat(${key === 'recruiter' ? 5 : 4},1fr)">${key === 'recruiter' ? `<div><b>${o.pre}</b><span>Pre-screens</span></div>` : ''}<div><b>${o.sub}</b><span>Subs wk</span></div><div><b>${o.iv}</b><span>Interviews wk</span></div><div><b style="color:var(--green)">${o.starts}</b><span>Starts wk</span></div><div><b style="color:${o.terms ? 'var(--red)' : 'inherit'}">${o.terms}</b><span>Terms wk</span></div></div>
       <div class="foot">HC ${o.hc} · in process ${o.inproc} · <span style="color:${o.stalled ? 'var(--red)' : 'inherit'}">${o.stalled} stalled</span> · avg req score ${o.open ? Math.round(o.score / o.open) : '—'} · YTD fill ${o.yOpen ? pct(o.yFill, o.yOpen) + '%' : '—'}</div></div>`).join('') || '<div class="empty">No one to score here.</div>'}</div>`;
   };
-  return `<section class="panel">${build('recruiter', 'Recruiters')}${build('am', 'Account managers')}<div class="foot">Ranked by this week's production (submittals + interviews + 2× starts). Weekly counts come from stage dates and placement dates; HC is active placements on this person's reqs. Pre-screens join once the activity source is confirmed.</div></section>`;
+  return `<section class="panel">${build('recruiter', 'Recruiters')}${build('am', 'Account managers')}<div class="foot">Ranked by this week's production (submittals + interviews + 2× starts). Weekly counts come from stage dates and placement dates; HC is active placements on this person's reqs. Pre-screens = activities typed Pre-Screen, credited to the activity owner.</div></section>`;
 }
 
 /* ---------- FULFILLMENT FOCUS ---------- */
@@ -1175,7 +1199,7 @@ function openDiag() {
     <p style="margin-top:12px">Worker: ${CONFIG.WORKER_URL}<br>As of: ${S.raw ? S.raw.asOf : '—'}${S.raw && S.raw.cached ? ' (cached; Refresh pulls fresh)' : ''}<br>
     Signed in as ${esc((Auth.user && Auth.user.email) || '')} · ${S.admin ? 'admin' : 'member'}<br>
     Open reqs with no region: ${S.noRegion || 0}. Headcount history: ${S.hcHistory.length} daily snapshots (one is written each morning by the HQ worker).<br>
-    Pre-screens: ATS stages are Source → Submit → Interview → Pending Feedback → Offer → Onboarding → Placement, so pre-screens have to come from activity records; the tile stays blank until that source is confirmed.</p>
+    Activity types logged this week (pre-screens are the ones whose Type or Subject says Pre-Screen): ${Object.keys(S.actTypes || {}).sort((a, b) => S.actTypes[b] - S.actTypes[a]).map(k => esc(k) + ' ' + S.actTypes[k]).join(' · ') || 'none loaded'}.</p>
     <div class="acts"><button class="btn" id="m-ok">Close</button></div>`);
   root.querySelector('#m-ok').onclick = () => root.innerHTML = '';
 }
@@ -1184,12 +1208,12 @@ function huddleText() {
   const L = [];
   L.push(`MORNING HUDDLE · ${S.today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} · week of ${fmtD(S.week)}`);
   L.push('');
-  L.push(`COMPANY · HC ${c.hc.toLocaleString()}${c.hcT ? ' / ' + c.hcT.toLocaleString() : ''} · open balance ${c.openBal} on ${c.open.length} reqs · covered ${c.covPct}% · in process ${c.inproc} (${c.stalled} stalled, ${c.stallPct}%) · submittals ${c.subWk} · interviews ${c.ivWk} · starts ${c.sw} / terms ${c.tw}`);
+  L.push(`COMPANY · HC ${c.hc.toLocaleString()}${c.hcT ? ' / ' + c.hcT.toLocaleString() : ''} · open balance ${c.openBal} on ${c.open.length} reqs · covered ${c.covPct}% · in process ${c.inproc} (${c.stalled} stalled, ${c.stallPct}%) · pre-screens ${c.preWk} · submittals ${c.subWk} · interviews ${c.ivWk} · starts ${c.sw} / terms ${c.tw}`);
   L.push('');
   TOP_REGIONS.forEach(k => {
     const s = regionStats(k); if (!s.open.length && !s.hc) return;
     const top = s.open.filter(j => j.cov !== 'ok').sort((a, b) => (b.open - b.p.inproc) - (a.open - a.p.inproc)).slice(0, 3).map(j => `${j.client} ${j.title} (${Math.max(0, j.open - j.p.inproc)} short${j.recruiter ? ', ' + j.recruiter.split(' ')[0] : ', nobody'})`);
-    L.push(`${regionLabel(k).toUpperCase()}${s.health != null ? ' · ' + (s.health >= 100 ? 'ON TRACK' : s.health >= 80 ? 'CLOSE' : 'BEHIND') : ''} · HC ${s.hc}${s.hcT ? '/' + s.hcT : ''} · open ${s.openBal} · covered ${s.covPct}% · stalled ${s.stalled} · subs ${s.subWk} · starts ${s.sw} / terms ${s.tw}`);
+    L.push(`${regionLabel(k).toUpperCase()}${s.health != null ? ' · ' + (s.health >= 100 ? 'ON TRACK' : s.health >= 80 ? 'CLOSE' : 'BEHIND') : ''} · HC ${s.hc}${s.hcT ? '/' + s.hcT : ''} · open ${s.openBal} · covered ${s.covPct}% · stalled ${s.stalled} · pre-screens ${s.preWk} · subs ${s.subWk} · starts ${s.sw} / terms ${s.tw}`);
     if (top.length) L.push(`  Needs pipeline: ${top.join(' · ')}`);
     if (s.nobody) L.push(`  ${s.nobody} open req${s.nobody > 1 ? 's' : ''} with no recruiter`);
     if (s.low) L.push(`  ${s.low} req${s.low > 1 ? 's' : ''} score below 40: kill or fix`);
