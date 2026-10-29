@@ -1138,8 +1138,14 @@ async function loadState() {
     if (S.state.regions && S.state.regions.value && S.state.regions.value.bu) { S.regionMap = S.state.regions.value; buildModel(S.raw); }
   } catch (e) { /* state routes unavailable: board still works, nothing persists */ }
 }
+const PI_ADMIN_ONLY = true; // while the board is being built: non-admins see a hold screen. Flip to false to open to every HQ user.
 async function loadMe() {
-  try { const me = await API.call('/pi-me'); S.admin = !!me.admin; document.getElementById('admin-row').style.display = S.admin ? '' : 'none'; } catch (e) {}
+  try { const me = await API.call('/pi-me'); S.admin = !!me.admin; document.getElementById('admin-row').style.display = S.admin ? '' : 'none'; return me; } catch (e) { return null; }
+}
+function showHold() {
+  document.getElementById('app').classList.add('hidden');
+  const g = document.getElementById('gate'); g.classList.remove('hidden');
+  g.querySelector('.box').innerHTML = '<h1>Plugin Board is in build</h1><p>Admins only until the new board is finished. The current board is still available from HQ.</p><button class="btn ghost" onclick="window.open(\'https://hq.sparktalentinc.com\',\'_self\')">Back to Spark HQ</button>';
 }
 async function load(fresh) {
   setLive('stale', fresh ? 'Refreshing' : 'Loading');
@@ -1261,9 +1267,11 @@ function openHuddle() {
   document.querySelectorAll('.nav-item[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
   window.addEventListener('hashchange', () => { const h = location.hash.replace('#', ''); if (VIEWS[h] && h !== S.view) setView(h); });
   document.getElementById('q').oninput = e => { S.q = e.target.value.trim().toLowerCase(); renderAll(); };
-  loadMe();
-  load(false);
-  setInterval(() => load(false), 15 * 60 * 1000);
+  loadMe().then(me => {
+    if (PI_ADMIN_ONLY && me && !me.admin) { showHold(); return; }
+    load(false);
+    setInterval(() => load(false), 15 * 60 * 1000);
+  });
 })();
 </script>
 </body>
