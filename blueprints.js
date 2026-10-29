@@ -31,7 +31,7 @@
     rules: null, rulesAt: "", rulesBy: "", list: [],
     view: "list", filter: "all", q: "",
     cur: null, curId: null, curStatus: "draft", dirty: false, activeGroup: 0, saving: false, msg: "",
-    rulesDraft: null, rulesLine: "", rulesRole: "", skLine: "", skAllUn: false
+    rulesDraft: null, rulesLine: "", rulesRole: "", skLine: "", skAllUn: false, kitGoals: true
   };
 
   /* ---------- helpers ---------- */
@@ -61,12 +61,15 @@
     var out = [];
     if (k.starts !== "" && k.starts != null) out.push(/^\d+$/.test(String(k.starts)) ? k.starts + " starts per week" : "Starts: " + k.starts);
     if (+k.meetings > 0) out.push("Minimum of " + k.meetings + " client meetings per week");
+    var nm = newMeetingsStd(role, k); if (+nm > 0) out.push("Minimum of " + nm + " new client meeting" + (+nm === 1 ? "" : "s") + " per week");
     if (+k.preScreens > 0) out.push("Minimum of " + k.preScreens + " pre-screens per week");
     if (+k.inProcess > 0) out.push("Maintain a minimum of " + k.inProcess + " candidates in process at all times");
     if (+k.calls > 0) out.push("Minimum of " + k.calls + " calls per week");
     if (k.reference && k.reference !== "N/A") out.push("References: " + k.reference);
     return out;
   }
+  /* NEW_MEETINGS_v1 (matches Fletcher's kit): ARMs 1 new client meeting a week, Business Development 2, recruiters none, unless the rules say otherwise */
+  function newMeetingsStd(role, k) { if (k && k.newMeetings !== "" && k.newMeetings != null) return k.newMeetings; return /^Business Development/.test(role || "") ? 2 : /^Account Recruiting/.test(role || "") ? 1 : 0; }
   function blank() {
     return { name: "", company: "Spark Talent Acquisition", title: "", role: "Recruiter", region: "", territory: "", serviceLine: "", secondaryServiceLine: "",
       hc: "", dhFocused: false, reportsTo: "", kpis: [], s4: clone((S.rules && S.rules.s4) || []), contacts: [], titleGroups: [{ group: "", titles: [] }],
@@ -420,6 +423,8 @@
     if (x[x.length - 1] !== y[y.length - 1]) return false;
     var f = x[0], g = y[0]; return f.indexOf(g) === 0 || g.indexOf(f) === 0 || NICK[f] === g || NICK[g] === f;
   }
+  /* Fletcher's kit says "Business Development (Sales Formerly)"; HQ keeps "Business Development" */
+  function normRole(r) { return /^Business Development/i.test(r || "") ? "Business Development" : (r || ""); }
   function kitPlan() {
     if (!KIT || !KIT.docs) return null;
     var plan = { upd: [], add: [], same: [], notInKit: [] }, used = {};
@@ -428,13 +433,13 @@
       if (!b) { plan.add.push({ k: k }); return; }
       used[b.id] = 1;
       var d = b.data || {}, ch = [];
-      if (k.role && k.role !== d.role) ch.push("Role: " + (d.role || "blank") + " → " + k.role);
+      if (k.role && normRole(k.role) !== d.role) ch.push("Role: " + (d.role || "blank") + " → " + k.role);
       if (k.line && k.line !== d.serviceLine) ch.push("Service line: " + (d.serviceLine || "blank") + " → " + k.line + " (check the weekly goals)");
       if (k.region && k.region !== d.region) ch.push("Region: " + (d.region || "blank") + " → " + k.region);
       if (k.company && k.company !== d.company) ch.push("Company: " + (d.company || "blank") + " → " + k.company);
       if (k.leader && normN(k.leader) !== normN(d.leader)) ch.push("Leader: " + (d.leader || "blank") + " → " + k.leader);
       if (JSON.stringify(k.core) !== JSON.stringify(coreOf(d)) || JSON.stringify(k.sub) !== JSON.stringify(subOf(d))) ch.push("Skillsets: " + k.core.length + " core, " + k.sub.length + " sub-core");
-      var after = { role: k.role || d.role, serviceLine: k.line || d.serviceLine, kpis: d.kpis };
+      var after = { role: normRole(k.role) || d.role, serviceLine: k.line || d.serviceLine, kpis: d.kpis };
       if (S.kitGoals && goalsOff(after)) ch.push("Weekly goals set to the " + roleShort(after.role) + " · " + after.serviceLine + " standard");
       (ch.length ? plan.upd : plan.same).push({ k: k, b: b, ch: ch });
     });
@@ -449,14 +454,14 @@
     S.saving = true; render();
     var jobs = plan.upd.map(function (u) {
       var d = clone(u.b.data || {}), k = u.k;
-      d.role = k.role || d.role; d.serviceLine = k.line || d.serviceLine; d.region = k.region || d.region; d.company = k.company || d.company;
+      d.role = normRole(k.role) || d.role; d.serviceLine = k.line || d.serviceLine; d.region = k.region || d.region; d.company = k.company || d.company;
       if (k.leader) d.leader = k.leader; d.core = k.core.slice(); d.sub = k.sub.slice();
       if (S.kitGoals && goalsOff(d)) d.kpis = standardKpis(d.role, d.serviceLine);
       d.kitNote = { at: at, src: src, changes: u.ch };
       return { id: u.b.id, status: u.b.status, data: d };
     }).concat(plan.add.map(function (a) {
       var k = a.k, d = blank();
-      d.name = k.name; d.role = k.role; d.serviceLine = k.line; d.region = k.region; d.company = k.company || d.company; d.leader = k.leader || "";
+      d.name = k.name; d.role = normRole(k.role); d.serviceLine = k.line; d.region = k.region; d.company = k.company || d.company; d.leader = k.leader || "";
       d.core = k.core.slice(); d.sub = k.sub.slice(); d.kpis = standardKpis(d.role, d.serviceLine);
       var p = personFor(d); if (p) applyDir(d, p, false);
       d.kitNote = { at: at, src: src, isNew: true, changes: ["New from Fletcher's update. Add territory, contacts and titles."] };
@@ -854,7 +859,8 @@
     ".op-sk .r b{display:block;font-size:11px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:#111;margin-bottom:2px}.op-sk .op-chip{font-size:9px;padding:1px 7px}.op-sk .op-chips{gap:3px}",
     ".op-subs{display:grid;gap:6px}.op-subs .c{background:#fff;border:1px solid #ECE7DA;border-radius:9px;padding:5px 7px;min-width:0}",
     ".op-subs .c b{display:flex;gap:5px;align-items:flex-start;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;line-height:1.2;color:#111}.op-subs .n{width:14px;height:14px;font-size:8px;background:#111;color:#FFC800;margin-top:0}",
-    ".op-subs .c>span{display:block;font-size:8.5px;line-height:1.3;color:#6B675C;margin-top:3px}",
+    ".op-subs .c>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:8.5px;line-height:1.3;color:#6B675C;margin-top:3px}",
+    ".op-tiles.seven b{font-size:18px}.op-tiles.seven .op-tile{padding:6px 7px 7px}.op-tiles.seven .op-tile .s{font-size:8px}",
     ".op-tiles.six b{font-size:20px}.op-tiles.six .op-tile .k{font-size:7px}.op-tiles.six .op-tile{padding:7px 8px 8px}",
     ".op-strip{display:flex;justify-content:space-between;gap:10px;margin-top:6px;border:1px solid #ECE7DA;border-radius:8px;background:#fff;padding:5px 10px;font-size:10px;color:#2b2818}.op-strip div{min-width:0}",
     ".op-strip i{font-style:normal;font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9a7a1e;margin-right:6px}.op-strip b{font-weight:800}",
@@ -890,6 +896,7 @@
 ".op-main ol,.op-main ol.two{list-style:none;counter-reset:c;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 6px;columns:auto}",
 ".op-main ol li{counter-increment:c;display:flex;align-items:center;gap:6px;line-height:1.25;background:#fff;border:1px solid #EFE9DA;border-radius:7px;padding:4px 6px;font-size:10px}",
 ".op-main ol li::before{content:counter(c);flex:none;width:15px;height:15px;border-radius:50%;background:#FFC800;color:#111;font-size:8.5px;font-weight:800;display:grid;place-items:center}",
+".op-main ol li{font-size:9.5px;padding:3px 6px;gap:5px}.op-main ol li::before{width:14px;height:14px;font-size:8px}", /* FIT_v3 */
     /* rules */
     ".bp-rt{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #E9E4D8;border-radius:12px;overflow:hidden;font-size:13px}",
     ".bp-rt th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#9a9484;font-weight:700;padding:10px 12px;background:#FBFAF6;border-bottom:1px solid #E9E4D8}",
@@ -1054,7 +1061,7 @@
   function per(label) { return /(\ba|\bper|\/)\s*day\b|daily/i.test(label) ? "Day" : /(\ba|\bper|\/)\s*week\b|weekly|\/\s*wk/i.test(label) ? "Week" : ""; }
   function onePager(d, abs, png) {
     var L = line(d.serviceLine) || {};
-    var hc = d.hc !== "" && d.hc != null ? d.hc : (L.hc != null ? L.hc : "");
+    var hc = d.hc !== "" && d.hc != null && +d.hc !== 0 ? d.hc : (L.hc != null ? L.hc : "");  /* a 0 from the old Word imports means "not set" */
     var groups = (d.titleGroups || []).filter(function (g) { return g.titles && g.titles.length; });
     function clean(arr) { return (arr || []).filter(function (x) { return String(x || "").trim(); }); }
     var empty = '<div class="op-empty">Not set yet</div>';
@@ -1107,10 +1114,10 @@
         '<div class="op-title">' + esc(tl || "Title") + (d.dhFocused ? " · Direct hire focused" : "") + "</div>" +
         '<div class="op-hrow"><div class="op-pills">' + pills.join("") + '</div><div class="op-eff">' + (lead ? '<div class="k">Reports to</div><b>' + esc(lead) + '</b><div class="k" style="margin-top:5px">Effective</div>' : '<div class="k">Effective</div>') + "<b>" + esc(fmtDate((d.effective || new Date().toISOString().slice(0, 10)) + "T12:00:00")) + "</b></div></div></div>" +
       '<div class="op-body">' +
-        '<div class="op-tiles' + (goals.length >= 5 ? " many six" : goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 6) + ',minmax(0,1fr))">' + tiles + "</div>" +
+        '<div class="op-tiles' + (goals.length >= 5 ? " many six" + (goals.length >= 6 ? " seven" : "") : goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 7) + ',minmax(0,1fr))">' + tiles + "</div>" +
         strip +
         (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
-        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "own these", skHtml + (groups.length ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).filter(function (t) { return t.length <= 40; }).slice(0, 4).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + nsec(subHtml ? 3 : 2, "Target customer contacts", clean(d.contacts).length ? "" : "standard", contacts) + "</div>" +
+        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "own these", skHtml + (allTitles(d).some(function (t) { return t.length <= 40; }) ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).filter(function (t) { return t.length <= 40; }).slice(0, 4).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + nsec(subHtml ? 3 : 2, "Target customer contacts", clean(d.contacts).length ? "" : "standard", contacts) + "</div>" +
           "<div>" + (terrHtml ? '<div class="op-sec"><div class="op-nh">Territory <em>- ' + esc(terr.all ? "national" : "primary region") + "</em></div>" + terrHtml + "</div>" : "") + "</div></div>" +
         (subHtml ? nsec(2, "Sub-core skillsets", "work these when your core has no openings in your area", subHtml) : "") +
         nsec(subHtml ? 4 : 3, "S4 process", "work your pipeline in this order", steps) +
@@ -1403,15 +1410,29 @@
       });
     }, Promise.resolve()).then(function () { S.saving = false; flash("Added the starts goal to " + done + " blueprints" + (failed ? "; " + failed + " failed" : "") + "."); });
   }
+  /* GOALS_STANDARD_v1: every active blueprint's weekly goals = the standard for its role + service line (and a 0 headcount falls back to the standard) */
+  function goalsTodo() { return S.list.filter(function (b) { var d = b.data || {}; return !isInactive(b) && (goalsOff(d) || (d.hc !== "" && d.hc != null && +d.hc === 0)); }); }
+  function resetGoals() {
+    var todo = goalsTodo(); if (!todo.length) return;
+    if (!window.confirm("Set the weekly goals on " + todo.length + " blueprints to the standard for each person's role and service line? Their old goals are replaced. Headcounts of 0 switch to the service line standard.")) return;
+    S.saving = true; var done = 0, failed = 0; render();
+    todo.reduce(function (p, b) {
+      return p.then(function () {
+        var d = clone(b.data); if (goalsOff(d)) d.kpis = standardKpis(d.role, d.serviceLine); if (d.hc !== "" && d.hc != null && +d.hc === 0) d.hc = "";
+        return api("POST", "/blueprints", { id: b.id, status: b.status, data: d }).then(function (r) { var i = S.list.indexOf(b); if (i >= 0 && r.blueprint) S.list[i] = r.blueprint; done++; }).catch(function () { failed++; });
+      });
+    }, Promise.resolve()).then(function () { S.saving = false; flash("Weekly goals set to the standard on " + done + " blueprints" + (failed ? "; " + failed + " failed" : "") + "."); });
+  }
   function rulesView() {
     var R = S.rulesDraft || (S.rulesDraft = clone(S.rules));
     if (!S.rulesLine) S.rulesLine = R.serviceLines[0].name;
     if (!S.rulesRole) S.rulesRole = R.roles[0];
     var h = '<div class="bp-note" style="margin-top:0">' + ic("sliders") + "<div>These rules drive every blueprint: targets and headcount per service line, standard KPIs per role, and each service line's title library. Changing a rule doesn't rewrite saved blueprints; it changes what the builder fills in next time. Seeded from " + esc(R.source || "Fletcher's workbooks") + "." + (S.rulesAt ? " Last saved " + esc(fmtDate(S.rulesAt)) + " by " + esc(S.rulesBy) + "." : "") + "</div></div>";
-    var gaps = S.list.filter(function (b) { return !isInactive(b) && startsGap(b.data || {}); });
-    h += '<div class="bp-sec"><h4>Oct 26 leadership standards</h4><div class="bp-hint" style="margin-top:0">7 starts a week for Light Industrial, build/pipe/wire and data center. Skilled Trades stays at 2 starts with a $400 margin. Skilled Trades and technical roles need one reference; Light Industrial needs a contact name and tries the most relevant reference first.</div>' +
+    var offN = goalsTodo().length;
+    h += '<div class="bp-sec"><h4>Leadership standards and weekly goals</h4><div class="bp-hint" style="margin-top:0">7 starts a week for Light Industrial, build/pipe/wire and data center. Skilled Trades stays at 2 starts with a $400 margin. Skilled Trades and technical roles need one reference; Light Industrial needs a contact name and tries the most relevant reference first.</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="bp-btn sm" data-act="oct26rules">' + ic("sliders") + "Put these in the rules</button>" +
-      (gaps.length ? '<button class="bp-btn sm gold" data-act="oct26bulk"' + (S.saving ? " disabled" : "") + ">" + ic("plus") + "Add the starts goal to " + gaps.length + " blueprint" + (gaps.length === 1 ? "" : "s") + "</button>" : '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint has its starts goal</span>") + "</div></div>";
+      (offN ? '<button class="bp-btn sm gold" data-act="resetgoals"' + (S.saving ? " disabled" : "") + ">" + ic("reset") + "Set weekly goals to the standard on " + offN + " blueprint" + (offN === 1 ? "" : "s") + "</button>" : '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint's weekly goals match the standard</span>") + "</div>" +
+      (JSON.stringify(R) !== JSON.stringify(S.rules) ? '<div class="bp-hint">Save rules first. The reset uses the saved rules.</div>' : "") + "</div>";
     h += kitCard(R) + skillsRules(R);
     h += '<div class="bp-sec"><h4>Targets by service line</h4><table class="bp-rt"><thead><tr><th>Service line</th><th>Direct hire target</th><th>Weekly charge</th><th>Headcount</th><th>Note</th></tr></thead><tbody>' +
       R.serviceLines.map(function (l, i) {
@@ -1422,11 +1443,11 @@
           '<td><input class="w" data-k="rl' + i + 'n" data-act="rline" data-i="' + i + '" data-p="note" value="' + esc(l.note || "") + '"></td></tr>';
       }).join("") + "</tbody></table></div>";
     h += '<div class="bp-sec"><h4>Standard KPIs by role</h4><div class="bp-seg">' + R.roles.map(function (r) { return '<button class="bp-chip' + (r === S.rulesRole ? " on" : "") + '" data-act="rrole" data-r="' + esc(r) + '">' + esc(r) + "</button>"; }).join("") + "</div>" +
-      '<table class="bp-rt"><thead><tr><th>Service line</th><th>Starts / week</th><th>In process</th><th>Pre-screens / wk</th><th>Calls / wk</th><th>Meetings / wk</th><th>References</th></tr></thead><tbody>' +
+      '<table class="bp-rt"><thead><tr><th>Service line</th><th>Starts / week</th><th>In process</th><th>Pre-screens / wk</th><th>Calls / wk</th><th>Meetings / wk</th><th>New meetings / wk</th><th>References</th></tr></thead><tbody>' +
       R.serviceLines.map(function (l) {
         var k = (R.kpi[S.rulesRole] || {})[l.name] || {};
-        function cell(p, w) { return '<td><input ' + (w ? 'class="w" ' : 'style="width:80px" ') + 'data-k="rk' + esc(l.name + p) + '" data-act="rkpi" data-s="' + esc(l.name) + '" data-p="' + p + '" value="' + esc(k[p] == null ? "" : k[p]) + '"></td>'; }
-        return "<tr><td><b>" + esc(l.name) + "</b></td>" + cell("starts") + cell("inProcess") + cell("preScreens") + cell("calls") + cell("meetings") + cell("reference", true) + "</tr>";
+        function cell(p, w) { return '<td><input ' + (w ? 'class="w" ' : 'style="width:80px" ') + 'data-k="rk' + esc(l.name + p) + '" data-act="rkpi" data-s="' + esc(l.name) + '" data-p="' + p + '" value="' + esc(k[p] == null ? "" : k[p]) + '"' + (p === "newMeetings" ? ' placeholder="' + newMeetingsStd(S.rulesRole, null) + '"' : "") + "></td>"; }
+        return "<tr><td><b>" + esc(l.name) + "</b></td>" + cell("starts") + cell("inProcess") + cell("preScreens") + cell("calls") + cell("meetings") + cell("newMeetings") + cell("reference", true) + "</tr>";
       }).join("") + "</tbody></table></div>";
     var T = R.titles[S.rulesLine] || [];
     h += '<div class="bp-sec"><h4>Extra title library <span class="r" style="font-size:12px;color:#8a8576">' + T.length + " titles</span></h4><div class=\"bp-seg\">" + R.serviceLines.map(function (l) { return '<button class="bp-chip' + (l.name === S.rulesLine ? " on" : "") + '" data-act="rlinesel" data-s="' + esc(l.name) + '">' + esc(l.name) + " · " + (R.titles[l.name] || []).length + "</button>"; }).join("") + "</div>" +
@@ -1507,6 +1528,7 @@
       case "actwk": S.actWeek = t.getAttribute("data-w"); render(); break;
       case "oct26rules": applyOct26Rules(); render(); break;
       case "oct26bulk": bulkStarts(); break;
+      case "resetgoals": resetGoals(); break;
       case "stdroad": delete d.road; touch(); break;
       case "roadadd": d.road = roadOf(d); d.road.push({ time: "", tag: "", text: "" }); touch(); break;
       case "roadrm": d.road = roadOf(d); d.road.splice(+t.getAttribute("data-i"), 1); touch(); break;
