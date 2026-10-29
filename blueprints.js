@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.8 (lightning bolt road stops) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.9 (Oct 26 standards) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -59,7 +59,7 @@
   function standardKpis(role, sl) {
     var k = kpiRule(role, sl); if (!k) return [];
     var out = [];
-    if (k.starts !== "" && k.starts != null) out.push(/^\d+$/.test(String(k.starts)) ? k.starts + " starts per week at target margin" : "Starts: " + k.starts);
+    if (k.starts !== "" && k.starts != null) out.push(/^\d+$/.test(String(k.starts)) ? k.starts + " starts per week" : "Starts: " + k.starts);
     if (+k.meetings > 0) out.push("Minimum of " + k.meetings + " client meetings per week");
     if (+k.preScreens > 0) out.push("Minimum of " + k.preScreens + " pre-screens per week");
     if (+k.inProcess > 0) out.push("Maintain a minimum of " + k.inProcess + " candidates in process at all times");
@@ -73,7 +73,13 @@
       rolesHeading: "Focused Roles", notes: "", flags: [] };
   }
   function allTitles(d) { var o = []; (d.titleGroups || []).forEach(function (g) { (g.titles || []).forEach(function (t) { o.push(t); }); }); return o; }
-  function needsAttention(b) { var d = b.data || {}; var sy = sync(d); return !!((d.flags && d.flags.length) || !allTitles(d).length || !d.serviceLine || (sy && sy.state !== "ok") || (sy && sy.issues.length)); }
+  function needsAttention(b) { var d = b.data || {}; var sy = sync(d); return !!((d.flags && d.flags.length) || !allTitles(d).length || !d.serviceLine || (sy && sy.state !== "ok") || (sy && sy.issues.length) || startsGap(d)); }
+  /* STANDARDS_v1 (Oct 26 Sr Leadership): every producer blueprint carries its weekly starts standard.
+     7 starts for Light Industrial, build/pipe/wire automation and data center; 2 for Skilled Trades; the rest per the rules. */
+  function startsStd(d) { var k = kpiRule(d.role, d.serviceLine); return k && /^\d+$/.test(String(k.starts)) ? +k.starts : 0; }
+  function hasStarts(d) { return (d.kpis || []).some(function (x) { return /\d/.test(x) && /\bstarts?\b/i.test(x); }); }
+  function startsGap(d) { var n = startsStd(d); return n && !hasStarts(d) ? n : 0; }
+  function addStarts(d) { var n = startsGap(d); if (n) d.kpis = [n + " starts per week"].concat(d.kpis || []); return n; }
 
   /* ---------- Microsoft 365 (same /directory feed as the HQ Directory tab) ----------
      365 owns name, title, company and manager. The blueprint keeps service line, territory, goals and titles. */
@@ -707,7 +713,9 @@
       (d.serviceLine ? '<div class="bp-hint">Targets from the rules: <b>' + money(L.direct) + "</b> direct hire · <b>" + (L.charge != null ? money(L.charge) : "case by case") + "</b> weekly charge · standard headcount <b>" + (L.hc != null ? L.hc : "—") + "</b></div>" +
         (L.note ? '<div class="bp-note" style="margin-bottom:0">' + ic("alert") + "<div>" + esc(L.note) + "</div></div>" : "") : "") + "</div>";
     // 4 goals
-    var same = std.length && JSON.stringify(std) === JSON.stringify(d.kpis);
+    var same = std.length && JSON.stringify(std) === JSON.stringify(d.kpis), gapN = startsGap(d);
+    if (gapN) h += '<div class="bp-flag">' + ic("alert") + "<div><b>No weekly starts goal.</b> The standard for " + esc(d.serviceLine) + " is " + gapN + " starts per week (Oct 26 leadership meeting).</div>" + '<button class="bp-btn sm" data-act="addstarts">Add ' + gapN + " starts per week</button></div>";
+    if (d.serviceLine === "Light Industrial" && (d.kpis || []).some(function (x) { return /submi(t|ss)/i.test(x); })) h += '<div class="bp-note">' + ic("alert") + "<div>Light Industrial is measured in starts, not submittals. Consider replacing the submittal goal.</div></div>";
     h += '<div class="bp-sec">' + secH(4, "Weekly goals") + listEditor("kpis", d.kpis, "Add a goal, e.g. 10 submissions per week") +
       (std.length ? (same ? '<div class="bp-hint ok">' + ic("check") + "Matches the standard for " + esc(roleShort(d.role)) + " · " + esc(d.serviceLine) + "</div>"
         : '<div class="bp-hint">Differs from the standard for ' + esc(roleShort(d.role)) + " · " + esc(d.serviceLine) + '<button class="bp-btn sm" data-act="stdkpi">' + ic("reset") + "Use standard</button></div>") : "") + "</div>";
@@ -760,11 +768,39 @@
         '<button class="bp-x" title="Remove" data-act="lirm" data-l="' + key + '" data-i="' + i + '">' + ic("x") + "</button></div>";
     }).join("") + '</div><div class="bp-add"><input data-k="add-' + key + '" data-add="' + key + '" placeholder="' + esc(ph) + '"><button class="bp-btn sm" data-act="liadd" data-l="' + key + '">' + ic("plus") + "Add</button></div>";
   }
+  function applyOct26Rules() {
+    var R = S.rulesDraft || (S.rulesDraft = clone(S.rules));
+    R.serviceLines.forEach(function (l) { if (l.name === "Skilled Trades") { l.charge = 400; l.note = "$400 confirmed at the Oct 26 Sr Leadership meeting."; } });
+    var ONE = ["Skilled Trades", "Skilled Trades - Automation", "Skilled Trades - Data Center", "Technical", "Technical - Automation"];
+    Object.keys(R.kpi || {}).forEach(function (role) {
+      var k = R.kpi[role];
+      ONE.forEach(function (sl) { if (k[sl]) k[sl].reference = "One reference required"; });
+      if (k["Light Industrial"]) k["Light Industrial"].reference = "Contact name; try the most relevant reference first";
+      if (role !== "Business Development") { ["Light Industrial", "Skilled Trades - Automation", "Skilled Trades - Data Center"].forEach(function (sl) { if (k[sl]) k[sl].starts = 7; }); if (k["Skilled Trades"]) k["Skilled Trades"].starts = 2; }
+    });
+    S.msg = "Standards added to the rules. Review, then Save rules.";
+  }
+  function bulkStarts() {
+    var todo = S.list.filter(function (b) { return startsGap(b.data || {}); });
+    if (!todo.length) return;
+    if (!window.confirm("Add the weekly starts goal to " + todo.length + " blueprints? Each one keeps its other goals and its status.")) return;
+    S.saving = true; var done = 0, failed = 0; render();
+    todo.reduce(function (p, b) {
+      return p.then(function () {
+        var d = clone(b.data); addStarts(d);
+        return api("POST", "/blueprints", { id: b.id, status: b.status, data: d }).then(function (r) { var i = S.list.indexOf(b); if (i >= 0 && r.blueprint) S.list[i] = r.blueprint; done++; }).catch(function () { failed++; });
+      });
+    }, Promise.resolve()).then(function () { S.saving = false; flash("Added the starts goal to " + done + " blueprints" + (failed ? "; " + failed + " failed" : "") + "."); });
+  }
   function rulesView() {
     var R = S.rulesDraft || (S.rulesDraft = clone(S.rules));
     if (!S.rulesLine) S.rulesLine = R.serviceLines[0].name;
     if (!S.rulesRole) S.rulesRole = R.roles[0];
     var h = '<div class="bp-note" style="margin-top:0">' + ic("sliders") + "<div>These rules drive every blueprint: targets and headcount per service line, standard KPIs per role, and each service line's title library. Changing a rule doesn't rewrite saved blueprints; it changes what the builder fills in next time. Seeded from " + esc(R.source || "Fletcher's workbooks") + "." + (S.rulesAt ? " Last saved " + esc(fmtDate(S.rulesAt)) + " by " + esc(S.rulesBy) + "." : "") + "</div></div>";
+    var gaps = S.list.filter(function (b) { return startsGap(b.data || {}); });
+    h += '<div class="bp-sec"><h4>Oct 26 leadership standards</h4><div class="bp-hint" style="margin-top:0">7 starts a week for Light Industrial, build/pipe/wire and data center. Skilled Trades stays at 2 starts with a $400 margin. Skilled Trades and technical roles need one reference; Light Industrial needs a contact name and tries the most relevant reference first.</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="bp-btn sm" data-act="oct26rules">' + ic("sliders") + "Put these in the rules</button>" +
+      (gaps.length ? '<button class="bp-btn sm gold" data-act="oct26bulk"' + (S.saving ? " disabled" : "") + ">" + ic("plus") + "Add the starts goal to " + gaps.length + " blueprint" + (gaps.length === 1 ? "" : "s") + "</button>" : '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint has its starts goal</span>") + "</div></div>";
     h += '<div class="bp-sec"><h4>Targets by service line</h4><table class="bp-rt"><thead><tr><th>Service line</th><th>Direct hire target</th><th>Weekly charge</th><th>Headcount</th><th>Note</th></tr></thead><tbody>' +
       R.serviceLines.map(function (l, i) {
         return "<tr><td><b>" + esc(l.name) + "</b></td>" +
@@ -855,6 +891,9 @@
       case "unflag": d.flags.splice(+t.getAttribute("data-i"), 1); touch(); break;
       case "stdkpi": d.kpis = standardKpis(d.role, d.serviceLine); touch(); break;
       case "stds4": d.s4 = clone(S.rules.s4); touch(); break;
+      case "addstarts": addStarts(d); touch(); break;
+      case "oct26rules": applyOct26Rules(); render(); break;
+      case "oct26bulk": bulkStarts(); break;
       case "stdroad": delete d.road; touch(); break;
       case "roadadd": d.road = roadOf(d); d.road.push({ time: "", tag: "", text: "" }); touch(); break;
       case "roadrm": d.road = roadOf(d); d.road.splice(+t.getAttribute("data-i"), 1); touch(); break;
