@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.6 (header pills + top tiles) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.7 (one page) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -314,6 +314,18 @@
     ".op-notes{font-size:11.5px;line-height:1.5;white-space:pre-wrap;color:#3d3a2e}",
     ".op-empty{font-size:11px;color:#a19b88;font-style:italic}",
     ".op-foot{display:flex;justify-content:space-between;gap:8px;padding:9px 18px;margin-top:12px;border-top:1px solid #F0ECE2;font-size:9px;color:#a8a291;letter-spacing:.08em;text-transform:uppercase}",
+    /* ONE_PAGE_v1: compact sizing so a blueprint fits one letter page; print also auto-scales as a backstop */
+    ".op-head{padding:12px 16px 11px}.op-logo{height:22px}.op-name{font-size:20px;margin:8px 0 1px}.op-title{font-size:11.5px}",
+    ".op-hrow{margin-top:7px}.op-pills{gap:4px}.op-pills span{font-size:8px;padding:2px 7px}.op-eff b{font-size:11px}.op-eff .t{font-size:9px}",
+    ".op-body{padding:10px 14px 2px}.op-sec{margin-top:9px}.op-nh{margin:0 0 6px;font-size:9px}.op-nh b{font-size:9px;padding:1px 5px}.op-hd{font-size:8.5px;margin:0 0 5px}",
+    ".op-tiles{gap:6px}.op-tile,.op-tiles.many .op-tile{padding:7px 9px 8px;border-radius:10px}.op-tile .k{font-size:7.5px;min-height:18px}.op-tile b,.op-tiles.many b{font-size:22px;margin:3px 0 3px}.op-tile .s{font-size:8.5px}",
+    ".op-main{gap:0 14px}.op-chips{gap:4px}.op-chip{font-size:10px;padding:2px 8px}.op-g{font-size:8.5px;margin:5px 0 3px}",
+    ".op-dense{font-size:10px;line-height:1.45;color:#2b2818;margin:0 0 4px}.op-dense b{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8576}",
+    ".op ol{font-size:10.5px;line-height:1.4}.op ol.two{columns:2;column-gap:14px}",
+    ".op-terr{padding:8px 10px}.op-map{max-height:104px}.op-terr .tn{font-size:12px}.op-terr .ts{font-size:9.5px;margin-top:2px}",
+    ".op-s4{padding:3px 6px 7px}.op-s4::before{top:15px}.op-s4 .n{width:22px;height:22px;font-size:11px}.op-s4 .t{font-size:9.5px;min-height:22px}",
+    ".op-road svg{height:32px}.op-road .stops{gap:5px;margin-top:2px}.op-road .sp b{font-size:10px}.op-road .sp span{font-size:8.5px;line-height:1.25}",
+    ".op-extra{margin:6px 0 0;font-size:10px}.op-notes{font-size:10.5px}.op-foot{padding:6px 14px;margin-top:8px;font-size:8px}",
     /* rules */
     ".bp-rt{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #E9E4D8;border-radius:12px;overflow:hidden;font-size:13px}",
     ".bp-rt th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#9a9484;font-weight:700;padding:10px 12px;background:#FBFAF6;border-bottom:1px solid #E9E4D8}",
@@ -493,11 +505,13 @@
         return '<div class="op-ring"><div class="c">' + esc(g.n) + '</div><div class="l">' + esc(lab) + "</div>" + (pr ? '<span class="per">Per ' + pr + "</span>" : "") + "</div>";
       }).join("") + "</div>" : "") +
       (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "");
+    var dense = allTitles(d).length > 10;  /* long lists read as text so the page stays one page */
     var roles = !groups.length ? empty : groups.map(function (g) {
+      if (dense) return '<div class="op-dense">' + (g.group ? "<b>" + esc(g.group) + "</b>" : "") + g.titles.map(esc).join(" · ") + "</div>";
       return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + '<div class="op-chips">' + g.titles.map(function (t) { return '<span class="op-chip">' + esc(t) + "</span>"; }).join("") + "</div>";
     }).join("");
     var ct = clean(d.contacts);
-    var contacts = !ct.length ? empty : "<ol>" + ct.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ol>";
+    var contacts = !ct.length ? empty : "<ol" + (ct.length > 4 ? ' class="two"' : "") + ">" + ct.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ol>";
     var st = clean(d.s4);
     var steps = !st.length ? empty : '<div class="op-s4" style="grid-template-columns:repeat(' + st.length + ',minmax(0,1fr))">' + st.map(function (x, i) {
       var m = String(x).replace(/\)\s*\)\s*$/, ")").match(/^(.*?)\s*\(([^()]+)\)\s*$/), src = m ? m[2] : "";
@@ -537,7 +551,8 @@
     var css = CSS.split("\n").filter(function (r) { return r.indexOf(".op") === 0; }).join("\n");
     var html = '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(d.name) + ' - One Page Blueprint</title>' +
       '<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">' +
-      "<style>@page{size:letter;margin:.4in}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + css + ".op{box-shadow:none;border-radius:0;max-width:7.7in;margin:0 auto}</style></head><body>" + onePager(d, true, kind === "word") + "</body></html>";
+      "<style>@page{size:letter;margin:.4in}body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + css + ".op{box-shadow:none;border-radius:0;width:7.7in;margin:0 auto}</style></head><body>" + onePager(d, true, kind === "word") +
+      (kind === "word" ? "" : "<script>function fit(){var o=document.querySelector('.op'),max=10.15*96,h=o.getBoundingClientRect().height;if(h>max)document.body.style.zoom=(max/h).toFixed(3);}<\/script>") + "</body></html>";
     if (kind === "word") {
       var blob = new Blob(["﻿" + html], { type: "application/msword" });
       var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
@@ -548,7 +563,7 @@
     var w = window.open("", "_blank");
     if (!w) { flash("Your browser blocked the print window. Allow pop-ups for HQ and try again."); return; }
     w.document.open(); w.document.write(html); w.document.close();
-    w.onload = function () { setTimeout(function () { w.focus(); w.print(); }, 250); };
+    w.onload = function () { setTimeout(function () { try { w.fit(); } catch (e) {} w.focus(); w.print(); }, 400); };
   }
 
   /* ---------- render ---------- */
@@ -568,6 +583,7 @@
     h += "</div>";
     var ae = document.activeElement, keep = ae && root.contains(ae) && ae.getAttribute("data-k") ? { k: ae.getAttribute("data-k"), s: ae.selectionStart, e: ae.selectionEnd } : null;
     root.innerHTML = h;
+    fitNote();
     if (keep) { var el = root.querySelector('[data-k="' + keep.k + '"]'); if (el) { el.focus(); try { if (keep.s != null) el.setSelectionRange(keep.s, keep.e); } catch (e) {} } }
   }
   function hero() {
@@ -728,7 +744,7 @@
       }).join("") + '</div><div class="bp-add"><button class="bp-btn sm" data-act="roadadd">' + ic("plus") + "Add a stop</button></div></div>";
     h += '<div class="bp-sec">' + secH(9, "Notes") + '<div class="bp-f"><label class="full"><textarea data-k="notes" data-f="notes" placeholder="Anything else for this seat (optional)">' + esc(d.notes || "") + "</textarea></label></div></div>";
     h += "</div>";
-    h += '<div class="bp-prevwrap"><div class="bp-prevlab"><span>Live preview</span><span>Prints on one letter page</span></div>' + onePager(d) + "</div>";
+    h += '<div class="bp-prevwrap"><div class="bp-prevlab"><span>Live preview</span><span class="bp-fit"></span></div>' + onePager(d) + "</div>";
     h += "</div>";
     return h;
   }
@@ -922,11 +938,19 @@
   }
   /* Typing shouldn't rebuild the form (it would drop focus on mobile keyboards); only refresh the preview + status. */
   var softT = null;
+  /* How the preview compares to a letter page (7.7in x 10.15in printable). Print scales to fit; this just says by how much. */
+  function fitNote() {
+    if (!root) return;
+    var op = root.querySelector(".bp-prevwrap .op"), lab = root.querySelector(".bp-fit"); if (!op || !lab) return;
+    var page = 10.15 / 7.7, ratio = op.offsetHeight / Math.max(1, op.offsetWidth);
+    if (ratio <= page) { lab.textContent = "Fits on one page"; lab.style.color = "#2f7a4a"; }
+    else { var pct = Math.round(page / ratio * 100); lab.textContent = "Prints on one page at " + pct + "% size" + (pct < 80 ? ", consider trimming" : ""); lab.style.color = pct < 80 ? "#a3341f" : "#8a8576"; }
+  }
   function renderSoft(rules) {
     clearTimeout(softT);
     softT = setTimeout(function () {
       if (rules) { var m = root.querySelector(".bp-rbar .msg"), btn = root.querySelector('[data-act="rsave"]'); var ch = JSON.stringify(S.rulesDraft) !== JSON.stringify(S.rules); if (m) m.textContent = ch ? "Unsaved rule changes" : "Rules match what's saved"; if (btn) btn.disabled = !ch; return; }
-      var pv = root.querySelector(".bp-prevwrap .op"); if (pv) pv.outerHTML = onePager(S.cur);
+      var pv = root.querySelector(".bp-prevwrap .op"); if (pv) { pv.outerHTML = onePager(S.cur); fitNote(); }
       var ms = root.querySelector(".bp-top .msg"); if (ms) ms.textContent = "Unsaved changes";
     }, 120);
   }
