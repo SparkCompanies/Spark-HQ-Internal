@@ -285,6 +285,7 @@
     ".op-eff .t{font-size:9.5px;color:#b9b9c8;margin-top:3px;white-space:nowrap}",
     ".op-main{display:grid;grid-template-columns:1.15fr 1fr;gap:0 16px}",
     ".op-terr.v{grid-template-columns:1fr;gap:8px;margin-top:0}.op-terr.v .tk{display:none}",
+".op-terr{border:2px solid #FFC800;box-shadow:0 0 0 3px rgba(255,200,0,.18),0 0 14px 2px rgba(255,200,0,.5)}", /* TERR_GLOW_v1 */
     ".op-tiles.many b{font-size:25px}.op-tiles.many .op-tile{padding:9px 10px 10px}",
     ".op-rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px;text-align:center}",
     ".op-ring{display:flex;flex-direction:column;align-items:center;gap:5px}",
