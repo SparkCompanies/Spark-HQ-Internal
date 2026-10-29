@@ -245,6 +245,15 @@ table.list td.dim{color:var(--muted)}
 @media (max-width:860px){ .sc .nums{grid-template-columns:repeat(2,1fr)} }
 table.jobs th{cursor:pointer;user-select:none} table.jobs th.on,table.sup th.on{color:var(--ink)}
 table.sup th{cursor:pointer;user-select:none}
+/* scrolling tables: header stays put, only rows move */
+.tscroll{max-height:60vh;overflow:auto;border-bottom:1px solid var(--line)}
+.tscroll thead th{position:sticky;top:0;background:var(--card);z-index:2;box-shadow:0 1px 0 var(--line)}
+table.jobs{min-width:0}
+table.sup.wide td.client{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:34%}
+table.sup.wide{table-layout:fixed}
+table.sup.wide th:nth-child(2),table.sup.wide th:nth-child(3),table.sup.wide th:nth-child(4),table.sup.wide th:nth-child(5){width:7%}
+table.sup.wide th:nth-child(6){width:16%}
+body.tv .tscroll{max-height:70vh}
 </style>
 </head>
 <body>
@@ -862,14 +871,13 @@ function vFocus() {
     ${tile('sub', 'Submittals wk', c.subWk, c.subT ? `target ${c.subT}` : 'entered Submit this week', bar(c.subWk, c.subT, true))}
     ${tile('starts', 'Starts · terms wk', `<span class="g">${c.sw}</span><small> / </small><span class="r">${c.tw}</span>`, `net ${c.sw - c.tw >= 0 ? '+' : ''}${c.sw - c.tw} · avg req score ${c.avgScore}`, reasonTxt ? `<div class="d2" title="${esc(reasonTxt)}">terms: ${esc(reasonTxt.length > 48 ? reasonTxt.slice(0, 46) + '…' : reasonTxt)}</div>` : '')}
   </section>
-  <div class="cols">
-    <section class="panel">
-      <div class="ph"><div class="k">Jobs &amp; pipeline · open reqs</div><h2>Sorted by req score, then open balance</h2><span class="note">score = Target Rate 30 + Top 5 Skills 30 + Hiring Manager Alignment 30 + Interview Time 10</span></div>
-      <div style="overflow-x:auto">${jobsTable(rows)}</div>
-      <div class="foot">${rows.length} open reqs shown · ${rows.filter(j => j.score < 40).length} score below 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.</div>
-    </section>
-    ${supportPanel()}
-  </div>`;
+  <section class="panel">
+    <div class="ph"><div class="k">Jobs &amp; pipeline · open reqs</div><h2>Sorted by req score, then open balance</h2><span class="note">score = Target Rate 30 + Top 5 Skills 30 + Hiring Manager Alignment 30 + Interview Time 10 · click a header to sort</span></div>
+    <div class="tscroll">${jobsTable(rows)}</div>
+    <div class="foot">${rows.length} open reqs · ${rows.filter(j => j.score < 40).length} score below 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.</div>
+  </section>
+  <div style="height:16px"></div>
+  ${supportPanel()}`;
   return h;
 }
 function jobsTable(rows, showRegion) {
@@ -878,7 +886,7 @@ function jobsTable(rows, showRegion) {
   const rank = { none: 0, part: 1, ok: 2 };
   const s = S.sort[sortId('jobs')];
   if (s) rows = sortable(rows, (j, k) => ({ score: j.score, client: j.client, title: j.title, svc: j.svc, open: j.open, sub: j.p.sub, iv: j.p.iv, pnd: j.p.pnd, off: j.p.off, onb: j.p.onb, cov: rank[j.cov], age: j.age == null ? -1 : j.age, recruiter: j.recruiter || '' })[k], 'score', 'desc', 'jobs');
-  return `<table class="jobs list"><colgroup><col style="width:52px"><col style="width:160px"><col style="width:180px"><col style="width:96px"><col style="width:40px"><col style="width:40px"><col style="width:36px"><col style="width:40px"><col style="width:40px"><col style="width:40px"><col style="width:84px"><col style="width:44px"><col style="width:120px"></colgroup>
+  return `<table class="jobs list"><colgroup><col style="width:56px"><col style="width:20%"><col style="width:22%"><col style="width:110px"><col style="width:44px"><col style="width:44px"><col style="width:40px"><col style="width:44px"><col style="width:44px"><col style="width:44px"><col style="width:100px"><col style="width:52px"><col style="width:150px"></colgroup>
     <thead><tr>${th('Score', 'score', '', 'jobs')}${th('Client', 'client', '', 'jobs')}${th('Job', 'title', '', 'jobs')}${th('Svc line', 'svc', '', 'jobs')}${th('Opn', 'open', 'num', 'jobs')}${th('Sub', 'sub', 'num', 'jobs')}${th('IV', 'iv', 'num', 'jobs')}${th('Pnd', 'pnd', 'num', 'jobs')}${th('Off', 'off', 'num', 'jobs')}${th('Onb', 'onb', 'num', 'jobs')}${th('Coverage', 'cov', '', 'jobs')}${th('Age', 'age', 'num', 'jobs')}${th('Recruiter', 'recruiter', '', 'jobs')}</tr></thead>
     <tbody>${rows.map(j => {
       const sc = j.score >= 80 ? 'g' : j.score >= 40 ? 'a' : 'r';
@@ -928,14 +936,15 @@ function supportPanel() {
     return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who, hc: hcBy[name] || 0 }; })
     .sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap));
   const ss = S.sort[sortId('sup')];
-  const shown = (ss ? sortable(rows, (r, k) => ({ client: r.name, hc: r.hc, open: r.open, pipe: r.pipe, gap: r.gap, risk: r.risk, who: r.who.length })[k], 'risk', 'desc', 'sup') : rows).slice(0, 14);
+  const base = ss ? sortable(rows, (r, k) => ({ client: r.name, hc: r.hc, open: r.open, pipe: r.pipe, gap: r.gap, risk: r.risk, who: r.who.length })[k], 'risk', 'desc', 'sup') : rows;
+  const shown = ss ? base : base.filter(r => r.gap > 0).concat(base.filter(r => r.gap === 0).slice(0, 5));
   return `<section class="panel">
-    <div class="ph"><div class="k">Where to put support</div><h2>Gap × GP/hr × 40 = weekly GP at risk</h2><span class="note">unsupported clients first · ${rows.length} clients</span></div>
-    <table class="sup list"><thead><tr>${th('Client', 'client', '', 'sup')}${th('HC', 'hc', 'n', 'sup')}${th('Open', 'open', 'n', 'sup')}${th('Pipe', 'pipe', 'n', 'sup')}${th('Gap', 'gap', 'n', 'sup')}${th('GP $/wk at risk', 'risk', '', 'sup')}${th('Focused by', 'who', '', 'sup')}</tr></thead>
+    <div class="ph"><div class="k">Where to put support</div><h2>Gap × GP/hr × 40 = weekly GP at risk</h2><span class="note">unsupported clients first · ${rows.filter(r => r.gap > 0).length} of ${rows.length} clients short of pipeline</span></div>
+    <div class="tscroll" style="max-height:48vh"><table class="sup list wide"><thead><tr>${th('Client', 'client', '', 'sup')}${th('HC', 'hc', 'n', 'sup')}${th('Open', 'open', 'n', 'sup')}${th('Pipe', 'pipe', 'n', 'sup')}${th('Gap', 'gap', 'n', 'sup')}${th('GP $/wk at risk', 'risk', '', 'sup')}${th('Focused by', 'who', '', 'sup')}</tr></thead>
     <tbody>${shown.map(r => `<tr><td class="client" title="${esc(r.name)}">${esc(r.name)}</td><td class="n">${r.hc}</td><td class="n">${r.open}</td><td class="n">${r.pipe}</td><td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
       <td class="money ${r.gap ? '' : 'ok'}" title="${r.noRate ? r.noRate + ' req(s) without bill/pay rate' : 'avg GP/hr ' + money(r.gp)}">${r.gap ? money(r.risk) : '$0'}${r.noRate ? ' <span style="color:var(--muted-2)">*</span>' : ''}</td>
-      <td>${r.who.length ? r.who.map(w => `<span class="who">${esc(w.split(' ')[0])}</span>`).join(' ') : '<span class="who none">nobody</span>'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing open here.</td></tr>'}</tbody></table>
-    <div class="foot">GP/hr = bill − pay × (1 + burden) averaged over the client's open reqs. Reqs without a bill or pay rate count as $0 and are marked.</div>
+      <td>${r.who.length ? r.who.map(w => `<span class="who">${esc(w.split(' ')[0])}</span>`).join(' ') : '<span class="who none">nobody</span>'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing open here.</td></tr>'}</tbody></table></div>
+    <div class="foot">GP/hr = bill − pay × (1 + burden) averaged over the client's open reqs. * = at least one req has no bill or pay rate, so its GP counts as $0. Clients with no gap are listed after the ones that need help.</div>
   </section>`;
 }
 
