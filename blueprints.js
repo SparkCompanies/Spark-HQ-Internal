@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v2.1 (header bolt) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v2.2 (skillsets) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -31,7 +31,7 @@
     rules: null, rulesAt: "", rulesBy: "", list: [],
     view: "list", filter: "all", q: "",
     cur: null, curId: null, curStatus: "draft", dirty: false, activeGroup: 0, saving: false, msg: "",
-    rulesDraft: null, rulesLine: "", rulesRole: ""
+    rulesDraft: null, rulesLine: "", rulesRole: "", skLine: "", skAllUn: false
   };
 
   /* ---------- helpers ---------- */
@@ -70,7 +70,7 @@
   function blank() {
     return { name: "", company: "Spark Talent Acquisition", title: "", role: "Recruiter", region: "", territory: "", serviceLine: "", secondaryServiceLine: "",
       hc: "", dhFocused: false, reportsTo: "", kpis: [], s4: clone((S.rules && S.rules.s4) || []), contacts: [], titleGroups: [{ group: "", titles: [] }],
-      rolesHeading: "Focused Roles", notes: "", flags: [] };
+      rolesHeading: "Focused Roles", notes: "", flags: [], leader: "", core: [], sub: [] };
   }
   function allTitles(d) { var o = []; (d.titleGroups || []).forEach(function (g) { (g.titles || []).forEach(function (t) { o.push(t); }); }); return o; }
   function needsAttention(b) { var d = b.data || {}; var sy = sync(d); return !!((d.flags && d.flags.length) || !allTitles(d).length || !d.serviceLine || (sy && sy.state !== "ok") || (sy && sy.issues.length) || startsGap(d)); }
@@ -79,6 +79,420 @@
   function startsStd(d) { var k = kpiRule(d.role, d.serviceLine); return k && /^\d+$/.test(String(k.starts)) ? +k.starts : 0; }
   function hasStarts(d) { return (d.kpis || []).some(function (x) { return /\d/.test(x) && /\bstarts?\b/i.test(x); }); }
   function startsGap(d) { var n = startsStd(d); return n && !hasStarts(d) ? n : 0; }
+  /* ---------- SF title -> skillset matcher (SKILL_MATCH_v1) ----------
+     Each skillset has a keyword pattern. The longest keyword hit wins; ties go to the line the req sits in
+     (Salesforce service line + business unit), so "Welder" on an Automation req lands in Automation Weld. */
+  var SKILL_KW = {
+    /* Skilled Trades */
+    CNC: "cnc (v |vertical |horizontal )?mill|cnc (machinist|programmer|program|set ?up|setup|lathe machinist|mill machinist|machining)|cnc machin",
+    MAN: "machinist|mill hand|boring mill|lathe|manual mach|horizontal mill|vertical mill",
+    GRD: "grind",
+    LAS: "laser",
+    TD: "tool (and|&|n) die|tool ?maker|die maker|die repair|jig|fixture builder|tool repair|tool ?room|tooling tech|toolmaker|die tech",
+    MOLD: "mold (maker|repair|tech)|mold ?maker",
+    SET: "die setter|setter|set ?up tech|process tech|cold header|prototype press",
+    WELD: "welder|welding|weld tech|mig|tig",
+    FAB: "fabricat|fitter|press brake|brake press( operator)?|sheet metal",
+    IMT: "machine repair|repair tech|maintenance (tech|mechanic|electrician|man\\b|worker|associate)|industrial electrician|millwright|electrical tech|retrofit|industrial maint|electro ?mechanical|mechanical tech|maintenance$|^electrician",
+    FAC: "facilit|hvac|building maint|building engineer|maintenance porter",
+    MECH: "mechanic|diesel|trailer|service tech",
+    MODEL: "pattern|model maker|bench hand",
+    PROTO: "prototype tech|composite|laminat",
+    MET: "layout|gage|gauge|cmm|ndt|metrolog",
+    PAINT: "painter|paint finish|paint polish|polisher|finisher|body shop",
+    /* Skilled Trades - Automation */
+    BUILD: "\\bmtb\\b|bumper builder|machine (tool )?build|^builder|mechanical (tool )?builder|machine assembl|mechanical assembl|tool builder",
+    WIRE: "(machine|mechanical) (tool )?electrician|panel (builder|wirer)|control panel|wirer|panel shop",
+    PIPE: "machine (tool )?pipe|pipe ?fitter|pipe ?fitting",
+    AWELD: "welder|welding",
+    AFIT: "fitter",
+    FS: "field service tech|field tech|service tech",
+    LEADS: "build lead|electrical lead|pipe lead|lead (builder|electrician|pipefitter)",
+    /* Skilled Trades - Data Center */
+    ELEC: "journeyman|electrician|electrical foreman|apprentice electric",
+    LV: "^lv |fire alarm|low voltage|cabl|cable tech",
+    FIBER: "fiber|splic",
+    HVAC: "chiller|critical facilit|data center tech",
+    DPIPE: "pipe ?fitter|plumb",
+    BMS: "\\bbms\\b|building automation",
+    CX: "commissioning (tech|agent)",
+    SITE: "superintendent|foreman",
+    SAFE: "site safety|safety coord",
+    /* Light Industrial */
+    MOP: "(machine|production|cnc|saw|line|mill|lathe|equipment|packaging|extrusion|bender|router) operator|operator",
+    CELL: "\\bcell\\b|sequenc|trimm|deburr",
+    ASSY: "assembl",
+    STAMP: "stamping|transfer press|progressive die",
+    INJ: "injection|molding operator|press operator|mold operator",
+    LIFT: "forklift|fork lift|hi ?lo|crane|clamp truck|reach truck|tow motor|order picker|\\bpit\\b",
+    WH: "fulfil+ment|fultillment|warehouse|shipping|receiving|picker|packer|\\bpick|\\bpack|material handl|dock|inventory (clerk|associate)|loader|unloader|stock",
+    GL: "general associate|utility|shop hand|formation|^production$|general (labor|cleaner)|cleaner|cleaning|janitor|custodian|helper|production (associate|worker|team)|laborer|labor|line staff|line worker|crew member|porter|sanitation|housekeep|team member",
+    INSP: "inspect|quality (auditor|check|associate|tech|control)|sorter|sorting|auditor",
+    PREP: "masking|paint prep|sander|sanding|buff",
+    /* Technical */
+    PROC: "process engineer|manufacturing engineer|production engineer|launch engineer",
+    IE: "industrial engineer|project engineer",
+    QE: "quality engineer|reliability|supplier quality|sqe",
+    TEST: "test (engineer|tech)|validation",
+    WENG: "\\bcwi\\b|weld(ing)? engineer|weld inspector",
+    PDES: "design engineer|product design|designer|product engineer|release engineer",
+    TDES: "(fixture|tool|tooling|mold|die|weld) design|tooling engineer|tool engineer",
+    CAD: "detailer|checker|\\bcad\\b|draft|cad operator",
+    ME: "mechanical engineer",
+    EE: "electrical engineer",
+    SYS: "systems engineer|mobility",
+    ENGL: "engineering manager|director of engineering|engineering director|chief engineer|engineering lead",
+    MLEAD: "maintenance (manager|supervisor|coordinator|lead|planner|director)",
+    /* Technical - Automation */
+    CTRL: "controls engineer|control engineer|electrical design",
+    PLC: "\\bplc\\b",
+    CTECH: "controls tech|control tech",
+    RPROG: "robot(ic|ics)? programmer|robot program",
+    RTECH: "robot(ic|ics)? tech|vision",
+    RENG: "robotics engineer|robot engineer",
+    MDES: "mechanical design",
+    SIM: "simulat",
+    APPS: "applications? engineer",
+    CXI: "commissioning engineer|install(ation)? engineer",
+    FSE: "service engineer|field engineer",
+    AUTO: "automation (engineer|tech|specialist)",
+    /* Professional / Office Clerical */
+    ACCT: "payroll (coordinator|specialist|admin\\w*|clerk)|accountant|accounting|account(s)? (payable|receivable)|payroll|billing|bookkeep|\\bap\\b|\\bar\\b|collections",
+    FINL: "controller|finance|financial|treasur|\\bcfo\\b|fp&?a",
+    HR: "\\bhr\\b|human resource|benefits|people (ops|operations|partner)|hrbp",
+    TA: "recruit|talent acq|sourcer",
+    EHS: "safety|\\behs\\b|environmental|health and safety",
+    PUR: "buyer|procure|purchas",
+    PLAN: "planner|material (coord|plan|control)|scheduler|inventory (manager|control|analyst|specialist)|logistic|supply chain|expedit",
+    OPS: "general manager|operations|plant manager|production (manager|supervisor)|service manager|supervisor|shift lead|team lead|\\bvp\\b|vice president|president|plant director",
+    QCI: "quality (manager|director|supervisor|lead)|continuous improvement|\\blean\\b|six sigma",
+    PM: "program manag|project manag|project coord|program coord|pmo",
+    SALES: "sales|business develop|account (manager|executive)|\\bbdr\\b|\\bsdr\\b",
+    EST: "estimat|proposal|contracts? admin|contracts? manag",
+    ADMIN: "admin|office|receptionist|executive assistant|customer service|coordinator|clerk|data entry|writer|assistant|front desk|dispatch"
+  };
+  /* Which taxonomy lines a Salesforce service line + business unit point at, best first. */
+  function lineHint(sfLine, bu) {
+    var a = /automation/i.test(bu || "");
+    switch (sfLine) {
+      case "Skilled Trades": return a ? ["Skilled Trades - Automation", "Skilled Trades", "Skilled Trades - Data Center"] : ["Skilled Trades", "Skilled Trades - Data Center", "Skilled Trades - Automation"];
+      case "Light Industrial": case "Printing & Packaging": return ["Light Industrial", "Skilled Trades"];
+      case "Engineering & Technical": return a ? ["Technical - Automation", "Technical"] : ["Technical", "Technical - Automation"];
+      case "Professional & Executive": return ["Professional/Office Clerical", "Technical"];
+      default: return a ? ["Skilled Trades - Automation", "Technical - Automation", "Light Industrial"] : ["Light Industrial", "Skilled Trades", "Professional/Office Clerical"];
+    }
+  }
+  var SK_RX = null, SK_LINE = null, SK_TITLE = null, SK_INFO = null;
+  function skNorm(t) {
+    return String(t || "").toLowerCase().replace(/^\+/, "").replace(/\((?!.*\b(electrical|mechanical|stamping|injection)\b)[^)]*\)/g, " ")
+      .replace(/\b(1st|2nd|3rd|first|second|third|day|night|weekend|afternoon|midnight)s?\b\s*(shift)?|\bshift\b/g, " ")
+      .replace(/\b(i{1,3}|iv|[1-4]|sr|senior|jr|junior|temp|contract|entry level)\b\.?/g, " ")
+      .replace(/[^a-z0-9&+ ]/g, " ").replace(/\s+/g, " ").trim();
+  }
+  function skIndex(skills) {
+    SK_RX = {}; SK_LINE = {}; SK_TITLE = {}; SK_INFO = {};
+    Object.keys(skills || {}).forEach(function (ln) {
+      (skills[ln] || []).forEach(function (fam) {
+        (fam[1] || []).forEach(function (c) {
+          SK_LINE[c[0]] = ln;
+          SK_INFO[c[0]] = { code: c[0], name: c[1], family: fam[0], line: ln, titles: (c[2] || []).map(function (t) { return String(t).replace(/^\+/, ""); }) };
+          (c[2] || []).forEach(function (t) { var n = skNorm(t); if (n && !SK_TITLE[n]) SK_TITLE[n] = []; if (SK_TITLE[n].indexOf(c[0]) < 0) SK_TITLE[n].push(c[0]); });
+          if (SKILL_KW[c[0]]) SK_RX[c[0]] = new RegExp(SKILL_KW[c[0]]);
+        });
+      });
+    });
+  }
+  /* -> skillset code, or "" when nothing fits (goes to the unsorted list). hint: taxonomy lines, best first. overrides: { "normalized title": "CODE" } */
+  function skillFor(title, hint, overrides) {
+    var n = skNorm(title);
+    if (!n || !SK_RX) return "";
+    if (overrides && overrides[n] != null) return overrides[n];
+    hint = hint || [];
+    var rank = function (code) { var i = hint.indexOf(SK_LINE[code]); return i < 0 ? 9 : i; };
+    if (SK_TITLE[n]) {
+      /* exact title in Fletcher's list; when more than one line has it (Welder, Pipefitter, Controls Technician), the req's line picks */
+      var cand = SK_TITLE[n].slice();
+      Object.keys(SK_RX).forEach(function (c) { var m = SK_RX[c].exec(n); if (m && m[0].length >= n.length - 1 && cand.indexOf(c) < 0) cand.push(c); });
+      return cand.sort(function (a, b) { return rank(a) - rank(b); })[0];
+    }
+    var win = "", wl = 0, wr = 9;
+    Object.keys(SK_RX).forEach(function (c) {
+      var m = SK_RX[c].exec(n); if (!m) return;
+      var l = m[0].length, r = rank(c);
+      if (l > wl + 2 || (Math.abs(l - wl) <= 2 && r < wr)) { win = c; wl = l; wr = r; }
+    });
+    return win;
+  }
+  /* ---------- SKILLSETS_v1 (Fletcher's Oct 29 kit) ----------
+     Each service line has skillset families. A blueprint picks 5 core and up to 5 sub-core skillsets.
+     Salesforce 2026 req titles (brand/bp-sf-titles.json, pulled 10/21) are sorted into those skillsets so the
+     title library shows what we actually recruit for, ranked by req volume and fill rate. */
+  var KIT = null, SFT = null, KIT_P = null, MAX_CORE = 5, MAX_SUB = 5;
+  function loadKit() {
+    if (KIT_P) return KIT_P;
+    KIT_P = Promise.all([
+      fetch("/brand/bp-kit.json").then(function (r) { return r.json(); }).then(function (j) { KIT = j; }).catch(function () {}),
+      fetch("/brand/bp-sf-titles.json").then(function (r) { return r.json(); }).then(function (j) { SFT = j; }).catch(function () {})
+    ]);
+    return KIT_P;
+  }
+  function skillsOf(R) { R = R || S.rules; return (R && R.skills) || (KIT && KIT.skills) || null; }
+  var SK_KEY = "", SF_KEY = "", SF_STATS = null;
+  function skReady(R) {
+    var sk = skillsOf(R); if (!sk) return false;
+    var k = JSON.stringify(sk); if (k !== SK_KEY) { skIndex(sk); SK_KEY = k; SF_KEY = ""; }
+    return true;
+  }
+  function skLines(R) { var sk = skillsOf(R); return sk ? Object.keys(sk) : []; }
+  function skName(code) { return SK_INFO && SK_INFO[code] ? SK_INFO[code].name : code; }
+  function skHint(d) {
+    var h = [d.serviceLine, d.secondaryServiceLine].filter(function (x) { return x && SK_LINE && Object.keys(SK_LINE).some(function (c) { return SK_LINE[c] === x; }); });
+    return h.concat(lineHint(/Professional/.test(d.serviceLine || "") ? "Professional & Executive" : /Technical/.test(d.serviceLine || "") ? "Engineering & Technical" : /Light/.test(d.serviceLine || "") ? "Light Industrial" : "Skilled Trades", /Automation/.test(d.serviceLine || "") ? "Automation" : ""));
+  }
+  /* Salesforce 2026 titles sorted into skillsets: { by: {CODE: {reqs, placed, filled, titles:[{t,reqs,placed}]}}, unsorted:[...], total, sorted } */
+  function sfStats(R) {
+    if (!SFT || !skReady(R)) return null;
+    var map = (R || S.rules || {}).skillMap || {}, k = SK_KEY.length + "|" + JSON.stringify(map);
+    if (k === SF_KEY && SF_STATS) return SF_STATS;
+    var by = {}, un = [], tot = { reqs: 0, placed: 0 }, srt = { reqs: 0, placed: 0 };
+    SFT.rows.forEach(function (r) {
+      var c = skillFor(r[0], lineHint(r[4], r[5]), map);
+      if (c === "-") return;  /* marked "not a recruiting title" on the Rules tab */
+      tot.reqs += r[1]; tot.placed += r[2];
+      if (!c || !SK_INFO[c]) { un.push({ t: r[0], reqs: r[1], placed: r[2], line: r[4], n: skNorm(r[0]) }); return; }
+      srt.reqs += r[1]; srt.placed += r[2];
+      var b = by[c] || (by[c] = { reqs: 0, placed: 0, filled: 0, titles: [] });
+      b.reqs += r[1]; b.placed += r[2]; b.filled += r[3]; b.titles.push({ t: r[0], reqs: r[1], placed: r[2], n: skNorm(r[0]) });
+    });
+    Object.keys(by).forEach(function (c) {
+      var b = by[c]; b.fill = b.reqs ? b.filled / b.reqs : 0;
+      b.titles.sort(function (x, y) { return y.reqs - x.reqs || y.placed - x.placed; });
+      var seen = {}; b.top = b.titles.filter(function (x) { if (seen[x.n]) return false; seen[x.n] = 1; return true; });  /* "3rd Shift Machine Operator" folds into "Machine Operator" */
+    });
+    un.sort(function (x, y) { return y.reqs - x.reqs; });
+    SF_KEY = k; SF_STATS = { by: by, unsorted: un, total: tot, sorted: srt };
+    return SF_STATS;
+  }
+  function pct(x) { return Math.round((x || 0) * 100) + "%"; }
+  function coreOf(d) { return Array.isArray(d.core) ? d.core : []; }
+  function subOf(d) { return Array.isArray(d.sub) ? d.sub : []; }
+  /* click cycle on a skillset chip: off -> core -> sub-core -> off (core full goes straight to sub-core) */
+  function cycleSkill(d, c) {
+    var co = coreOf(d).slice(), su = subOf(d).slice(), ic2 = co.indexOf(c), is = su.indexOf(c);
+    if (ic2 >= 0) { co.splice(ic2, 1); if (su.length < MAX_SUB) su.push(c); else flash("Sub-core is full (" + MAX_SUB + "). Remove one first."); }
+    else if (is >= 0) su.splice(is, 1);
+    else if (co.length < MAX_CORE) co.push(c);
+    else if (su.length < MAX_SUB) su.push(c);
+    else { flash("Core and sub-core are both full. Remove one first."); return; }
+    d.core = co; d.sub = su;
+  }
+  /* The editor's title library: real Salesforce titles from the picked skillsets (highest req volume first), else the old flat list */
+  function titleLib(d, R) {
+    var st = sfStats(R), picks = coreOf(d).concat(subOf(d)), out = [];
+    if (st && picks.length) {
+      picks.forEach(function (c) {
+        var b = st.by[c]; (b ? b.top : []).forEach(function (x) { if (out.indexOf(x.t) < 0) out.push(x.t); });
+        (SK_INFO[c] ? SK_INFO[c].titles : []).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); });
+      });
+      return out;
+    }
+    [d.serviceLine, S.libBoth ? d.secondaryServiceLine : ""].forEach(function (s) { if (s && R.titles && R.titles[s]) R.titles[s].forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); }); });
+    return out;
+  }
+  /* ---- per-person: what they actually worked in Salesforce the last 90 days ---- */
+  var SUG = {};
+  function loadSug(email) {
+    if (!email) return;
+    SUG[email] = { loading: true };
+    render();
+    api("GET", "/blueprints/titles?email=" + encodeURIComponent(email)).then(function (r) { SUG[email] = r; }).catch(function (e) { SUG[email] = { error: e.message }; }).then(render);
+  }
+  function sugFor(d) {
+    var r = SUG[emailFor(d)]; if (!r || !r.titles || !skReady()) return null;
+    var map = (S.rules && S.rules.skillMap) || {}, by = {}, un = [], hint = skHint(d), subs = 0, starts = 0;
+    r.titles.forEach(function (x) {
+      subs += x.sub || 0; starts += x.place || 0;
+      var c = skillFor(x.t, hint, map);
+      if (c === "-") return;
+      if (!c || !SK_INFO[c]) { un.push(x); return; }
+      var b = by[c] || (by[c] = { code: c, sub: 0, place: 0, titles: [] }); b.sub += x.sub || 0; b.place += x.place || 0; b.titles.push(x.t);
+    });
+    var list = Object.keys(by).map(function (c) { var b = by[c]; b.score = b.sub + 3 * b.place; return b; }).sort(function (a, b) { return b.score - a.score; });
+    un.sort(function (a, b) { return (b.sub + 3 * b.place) - (a.sub + 3 * a.place); });
+    return { list: list, unsorted: un, subs: subs, starts: starts, since: r.since };
+  }
+  function skChip(c, d, st) {
+    var on = coreOf(d).indexOf(c) >= 0 ? "core" : subOf(d).indexOf(c) >= 0 ? "sub" : "", b = st && st.by[c];
+    var tip = (SK_INFO[c] ? SK_INFO[c].titles.join(", ") : "") + (b ? " | Salesforce 2026: " + b.reqs + " reqs, " + b.placed + " placed, " + pct(b.fill) + " of reqs filled" : "");
+    return '<button class="bp-chip sk ' + on + '" data-act="sk" data-c="' + esc(c) + '" title="' + esc(tip) + '">' + (on ? "<em>" + (on === "core" ? "Core" : "Sub") + "</em>" : "") + esc(skName(c)) +
+      (b ? "<small>" + b.reqs + " req" + (b.reqs === 1 ? "" : "s") + " · " + pct(b.fill) + "</small>" : "<small>no 2026 reqs</small>") + "</button>";
+  }
+  function skillsEditor(d, R) {
+    if (!skReady()) return '<div class="op-empty">Loading skillsets…</div>';
+    var st = sfStats(), lines = [d.serviceLine]; if (d.secondaryServiceLine) lines.push(d.secondaryServiceLine);
+    lines = lines.filter(function (l) { return l && skillsOf()[l]; });
+    var h = '<div class="bp-hint" style="margin-top:0">Click a skillset once for <b>core</b>, again for <b>sub-core</b>, again to clear. ' + MAX_CORE + " core, up to " + MAX_SUB + " sub-core. The small numbers are 2026 Salesforce reqs and how many of them we filled.</div>";
+    var co = coreOf(d), su = subOf(d);
+    h += '<div class="sk-picked"><div><span class="k">Core ' + co.length + "/" + MAX_CORE + "</span>" + (co.length ? co.map(function (c) { return '<span class="bp-chip on">' + esc(skName(c)) + "</span>"; }).join("") : '<span class="op-empty">None yet</span>') + "</div>" +
+      '<div><span class="k">Sub-core ' + su.length + "/" + MAX_SUB + "</span>" + (su.length ? su.map(function (c) { return '<span class="bp-chip">' + esc(skName(c)) + "</span>"; }).join("") : '<span class="op-empty">None yet</span>') + "</div></div>";
+    if (!lines.length) h += '<div class="op-empty">' + (d.serviceLine ? esc(d.serviceLine) + " has no skillsets in the kit." : "Pick a service line to see its skillsets.") + "</div>";
+    lines.forEach(function (ln) {
+      if (lines.length > 1) h += '<div class="sk-line">' + esc(ln) + "</div>";
+      skillsOf()[ln].forEach(function (fam) {
+        var codes = fam[1].map(function (c) { return c[0]; }).sort(function (a, b) { return ((st && st.by[b] || {}).reqs || 0) - ((st && st.by[a] || {}).reqs || 0); });
+        h += '<div class="sk-fam"><div class="fh">' + esc(fam[0]) + '</div><div class="bp-chips">' + codes.map(function (c) { return skChip(c, d, st); }).join("") + "</div></div>";
+      });
+    });
+    /* other lines' skillsets already picked (e.g. a Data Center seat with a Skilled Trades sub-core) stay visible */
+    var stray = co.concat(su).filter(function (c) { return !SK_INFO[c] || lines.indexOf(SK_INFO[c].line) < 0; });
+    if (stray.length) h += '<div class="sk-fam"><div class="fh">From other lines</div><div class="bp-chips">' + stray.map(function (c) { return skChip(c, d, st); }).join("") + "</div></div>";
+    var em = emailFor(d), sg = sugFor(d), raw = SUG[em];
+    h += '<div class="sk-sug">';
+    if (!em) h += '<span class="bp-hint" style="margin:0">Link this blueprint to a Microsoft 365 account to see what they worked in Salesforce.</span>';
+    else if (raw && raw.loading) h += '<span class="bp-hint" style="margin:0">Pulling the last 90 days from Salesforce…</span>';
+    else if (raw && raw.error) h += '<span class="bp-hint" style="margin:0;color:#a3341f">' + esc(raw.error) + "</span>";
+    else if (sg) {
+      h += '<div class="k">What they worked in Salesforce, last 90 days</div><div class="bp-hint" style="margin:2px 0 8px">' + sg.subs + " submittal" + (sg.subs === 1 ? "" : "s") + " and " + sg.starts + " start" + (sg.starts === 1 ? "" : "s") + ". Starts count three times. Click to add as core (or sub-core when core is full).</div>";
+      h += sg.list.length ? '<div class="bp-chips">' + sg.list.slice(0, 10).map(function (b) {
+        var on = co.indexOf(b.code) >= 0 || su.indexOf(b.code) >= 0;
+        return '<button class="bp-chip sug' + (on ? " on" : "") + '" data-act="sksug" data-c="' + esc(b.code) + '" title="' + esc(b.titles.slice(0, 8).join(", ")) + '">' + (on ? ic("check") : ic("plus")) + esc(skName(b.code)) + "<small>" + b.sub + " sub" + (b.place ? " · " + b.place + " start" + (b.place === 1 ? "" : "s") : "") + "</small></button>";
+      }).join("") + "</div>" : '<div class="op-empty">No submittals or starts in the last 90 days.</div>';
+      if (sg.unsorted.length) h += '<div class="bp-hint">Not in any skillset yet: ' + sg.unsorted.slice(0, 6).map(function (x) { return esc(x.t); }).join(" · ") + (sg.unsorted.length > 6 ? " and " + (sg.unsorted.length - 6) + " more" : "") + ". Sort them on the Rules tab.</div>";
+    } else h += '<button class="bp-btn sm" data-act="skpull">' + ic("search") + "Suggest from their last 90 days in Salesforce</button>";
+    return h + "</div>";
+  }
+  /* one-pager block: core skillsets with their titles, then sub-core */
+  function skillsPage(d) {
+    var co = coreOf(d), su = subOf(d); if (!co.length && !su.length) return "";
+    skReady();
+    var pick = allTitles(d);
+    return '<div class="op-sk">' + co.map(function (c) {
+      var inf = SK_INFO && SK_INFO[c], tt = inf ? inf.titles.slice() : [];
+      /* titles they picked that belong to this skillset lead the line */
+      var mine = pick.filter(function (t) { return skillFor(t, inf ? [inf.line] : [], (S.rules && S.rules.skillMap) || {}) === c; });
+      tt = mine.concat(tt.filter(function (t) { return mine.map(skNorm).indexOf(skNorm(t)) < 0; })).slice(0, 4);
+      return '<div class="r"><b>' + esc(skName(c)) + "</b><span>" + tt.map(esc).join(" · ") + "</span></div>";
+    }).join("") + "</div>" +
+      (su.length ? '<div class="op-sub"><b>Sub-core</b>' + su.map(function (c) { return esc(skName(c)); }).join(" · ") + "</div>" : "");
+  }
+  /* ---- link + reprint ---- */
+  function slug(n) { return normN(n).replace(/ /g, "-"); }
+  function bpLink(d) { return location.origin + "/#blueprint/" + slug(d.name); }
+  /* what's on the printed page; notes HQ keeps for itself (print time, Fletcher's change note) don't count */
+  function printSig(d) { var x = clone(d); delete x.printedAt; delete x.printedSig; delete x.kitNote; delete x.flags; var str = JSON.stringify(x), h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return String(h); }
+  function needsReprint(b) {
+    var d = b.data || {}; if (!d.printedAt) return false;
+    var p = Date.parse(d.printedAt);
+    return (d.printedSig ? printSig(d) !== d.printedSig : Date.parse(b.updated_at || 0) - p > 120000) || (S.rulesAt && Date.parse(S.rulesAt) > p);
+  }
+  /* ---- Fletcher's Oct 29 kit: what applying it would change ---- */
+  function sameName(a, b) {
+    a = normN(a); b = normN(b); if (!a || !b) return false; if (a === b) return true;
+    var x = a.split(" "), y = b.split(" ");
+    if (x[x.length - 1] !== y[y.length - 1]) return false;
+    var f = x[0], g = y[0]; return f.indexOf(g) === 0 || g.indexOf(f) === 0 || NICK[f] === g || NICK[g] === f;
+  }
+  function kitPlan() {
+    if (!KIT || !KIT.docs) return null;
+    var plan = { upd: [], add: [], same: [], notInKit: [] }, used = {};
+    KIT.docs.forEach(function (k) {
+      var b = S.list.filter(function (x) { return sameName(x.name, k.name); })[0];
+      if (!b) { plan.add.push({ k: k }); return; }
+      used[b.id] = 1;
+      var d = b.data || {}, ch = [];
+      if (k.role && k.role !== d.role) ch.push("Role: " + (d.role || "blank") + " → " + k.role);
+      if (k.line && k.line !== d.serviceLine) ch.push("Service line: " + (d.serviceLine || "blank") + " → " + k.line + " (check the weekly goals)");
+      if (k.region && k.region !== d.region) ch.push("Region: " + (d.region || "blank") + " → " + k.region);
+      if (k.company && k.company !== d.company) ch.push("Company: " + (d.company || "blank") + " → " + k.company);
+      if (k.leader && normN(k.leader) !== normN(d.leader)) ch.push("Leader: " + (d.leader || "blank") + " → " + k.leader);
+      if (JSON.stringify(k.core) !== JSON.stringify(coreOf(d)) || JSON.stringify(k.sub) !== JSON.stringify(subOf(d))) ch.push("Skillsets: " + k.core.length + " core, " + k.sub.length + " sub-core");
+      (ch.length ? plan.upd : plan.same).push({ k: k, b: b, ch: ch });
+    });
+    plan.notInKit = S.list.filter(function (b) { return !used[b.id]; }).map(function (b) { return b.name; });
+    return plan;
+  }
+  function applyKit() {
+    var plan = kitPlan(); if (!plan) return;
+    var n = plan.upd.length + plan.add.length; if (!n) { flash("Everything already matches Fletcher's update."); return; }
+    if (!window.confirm("Apply Fletcher's Oct 29 update?\n\n" + plan.upd.length + " blueprints get his role, service line, region, leader and skillsets (territory, goals, contacts, daily road and the 365 link stay as they are).\n" + plan.add.length + " new blueprints are created as drafts.\n\nEach one gets a note listing what changed.")) return;
+    var at = new Date().toISOString(), done = 0, failed = 0, src = (KIT && KIT.date) || "2026-10-29";
+    S.saving = true; render();
+    var jobs = plan.upd.map(function (u) {
+      var d = clone(u.b.data || {}), k = u.k;
+      d.role = k.role || d.role; d.serviceLine = k.line || d.serviceLine; d.region = k.region || d.region; d.company = k.company || d.company;
+      if (k.leader) d.leader = k.leader; d.core = k.core.slice(); d.sub = k.sub.slice();
+      d.kitNote = { at: at, src: src, changes: u.ch };
+      return { id: u.b.id, status: u.b.status, data: d };
+    }).concat(plan.add.map(function (a) {
+      var k = a.k, d = blank();
+      d.name = k.name; d.role = k.role; d.serviceLine = k.line; d.region = k.region; d.company = k.company || d.company; d.leader = k.leader || "";
+      d.core = k.core.slice(); d.sub = k.sub.slice(); d.kpis = standardKpis(d.role, d.serviceLine);
+      var p = personFor(d); if (p) applyDir(d, p, false);
+      d.kitNote = { at: at, src: src, isNew: true, changes: ["New from Fletcher's update. Add territory, contacts and titles."] };
+      return { status: "draft", data: d };
+    }));
+    jobs.reduce(function (p, j) {
+      return p.then(function () {
+        return api("POST", "/blueprints", j).then(function (r) {
+          var b = r.blueprint; if (!b) return; var i = S.list.findIndex(function (x) { return x.id === b.id; });
+          if (i >= 0) S.list[i] = b; else S.list.push(b); done++;
+        }).catch(function () { failed++; });
+      });
+    }, Promise.resolve()).then(function () {
+      S.list.sort(function (a, c) { return String(a.name).localeCompare(String(c.name)); });
+      S.saving = false; flash("Applied Fletcher's update to " + done + " blueprints" + (failed ? "; " + failed + " failed" : "") + ".");
+    });
+  }
+  function kitCard(R) {
+    var plan = kitPlan();
+    var h = '<div class="bp-sec"><h4>Fletcher\'s Oct 29 update</h4>';
+    if (!KIT) return h + '<div class="op-empty">Loading his kit…</div></div>';
+    var inRules = !!(R.skills);
+    h += '<div class="bp-hint" style="margin-top:0">His kit sorts every service line into skillset families and gives ' + KIT.docs.length + " producers 5 core and 5 sub-core skillsets plus a leader. Applying it keeps everything HQ added (territory, goals, contacts, daily road, the 365 link) and notes what changed on each blueprint.</div>";
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+      (inRules ? '<span class="bp-hint ok" style="margin:0">' + ic("check") + "His skillsets are in the rules</span>" : '<button class="bp-btn sm" data-act="kitskills">' + ic("sliders") + "Put his skillsets in the rules</button>") +
+      (plan && (plan.upd.length || plan.add.length) ? '<button class="bp-btn sm gold" data-act="kitapply"' + (S.saving ? " disabled" : "") + ">" + ic("check") + "Apply to " + plan.upd.length + " blueprint" + (plan.upd.length === 1 ? "" : "s") + " + create " + plan.add.length + " new</button>" :
+        '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint matches his update</span>") + "</div>";
+    if (plan) {
+      h += '<div class="bp-hint">' + plan.same.length + " already match." + (plan.add.length ? " New: " + plan.add.map(function (a) { return esc(a.k.name); }).join(", ") + "." : "") +
+        (plan.notInKit.length ? " Not in his kit (left alone): " + plan.notInKit.map(esc).join(", ") + "." : "") + "</div>";
+      if (!KIT.docs.every(function (k) { return k.leader; })) h += '<div class="bp-hint">No leader in his kit for: ' + KIT.docs.filter(function (k) { return !k.leader; }).map(function (k) { return esc(k.name); }).join(", ") + ".</div>";
+    }
+    return h + "</div>";
+  }
+  function skillsRules(R) {
+    if (!skReady(R)) return "";
+    var lines = skLines(R), ln = lines.indexOf(S.skLine) >= 0 ? S.skLine : lines[0], st = sfStats(R);
+    var h = '<div class="bp-sec"><h4>Skillsets and Salesforce titles' + (st ? '<span class="r" style="font-size:12px;color:#8a8576">' + pct(st.sorted.reqs / Math.max(1, st.total.reqs)) + " of 2026 reqs sorted</span>" : "") + "</h4>" +
+      '<div class="bp-hint" style="margin-top:0">Every job title on a 2026 Salesforce req (' + (SFT ? SFT.rows.length : "…") + " titles, pulled 10/21) lands in a skillset by keyword. Ranked by req volume. Fill rate is filled reqs over all reqs.</div>" +
+      '<div class="bp-seg">' + lines.map(function (l) { return '<button class="bp-chip' + (l === ln ? " on" : "") + '" data-act="skline" data-s="' + esc(l) + '">' + esc(l) + "</button>"; }).join("") + "</div>";
+    var rows = [];
+    (skillsOf(R)[ln] || []).forEach(function (fam) { fam[1].forEach(function (c) { rows.push({ c: c[0], fam: fam[0], b: st ? st.by[c[0]] : null }); }); });
+    rows.sort(function (a, b) { return ((b.b || {}).reqs || 0) - ((a.b || {}).reqs || 0); });
+    h += '<table class="bp-rt"><thead><tr><th>#</th><th>Skillset</th><th>Family</th><th>Reqs</th><th>Placed</th><th>Fill rate</th><th>Top Salesforce titles</th></tr></thead><tbody>' +
+      rows.map(function (r, i) {
+        var b = r.b || { reqs: 0, placed: 0, fill: 0, top: [] };
+        return "<tr><td>" + (i + 1) + "</td><td><b>" + esc(skName(r.c)) + '</b><div class="bp-hint" style="margin:2px 0 0">' + esc(SK_INFO[r.c].titles.join(", ")) + "</div></td><td>" + esc(r.fam) + "</td><td>" + b.reqs + "</td><td>" + b.placed + "</td><td>" + (b.reqs ? pct(b.fill) : "—") + "</td><td style=\"font-size:12px\">" +
+          b.top.slice(0, 5).map(function (x) { return esc(x.t) + " <span style=\"color:#8a8576\">" + x.reqs + "</span>"; }).join("<br>") + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+    /* unsorted */
+    if (st) {
+      var un = st.unsorted, show = S.skAllUn ? un : un.slice(0, 25), map = R.skillMap || {};
+      var sel = function (n) {
+        return '<select data-act="skmap" data-n="' + esc(n) + '" style="font:12px Outfit,Inter,sans-serif;padding:4px 6px;border:1px solid #E0DACB;border-radius:8px;max-width:220px"><option value="">Pick a skillset…</option>' +
+          lines.map(function (l) { return '<optgroup label="' + esc(l) + '">' + skillsOf(R)[l].map(function (f) { return f[1].map(function (c) { return '<option value="' + esc(c[0]) + '">' + esc(c[1]) + "</option>"; }).join(""); }).join("") + "</optgroup>"; }).join("") +
+          '<option value="-">Not a recruiting title (hide)</option></select>';
+      };
+      var mapped = Object.keys(map);
+      h += '<div class="bp-sec"><h4>Unsorted Salesforce titles <span class="r" style="font-size:12px;color:#8a8576">' + un.length + " titles · " + un.reduce(function (a, x) { return a + x.reqs; }, 0) + " reqs</span></h4>" +
+        '<div class="bp-hint" style="margin-top:0">No skillset matched these. Drivers and IT have no family in the kit yet. Pick one to sort the title; Save rules to keep it.</div>' +
+        '<table class="bp-rt"><thead><tr><th>Title</th><th>Reqs</th><th>Placed</th><th>SF service line</th><th>Skillset</th></tr></thead><tbody>' +
+        show.map(function (x) { return "<tr><td>" + esc(x.t) + "</td><td>" + x.reqs + "</td><td>" + x.placed + "</td><td>" + esc(x.line) + "</td><td>" + sel(x.n) + "</td></tr>"; }).join("") + "</tbody></table>" +
+        (un.length > show.length ? '<div class="bp-add"><button class="bp-btn sm" data-act="skallun">Show all ' + un.length + "</button></div>" : "") +
+        (mapped.length ? '<div class="bp-hint">Sorted by hand: ' + mapped.map(function (n) { return esc(n) + " → " + esc(map[n] === "-" ? "hidden" : skName(map[n])) + ' <button class="bp-x" style="padding:0;vertical-align:-3px" data-act="skunmap" data-n="' + esc(n) + '">' + ic("x") + "</button>"; }).join(" · ") + "</div>" : "") + "</div>";
+    }
+    return h;
+  }
   /* ---------- MY_BLUEPRINT_v1: Salesforce actuals vs the blueprint's weekly goals ---------- */
   var ACT = { this: null, last: null, loading: {} };
   function mondayOf(offsetWeeks) { var d = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" })); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 7 * (offsetWeeks || 0)); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -175,6 +589,8 @@
     var iss = [];
     if (p.title && normN(p.title) !== normN(d.title)) iss.push({ f: "title", label: "Title", mine: d.title || "(blank)", theirs: p.title });
     if (p.manager && normN(p.manager) !== normN(d.reportsTo)) iss.push({ f: "reportsTo", label: "Reports to", mine: d.reportsTo || "(blank)", theirs: p.manager });
+    /* Fletcher's kit names a leader per producer; it should be their manager in 365 */
+    if (p.manager && d.leader && !sameName(p.manager, d.leader)) iss.push({ f: "leader", label: "Leader", mine: d.leader, theirs: p.manager });
     return { state: "ok", p: p, issues: iss, blankTitle: !p.title, blankMgr: !p.manager };
   }
   function companyFor(p) {
@@ -201,7 +617,7 @@
     x: "M6 6l12 12M18 6L6 18", up: "M12 19V5M5 12l7-7 7 7", down: "M12 5v14M19 12l-7 7-7-7", alert: "M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
     check: "M5 12.5l4.5 4.5L19 7", sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
     reset: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5", doc: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5",
-    map: "M9 3L3 6v15l6-3 6 3 6-3V3l-6 3zM9 3v15M15 6v15",
+    map: "M9 3L3 6v15l6-3 6 3 6-3V3l-6 3zM9 3v15M15 6v15", link: "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",
     users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"
   };
   function ic(n, cls) { return '<svg class="bp-i ' + (cls || "") + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + I[n] + '"/></svg>'; }
@@ -401,6 +817,19 @@
     ".op-body{padding:10px 14px 2px}.op-sec{margin-top:9px}.op-nh{margin:0 0 6px;font-size:9px}.op-nh b{font-size:9px;padding:1px 5px}.op-hd{font-size:8.5px;margin:0 0 5px}",
     ".op-tiles{gap:6px}.op-tile,.op-tiles.many .op-tile{padding:7px 9px 8px;border-radius:10px}.op-tile .k{font-size:7.5px;min-height:18px}.op-tile b,.op-tiles.many b{font-size:22px;margin:3px 0 3px}.op-tile .s{font-size:8.5px}",
     ".op-main{gap:0 14px}.op-chips{gap:4px}.op-chip{font-size:10px;padding:2px 8px}.op-g{font-size:8.5px;margin:5px 0 3px}",
+    ".op-sk{display:grid;gap:4px}.op-sk .r{display:grid;grid-template-columns:118px 1fr;gap:8px;align-items:baseline;font-size:10.5px;line-height:1.35;padding:3px 0;border-bottom:1px dashed #EFE6C9}",
+    ".op-sk .r b{font-weight:800;color:#111}.op-sk .r span{color:#4a463a}",
+    ".op-sub{font-size:10px;line-height:1.45;color:#2b2818;margin:6px 0 0}.op-sub b{font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9a7a1e;margin-right:6px}",
+    ".bp-note.gold{background:#fff3c4;border-color:#FFC800}.bp-note.gold .bp-btn{margin-left:auto;flex:none}",
+    ".bp-chip.sk small{font-size:10.5px;font-weight:500;color:#8a8576}.bp-chip.sk em{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 6px;background:#FFC800;color:#111}",
+    ".bp-chip.sk.core{background:#111;border-color:#111;color:#fff}.bp-chip.sk.core small{color:#cfc8b4}.bp-chip.sk.sub{background:#fff3c4;border-color:#FFC800}.bp-chip.sk.sub em{background:#111;color:#FFC800}",
+    ".bp-chip.sug.on{border-style:solid;background:#F3EFE3}.bp-chip small{font-size:10.5px;color:#8a8576}",
+    ".sk-fam{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start;padding:8px 0;border-top:1px solid #F0EBDD}.sk-fam .fh{font-size:12px;font-weight:700;color:#6B675C;padding-top:6px}",
+    ".sk-line{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#111;margin:10px 0 4px}",
+    ".sk-picked{display:grid;gap:6px;background:#FBF8EF;border:1px solid #EFE6C9;border-radius:12px;padding:10px 12px;margin:8px 0 6px}.sk-picked>div{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.sk-picked .k{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#9a7a1e;min-width:96px}",
+    ".sk-sug{margin-top:10px;background:#fff;border:1px dashed #d9cfae;border-radius:12px;padding:10px 12px}.sk-sug .k{font-size:12px;font-weight:700;color:#111}",
+    ".bp-card .act.rp{background:#fff3c4;color:#7a5b00}",
+    "@media (max-width:640px){.sk-fam{grid-template-columns:1fr;gap:4px}}",
     ".op-dense{font-size:10px;line-height:1.45;color:#2b2818;margin:0 0 4px}.op-dense b{display:block;font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8576}",
     ".op ol{font-size:10.5px;line-height:1.4}.op ol.two{columns:2;column-gap:14px}",
     ".op-terr{padding:8px 10px}.op-map{max-height:104px}.op-terr .tn{font-size:12px}.op-terr .ts{font-size:9.5px;margin-top:2px}",
@@ -611,6 +1040,7 @@
       if (dense) return '<div class="op-dense">' + (g.group ? "<b>" + esc(g.group) + "</b>" : "") + g.titles.map(esc).join(" · ") + "</div>";
       return (g.group ? '<div class="op-g">' + esc(g.group) + "</div>" : "") + '<div class="op-chips">' + g.titles.map(function (t) { return '<span class="op-chip">' + esc(t) + "</span>"; }).join("") + "</div>";
     }).join("");
+    var skHtml = skillsPage(d);
     var ct = clean(d.contacts);
     var contacts = !ct.length ? empty : "<ol" + (ct.length > 4 ? ' class="two"' : "") + ">" + ct.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ol>";
     var st = clean(d.s4);
@@ -638,7 +1068,7 @@
       '<div class="op-body">' +
         '<div class="op-tiles' + (goals.length >= 4 ? " many" : "") + '" style="grid-template-columns:repeat(' + Math.min(goals.length + 1, 5) + ',minmax(0,1fr))">' + tiles + "</div>" +
         (extra.length ? '<ul class="op-extra">' + extra.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "") +
-        '<div class="op-main"><div>' + nsec(1, d.rolesHeading || "Top job titles", "", roles) + nsec(2, "Target customer contacts", "", contacts) + "</div>" +
+        '<div class="op-main"><div>' + (skHtml ? nsec(1, "Core skillsets", "", skHtml + (groups.length ? '<div class="op-sub"><b>Top titles</b>' + allTitles(d).slice(0, 8).map(esc).join(" · ") + "</div>" : "")) : nsec(1, d.rolesHeading || "Top job titles", "", roles)) + nsec(2, "Target customer contacts", "", contacts) + "</div>" +
           "<div>" + (terrHtml ? '<div class="op-sec"><div class="op-nh">Territory <em>- ' + esc(terr.all ? "national" : "primary region") + "</em></div>" + terrHtml + "</div>" : "") + "</div></div>" +
         nsec(3, "S4 process", "work your pipeline in this order", steps) +
         (roadOf(d).length ? nsec(4, "Daily road", "plug in, produce, prep", roadHtml(roadOf(d))) : "") +
@@ -702,7 +1132,8 @@
       .map(function (p) { var r = rosterFor(p.name) || {}; return { name: p.name, email: p.email, title: p.title, serviceLine: r.serviceLine || "", from365: true }; });
     else c.missingList = ((S.rules && S.rules.roster) || []).filter(function (r) { return !have[r.name.toLowerCase()]; });
     c.missing = c.missingList.length;
-    c.sync = 0; c.blank = 0;
+    c.sync = 0; c.blank = 0; c.reprint = 0; c.kit = 0;
+    S.list.forEach(function (b) { if (needsReprint(b)) c.reprint++; if (b.data && b.data.kitNote) c.kit++; });
     S.list.forEach(function (b) { var sy = sync(b.data || {}); if (sy && (sy.state !== "ok" || sy.issues.length)) c.sync++; if (sy && sy.state === "ok" && (sy.blankTitle || sy.blankMgr)) c.blank++; });
     return c;
   }
@@ -711,7 +1142,7 @@
   function statusDot(b) { var cls = needsAttention(b) ? "warn" : b.status === "published" ? "pub" : b.status === "draft" ? "draft" : ""; return '<span class="bp-dot ' + cls + '" title="' + (cls === "warn" ? "Needs attention" : cls === "pub" ? "Published" : cls === "draft" ? "Draft" : "Imported") + '"></span>'; }
   function listView() {
     var c = counts();
-    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + "</div>";
+    var h = '<div class="bp-stats">' + stat("all", c.all, "blueprints") + stat("published", c.published, "published") + stat("attention", c.attention, "need attention") + (c.reprint ? stat("reprint", c.reprint, "need a reprint") : "") + (c.kit ? stat("kit", c.kit, "changed by Fletcher's update") : "") + (DIR ? stat("sync", c.sync, "out of sync with 365") : "") + stat("missing", c.missing, DIR ? "producers in 365 without one" : "on roster without one") + "</div>";
     if (DIR && c.blank) h += '<div class="bp-note">' + ic("alert") + "<div>" + c.blank + " blueprint" + (c.blank === 1 ? " belongs" : "s belong") + " to people with no title or manager in Microsoft 365, so those can't be checked. Fill them in on the Directory tab and the check picks them up.</div></div>";
     h += '<div class="bp-bar"><div class="bp-search">' + ic("search") + '<input data-k="q" data-act="q" placeholder="Search name, title, service line, territory" value="' + esc(S.q) + '"></div>' +
       '<button class="bp-btn gold" data-act="new">' + ic("plus") + "New blueprint</button></div>";
@@ -726,10 +1157,12 @@
     var items = S.list.filter(function (b) {
       if (S.filter === "published" && b.status !== "published") return false;
       if (S.filter === "attention" && !needsAttention(b)) return false;
+      if (S.filter === "reprint" && !needsReprint(b)) return false;
+      if (S.filter === "kit" && !(b.data && b.data.kitNote)) return false;
       if (S.filter === "sync") { var sy = sync(b.data || {}); if (!sy || (sy.state === "ok" && !sy.issues.length)) return false; }
       if (!q) return true;
       var d = b.data || {}, t = terrFor(d);
-      return [b.name, d.title, d.serviceLine, d.secondaryServiceLine, d.territory, d.region, d.reportsTo, t && t.name].join(" ").toLowerCase().indexOf(q) >= 0;
+      return [b.name, d.title, d.serviceLine, d.secondaryServiceLine, d.territory, d.region, d.reportsTo, d.leader, t && t.name].join(" ").toLowerCase().indexOf(q) >= 0;
     });
     h += '<div class="bp-legend"><span><i class="bp-dot pub"></i>Published</span><span><i class="bp-dot draft"></i>Draft</span><span><i class="bp-dot"></i>Imported</span><span><i class="bp-dot warn"></i>Needs attention</span><span>Avatar color = territory</span></div>';
     if (!items.length) return h + '<div class="bp-empty">No blueprints match.</div>';
@@ -746,7 +1179,7 @@
   function card(b) {
     var d = b.data || {}, t = terrFor(d);
     return '<button class="bp-card" data-act="open" data-id="' + esc(b.id) + '">' + avatar(d, b.name) + '<span class="tx"><div class="nm">' + esc(b.name) + '</div><div class="sub">' +
-      esc([d.title || d.role, t ? t.name.replace(/^National /, "") : ""].filter(Boolean).join(" · ")) + "</div></span>" + startsChip(d) + statusDot(b) + "</button>";
+      esc([d.title || d.role, t ? t.name.replace(/^National /, "") : ""].filter(Boolean).join(" · ")) + "</div></span>" + (needsReprint(b) ? '<span class="act rp" title="Changed since the last PDF">Reprint</span>' : "") + startsChip(d) + statusDot(b) + "</button>";
   }
 
   function startsChip(d) {
@@ -769,6 +1202,7 @@
     var stLabel = S.curStatus === "published" ? "Published" : S.curStatus === "imported" ? "Imported from Word" : "Draft";
     var h = '<div class="bp-top"><button class="bp-btn ghost" data-act="back" title="All blueprints">' + ic("back") + "</button>" +
       '<div class="who">' + avatar(d, d.name) + "<div><b>" + esc(d.name || "New blueprint") + '</b><div class="bp-st"><span class="bp-dot ' + (S.curStatus === "published" ? "pub" : S.curStatus === "draft" ? "draft" : "") + '"></span>' + esc(stLabel) + ' · <span class="msg">' + esc(S.msg || (S.dirty ? "Unsaved changes" : "All changes saved")) + "</span></div></div></div>" +
+      (S.curId && d.name ? '<button class="bp-btn sm" data-act="link" title="Copy a link to this blueprint">' + ic("link") + "Link</button>" : "") +
       '<button class="bp-btn sm" data-act="print">' + ic("print") + "PDF</button>" +
       '<button class="bp-btn sm" data-act="word">' + ic("word") + "Word</button>" +
       (S.curId ? '<button class="bp-btn sm" data-act="dup" title="Duplicate">' + ic("copy") + '</button><button class="bp-btn sm danger" data-act="del" title="Delete">' + ic("trash") + "</button>" : "") +
@@ -776,6 +1210,9 @@
       '<button class="bp-btn gold" data-act="publish" ' + (S.saving ? "disabled" : "") + ">" + ic("check") + (S.curStatus === "published" ? "Update" : "Publish") + "</button></div>";
     h += '<div class="bp-ed"><div>';
     (d.flags || []).forEach(function (f, i) { h += '<div class="bp-flag">' + ic("alert") + "<div>" + esc(f) + '</div><button class="bp-btn sm" data-act="unflag" data-i="' + i + '">Resolved</button></div>'; });
+    if (d.kitNote) h += '<div class="bp-note gold">' + ic("sliders") + "<div><b>" + (d.kitNote.isNew ? "Added from" : "Changed by") + " Fletcher's " + esc(fmtDate(d.kitNote.src + "T12:00:00")) + " update.</b>" + (d.kitNote.changes || []).map(function (c) { return '<div style="margin-top:3px">' + esc(c) + "</div>"; }).join("") + '</div><button class="bp-btn sm" data-act="kitok">Got it</button></div>';
+    var curB = S.curId && S.list.filter(function (x) { return x.id === S.curId; })[0];
+    if (curB && needsReprint(curB)) h += '<div class="bp-note">' + ic("print") + "<div><b>Reprint.</b> This blueprint or the rules changed after the last PDF (" + esc(fmtDate(d.printedAt)) + ").</div></div>";
     // 1 team member
     var sy = sync(d), m365 = "";
     if (DIR && sy) {
@@ -793,6 +1230,7 @@
       '<label>Title<input data-k="title" data-f="title" value="' + esc(d.title) + '"></label>' +
       '<label>Role<select data-f="role">' + opts(roles, d.role) + "</select></label>" +
       '<label>Reports to<input data-k="reportsTo" data-f="reportsTo" value="' + esc(d.reportsTo) + '"></label>' +
+      '<label>Leader<input data-k="leader" data-f="leader" list="bpRoster" value="' + esc(d.leader || "") + '" placeholder="From Fletcher\'s leader list"></label>' +
       '<label>Effective date<input type="date" data-k="effective" data-f="effective" value="' + esc(d.effective || "") + '"></label>' +
       "</div></div>";
     // 2 territory
@@ -818,23 +1256,23 @@
     h += '<div class="bp-sec">' + secH(4, "Weekly goals") + listEditor("kpis", d.kpis, "Add a goal, e.g. 10 submissions per week") +
       (std.length ? (same ? '<div class="bp-hint ok">' + ic("check") + "Matches the standard for " + esc(roleShort(d.role)) + " · " + esc(d.serviceLine) + "</div>"
         : '<div class="bp-hint">Differs from the standard for ' + esc(roleShort(d.role)) + " · " + esc(d.serviceLine) + '<button class="bp-btn sm" data-act="stdkpi">' + ic("reset") + "Use standard</button></div>") : "") + "</div>";
-    // 5 titles
-    var sel = allTitles(d), lib = [];
-    [d.serviceLine, S.libBoth ? d.secondaryServiceLine : ""].forEach(function (s) { if (s && R.titles[s]) R.titles[s].forEach(function (t) { if (lib.indexOf(t) < 0) lib.push(t); }); });
+    // 5 skillsets + titles
+    var sel = allTitles(d), lib = titleLib(d, R), hasSk = !!skillsOf(), nPick = coreOf(d).length + subOf(d).length;
     var lq = (S.libQ || "").toLowerCase(), shown = lib.filter(function (t) { return !lq || t.toLowerCase().indexOf(lq) >= 0; });
     var LIM = 16, more = !S.libAll && !lq && shown.length > LIM;
-    h += '<div class="bp-sec">' + secH(5, "Focused titles", '<span style="font-size:12px;color:' + (sel.length > MAX_TITLES ? "#a3341f" : "#8a8576") + '">' + sel.length + " of " + MAX_TITLES + "</span>") +
+    h += '<div class="bp-sec">' + secH(5, hasSk ? "Skillsets and titles" : "Focused titles", hasSk ? '<span style="font-size:12px;color:#8a8576">' + coreOf(d).length + " core · " + subOf(d).length + " sub-core</span>" : "") + (hasSk ? skillsEditor(d, R) : "") +
+      '<div class="sk-line" style="margin-top:14px">Top job titles <span style="font-weight:500;color:' + (sel.length > MAX_TITLES ? "#a3341f" : "#8a8576") + '">' + sel.length + " of " + MAX_TITLES + "</span></div>" +
       '<div class="bp-sel">' + (d.titleGroups || []).map(function (g, gi) {
         return '<div class="grp' + (gi === S.activeGroup && d.titleGroups.length > 1 ? " on" : "") + '" data-act="grp" data-g="' + gi + '">' + (d.titleGroups.length > 1 || g.group ? '<div class="gh"><input data-k="g' + gi + '" data-act="gname" data-g="' + gi + '" value="' + esc(g.group) + '" placeholder="Group name">' +
           (d.titleGroups.length > 1 ? '<button class="bp-x" title="Remove group" data-act="rmgrp" data-g="' + gi + '">' + ic("x") + "</button>" : "") + "</div>" : "") +
           '<div class="bp-chips">' + ((g.titles || []).length ? g.titles.map(function (t, ti) { return '<span class="bp-chip on">' + esc(t) + '<button class="bp-x" style="color:#FFC800;padding:0" data-act="rmtitle" data-g="' + gi + '" data-i="' + ti + '">' + ic("x") + "</button></span>"; }).join("") : '<span class="op-empty">Pick titles from the library below</span>') + "</div></div>";
       }).join("") + "</div>";
     if (lib.length || d.secondaryServiceLine) {
-      h += '<div class="bp-lib"><input class="bp-libq" data-k="libq" data-act="libq" placeholder="Filter ' + esc(d.serviceLine || "") + ' titles" value="' + esc(S.libQ || "") + '">' +
-        (d.secondaryServiceLine ? '<button class="bp-btn sm" data-act="libboth">' + (S.libBoth ? "Hide " : "Include ") + esc(d.secondaryServiceLine) + "</button>" : "") + "</div>" +
+      h += '<div class="bp-lib"><input class="bp-libq" data-k="libq" data-act="libq" placeholder="' + (hasSk && nPick ? "Filter Salesforce titles from the picked skillsets" : "Filter " + esc(d.serviceLine || "") + " titles") + '" value="' + esc(S.libQ || "") + '">' +
+        (d.secondaryServiceLine && !(hasSk && nPick) ? '<button class="bp-btn sm" data-act="libboth">' + (S.libBoth ? "Hide " : "Include ") + esc(d.secondaryServiceLine) + "</button>" : "") + "</div>" +
         '<div class="bp-chips">' + (more ? shown.slice(0, LIM) : shown).map(function (t) { return '<button class="bp-chip' + (sel.indexOf(t) >= 0 ? " on" : "") + '" data-act="title" data-t="' + esc(t) + '">' + esc(t) + "</button>"; }).join("") +
         (more ? '<button class="bp-chip sug" data-act="libmore">+ ' + (shown.length - LIM) + " more</button>" : "") + "</div>";
-    } else h += '<div class="op-empty">Pick a service line to see its titles.</div>';
+    } else h += '<div class="op-empty">' + (hasSk ? "Pick skillsets above to see their Salesforce titles." : "Pick a service line to see its titles.") + "</div>";
     h += '<div class="bp-add"><input data-k="customTitle" id="bpCustomTitle" placeholder="Title not in the library? Type it and press Enter"><button class="bp-btn sm ghost" data-act="addgrp" title="Split titles into groups">' + ic("plus") + "Group</button></div></div>";
     // 6 contacts
     var sug = []; S.list.forEach(function (b) { var x = b.data || {}; if (x.serviceLine === d.serviceLine) (x.contacts || []).forEach(function (c) { if (sug.indexOf(c) < 0 && (d.contacts || []).indexOf(c) < 0) sug.push(c); }); });
@@ -900,6 +1338,7 @@
     h += '<div class="bp-sec"><h4>Oct 26 leadership standards</h4><div class="bp-hint" style="margin-top:0">7 starts a week for Light Industrial, build/pipe/wire and data center. Skilled Trades stays at 2 starts with a $400 margin. Skilled Trades and technical roles need one reference; Light Industrial needs a contact name and tries the most relevant reference first.</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="bp-btn sm" data-act="oct26rules">' + ic("sliders") + "Put these in the rules</button>" +
       (gaps.length ? '<button class="bp-btn sm gold" data-act="oct26bulk"' + (S.saving ? " disabled" : "") + ">" + ic("plus") + "Add the starts goal to " + gaps.length + " blueprint" + (gaps.length === 1 ? "" : "s") + "</button>" : '<span class="bp-hint ok" style="margin:0">' + ic("check") + "Every blueprint has its starts goal</span>") + "</div></div>";
+    h += kitCard(R) + skillsRules(R);
     h += '<div class="bp-sec"><h4>Targets by service line</h4><table class="bp-rt"><thead><tr><th>Service line</th><th>Direct hire target</th><th>Weekly charge</th><th>Headcount</th><th>Note</th></tr></thead><tbody>' +
       R.serviceLines.map(function (l, i) {
         return "<tr><td><b>" + esc(l.name) + "</b></td>" +
@@ -916,7 +1355,7 @@
         return "<tr><td><b>" + esc(l.name) + "</b></td>" + cell("starts") + cell("inProcess") + cell("preScreens") + cell("calls") + cell("meetings") + cell("reference", true) + "</tr>";
       }).join("") + "</tbody></table></div>";
     var T = R.titles[S.rulesLine] || [];
-    h += '<div class="bp-sec"><h4>Title library <span class="r" style="font-size:12px;color:#8a8576">' + T.length + " titles</span></h4><div class=\"bp-seg\">" + R.serviceLines.map(function (l) { return '<button class="bp-chip' + (l.name === S.rulesLine ? " on" : "") + '" data-act="rlinesel" data-s="' + esc(l.name) + '">' + esc(l.name) + " · " + (R.titles[l.name] || []).length + "</button>"; }).join("") + "</div>" +
+    h += '<div class="bp-sec"><h4>Extra title library <span class="r" style="font-size:12px;color:#8a8576">' + T.length + " titles</span></h4><div class=\"bp-seg\">" + R.serviceLines.map(function (l) { return '<button class="bp-chip' + (l.name === S.rulesLine ? " on" : "") + '" data-act="rlinesel" data-s="' + esc(l.name) + '">' + esc(l.name) + " · " + (R.titles[l.name] || []).length + "</button>"; }).join("") + "</div>" +
       '<div class="bp-chips">' + (T.length ? T.map(function (t, i) { return '<span class="bp-chip">' + esc(t) + '<button class="bp-x" style="padding:0" data-act="rtrm" data-i="' + i + '">' + ic("x") + "</button></span>"; }).join("") : '<span class="op-empty">No titles yet.</span>') + "</div>" +
       '<div class="bp-add"><input data-k="rtadd" id="bpRtAdd" placeholder="Add a title to ' + esc(S.rulesLine) + ' and press Enter"><button class="bp-btn sm" data-act="rtadd">' + ic("plus") + "Add</button></div></div>";
     h += '<div class="bp-sec"><h4>Standard S4 process</h4>' + rulesS4(R) + "</div>";
@@ -1015,7 +1454,17 @@
       case "liup": var a = d[t.getAttribute("data-l")], i2 = +t.getAttribute("data-i"); if (i2 > 0) { var tmp = a[i2 - 1]; a[i2 - 1] = a[i2]; a[i2] = tmp; touch(); } break;
       case "save": save(S.curStatus === "published" ? "published" : "draft"); break;
       case "publish": save("published"); break;
-      case "print": exportDoc("print"); break;
+      case "print": exportDoc("print"); markPrinted(); break;
+      case "link": copyLink(bpLink(d)); break;
+      case "sk": cycleSkill(d, t.getAttribute("data-c")); touch(); break;
+      case "sksug": var sc = t.getAttribute("data-c"); if (coreOf(d).indexOf(sc) < 0 && subOf(d).indexOf(sc) < 0) { cycleSkill(d, sc); touch(); } break;
+      case "skpull": loadSug(emailFor(d)); break;
+      case "kitok": delete d.kitNote; touch(); break;
+      case "kitskills": S.rulesDraft.skills = clone(KIT.skills); S.rulesDraft.skillsSource = KIT.source; S.msg = "Skillsets added. Save rules to keep them."; render(); break;
+      case "kitapply": applyKit(); break;
+      case "skline": S.skLine = t.getAttribute("data-s"); render(); break;
+      case "skallun": S.skAllUn = true; render(); break;
+      case "skunmap": delete S.rulesDraft.skillMap[t.getAttribute("data-n")]; render(); break;
       case "word": exportDoc("word"); break;
       case "dup": var c = clone(d); c.name = ""; c.flags = []; S.cur = c; S.curId = null; S.curStatus = "draft"; S.dirty = true; flash("Copy made. Pick the team member and save."); break;
       case "del":
@@ -1099,6 +1548,7 @@
   function onChange(e) {
     var t = e.target, f = t.getAttribute("data-f");
     /* Text inputs update state on every keystroke (onInput); re-rendering on blur would swallow the click that caused it. */
+    if (t.getAttribute("data-act") === "skmap" && S.rulesDraft) { if (t.value) { S.rulesDraft.skillMap = S.rulesDraft.skillMap || {}; S.rulesDraft.skillMap[t.getAttribute("data-n")] = t.value; render(); } return; }
     if (t.getAttribute("data-act") === "roadtag" && S.cur) { if (!Array.isArray(S.cur.road)) S.cur.road = stdRoad(); S.cur.road[+t.getAttribute("data-i")].tag = t.value; S.dirty = true; render(); return; }
     if (!f || !S.cur || (t.tagName !== "SELECT" && t.type !== "checkbox")) return;
     if (t.type === "checkbox") S.cur[f] = t.checked;
@@ -1168,7 +1618,27 @@
     }, true);
     var n = 0; var fast = setInterval(function () { ensureNav(); if (++n >= 75) { clearInterval(fast); setInterval(ensureNav, 2500); } }, 400);
   }
-  function fromHash() { if (location.hash === "#" + TAB) setTimeout(openTab, 300); }
+  function fromHash() {
+    if (location.hash === "#" + TAB) setTimeout(openTab, 300);
+    var m = /^#blueprint\/([a-z0-9-]+)/.exec(location.hash || "");
+    if (m) setTimeout(function () {
+      openTab();
+      load().then(function () { var b = S.list.filter(function (x) { return slug(x.name) === m[1]; })[0]; if (b) openBlueprint(b); else flash("No blueprint found for that link."); });
+    }, 300);
+  }
+  function copyLink(u) {
+    var done = function () { flash("Link copied: " + u); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, function () { window.prompt("Copy this link", u); });
+    else window.prompt("Copy this link", u);
+  }
+  /* RE_PRINT_v1: remember when the PDF was made so the list can say "Reprint" after the blueprint or the rules change */
+  function markPrinted() {
+    var d = S.cur; if (!d || !S.curId) return;
+    d.printedAt = new Date().toISOString(); d.printedSig = printSig(d);
+    api("POST", "/blueprints", { id: S.curId, status: S.curStatus || "draft", data: d }).then(function (r) {
+      var b = r.blueprint || {}; var i = S.list.findIndex(function (x) { return x.id === b.id; }); if (i >= 0) S.list[i] = b; S.dirty = false; render();
+    }).catch(function () {});
+  }
 
   /* ---------- boot: only people the worker lets in ever get the nav item ---------- */
   function boot(t) {
@@ -1183,6 +1653,7 @@
         loadGeo().then(render);
         loadDir().then(render);
         loadActuals("this").then(render);
+        loadKit().then(render);
         window.addEventListener("hashchange", fromHash);
         window.hqBlueprints = { open: openTab, reload: function () { return load().then(render); } };
       });
@@ -1260,7 +1731,7 @@
     if (!ready) { if (t < 80) setTimeout(function () { bootMine(t + 1); }, 700); return; }
     token().then(function (tk) {
       if (!tk) { if (t < 80) setTimeout(function () { bootMine(t + 1); }, 1500); return; }
-      loadMine().then(function (has) { if (!has) return; injectCss(); mountMine(); loadGeo().then(renderMine); window.addEventListener("hashchange", function () { if (location.hash === "#" + MTAB) openMine(); }); });
+      loadMine().then(function (has) { if (!has) return; injectCss(); mountMine(); loadGeo().then(renderMine); loadKit().then(renderMine); window.addEventListener("hashchange", function () { if (location.hash === "#" + MTAB) openMine(); }); });
     });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { boot(); bootMine(); }); else { boot(); bootMine(); }

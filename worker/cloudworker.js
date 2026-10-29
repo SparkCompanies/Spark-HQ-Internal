@@ -3488,7 +3488,7 @@ var worker_default = {
     //   calls       = other call Tasks (TaskSubtype = Call) owned by the person, created that week
     //   meetings    = Events titled Meeting / Virtual Meeting / New Meeting that week; new meetings = "New Meeting"
     //   in process  = applicants the person submitted in the last 45 days who are still at Submit, Interview, Pending Feedback or Offer
-    if (url.pathname === "/blueprints/actuals" || url.pathname === "/blueprints/mine" || url.pathname === "/blueprints/ack") {
+    if (url.pathname === "/blueprints/actuals" || url.pathname === "/blueprints/mine" || url.pathname === "/blueprints/ack" || url.pathname === "/blueprints/titles") {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -3515,6 +3515,41 @@ var worker_default = {
         if (mine) { const a = await sbService(env, "GET", "spark_hq_blueprint_acks?select=acked_at,version&email=eq." + encodeURIComponent(me) + "&blueprint_id=eq." + mine.id + "&order=acked_at.desc&limit=1"); if (a.ok && a.data && a.data[0]) ack = a.data[0]; }
         const rules = await sbService(env, "GET", "spark_hq_blueprint_rules?id=eq.1&select=data");
         return json({ ok: true, me, blueprint: mine, ack, rules: rules.ok && rules.data && rules.data[0] ? rules.data[0].data : null }, 200, origin);
+      }
+      // SKILLSETS_v1: /blueprints/titles?email= — the job titles a producer worked in the last 90 days (submittals they made, starts they hold a credit on).
+      // The builder sorts these into Fletcher's skillsets to suggest core / sub-core. Blueprint admins can look anyone up; everyone else only themselves.
+      if (url.pathname === "/blueprints/titles") {
+        const target = String(url.searchParams.get("email") || me).toLowerCase().trim();
+        if (target !== me && !allowed) return json({ error: "You can only look up your own titles." }, 403, origin);
+        if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+$/.test(target)) return json({ error: "Bad email" }, 400, origin);
+        const ck = "bpTitles:" + target;
+        globalThis.__bpTitleCache = globalThis.__bpTitleCache || {};
+        const hitT = globalThis.__bpTitleCache[ck];
+        if (hitT && Date.now() - hitT.at < 30 * 60 * 1000) return json(hitT.body, 200, origin);
+        const u = await runSalesforceQueryAll(env, "SELECT Id FROM User WHERE Email = '" + target + "'");
+        if (!u.ok) return json({ error: "Salesforce: " + (u.error || "user lookup failed") }, 502, origin);
+        const ids = (u.records || []).map((r) => "'" + r.Id + "'");
+        const since = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+        if (!ids.length) return json({ ok: true, email: target, found: false, since, titles: [] }, 200, origin);
+        const [h, c] = await Promise.all([
+          runSalesforceQueryAll(env, "SELECT ParentId, NewValue, Parent.bpats__Job__r.bpats__Job_Title__c, Parent.bpats__Job__r.Name FROM bpats__ATS_Applicant__History WHERE Field = 'bpats__Stage__c' AND DataType = 'Text' AND CreatedById IN (" + ids.join(",") + ") AND CreatedDate = LAST_N_DAYS:90"),
+          runSalesforceQueryAll(env, "SELECT bpats__Placement__c, bpats__Placement__r.Job_Title__c, bpats__Placement__r.bpats__ATS_Job__r.bpats__Job_Title__c FROM bpats__Placement_Credit__c WHERE bpats__Is_Void__c = false AND bpats__User__c IN (" + ids.join(",") + ") AND bpats__Placement__r.bpats__Start_Date__c = LAST_N_DAYS:90")
+        ]);
+        if (!h.ok && !c.ok) return json({ error: "Salesforce: " + (h.error || c.error) }, 502, origin);
+        const by = {}, seen = {};
+        const T = (t) => { t = String(t || "").trim(); if (!t) return null; return by[t] || (by[t] = { t, sub: 0, place: 0 }); };
+        (h.records || []).forEach((r) => {
+          if (String(r.NewValue || "") !== "Submit") return;
+          const j = r.Parent && r.Parent.bpats__Job__r; const x = T(j && (j.bpats__Job_Title__c || j.Name)); if (!x) return;
+          if (seen["s" + r.ParentId]) return; seen["s" + r.ParentId] = 1; x.sub++;
+        });
+        (c.records || []).forEach((r) => {
+          const p2 = r.bpats__Placement__r || {}; const x = T(p2.Job_Title__c || (p2.bpats__ATS_Job__r && p2.bpats__ATS_Job__r.bpats__Job_Title__c)); if (!x) return;
+          if (seen["p" + r.bpats__Placement__c]) return; seen["p" + r.bpats__Placement__c] = 1; x.place++;
+        });
+        const body = { ok: true, email: target, found: true, since, titles: Object.values(by).sort((a2, b2) => (b2.sub + 3 * b2.place) - (a2.sub + 3 * a2.place)), diag: { history: h.ok ? (h.records || []).length : h.error, credits: c.ok ? (c.records || []).length : c.error } };
+        globalThis.__bpTitleCache[ck] = { at: Date.now(), body };
+        return json(body, 200, origin);
       }
       if (url.pathname === "/blueprints/ack") {
         if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, origin);
