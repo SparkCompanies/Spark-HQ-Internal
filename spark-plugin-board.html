@@ -188,6 +188,61 @@ body.tv .tv-exit{display:block}
 @media (max-width:1280px){ .kpis{grid-template-columns:repeat(4,minmax(0,1fr))} .cols{grid-template-columns:1fr} }
 @media (max-width:860px){ .shell{grid-template-columns:1fr} .sidebar{display:none} .topbar,.main{grid-column:1} .search{min-width:0} }
 :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ---------- v3: multi-view additions ---------- */
+.view{display:none}
+.view.on{display:block}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.rcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer}
+.rcard:hover{border-color:var(--y)}
+.rcard h3{margin:0 0 8px;font-size:17px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;border-radius:4px;padding:2px 7px}
+.badge.ok{background:var(--green-soft);color:var(--green)} .badge.close{background:var(--amber-soft);color:var(--amber)} .badge.behind{background:var(--red-soft);color:var(--red-deep)} .badge.na{background:var(--paper-2);color:var(--muted)}
+.rcard .subr{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 8px;margin-bottom:8px}
+.stat{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:3px 0;border-bottom:1px dotted var(--line)}
+.stat b{font-variant-numeric:tabular-nums}
+.stat .mini{width:44%;height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin:0 8px}
+.stat .mini i{display:block;height:100%}
+.stat .mini i.g{background:var(--green)} .stat .mini i.a{background:var(--y)} .stat .mini i.r{background:var(--red)}
+.ob{margin-top:10px}
+.ob .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);font-weight:700;margin-bottom:4px}
+.ob table{width:100%;border-collapse:collapse;font-size:11.5px}
+.ob td{padding:3px 2px;border-bottom:1px solid var(--line)}
+.ob td.n{text-align:right;font-variant-numeric:tabular-nums}
+.stackbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--line);margin-bottom:6px}
+.stackbar i{display:block;height:100%}
+table.list{width:100%;border-collapse:collapse;font-size:12.5px}
+table.list th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-2);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap;cursor:pointer;user-select:none}
+table.list th.on{color:var(--ink)}
+table.list td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.list td.n{text-align:center;font-variant-numeric:tabular-nums}
+table.list tr.row{cursor:pointer} table.list tr.row:hover td{background:var(--paper)}
+table.list td.dim{color:var(--muted)}
+.stage{display:inline-block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;border-radius:4px;padding:2px 6px;background:var(--paper-2);color:var(--muted)}
+.stage.sub{background:var(--blue-soft);color:var(--blue)} .stage.iv{background:var(--purple-soft);color:var(--purple)} .stage.pnd{background:var(--amber-soft);color:var(--amber)} .stage.off{background:var(--green-soft);color:var(--green)} .stage.onb{background:var(--y-soft);color:var(--amber)}
+.days{font-weight:700;font-variant-numeric:tabular-nums} .days.bad{color:var(--red)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.reg-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--paper-2);border-radius:4px;padding:2px 6px}
+.sumbox{background:var(--ink);color:#fff;border-radius:var(--r);padding:14px 18px;font-size:14px;line-height:1.5;margin-bottom:16px;border-left:5px solid var(--y)}
+.sumbox b{color:var(--y)}
+.spark{display:inline-block;vertical-align:middle;margin-left:6px}
+.hbars .row{display:grid;grid-template-columns:150px 1fr 48px;gap:8px;align-items:center;font-size:12.5px;padding:4px 0}
+.hbars .bar{margin:0;height:9px}
+.hbars .pct{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.huddle{white-space:pre-wrap;font-size:13.5px;line-height:1.55;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;max-height:52vh;overflow:auto}
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.sc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.sc h4{margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.sc h4 .who{font-size:12px}
+.sc .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.sc .nums div{background:var(--paper);border-radius:6px;padding:6px 2px}
+.sc .nums b{display:block;font-size:17px;line-height:1.1}
+.sc .nums span{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);font-weight:600}
+.sc .foot{font-size:11.5px;color:var(--muted);margin-top:8px}
+@media (max-width:1280px){ .grid4{grid-template-columns:repeat(2,minmax(0,1fr))} .grid2{grid-template-columns:1fr} }
+@media (max-width:860px){ .sc .nums{grid-template-columns:repeat(2,1fr)} }
 </style>
 </head>
 <body>
@@ -208,7 +263,7 @@ body.tv .tv-exit{display:block}
     </div>
     <div class="nav-h">Home</div>
     <a class="nav-item" href="https://hq.sparktalentinc.com"><span class="ico">⌂</span>Spark HQ</a>
-    <button class="nav-item soon"><span class="ico">◎</span>Command Center<span class="tag">v2</span></button>
+    <button class="nav-item" data-view="home"><span class="ico">◎</span>Command Center</button>
     <div class="nav-h">Teams · by region</div>
     <div class="regsel">
       <select id="region-select" aria-label="Select region">
@@ -224,12 +279,24 @@ body.tv .tv-exit{display:block}
       </select>
       <div class="meta" id="region-meta"></div>
     </div>
+    <button class="nav-item" data-view="focus"><span class="ico">★</span>Req Focus</button>
     <div class="nav-h">Company intel</div>
-    <button class="nav-item soon"><span class="ico">▦</span>Region Compare<span class="tag">v2</span></button>
-    <button class="nav-item soon"><span class="ico">▦</span>Fulfillment Data<span class="tag">v2</span></button>
+    <button class="nav-item" data-view="compare"><span class="ico">▦</span>Region Compare</button>
+    <button class="nav-item" data-view="fuldata"><span class="ico">▦</span>Fulfillment Data</button>
+    <div class="nav-h">Pipeline</div>
+    <button class="nav-item" data-view="coverage"><span class="ico">▤</span>All-Team Coverage</button>
+    <button class="nav-item" data-view="stalled"><span class="ico">▲</span>Stalled Pipeline<span class="cnt alert" id="cnt-stalled"></span></button>
+    <button class="nav-item" data-view="ints"><span class="ico">◷</span>Interviews + Starts</button>
+    <button class="nav-item" data-view="inproc"><span class="ico">≡</span>In Process — All</button>
+    <button class="nav-item" data-view="crosssub"><span class="ico">⇄</span>Cross Sub</button>
+    <button class="nav-item" data-view="skills"><span class="ico">◈</span>Skill Market</button>
+    <div class="nav-h">People</div>
+    <button class="nav-item" data-view="scorecards"><span class="ico">▦</span>Scorecards</button>
+    <button class="nav-item" data-view="ffocus"><span class="ico">★</span>Fulfillment Focus</button>
     <div class="sb-foot">
-      <div class="row"><button id="btn-targets">Targets</button><span>·</span><button id="btn-regions">Region map</button><span>·</span><button id="btn-diag">Data check</button></div>
-      <div class="build">Plugin Board v1 · HQ worker · <span id="who-foot"></span></div>
+      <div class="row" id="admin-row" style="display:none"><button id="btn-targets">Targets</button><span>·</span><button id="btn-regions">Region map</button></div>
+      <div class="row"><button id="btn-diag">Data check</button></div>
+      <div class="build">Plugin Board v3 · HQ worker · <span id="who-foot"></span></div>
     </div>
   </aside>
 
@@ -237,8 +304,9 @@ body.tv .tv-exit{display:block}
     <span class="qa-lbl">Quick actions</span>
     <button class="qa" id="btn-refresh"><span class="sq">↻</span>Refresh</button>
     <button class="qa" id="btn-sf"><span class="sq">☁</span>Salesforce</button>
+    <button class="qa" id="btn-huddle"><span class="sq">▮</span>Morning huddle</button>
     <button class="qa" id="btn-tv"><span class="sq">▭</span>TV mode</button>
-    <label class="search"><span>⌕</span><input id="q" placeholder="Search reqs, clients, recruiters" autocomplete="off"></label>
+    <label class="search"><span>⌕</span><input id="q" placeholder="Search reqs, clients, candidates, recruiters" autocomplete="off"></label>
     <span class="pill" id="live"><span class="dot"></span><span id="live-txt">Loading</span></span>
     <span class="pill" id="who"></span>
   </header>
@@ -247,73 +315,19 @@ body.tv .tv-exit{display:block}
     <div class="crumb" id="crumb">Teams · by region</div>
     <div class="titlebar">
       <div>
-        <h1 id="title">Req Focus</h1>
-        <div class="sub" id="subtitle">Who is on what today · coverage vs open balance · every row opens its Salesforce job</div>
+        <h1 id="title">Command Center</h1>
+        <div class="sub" id="subtitle"></div>
       </div>
       <div class="chips" id="chips"></div>
     </div>
-
-    <section class="kpis" id="kpis"></section>
-
-    <div class="cols">
-      <section class="panel">
-        <div class="ph">
-          <div class="k">Jobs &amp; pipeline · open reqs</div>
-          <h2>Sorted by req score, then open balance</h2>
-          <span class="note">score = Target Rate 30 + Top 5 Skills 30 + Hiring Manager Alignment 30 + Interview Time 10</span>
-        </div>
-        <div style="overflow-x:auto">
-          <table class="jobs" id="jobs">
-            <colgroup>
-              <col style="width:52px"><col style="width:160px"><col style="width:180px"><col style="width:96px">
-              <col style="width:40px"><col style="width:40px"><col style="width:36px"><col style="width:40px"><col style="width:40px"><col style="width:40px">
-              <col style="width:84px"><col style="width:44px"><col style="width:120px">
-            </colgroup>
-            <thead><tr>
-              <th>Score</th><th>Client</th><th>Job</th><th>Svc line</th>
-              <th class="num" title="Open balance (openings − filled)">Opn</th><th class="num">Sub</th><th class="num">IV</th><th class="num">Pnd</th><th class="num">Off</th><th class="num">Onb</th>
-              <th>Coverage</th><th class="num">Age</th><th>Recruiter</th>
-            </tr></thead>
-            <tbody id="jobs-body"></tbody>
-          </table>
-        </div>
-        <div class="foot" id="jobs-foot">Score &lt; 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.</div>
-      </section>
-
-      <div style="display:grid;gap:16px">
-        <section class="panel">
-          <div class="ph">
-            <div class="k">Focus board · <span id="week-lbl"></span></div>
-            <h2>One req per person per day</h2>
-            <span class="note" id="focus-note"></span>
-          </div>
-          <table class="focus">
-            <thead><tr><th style="width:26%">Recruiter</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th style="width:70px;text-align:right">Pre·Sub</th></tr></thead>
-            <tbody id="focus-body"></tbody>
-          </table>
-          <div class="foot">Picks save to Spark HQ as you change them. Green = that req has pipeline today. Dashed red = picked, but nobody is in process on it.</div>
-        </section>
-
-        <section class="panel">
-          <div class="ph">
-            <div class="k">Where to put support</div>
-            <h2>Gap × GP/hr × 40 = weekly GP at risk</h2>
-            <span class="note">unsupported clients first</span>
-          </div>
-          <table class="sup">
-            <thead><tr><th>Client</th><th class="n">Open</th><th class="n">Pipe</th><th class="n">Gap</th><th>GP $/wk at risk</th><th>Focused by</th></tr></thead>
-            <tbody id="sup-body"></tbody>
-          </table>
-          <div class="foot">GP/hr = bill − pay × (1 + burden) averaged over the client's open reqs. Reqs without a bill or pay rate count as $0 and are marked.</div>
-        </section>
-      </div>
-    </div>
+    <div id="view-root"></div>
   </main>
 </div>
 <button class="btn tv-exit" id="btn-tv-exit">Exit TV mode</button>
 <div id="modal-root"></div>
 
 <script>
+
 /* ============================================================================
    CONFIG + AUTH + API — same shape as spark-boards.html so the HQ session is reused.
    ========================================================================== */
@@ -385,18 +399,27 @@ const API = {
    DATA MODEL
    ========================================================================== */
 const S = {
-  raw: null, jobs: [], byJob: {}, units: [], region: '', svc: 'ALL', q: '',
-  state: {}, targets: {}, focus: {}, regionMap: null, week: null, hl: null
+  raw: null, jobs: [], byJob: {}, apps: [], pl: [], ytd: [], units: [], region: '', view: 'home', svc: 'ALL', q: '',
+  state: {}, targets: {}, focus: {}, regionMap: null, hcHistory: [], week: null, hl: null, admin: false, sort: {}
 };
+const num = v => (v == null || v === '' || isNaN(+v)) ? 0 : +v;
+const day = 86400000;
+function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x; }
+function ymd(d) { return d.toISOString().slice(0,10); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+function pct(a, b) { return b ? Math.round(a / b * 100) : 0; }
+function fmtD(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'; }
+function pDate(s) { if (!s) return null; return /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : new Date(s); }
 
 /* ---------- REGION MODEL ----------
    Eight regions. Detroit sits inside Central, Nashville inside Southeast, Data Center is national.
-   A req gets ONE region. Order of precedence:
+   A req gets ONE region, in this order:
      1. Data Center  — classification / sub-classification / title says "data center"
-     2. Business Unit on the job, through the editable map (Region map in the sidebar footer)
+     2. Business Unit on the job, through the editable map (Region map, admins)
      3. Business Unit on the account, same map (flagged "via account")
-     4. Southeast + a Tennessee location → Nashville (flagged "via location")
-     5. none → counted as "no region"; still shows under Select region (all)                     */
+     4. Southeast + a Tennessee location → Nashville
+     5. none → "no region"; still counted under Select region (all)                                */
 const REGIONS = {
   central:   { label: 'Central',    parent: null },
   detroit:   { label: 'Detroit',    parent: 'central' },
@@ -407,6 +430,7 @@ const REGIONS = {
   nashville: { label: 'Nashville',  parent: 'southeast' },
   datacenter:{ label: 'Data Center',parent: null }
 };
+const TOP_REGIONS = ['central', 'northeast', 'southeast', 'northwest', 'southwest', 'datacenter'];
 const DEFAULT_REGION_MAP = {
   bu: { 'Central': 'central', 'MI Metro': 'detroit', 'Northeast': 'northeast', 'Northwest': 'northwest', 'Southwest': 'southwest', 'Southeast': 'southeast' },
   dcAlsoGeo: false
@@ -415,7 +439,6 @@ const DC_RE = /data\s*cent(er|re)/i;
 const TN_RE = /nashville|franklin|murfreesboro|smyrna|la ?vergne|lebanon|clarksville|chattanooga|knoxville|memphis|\bTN\b|tennessee/i;
 function regionMap() { return S.regionMap || DEFAULT_REGION_MAP; }
 function regionLabel(k) { return k ? (REGIONS[k] ? REGIONS[k].label : k) : 'All regions'; }
-// f = { bu, acctBu, cls, sub, title, loc }  → { key, geo, via }
 function regionOf(f) {
   const m = regionMap();
   const isDC = DC_RE.test([f.cls, f.sub, f.title].join(' ')) || m.bu[f.bu] === 'datacenter' || m.bu[f.acctBu] === 'datacenter';
@@ -425,21 +448,16 @@ function regionOf(f) {
   if (isDC) return { key: 'datacenter', geo: geo && geo !== 'datacenter' ? geo : null, via: 'datacenter' };
   return { key: geo || '', geo: geo || null, via: via || 'none' };
 }
-// does a row with region r (and geo fallback g) belong in the selected view sel? '' = everything
 function inRegion(r, g, sel) {
   if (!sel) return true;
   if (r === sel || (REGIONS[r] && REGIONS[r].parent === sel)) return true;
   if (r === 'datacenter' && regionMap().dcAlsoGeo && g && (g === sel || (REGIONS[g] && REGIONS[g].parent === sel))) return true;
   return false;
 }
-const num = v => (v == null || v === '' || isNaN(+v)) ? 0 : +v;
-const day = 86400000;
-function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); const dow = (x.getDay() + 6) % 7; x.setDate(x.getDate() - dow); return x; }
-function ymd(d) { return d.toISOString().slice(0,10); }
-function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function money(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
 
-// Stage name → bucket. Source never counts as in-process. Unknown names fall into "other" and are not counted.
+/* ---------- STAGES (Asymbl: Source → Submit → Interview → Pending Feedback → Offer → Onboarding → Placement) ---------- */
+const STAGE_LABEL = { src: 'Source', pre: 'Pre-screen', sub: 'Submittal', iv: 'Interview', pnd: 'Pending', off: 'Offer', onb: 'Onboarding', placed: 'Placed', other: 'Other' };
+const INPROC = ['sub', 'iv', 'pnd', 'off', 'onb'];
 function stageKey(name, type) {
   const s = (String(name || '') + ' ' + String(type || '')).toLowerCase();
   if (/place|hired|start/.test(s)) return 'placed';
@@ -453,7 +471,8 @@ function stageKey(name, type) {
   return 'other';
 }
 const CLOSED_APP = /reject|declin|withdr|closed|not selected|dnq|do not/i;
-const STALL_DAYS = { sub: 5, pnd: 3, off: 3, iv: 14, onb: 14, pre: 14 };
+// Fletcher's v357 stall limits: submit 5d, pending 3d, offer 3d, interview 14d, onboarding 14d
+const STALL_DAYS = { sub: 5, pnd: 3, off: 3, iv: 14, onb: 14 };
 
 function reqScore(j) {
   if (j.Req_Score__c != null && j.Req_Score__c !== '') return num(j.Req_Score__c);
@@ -475,261 +494,591 @@ function svcShort(v) {
   return s.length > 16 ? s.slice(0, 15) + '…' : s;
 }
 
+/* ---------- TITLE GROUPS (Skill Market + Cross Sub) ----------
+   A simplified port of v357's trade matcher: a title maps to one or more trade groups; two reqs match when they share a group. */
+const TRADES = [
+  ['electrician', /electric/i], ['welder', /weld/i], ['pipefitter', /pipe ?fit|plumb|steam ?fit/i], ['millwright', /millwright|rigger/i],
+  ['hvac', /hvac|refrig/i], ['cnc', /\bcnc\b|lathe|mill operator|machinist|machining/i], ['tool & die', /tool ?maker|tool (and|&) die|die ?maker|mold ?maker/i],
+  ['maintenance tech', /maint(enance)? tech|industrial maint|facilities tech|multi-?craft/i], ['controls', /controls? eng|plc|automation eng|electrical eng/i],
+  ['robot programmer', /robot/i], ['mechanical eng', /mech(anical)? eng|mech(anical)? design/i], ['quality', /quality|inspector|\bqc\b|\bqa\b|cmm/i],
+  ['assembler', /assembl/i], ['forklift', /forklift|hi-?lo|material handl/i], ['warehouse', /warehouse|shipping|receiving|picker|packer|packag|general labor|production (assoc|worker|operator)/i],
+  ['machine operator', /machine op|press op|operator/i], ['fabricator', /fabricat|sheet metal/i], ['painter', /paint/i], ['driver', /driver|\bcdl\b/i],
+  ['estimator', /estimat/i], ['project manager', /project manag|\bpm\b|project eng/i], ['supervisor', /supervisor|lead\b|foreman|manager/i],
+  ['admin', /admin|clerk|receptionist|coordinator|office/i], ['accounting', /account(ant|ing)|payroll|bookkeep|\bap\b|\bar\b/i], ['hr', /\bhr\b|human resources|recruit/i],
+  ['engineer', /engineer/i], ['technician', /technician|tech\b/i], ['data center', /data\s*cent/i]
+];
+function tradesOf(title) { const t = String(title || ''); const out = []; TRADES.forEach(([k, re]) => { if (re.test(t)) out.push(k); }); return out.length ? out : ['other']; }
+function tradeMatch(a, b) { const A = tradesOf(a), B = tradesOf(b); if (A[0] === 'other' || B[0] === 'other') return 0; return A.filter(x => B.includes(x) && !['engineer', 'technician', 'supervisor'].includes(x)).length; }
+function locState(s) { const m = /\b([A-Z]{2})\b(?!.*\b[A-Z]{2}\b)/.exec(String(s || '').toUpperCase()); return m ? m[1] : ''; }
+
+/* ---------- BUILD ---------- */
+function emptyPipe() { return { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, ivWk:0, movedWk:0 }; }
 function buildModel(raw) {
   S.raw = raw;
   const today = new Date(); today.setHours(0,0,0,0);
+  S.today = today;
   S.week = mondayOf(today);
   const weekEnd = new Date(S.week.getTime() + 7 * day);
+  S.weekEnd = weekEnd;
 
-  // pipeline per job
-  const pipe = {};
-  (raw.applicants || []).forEach(a => {
-    if (CLOSED_APP.test(String(a.bpats__Applicant_Status__c || ''))) return;
-    const stName = a.Stage_name__c || (a.bpats__Stage__r && a.bpats__Stage__r.Name) || '';
-    const stType = a.bpats__Stage__r && a.bpats__Stage__r.bpats__Stage_Type__c;
-    const k = stageKey(stName, stType);
-    const p = pipe[a.bpats__Job__c] || (pipe[a.bpats__Job__c] = { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, movedWk:0 });
-    p[k] = (p[k] || 0) + 1;
-    const csd = a.bpats__Current_Stage_Date__c ? new Date(a.bpats__Current_Stage_Date__c + 'T00:00:00') : (a.LastModifiedDate ? new Date(a.LastModifiedDate) : null);
-    const inWeek = csd && csd >= S.week && csd < weekEnd;
-    if (k === 'pre' && inWeek) p.preWk++;
-    if (['sub','iv','pnd','off','onb'].includes(k)) {
-      p.inproc++;
-      if (inWeek) p.movedWk++;
-      if (k === 'sub' && inWeek) p.subWk++;
-      const dic = num(a.bpats__Days_in_Current_Stage__c);
-      if (dic > (STALL_DAYS[k] || 14)) p.stalled++;
-    }
-  });
-
-  // placements → Active HC (Placement Status = Active), starts/terms this week and 90d, HC by client. Region via the job.
-  S.pl = (raw.placements || []).map(pl => {
-    const j = pl.bpats__ATS_Job__r || {}, a = pl.bpats__Account__r || {};
-    const reg = regionOf({ bu: j.Subdivision__c, acctBu: a.Subdivision__c, cls: j.Job_Classification__c, sub: j.Job_Subclassification__c, title: j.bpats__Job_Title__c, loc: j.bpats__Location__c });
-    const st = pl.bpats__Start_Date__c ? new Date(pl.bpats__Start_Date__c + 'T00:00:00') : null;
-    const tm = pl.Terminated_Date__c ? new Date(pl.Terminated_Date__c + 'T00:00:00') : null;
-    const status = pl.Status__c || '';
-    const active = status ? status === 'Active' : !!(st && st <= today && !tm);
-    return { id: pl.Id, region: reg.key, geo: reg.geo, client: a.Name || '', status, reason: pl.Termination_Reason__c || '', st, tm, active,
-      startWk: !!(st && st >= S.week && st < weekEnd), termWk: !!(tm && tm >= S.week && tm < weekEnd),
-      start90: !!(st && st >= new Date(today - 90 * day) && st <= today), term90: !!(tm && tm >= new Date(today - 90 * day)) };
-  });
-
-  // jobs
+  // jobs (open)
   S.jobs = (raw.jobs || []).map(j => {
-    const p = pipe[j.Id] || { pre:0, sub:0, iv:0, pnd:0, off:0, onb:0, placed:0, src:0, other:0, inproc:0, stalled:0, preWk:0, subWk:0, movedWk:0 };
     const open = Math.max(0, num(j.bpats__Number_of_Openings__c) - num(j.bpats__Openings_Filled__c));
-    const rec = (j.Recruiter__r && j.Recruiter__r.Name) || '';
     const acct = j.bpats__Account__r || {};
     const reg = regionOf({ bu: j.Subdivision__c, acctBu: acct.Subdivision__c, cls: j.Job_Classification__c, sub: j.Job_Subclassification__c, title: j.bpats__Job_Title__c, loc: j.bpats__Location__c });
     const bill = num(j.bpats__Bill_Rate__c), pay = num(j.bpats__Pay_Rate__c), burden = num(j.Burden_Percent__c);
     const gp = (bill && pay) ? Math.max(0, bill - pay * (1 + burden / 100)) : null;
-    let cov = 'none';
-    if (open > 0 && p.inproc >= open) cov = 'ok'; else if (p.inproc > 0) cov = 'part';
     return {
       id: j.Id, name: j.Name, title: j.bpats__Job_Title__c || j.Name, client: j.bpats__Account_Name__c || '(no account)',
       unit: j.Subdivision__c || 'Unassigned', acctUnit: acct.Subdivision__c || '', acctStatus: acct.Status__c || '', industry: acct.Industry || '',
-      company: j.Division__c || acct.Division__c || '', loc: j.bpats__Location__c || '',
+      company: j.Division__c || acct.Division__c || '', loc: j.bpats__Location__c || '', state: locState(j.bpats__Location__c),
       region: reg.key, geo: reg.geo, via: reg.via,
       svc: j.Job_Classification__c || 'Unassigned', sub: j.Job_Subclassification__c || '',
       openings: num(j.bpats__Number_of_Openings__c), filled: num(j.bpats__Openings_Filled__c), open,
-      recruiter: rec, am: (j.Account_Manager__r && j.Account_Manager__r.Name) || '', support: (j.User__r && j.User__r.Name) || '',
+      recruiter: (j.Recruiter__r && j.Recruiter__r.Name) || '', am: (j.Account_Manager__r && j.Account_Manager__r.Name) || '', support: (j.User__r && j.User__r.Name) || '',
       hm: (j.bpats__Hiring_Manager__r && j.bpats__Hiring_Manager__r.Name) || '',
       score: reqScore(j), boxes: { rate: !!j.Target_Rate__c, skills: !!j.Top_5_Skill_Sets__c, hm: !!j.Hiring_Manager_Alignment__c, iv: !!j.Interview_Time__c },
       age: j.CreatedDate ? Math.floor((today - new Date(j.CreatedDate)) / day) : null,
-      bill, pay, burden, gp, cov, p
+      bill, pay, burden, gp, trades: tradesOf(j.bpats__Job_Title__c), p: emptyPipe(), cov: 'none'
     };
   });
   S.byJob = {}; S.jobs.forEach(j => S.byJob[j.id] = j);
 
-  // units = today's Business Unit values, as they are in Salesforce
+  // applicants → per-job pipeline + flat list
+  S.apps = [];
+  (raw.applicants || []).forEach(a => {
+    if (CLOSED_APP.test(String(a.bpats__Applicant_Status__c || ''))) return;
+    const j = S.byJob[a.bpats__Job__c]; if (!j) return;
+    const stName = a.Stage_name__c || (a.bpats__Stage__r && a.bpats__Stage__r.Name) || '';
+    const k = stageKey(stName, a.bpats__Stage__r && a.bpats__Stage__r.bpats__Stage_Type__c);
+    const csd = pDate(a.bpats__Current_Stage_Date__c) || pDate(a.LastModifiedDate);
+    const inWeek = csd && csd >= S.week && csd < weekEnd;
+    const dis = num(a.bpats__Days_in_Current_Stage__c);
+    const stalled = INPROC.includes(k) && dis > (STALL_DAYS[k] || 14);
+    const p = j.p;
+    p[k] = (p[k] || 0) + 1;
+    if (k === 'pre' && inWeek) p.preWk++;
+    if (INPROC.includes(k)) { p.inproc++; if (inWeek) p.movedWk++; if (k === 'sub' && inWeek) p.subWk++; if (k === 'iv' && inWeek) p.ivWk++; if (stalled) p.stalled++; }
+    S.apps.push({ id: a.Id, job: j, cand: a.bpats__Candidate__c || '', name: a.bpats__Applicant_Name__c || (a.bpats__Candidate__r && a.bpats__Candidate__r.Name) || 'Candidate', stage: k, stageName: stName, dis, stalled, csd, inWeek, rec: (a.bpats__Recruited_By__r && a.bpats__Recruited_By__r.Name) || j.recruiter });
+  });
+  S.jobs.forEach(j => { j.cov = (j.open > 0 && j.p.inproc >= j.open) ? 'ok' : (j.p.inproc > 0 ? 'part' : 'none'); });
+
+  // placements
+  S.pl = (raw.placements || []).map(pl => {
+    const j = pl.bpats__ATS_Job__r || {}, a = pl.bpats__Account__r || {};
+    const reg = regionOf({ bu: j.Subdivision__c, acctBu: a.Subdivision__c, cls: j.Job_Classification__c, sub: j.Job_Subclassification__c, title: j.bpats__Job_Title__c, loc: j.bpats__Location__c });
+    const st = pDate(pl.bpats__Start_Date__c), tm = pDate(pl.Terminated_Date__c);
+    const status = pl.Status__c || '';
+    const active = status ? status === 'Active' : !!(st && st <= today && !tm);
+    const reason = pl.Termination_Reason__c || '';
+    const neverStarted = /never start|no.?show|did not start|didn.t start/i.test(reason) || !!(tm && st && tm <= st);
+    return { id: pl.Id, region: reg.key, geo: reg.geo, client: a.Name || '', status, reason, st, tm, active, neverStarted,
+      cand: (pl.bpats__ATS_Candidate__r && pl.bpats__ATS_Candidate__r.Name) || '', title: j.bpats__Job_Title__c || '', svc: j.Job_Classification__c || '',
+      rec: (j.Recruiter__r && j.Recruiter__r.Name) || '', am: (j.Account_Manager__r && j.Account_Manager__r.Name) || '', jobId: pl.bpats__ATS_Job__c,
+      startWk: !!(st && st >= S.week && st < weekEnd), termWk: !!(tm && tm >= S.week && tm < weekEnd),
+      startNext: !!(st && st >= weekEnd && st < new Date(weekEnd.getTime() + 7 * day)),
+      start90: !!(st && st >= new Date(today - 90 * day) && st <= today), term90: !!(tm && tm >= new Date(today - 90 * day)) };
+  });
+
+  // YTD jobs (open + closed this year) for Fulfillment Data and Skill Market
+  S.ytd = (raw.ytdJobs || []).map(j => {
+    const acct = j.bpats__Account__r || {};
+    const reg = regionOf({ bu: j.Subdivision__c, acctBu: acct.Subdivision__c, cls: j.Job_Classification__c, sub: j.Job_Subclassification__c, title: j.bpats__Job_Title__c, loc: j.bpats__Location__c });
+    const openings = num(j.bpats__Number_of_Openings__c), filled = num(j.bpats__Openings_Filled__c);
+    const closed = /closed/i.test(j.bpats__Status__c || '');
+    const reason = j.Close_Reason__c || '';
+    const washLoss = closed && /wash|lost|loss|cancel|competitor|filled internally|no longer|on hold|hold/i.test(reason);
+    return { id: j.Id, title: j.bpats__Job_Title__c || j.Name, client: j.bpats__Account_Name__c || '', region: reg.key, geo: reg.geo, svc: j.Job_Classification__c || 'Unassigned',
+      openings, filled, closed, reason, washLoss, status: j.bpats__Status__c || '', rec: (j.Recruiter__r && j.Recruiter__r.Name) || '', am: (j.Account_Manager__r && j.Account_Manager__r.Name) || '',
+      trades: tradesOf(j.bpats__Job_Title__c), created: pDate(j.CreatedDate), modified: pDate(j.LastModifiedDate) };
+  });
+
   const cnt = {};
   S.jobs.forEach(j => { if (j.open > 0) cnt[j.unit] = (cnt[j.unit] || 0) + 1; });
   S.units = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || a.localeCompare(b)).map(u => ({ name: u, n: cnt[u] }));
   S.noRegion = S.jobs.filter(j => j.open > 0 && !j.region).length;
 }
 
-function regionJobs() { return S.jobs.filter(j => inRegion(j.region, j.geo, S.region)); }
+/* ---------- SELECTORS ---------- */
+function jobsIn(sel) { return S.jobs.filter(j => inRegion(j.region, j.geo, sel)); }
+function plIn(sel) { return S.pl.filter(p => inRegion(p.region, p.geo, sel)); }
+function appsIn(sel) { return S.apps.filter(a => inRegion(a.job.region, a.job.geo, sel)); }
+function ytdIn(sel) { return S.ytd.filter(j => inRegion(j.region, j.geo, sel)); }
+function regionJobs() { return jobsIn(S.region); }
+function regionPl() { return plIn(S.region); }
+function svcFilter(list) { return S.svc === 'ALL' ? list : list.filter(j => (j.svc || (j.job && j.job.svc)) === S.svc); }
+function qFilter(list, f) { if (!S.q) return list; return list.filter(x => f(x).toLowerCase().includes(S.q)); }
 function visibleJobs() {
-  return regionJobs().filter(j => (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0)
-    .filter(j => !S.q || (j.client + ' ' + j.title + ' ' + j.recruiter + ' ' + j.name).toLowerCase().includes(S.q))
+  return qFilter(svcFilter(regionJobs()).filter(j => j.open > 0), j => j.client + ' ' + j.title + ' ' + j.recruiter + ' ' + j.name)
     .sort((a, b) => b.score - a.score || b.open - a.open || (a.age || 0) - (b.age || 0));
 }
+// one region's numbers, used by Command Center, Region Compare, huddle
+function regionStats(sel) {
+  const jobs = jobsIn(sel), open = jobs.filter(j => j.open > 0), pl = plIn(sel), apps = appsIn(sel);
+  const openBal = open.reduce((a, j) => a + j.open, 0);
+  const covered = open.filter(j => j.cov === 'ok').length;
+  const inproc = apps.filter(a => INPROC.includes(a.stage)).length;
+  const stalled = apps.filter(a => a.stalled).length;
+  const subWk = apps.filter(a => a.stage === 'sub' && a.inWeek).length;
+  const ivWk = apps.filter(a => a.stage === 'iv' && a.inWeek).length;
+  const hc = pl.filter(p => p.active).length, sw = pl.filter(p => p.startWk).length, tw = pl.filter(p => p.termWk).length;
+  const s90 = pl.filter(p => p.start90).length, t90 = pl.filter(p => p.term90).length;
+  const avgScore = open.length ? Math.round(open.reduce((a, j) => a + j.score, 0) / open.length) : 0;
+  const low = open.filter(j => j.score < 40).length;
+  const nobody = open.filter(j => !j.recruiter).length;
+  const t = S.targets[sel || 'ALL'] || {};
+  const hcT = num(t.hc), subT = num(t.sub), preT = num(t.pre);
+  // health = ½ HC % of target + ½ activity %, ON TRACK ≥100 · CLOSE 80–99 · BEHIND <80 (v357)
+  let health = null;
+  if (hcT || subT) { const a = hcT ? Math.min(150, hc / hcT * 100) : null, b = subT ? Math.min(150, subWk / subT * 100) : null; health = Math.round(a != null && b != null ? (a + b) / 2 : (a != null ? a : b)); }
+  const outlook = hc + pl.filter(p => p.status === 'Pending Start' && p.st && p.st <= new Date(S.today.getTime() + 14 * day)).length;
+  const bySvc = {}; open.forEach(j => { const s = bySvc[j.svc] || (bySvc[j.svc] = { open: 0, n: 0, score: 0 }); s.open += j.open; s.n++; s.score += j.score; });
+  return { sel, jobs, open, openBal, covered, covPct: pct(covered, open.length), inproc, stalled, stallPct: pct(stalled, inproc), subWk, ivWk, hc, hcT, subT, preT, sw, tw, s90, t90, avgScore, low, nobody, health, outlook, bySvc };
+}
+function healthBadge(h) { if (h == null) return '<span class="badge na">no target</span>'; return h >= 100 ? '<span class="badge ok">On track</span>' : h >= 80 ? '<span class="badge close">Close</span>' : '<span class="badge behind">Behind</span>'; }
 
 /* ============================================================================
-   RENDER
+   VIEWS
    ========================================================================== */
+const VIEWS = {
+  home:      { title: 'Command Center',       sub: 'The company at a glance · click a region card to open it', chips: false, region: false },
+  focus:     { title: 'Req Focus',            sub: 'Who is on what today · coverage vs open balance · every row opens its Salesforce job', chips: true, region: true },
+  compare:   { title: 'Region Compare',       sub: 'Six regions side by side · Detroit inside Central, Nashville inside Southeast · cut by service line', chips: true, region: false },
+  fuldata:   { title: 'Fulfillment Data',     sub: 'Every req opened this year · fill rate, wash and loss, never-starts · by service line and region', chips: true, region: true },
+  coverage:  { title: 'All-Team Coverage',    sub: 'Every open req in one list · who has pipeline and who has nobody', chips: true, region: true },
+  stalled:   { title: 'Stalled Pipeline',     sub: 'Candidates past the stage clock: Submit 5d · Pending 3d · Offer 3d · Interview 14d · Onboarding 14d', chips: true, region: true },
+  ints:      { title: 'Interviews + Starts',  sub: 'This week: interviews scheduled, starts and terms, plus next week’s pending starts', chips: true, region: true },
+  inproc:    { title: 'In Process — All',     sub: 'Every active candidate from Submittal to Onboarding', chips: true, region: true },
+  crosssub:  { title: 'Cross Sub',            sub: 'Candidates already in process who fit another open req by trade', chips: false, region: true },
+  skills:    { title: 'Skill Market',         sub: 'Demand by trade: open balance, candidates in process, and this year’s fill rate', chips: true, region: true },
+  scorecards:{ title: 'Scorecards',           sub: 'Live production per recruiter and account manager', chips: false, region: true },
+  ffocus:    { title: 'Fulfillment Focus',    sub: 'Every recruiter’s one-req-per-day picks for the week, across regions', chips: false, region: true }
+};
+const DAYS = ['mon','tue','wed','thu','fri'];
+const DAY_LBL = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri' };
+function focusKey(sel) { return 'focus:' + ymd(S.week) + ':' + (sel || 'ALL'); }
+function openJob(id) { window.open(CONFIG.SF_BASE.replace(/\/+$/, '') + '/lightning/r/bpats__Job__c/' + id + '/view', '_blank', 'noopener'); }
+function openRec(obj, id) { if (id) window.open(CONFIG.SF_BASE.replace(/\/+$/, '') + '/lightning/r/' + obj + '/' + id + '/view', '_blank', 'noopener'); }
+function setView(v) { if (!VIEWS[v]) v = 'home'; S.view = v; S.hl = null; if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v); renderAll(); }
+
+function renderAll() {
+  renderNav(); renderHeader(); renderChips();
+  const root = document.getElementById('view-root');
+  const fn = { home: vHome, focus: vFocus, compare: vCompare, fuldata: vFulData, coverage: vCoverage, stalled: vStalled, ints: vInts, inproc: vInproc, crosssub: vCrossSub, skills: vSkills, scorecards: vScorecards, ffocus: vFFocus }[S.view] || vHome;
+  root.innerHTML = fn();
+  wire(root);
+  document.getElementById('cnt-stalled').textContent = S.apps.filter(a => a.stalled).length || '';
+}
+
 function renderNav() {
+  document.querySelectorAll('.nav-item[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
   const sel = document.getElementById('region-select');
   if (sel.value !== S.region) sel.value = S.region;
   const open = regionJobs().filter(j => j.open > 0);
   const viaAcct = open.filter(j => j.via === 'account').length, viaLoc = open.filter(j => j.via === 'location').length;
   let m = `<b>${open.length}</b> open reqs${S.region ? ' in ' + esc(regionLabel(S.region)) : ' across all regions'}`;
   if (!S.region && S.noRegion) m += ` · <span class="warn">${S.noRegion} with no region</span>`;
-  if (viaAcct) m += ` · ${viaAcct} placed via account unit`;
-  if (viaLoc) m += ` · ${viaLoc} placed via location`;
+  if (viaAcct) m += ` · ${viaAcct} via account unit`;
+  if (viaLoc) m += ` · ${viaLoc} via location`;
   document.getElementById('region-meta').innerHTML = m;
 }
-
+function renderHeader() {
+  const v = VIEWS[S.view]; const lbl = regionLabel(S.region); const r = REGIONS[S.region];
+  const crumb = v.region ? (r && r.parent ? 'Teams › ' + regionLabel(r.parent) + ' › ' + lbl : 'Teams › ' + lbl) : (S.view === 'home' ? 'Home' : 'Company intel');
+  document.getElementById('crumb').textContent = crumb;
+  document.getElementById('title').textContent = v.title + (v.region ? ' — ' + lbl : '');
+  document.getElementById('subtitle').textContent = v.sub;
+  document.title = v.title + (v.region && S.region ? ' · ' + lbl : '') + ' · Plugin Board';
+}
 function renderChips() {
+  const v = VIEWS[S.view]; const el = document.getElementById('chips');
+  if (!v.chips) { el.innerHTML = `<span class="chip week">Week of ${S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`; return; }
   const svcs = {};
-  regionJobs().filter(j => j.open > 0).forEach(j => svcs[j.svc] = (svcs[j.svc] || 0) + 1);
+  (v.region ? regionJobs() : S.jobs).filter(j => j.open > 0).forEach(j => svcs[j.svc] = (svcs[j.svc] || 0) + 1);
   const names = Object.keys(svcs).sort((a, b) => svcs[b] - svcs[a]);
   if (S.svc !== 'ALL' && !svcs[S.svc]) S.svc = 'ALL';
   let h = `<span class="lbl">Service line</span><button class="chip ${S.svc === 'ALL' ? 'on' : ''}" data-svc="ALL">All</button>`;
   names.forEach(n => h += `<button class="chip ${S.svc === n ? 'on' : ''}" data-svc="${esc(n)}" title="${esc(n)} · ${svcs[n]} reqs">${esc(svcShort(n))}</button>`);
   h += `<span class="chip week">Week of ${S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`;
-  document.getElementById('chips').innerHTML = h;
-  document.querySelectorAll('#chips .chip[data-svc]').forEach(b => b.onclick = () => { S.svc = b.dataset.svc; renderAll(); });
+  el.innerHTML = h;
+  el.querySelectorAll('.chip[data-svc]').forEach(b => b.onclick = () => { S.svc = b.dataset.svc; renderAll(); });
 }
 
-function renderHeader() {
-  const lbl = regionLabel(S.region);
-  const r = REGIONS[S.region];
-  document.getElementById('crumb').textContent = r && r.parent ? 'Teams › ' + regionLabel(r.parent) + ' › ' + lbl : 'Teams › ' + lbl;
-  document.getElementById('title').textContent = 'Req Focus — ' + lbl;
-  document.getElementById('subtitle').textContent = S.region === 'datacenter'
-    ? 'National team · any req whose classification or title says Data Center · every row opens its Salesforce job'
-    : (S.region ? 'Who is on what today · coverage vs open balance · every row opens its Salesforce job' : 'Pick a region in the sidebar, or read the whole company here');
-  document.title = lbl + ' · Plugin Board';
+/* ---------- shared pieces ---------- */
+function tile(id, k, v, d, extra = '') { return `<div class="kpi ${S.hl === id ? 'hl' : ''}" data-hl="${id}"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div>${extra}</div>`; }
+function bar(v, t, dark) { return t ? `<div class="bar"><i class="${dark ? 'dark' : ''}" style="width:${Math.min(100, Math.round(v / t * 100))}%"></i></div>` : ''; }
+function sparkline(vals, w = 70, h = 18) {
+  if (!vals || vals.length < 2) return '';
+  const mn = Math.min(...vals), mx = Math.max(...vals), rng = mx - mn || 1;
+  const pts = vals.map((v, i) => `${(i / (vals.length - 1) * w).toFixed(1)},${(h - (v - mn) / rng * (h - 2) - 1).toFixed(1)}`).join(' ');
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="currentColor" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+function hcSeries(sel) {
+  // hc_history rows: {day, hc:{bucketKey:n}} where bucketKey = [DC|]bu|acct:bu[|TN]; map each bucket through the current region map
+  return (S.hcHistory || []).slice(-14).map(r => {
+    let n = 0;
+    Object.keys(r.hc || {}).forEach(k => {
+      const dc = k.startsWith('DC|'), tn = k.endsWith('|TN'); let bu = k.replace(/^DC\|/, '').replace(/\|TN$/, '');
+      const acct = bu.startsWith('acct:'); if (acct) bu = bu.slice(5);
+      const reg = regionOf({ bu: acct ? '' : bu, acctBu: acct ? bu : '', cls: dc ? 'Data Center' : '', loc: tn ? 'TN' : '' });
+      if (inRegion(reg.key, reg.geo, sel)) n += r.hc[k];
+    });
+    return n;
+  });
+}
+function stageTag(k) { return `<span class="stage ${k}">${STAGE_LABEL[k] || k}</span>`; }
+function whoTag(n) { return n ? `<span class="who" title="${esc(n)}">${esc(n)}</span>` : '<span class="who none">unassigned</span>'; }
+function sortable(list, key, defKey, defDir) {
+  const s = S.sort[S.view] || { key: defKey, dir: defDir };
+  const k = s.key, d = s.dir === 'asc' ? 1 : -1;
+  return list.slice().sort((a, b) => { const x = key(a, k), y = key(b, k); return (typeof x === 'string' ? x.localeCompare(y) : (x - y)) * d; });
+}
+function th(label, key, cls = '') { const s = S.sort[S.view] || {}; return `<th class="${cls} ${s.key === key ? 'on' : ''}" data-sort="${key}">${label}${s.key === key ? (s.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>`; }
+function wire(root) {
+  root.querySelectorAll('.kpi[data-hl]').forEach(k => k.onclick = () => { S.hl = S.hl === k.dataset.hl ? null : k.dataset.hl; renderAll(); });
+  root.querySelectorAll('tr[data-job]').forEach(tr => tr.onclick = e => { if (e.target.closest('select,a,button')) return; openJob(tr.dataset.job); });
+  root.querySelectorAll('[data-open-cand]').forEach(a => a.onclick = e => { e.stopPropagation(); openRec('bpats__Candidate__c', a.dataset.openCand); });
+  root.querySelectorAll('.rcard[data-region]').forEach(c => c.onclick = () => { S.region = c.dataset.region; setView('focus'); });
+  root.querySelectorAll('th[data-sort]').forEach(h => h.onclick = () => { const cur = S.sort[S.view] || {}; S.sort[S.view] = { key: h.dataset.sort, dir: cur.key === h.dataset.sort && cur.dir === 'desc' ? 'asc' : 'desc' }; renderAll(); });
+  root.querySelectorAll('select[data-rec]').forEach(sel => sel.onchange = () => savePick(sel.dataset.key, sel.dataset.rec, sel.dataset.day, sel.value));
+}
+async function savePick(key, rec, d, val) {
+  const cur = S.focus[key] || (S.focus[key] = {});
+  (cur[rec] || (cur[rec] = {}))[d] = val;
+  renderAll();
+  try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key, value: cur }) }); }
+  catch (e) { toast('Pick not saved to HQ (' + e.message.slice(0, 60) + ')'); }
 }
 
-function regionPl() { return S.pl.filter(p => inRegion(p.region, p.geo, S.region)); }
-function plStat(flag) { return regionPl().filter(p => p[flag]).length; }
+/* ---------- COMMAND CENTER ---------- */
+function vHome() {
+  const c = regionStats('');
+  const hist = hcSeries('');
+  const low = c.low, goal = c.hcT;
+  let h = `<section class="grid4">
+    ${tile('hc', 'Company HC', `${c.hc.toLocaleString()}${goal ? `<small> / ${goal.toLocaleString()} goal</small>` : ''}${sparkline(hist)}`, `14d outlook ${c.outlook.toLocaleString()} · ${c.s90} starts / ${c.t90} terms 90d`, goal ? bar(c.hc, goal) : '')}
+    ${tile('inproc', 'In process · stalled', `${c.inproc}<small> · ${c.stallPct}%</small>`, `${c.stalled} stalled = Submit 5d / Pending 3d / Offer 3d / else 14d`)}
+    ${tile('starts', 'Starts · terms · 90d', `<span class="g">${c.s90}</span><small> / </small><span class="r">${c.t90}</span>`, `${S.pl.filter(p => p.term90 && p.neverStarted).length} terms never started`)}
+    ${tile('score', 'Avg req score · open book', `${c.avgScore}`, `${pct(low, c.open.length)}% of open reqs score < 40 (kill or fix)`)}
+  </section>`;
+  h += `<div class="rcards">` + TOP_REGIONS.map(k => regionCard(k)).join('') + `</div>`;
+  if (S.noRegion) h += `<p class="foot" style="color:var(--red);font-size:12.5px;margin-top:12px">${S.noRegion} open reqs have no region yet (${S.units.filter(u => !regionMap().bu[u.name]).map(u => u.name).join(', ')}). ${S.admin ? 'Fix in Region map.' : 'An admin can fix this in Region map.'}</p>`;
+  return h;
+}
+function regionCard(k) {
+  const s = regionStats(k);
+  const subs = Object.keys(REGIONS).filter(x => REGIONS[x].parent === k);
+  const mini = (v, t, cls) => t ? `<span class="mini"><i class="${cls}" style="width:${Math.min(100, Math.round(v / t * 100))}%"></i></span>` : '<span class="mini"></span>';
+  const covCls = s.covPct >= 75 ? 'g' : s.covPct >= 50 ? 'a' : 'r';
+  const svcRows = Object.keys(s.bySvc).sort((a, b) => s.bySvc[b].open - s.bySvc[a].open).slice(0, 5);
+  const total = svcRows.reduce((a, x) => a + s.bySvc[x].open, 0) || 1;
+  const colors = { li: 'var(--green)', st: 'var(--y)', et: 'var(--blue)', pe: 'var(--purple)', '': 'var(--muted-2)' };
+  return `<div class="rcard" data-region="${k}">
+    <h3>${regionLabel(k)} ${healthBadge(s.health)}</h3>
+    ${subs.map(x => { const ss = regionStats(x); return `<div class="subr">↳ <b>${regionLabel(x)}</b> · HC ${ss.hc} · open ${ss.openBal}</div>`; }).join('')}
+    <div class="stat"><span>Active HC</span>${mini(s.hc, s.hcT, 'g')}<b>${s.hc}${s.hcT ? `<span style="color:var(--muted);font-weight:500">/${s.hcT}</span>` : ''}</b></div>
+    <div class="stat"><span>14d outlook</span><span></span><b>${s.outlook} ${s.outlook - s.hc >= 0 ? '▲ +' : '▼ '}${s.outlook - s.hc}</b></div>
+    <div class="stat"><span>Open balance</span><span></span><b>${s.openBal}</b></div>
+    <div class="stat"><span>Covered %</span>${mini(s.covPct, 100, covCls)}<b>${s.covPct}%</b></div>
+    <div class="stat"><span>In process</span><span></span><b>${s.inproc}</b></div>
+    <div class="stat"><span>Stalled %</span>${mini(s.stallPct, 100, s.stallPct > 30 ? 'r' : 'a')}<b>${s.stallPct}%</b></div>
+    <div class="stat"><span>Submittals wk</span>${mini(s.subWk, s.subT, 'g')}<b>${s.subWk}${s.subT ? `<span style="color:var(--muted);font-weight:500">/${s.subT}</span>` : ''}</b></div>
+    <div class="stat"><span>Interviews wk</span><span></span><b>${s.ivWk}</b></div>
+    <div class="stat"><span>Starts · terms wk</span><span></span><b><span style="color:var(--green)">${s.sw}</span> · <span style="color:var(--red)">${s.tw}</span></b></div>
+    <div class="stat"><span>Avg req score</span><span></span><b>${s.avgScore}</b></div>
+    <div class="ob"><div class="k">Open book by service line</div>
+      <div class="stackbar">${svcRows.map(x => `<i style="width:${Math.round(s.bySvc[x].open / total * 100)}%;background:${colors[svcClass(x)] || colors['']}"></i>`).join('')}</div>
+      <table>${svcRows.map(x => `<tr><td><span class="svc ${svcClass(x)}">${esc(svcShort(x))}</span></td><td class="n">${s.bySvc[x].open}</td><td class="n"><span class="score ${s.bySvc[x].score / s.bySvc[x].n >= 80 ? 'g' : s.bySvc[x].score / s.bySvc[x].n >= 40 ? 'a' : 'r'}">${Math.round(s.bySvc[x].score / s.bySvc[x].n)}</span></td></tr>`).join('') || '<tr><td class="dim">nothing open</td></tr>'}</table>
+    </div>
+  </div>`;
+}
 
-function renderKpis() {
-  const rows = regionJobs().filter(j => (S.svc === 'ALL' || j.svc === S.svc));
-  const openRows = rows.filter(j => j.open > 0);
-  const openBal = openRows.reduce((a, j) => a + j.open, 0);
-  const covered = openRows.filter(j => j.cov === 'ok').length;
-  const covPct = openRows.length ? Math.round(covered / openRows.length * 100) : 0;
-  const inproc = rows.reduce((a, j) => a + j.p.inproc, 0);
-  const stalled = rows.reduce((a, j) => a + j.p.stalled, 0);
-  const stallPct = inproc ? Math.round(stalled / inproc * 100) : 0;
-  const preWk = rows.reduce((a, j) => a + j.p.preWk, 0);
-  const subWk = rows.reduce((a, j) => a + j.p.subWk, 0);
-  const hc = plStat('active'), sw = plStat('startWk'), tw = plStat('termWk'), s90 = plStat('start90'), t90 = plStat('term90');
+/* ---------- REGION COMPARE ---------- */
+function vCompare() {
+  const rows = TOP_REGIONS.map(k => regionStats(k));
+  const line = (label, f, fmt = x => x) => `<tr><td class="dim">${label}</td>${rows.map(r => `<td class="n">${fmt(f(r))}</td>`).join('')}</tr>`;
+  return `<section class="panel"><div style="overflow-x:auto"><table class="list" style="min-width:860px">
+    <thead><tr><th>Metric</th>${rows.map(r => `<th>${regionLabel(r.sel)} ${healthBadge(r.health)}</th>`).join('')}</tr></thead>
+    <tbody>
+      ${line('Active HC', r => r.hc + (r.hcT ? ' / ' + r.hcT : ''))}
+      ${line('14d outlook', r => r.outlook)}
+      ${line('Open reqs · balance', r => r.open.length + ' · ' + r.openBal)}
+      ${line('Covered %', r => r.covPct, x => x + '%')}
+      ${line('In process', r => r.inproc)}
+      ${line('Stalled', r => r.stalled + ' (' + r.stallPct + '%)')}
+      ${line('Submittals wk', r => r.subWk + (r.subT ? ' / ' + r.subT : ''))}
+      ${line('Interviews wk', r => r.ivWk)}
+      ${line('Starts · terms wk', r => `<span style="color:var(--green)">${r.sw}</span> · <span style="color:var(--red)">${r.tw}</span>`)}
+      ${line('Starts · terms 90d', r => `<span style="color:var(--green)">${r.s90}</span> · <span style="color:var(--red)">${r.t90}</span>`)}
+      ${line('Avg req score', r => r.avgScore)}
+      ${line('Reqs < 40 (kill or fix)', r => r.low)}
+      ${line('Open reqs with nobody', r => r.nobody)}
+    </tbody></table></div>
+    <div class="foot">Central includes Detroit; Southeast includes Nashville. Health = ½ HC % of target + ½ submittals % of target; ON TRACK ≥100 · CLOSE 80–99 · BEHIND &lt;80. Set targets in the sidebar (admins).</div>
+  </section>
+  <div class="rcards" style="margin-top:16px">${['detroit', 'nashville'].map(regionCard).join('')}</div>`;
+}
+
+/* ---------- REQ FOCUS (the original screen) ---------- */
+function vFocus() {
+  const c = regionStats(S.region);
+  const rows = visibleJobs();
+  const t = S.targets[S.region || 'ALL'] || {};
   const reasons = {}; regionPl().filter(p => p.termWk).forEach(p => { reasons[p.reason || 'No reason'] = (reasons[p.reason || 'No reason'] || 0) + 1; });
   const reasonTxt = Object.keys(reasons).map(k => k + ': ' + reasons[k]).join(' · ');
-  const t = S.targets[S.region || 'ALL'] || {};
-  const tHC = num(t.hc), tPre = num(t.pre), tSub = num(t.sub);
-  const avgScore = openRows.length ? Math.round(openRows.reduce((a, j) => a + j.score, 0) / openRows.length) : 0;
-  const low = openRows.filter(j => j.score < 40).length;
-
-  const tile = (id, k, v, d, extra = '', hl = false) => `<div class="kpi ${hl ? 'hl' : ''}" data-hl="${id}"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div>${extra}</div>`;
-  const bar = (v, t, dark) => t ? `<div class="bar"><i class="${dark ? 'dark' : ''}" style="width:${Math.min(100, Math.round(v / t * 100))}%"></i></div>` : '';
-  document.getElementById('kpis').innerHTML =
-    tile('hc', 'Active HC', hc.toLocaleString(), tHC ? `vs target ${tHC}` : 'set a target in Targets', s90 || t90 ? `<div class="d2 ${s90 >= t90 ? 'up' : 'dn'}">${s90 >= t90 ? '▲' : '▼'} ${s90} starts · ${t90} terms · 90d</div>` : '', S.hl === 'hc') +
-    tile('open', 'Open balance', openBal, `on ${openRows.length} reqs`, low ? `<div class="d2 dn">▲ ${low} reqs score below 40</div>` : '', S.hl === 'open') +
-    tile('cov', 'Covered', covPct + '<small>%</small>', 'pipeline ≥ open balance', bar(covPct, 100), S.hl === 'cov') +
-    tile('inproc', 'In process', inproc, 'Submittal → Onboarding', `<div class="d2 ${stallPct > 30 ? 'dn' : ''}">${stalled} stalled · ${stallPct}%</div>`, S.hl === 'inproc') +
-    tile('pre', 'Pre-screens wk', '<span style="color:var(--muted-2)">—</span>', 'pre-screens are activities, not an ATS stage', '<div class="d2" style="color:var(--muted-2)">source pending (see Data check)</div>', S.hl === 'pre') +
-    tile('sub', 'Submittals wk', subWk, tSub ? `target ${tSub}` : 'entered Submit this week', bar(subWk, tSub, true), S.hl === 'sub') +
-    tile('score', 'Starts · terms wk', `<span class="g">${sw}</span><small> / </small><span class="r">${tw}</span>`, `net ${sw - tw >= 0 ? '+' : ''}${sw - tw} · avg req score ${avgScore}`, reasonTxt ? `<div class="d2" title="${esc(reasonTxt)}">terms: ${esc(reasonTxt.length > 48 ? reasonTxt.slice(0, 46) + '…' : reasonTxt)}</div>` : '', S.hl === 'score');
-  document.querySelectorAll('.kpi').forEach(k => k.onclick = () => { S.hl = S.hl === k.dataset.hl ? null : k.dataset.hl; renderKpis(); });
+  const hist = hcSeries(S.region);
+  let h = `<section class="kpis">
+    ${tile('hc', 'Active HC', `${c.hc.toLocaleString()}${sparkline(hist)}`, c.hcT ? `vs target ${c.hcT}` : (S.admin ? 'set a target in Targets' : 'no target set'), c.s90 || c.t90 ? `<div class="d2 ${c.s90 >= c.t90 ? 'up' : 'dn'}">${c.s90 >= c.t90 ? '▲' : '▼'} ${c.s90} starts · ${c.t90} terms · 90d</div>` : '')}
+    ${tile('open', 'Open balance', c.openBal, `on ${c.open.length} reqs`, c.low ? `<div class="d2 dn">▲ ${c.low} reqs score below 40</div>` : '')}
+    ${tile('cov', 'Covered', c.covPct + '<small>%</small>', 'pipeline ≥ open balance', bar(c.covPct, 100))}
+    ${tile('inproc', 'In process', c.inproc, 'Submittal → Onboarding', `<div class="d2 ${c.stallPct > 30 ? 'dn' : ''}">${c.stalled} stalled · ${c.stallPct}%</div>`)}
+    ${tile('pre', 'Pre-screens wk', '<span style="color:var(--muted-2)">—</span>', 'pre-screens are activities, not an ATS stage', '<div class="d2" style="color:var(--muted-2)">source pending</div>')}
+    ${tile('sub', 'Submittals wk', c.subWk, c.subT ? `target ${c.subT}` : 'entered Submit this week', bar(c.subWk, c.subT, true))}
+    ${tile('starts', 'Starts · terms wk', `<span class="g">${c.sw}</span><small> / </small><span class="r">${c.tw}</span>`, `net ${c.sw - c.tw >= 0 ? '+' : ''}${c.sw - c.tw} · avg req score ${c.avgScore}`, reasonTxt ? `<div class="d2" title="${esc(reasonTxt)}">terms: ${esc(reasonTxt.length > 48 ? reasonTxt.slice(0, 46) + '…' : reasonTxt)}</div>` : '')}
+  </section>
+  <div class="cols">
+    <section class="panel">
+      <div class="ph"><div class="k">Jobs &amp; pipeline · open reqs</div><h2>Sorted by req score, then open balance</h2><span class="note">score = Target Rate 30 + Top 5 Skills 30 + Hiring Manager Alignment 30 + Interview Time 10</span></div>
+      <div style="overflow-x:auto">${jobsTable(rows)}</div>
+      <div class="foot">${rows.length} open reqs shown · ${rows.filter(j => j.score < 40).length} score below 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.</div>
+    </section>
+    <div style="display:grid;gap:16px">
+      ${focusBoard(S.region)}
+      ${supportPanel()}
+    </div>
+  </div>`;
+  return h;
 }
-
-function renderJobs() {
-  const rows = visibleJobs();
-  const tb = document.getElementById('jobs-body');
-  if (!rows.length) { tb.innerHTML = `<tr><td colspan="13" class="empty">No open reqs match. Clear the search or pick another service line.</td></tr>`; return; }
+function jobsTable(rows, showRegion) {
+  if (!rows.length) return `<div class="empty">No open reqs match. Clear the search or pick another service line.</div>`;
   const cell = (n, k) => `<td class="num ${n ? '' : 'z'}" title="${k}">${n || '0'}</td>`;
-  tb.innerHTML = rows.map(j => {
-    const sc = j.score >= 80 ? 'g' : j.score >= 40 ? 'a' : 'r';
-    const boxes = `Target Rate ${j.boxes.rate ? '✓' : '✗'} · Top 5 Skills ${j.boxes.skills ? '✓' : '✗'} · HM Alignment ${j.boxes.hm ? '✓' : '✗'} · Interview Time ${j.boxes.iv ? '✓' : '✗'}`;
-    const covTxt = j.cov === 'ok' ? 'COVERED' : j.cov === 'part' ? 'PARTIAL' : (j.recruiter ? 'UNCOVERED' : 'NOBODY');
-    return `<tr class="row" data-id="${j.id}">
-      <td><span class="score ${sc}" title="${boxes}">${j.score}</span></td>
-      <td class="client" title="${esc(j.client)}${j.company ? ' · ' + esc(j.company) : ''}${j.acctStatus ? ' · account ' + esc(j.acctStatus) : ''} · unit ${esc(j.unit)}${j.via === 'account' ? ' (region via account)' : j.via === 'location' ? ' (region via location)' : ''}">${esc(j.client)}${!S.region && j.region ? `<span class="tag-src">${esc(regionLabel(j.region))}</span>` : ''}${!S.region && !j.region ? '<span class="tag-src" style="color:var(--red)">no region</span>' : ''}${j.region === 'datacenter' && S.region !== 'datacenter' ? '<span class="tag-dc">DC</span>' : ''}</td>
-      <td title="${esc(j.title)} (${esc(j.name)})">${esc(j.title)}</td>
-      <td><span class="svc ${svcClass(j.svc)}" title="${esc(j.svc)}${j.sub ? ' · ' + esc(j.sub) : ''}">${esc(svcShort(j.svc))}</span></td>
-      <td class="num"><b>${j.open}</b></td>${cell(j.p.sub, 'Submittal')}${cell(j.p.iv, 'Interview')}${cell(j.p.pnd, 'Pending offer')}${cell(j.p.off, 'Offer')}${cell(j.p.onb, 'Onboarding')}
-      <td><span class="cov ${j.cov}">${covTxt}</span></td>
-      <td class="num">${j.age == null ? '—' : j.age + 'd'}</td>
-      <td>${j.recruiter ? `<span class="who" title="${esc(j.recruiter)}">${esc(j.recruiter)}</span>` : '<span class="who none">unassigned</span>'}</td>
-    </tr>`;
-  }).join('');
-  tb.querySelectorAll('tr.row').forEach(tr => tr.onclick = () => openJob(tr.dataset.id));
-  const low = rows.filter(j => j.score < 40).length;
-  document.getElementById('jobs-foot').innerHTML = `${rows.length} open reqs shown · ${low} score below 40 = <b>kill or fix</b> before it gets a recruiter. 0 = none of the four boxes checked on the job in Salesforce.`;
+  return `<table class="jobs"><colgroup><col style="width:52px"><col style="width:160px"><col style="width:180px"><col style="width:96px"><col style="width:40px"><col style="width:40px"><col style="width:36px"><col style="width:40px"><col style="width:40px"><col style="width:40px"><col style="width:84px"><col style="width:44px"><col style="width:120px"></colgroup>
+    <thead><tr><th>Score</th><th>Client</th><th>Job</th><th>Svc line</th><th class="num" title="Open balance">Opn</th><th class="num">Sub</th><th class="num">IV</th><th class="num">Pnd</th><th class="num">Off</th><th class="num">Onb</th><th>Coverage</th><th class="num">Age</th><th>Recruiter</th></tr></thead>
+    <tbody>${rows.map(j => {
+      const sc = j.score >= 80 ? 'g' : j.score >= 40 ? 'a' : 'r';
+      const boxes = `Target Rate ${j.boxes.rate ? '✓' : '✗'} · Top 5 Skills ${j.boxes.skills ? '✓' : '✗'} · HM Alignment ${j.boxes.hm ? '✓' : '✗'} · Interview Time ${j.boxes.iv ? '✓' : '✗'}`;
+      const covTxt = j.cov === 'ok' ? 'COVERED' : j.cov === 'part' ? 'PARTIAL' : (j.recruiter ? 'UNCOVERED' : 'NOBODY');
+      const tags = (showRegion || !S.region) ? (j.region ? `<span class="tag-src">${esc(regionLabel(j.region))}</span>` : '<span class="tag-src" style="color:var(--red)">no region</span>') : '';
+      return `<tr class="row" data-job="${j.id}">
+        <td><span class="score ${sc}" title="${boxes}">${j.score}</span></td>
+        <td class="client" title="${esc(j.client)}${j.company ? ' · ' + esc(j.company) : ''}${j.acctStatus ? ' · account ' + esc(j.acctStatus) : ''} · unit ${esc(j.unit)}${j.via === 'account' ? ' (region via account)' : j.via === 'location' ? ' (region via location)' : ''}">${esc(j.client)}${tags}${j.region === 'datacenter' && S.region !== 'datacenter' ? '<span class="tag-dc">DC</span>' : ''}</td>
+        <td title="${esc(j.title)} (${esc(j.name)})">${esc(j.title)}</td>
+        <td><span class="svc ${svcClass(j.svc)}" title="${esc(j.svc)}${j.sub ? ' · ' + esc(j.sub) : ''}">${esc(svcShort(j.svc))}</span></td>
+        <td class="num"><b>${j.open}</b></td>${cell(j.p.sub, 'Submittal')}${cell(j.p.iv, 'Interview')}${cell(j.p.pnd, 'Pending')}${cell(j.p.off, 'Offer')}${cell(j.p.onb, 'Onboarding')}
+        <td><span class="cov ${j.cov}">${covTxt}</span></td>
+        <td class="num">${j.age == null ? '—' : j.age + 'd'}</td>
+        <td>${whoTag(j.recruiter)}</td></tr>`; }).join('')}</tbody></table>`;
 }
-
-function openJob(id) {
-  if (CONFIG.SF_BASE) window.open(CONFIG.SF_BASE.replace(/\/+$/, '') + '/lightning/r/bpats__Job__c/' + id + '/view', '_blank', 'noopener');
-  else window.open(CONFIG.HQ_URL + '/#salesforce', '_blank', 'noopener');
-}
-
-/* ---------- focus board ---------- */
-const DAYS = ['mon','tue','wed','thu','fri'];
-function focusKey() { return 'focus:' + ymd(S.week) + ':' + (S.region || 'ALL'); }
-function renderFocus() {
-  document.getElementById('week-lbl').textContent = 'week of ' + S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const jobs = regionJobs().filter(j => j.open > 0).sort((a, b) => a.client.localeCompare(b.client) || a.title.localeCompare(b.title));
-  const picks = S.focus[focusKey()] || {};
-  const recs = {};
-  jobs.forEach(j => { if (j.recruiter) recs[j.recruiter] = true; });
-  Object.keys(picks).forEach(r => recs[r] = true);
+function focusBoard(sel, compact) {
+  const key = focusKey(sel);
+  const jobs = jobsIn(sel).filter(j => j.open > 0).sort((a, b) => a.client.localeCompare(b.client) || a.title.localeCompare(b.title));
+  const picks = S.focus[key] || {};
+  const recs = {}; jobs.forEach(j => { if (j.recruiter) recs[j.recruiter] = true; }); Object.keys(picks).forEach(r => recs[r] = true);
   const names = Object.keys(recs).sort();
-  const tb = document.getElementById('focus-body');
-  if (!names.length) { tb.innerHTML = `<tr><td colspan="7" class="empty">No recruiters on open reqs in this region yet. Assign a Recruiter on the job in Salesforce and they appear here.</td></tr>`; document.getElementById('focus-note').textContent = ''; return; }
   const opts = jobs.map(j => `<option value="${j.id}">${esc(j.client)} — ${esc(j.title)}</option>`).join('');
   let filled = 0;
-  tb.innerHTML = names.map(r => {
+  const body = names.map(r => {
     const mine = jobs.filter(j => j.recruiter === r);
     const pre = mine.reduce((a, j) => a + j.p.preWk, 0), sub = mine.reduce((a, j) => a + j.p.subWk, 0);
     const row = picks[r] || {};
-    const cells = DAYS.map(d => {
-      const v = row[d] || ''; const j = v && S.byJob[v];
-      if (v) filled++;
-      const cls = j ? ('set' + (j.p.inproc ? '' : ' miss')) : '';
-      return `<td><select class="${cls}" data-rec="${esc(r)}" data-day="${d}" title="${j ? esc(j.client + ' — ' + j.title) : 'pick a req'}"><option value="">— pick —</option>${opts}</select></td>`;
-    }).join('');
-    return `<tr><td><span class="who" title="${esc(r)}">${esc(r)}</span></td>${cells}<td class="psb" title="pre-screens · submittals moved this week on this recruiter's reqs"><b>${pre}</b> ${sub}</td></tr>`;
+    const cells = DAYS.map(d => { const v = row[d] || ''; const j = v && S.byJob[v]; if (v) filled++; const cls = j ? ('set' + (j.p.inproc ? '' : ' miss')) : '';
+      return `<td><select class="${cls}" data-key="${key}" data-rec="${esc(r)}" data-day="${d}" title="${j ? esc(j.client + ' — ' + j.title) : 'pick a req'}"><option value="">— pick —</option>${opts.replace(`value="${v}"`, `value="${v}" selected`)}</select></td>`; }).join('');
+    return `<tr><td>${whoTag(r)}</td>${cells}<td class="psb" title="pre-screens · submittals this week on this recruiter's reqs"><b>${pre}</b> ${sub}</td></tr>`;
   }).join('');
-  tb.querySelectorAll('select').forEach(sel => {
-    const v = (picks[sel.dataset.rec] || {})[sel.dataset.day] || '';
-    sel.value = v;
-    sel.onchange = async () => {
-      const k = focusKey(); const cur = S.focus[k] || (S.focus[k] = {});
-      (cur[sel.dataset.rec] || (cur[sel.dataset.rec] = {}))[sel.dataset.day] = sel.value;
-      renderFocus(); renderSupport();
-      try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key: k, value: cur }) }); }
-      catch (e) { toast('Pick not saved to HQ (' + (e.message.includes('404') ? 'state routes not deployed yet' : e.message.slice(0, 60)) + ')'); }
-    };
-  });
-  document.getElementById('focus-note').textContent = `${filled} of ${names.length * 5} slots picked`;
+  return `<section class="panel">
+    <div class="ph"><div class="k">Focus board · week of ${S.week.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${sel ? ' · ' + esc(regionLabel(sel)) : ''}</div><h2>One req per person per day</h2><span class="note">${filled} of ${names.length * 5} slots picked</span></div>
+    <table class="focus"><thead><tr><th style="width:26%">Recruiter</th>${DAYS.map(d => `<th>${DAY_LBL[d]}</th>`).join('')}<th style="width:70px;text-align:right">Pre·Sub</th></tr></thead>
+    <tbody>${body || `<tr><td colspan="7" class="empty">No recruiters on open reqs here yet. Assign a Recruiter on the job in Salesforce and they appear.</td></tr>`}</tbody></table>
+    ${compact ? '' : '<div class="foot">Picks save to Spark HQ as you change them. Green = that req has pipeline today. Dashed red = picked, but nobody is in process on it.</div>'}
+  </section>`;
 }
-
-/* ---------- where to put support ---------- */
-function renderSupport() {
-  const jobs = regionJobs().filter(j => (S.svc === 'ALL' || j.svc === S.svc) && j.open > 0);
+function supportPanel() {
+  const jobs = svcFilter(regionJobs()).filter(j => j.open > 0);
   const hcBy = {}; regionPl().filter(p => p.active).forEach(p => { hcBy[p.client] = (hcBy[p.client] || 0) + 1; });
-  const picks = S.focus[focusKey()] || {};
-  const focusedBy = {};
-  Object.keys(picks).forEach(r => DAYS.forEach(d => { const j = S.byJob[picks[r][d]]; if (j) (focusedBy[j.client] || (focusedBy[j.client] = {}))[r] = true; }));
-  const by = {};
-  jobs.forEach(j => {
-    const c = by[j.client] || (by[j.client] = { open: 0, pipe: 0, gps: [], noRate: 0 });
-    c.open += j.open; c.pipe += j.p.inproc; if (j.gp == null) c.noRate++; else c.gps.push(j.gp);
-  });
-  const rows = Object.keys(by).map(name => {
-    const c = by[name]; const gap = Math.max(0, c.open - c.pipe);
-    const gp = c.gps.length ? c.gps.reduce((a, b) => a + b, 0) / c.gps.length : 0;
-    const who = Object.keys(focusedBy[name] || {});
-    return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who, hc: hcBy[name] || 0 };
-  }).sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap)).slice(0, 12);
-  const tb = document.getElementById('sup-body');
-  if (!rows.length) { tb.innerHTML = `<tr><td colspan="6" class="empty">Nothing open here.</td></tr>`; return; }
-  tb.innerHTML = rows.map(r => `<tr>
-    <td class="client" title="${esc(r.name)} · ${r.hc} active HC">${esc(r.name)}</td>
-    <td class="n">${r.open}</td><td class="n">${r.pipe}</td>
-    <td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
-    <td class="money ${r.gap ? '' : 'ok'}" title="${r.noRate ? r.noRate + ' req(s) without bill/pay rate' : 'avg GP/hr ' + money(r.gp)}">${r.gap ? money(r.risk) : '$0'}${r.noRate ? ' <span style="color:var(--muted-2)">*</span>' : ''}</td>
-    <td>${r.who.length ? r.who.map(w => `<span class="who">${esc(w.split(' ')[0])}</span>`).join(' ') : '<span class="who none">nobody</span>'}</td>
-  </tr>`).join('');
+  const picks = S.focus[focusKey(S.region)] || {};
+  const focusedBy = {}; Object.keys(picks).forEach(r => DAYS.forEach(d => { const j = S.byJob[picks[r][d]]; if (j) (focusedBy[j.client] || (focusedBy[j.client] = {}))[r] = true; }));
+  const by = {}; jobs.forEach(j => { const c = by[j.client] || (by[j.client] = { open: 0, pipe: 0, gps: [], noRate: 0 }); c.open += j.open; c.pipe += j.p.inproc; if (j.gp == null) c.noRate++; else c.gps.push(j.gp); });
+  const rows = Object.keys(by).map(name => { const c = by[name]; const gap = Math.max(0, c.open - c.pipe); const gp = c.gps.length ? c.gps.reduce((a, b) => a + b, 0) / c.gps.length : 0; const who = Object.keys(focusedBy[name] || {});
+    return { name, open: c.open, pipe: c.pipe, gap, gp, risk: gap * gp * 40, noRate: c.noRate, who, hc: hcBy[name] || 0 }; })
+    .sort((a, b) => (a.who.length - b.who.length) || (b.risk - a.risk) || (b.gap - a.gap)).slice(0, 12);
+  return `<section class="panel">
+    <div class="ph"><div class="k">Where to put support</div><h2>Gap × GP/hr × 40 = weekly GP at risk</h2><span class="note">unsupported clients first</span></div>
+    <table class="sup"><thead><tr><th>Client</th><th class="n">HC</th><th class="n">Open</th><th class="n">Pipe</th><th class="n">Gap</th><th>GP $/wk at risk</th><th>Focused by</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td class="client" title="${esc(r.name)}">${esc(r.name)}</td><td class="n">${r.hc}</td><td class="n">${r.open}</td><td class="n">${r.pipe}</td><td class="gap ${r.gap ? '' : 'ok'}">${r.gap}</td>
+      <td class="money ${r.gap ? '' : 'ok'}" title="${r.noRate ? r.noRate + ' req(s) without bill/pay rate' : 'avg GP/hr ' + money(r.gp)}">${r.gap ? money(r.risk) : '$0'}${r.noRate ? ' <span style="color:var(--muted-2)">*</span>' : ''}</td>
+      <td>${r.who.length ? r.who.map(w => `<span class="who">${esc(w.split(' ')[0])}</span>`).join(' ') : '<span class="who none">nobody</span>'}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Nothing open here.</td></tr>'}</tbody></table>
+    <div class="foot">GP/hr = bill − pay × (1 + burden) averaged over the client's open reqs. Reqs without a bill or pay rate count as $0 and are marked.</div>
+  </section>`;
 }
 
-function renderAll() { renderNav(); renderChips(); renderHeader(); renderKpis(); renderJobs(); renderFocus(); renderSupport(); }
+/* ---------- FULFILLMENT DATA (YTD) ---------- */
+function vFulData() {
+  const all = svcFilter(ytdIn(S.region));
+  const openings = all.reduce((a, j) => a + j.openings, 0), filled = all.reduce((a, j) => a + j.filled, 0);
+  const closed = all.filter(j => j.closed), wl = closed.filter(j => j.washLoss);
+  const closedFill = closed.filter(j => j.filled > 0).length;
+  const never = plIn(S.region).filter(p => p.neverStarted && p.tm && p.tm.getFullYear() === S.today.getFullYear()).length;
+  const kept = all.filter(j => !j.closed && j.openings > 0 && j.filled === 0 && j.created && (S.today - j.created) / day > 60).length;
+  const group = (keyf) => { const g = {}; all.forEach(j => { const k = keyf(j) || '—'; const o = g[k] || (g[k] = { openings: 0, filled: 0, n: 0, wl: 0, closed: 0 }); o.openings += j.openings; o.filled += j.filled; o.n++; if (j.closed) o.closed++; if (j.washLoss) o.wl++; }); return g; };
+  const bySvc = group(j => j.svc), byReg = group(j => j.region ? regionLabel(j.region) : 'No region');
+  const hbars = (g) => `<div class="hbars">${Object.keys(g).sort((a, b) => g[b].openings - g[a].openings).map(k => { const p = pct(g[k].filled, g[k].openings); const cls = p >= 60 ? 'var(--green)' : p >= 40 ? 'var(--y)' : 'var(--red)';
+    return `<div class="row"><span title="${g[k].n} reqs · ${g[k].openings} openings">${esc(k)}</span><div class="bar"><i style="width:${Math.min(100, p)}%;background:${cls}"></i></div><span class="pct">${p}%</span></div>`; }).join('')}</div>`;
+  const worst = Object.keys(bySvc).sort((a, b) => pct(bySvc[a].filled, bySvc[a].openings) - pct(bySvc[b].filled, bySvc[b].openings))[0];
+  const best = Object.keys(bySvc).sort((a, b) => pct(bySvc[b].filled, bySvc[b].openings) - pct(bySvc[a].filled, bySvc[a].openings))[0];
+  return `<div class="sumbox">EXEC SUMMARY &nbsp; ${best ? `We fill <b>${esc(best)}</b> at ${pct(bySvc[best].filled, bySvc[best].openings)}%.` : ''} ${worst && worst !== best ? `<b>${esc(worst)}</b> is the hole: ${pct(bySvc[worst].filled, bySvc[worst].openings)}% fill, ${bySvc[worst].openings - bySvc[worst].filled} openings missed.` : ''} ${closed.length ? `${pct(wl.length, closed.length)}% of closed reqs wash or lose.` : ''} ${never} placements never started. ${kept} open reqs are 60+ days old with nothing filled.</div>
+  <section class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    ${tile('reqs', 'Reqs YTD', all.length.toLocaleString(), `${openings.toLocaleString()} openings`)}
+    ${tile('fill', 'Fill rate · all reqs', pct(filled, openings) + '<small>%</small>', `closed-only ${pct(closed.filter(j => j.filled > 0).reduce((a, j) => a + j.filled, 0), closed.reduce((a, j) => a + j.openings, 0))}% · ${closedFill} of ${closed.length} closed reqs filled`)}
+    ${tile('never', 'Never-starts', never, 'placements that never became HC')}
+    ${tile('kept', 'Kept · should have passed', kept, `open 60+ days, nothing filled · ${pct(wl.length, closed.length)}% of closed washed or lost`)}
+  </section>
+  <div class="grid2">
+    <section class="panel"><div class="ph"><div class="k">Fill rate by service line</div></div>${hbars(bySvc)}</section>
+    <section class="panel"><div class="ph"><div class="k">Fill rate by region</div></div>${hbars(byReg)}<div class="foot">Fill = openings filled ÷ openings on every req opened this year. Wash/loss = closed with a Close Reason like wash, lost, canceled, on hold, filled internally.</div></section>
+  </div>
+  <section class="panel" style="margin-top:16px"><div class="ph"><div class="k">Closed this year · wash and loss reasons</div></div>
+    ${(() => { const r = {}; wl.forEach(j => r[j.reason || '—'] = (r[j.reason || '—'] || 0) + 1); const ks = Object.keys(r).sort((a, b) => r[b] - r[a]); return ks.length ? `<div class="hbars">${ks.map(k => `<div class="row"><span>${esc(k)}</span><div class="bar"><i style="width:${Math.round(r[k] / wl.length * 100)}%;background:var(--red)"></i></div><span class="pct">${r[k]}</span></div>`).join('')}</div>` : '<div class="empty">No wash or loss closures this year in this view.</div>'; })()}
+  </section>`;
+}
+
+/* ---------- ALL-TEAM COVERAGE ---------- */
+function vCoverage() {
+  let rows = qFilter(svcFilter(regionJobs()).filter(j => j.open > 0), j => j.client + ' ' + j.title + ' ' + j.recruiter + ' ' + j.am);
+  const rank = { none: 0, part: 1, ok: 2 };
+  rows = sortable(rows, (j, k) => ({ cov: rank[j.cov], gap: Math.max(0, j.open - j.p.inproc), open: j.open, pipe: j.p.inproc, age: j.age || 0, score: j.score, client: j.client, region: regionLabel(j.region), recruiter: j.recruiter, am: j.am })[k], 'cov', 'asc');
+  const none = rows.filter(j => j.cov === 'none').length, part = rows.filter(j => j.cov === 'part').length;
+  return `<section class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    ${tile('n', 'Open reqs', rows.length, `${rows.reduce((a, j) => a + j.open, 0)} open balance`)}
+    ${tile('c', 'Covered', rows.length - none - part, 'pipeline ≥ open balance')}
+    ${tile('p', 'Partial', part, 'some pipeline, not enough')}
+    ${tile('x', 'Nobody / uncovered', none, `${rows.filter(j => !j.recruiter).length} with no recruiter`)}
+  </section>
+  <section class="panel"><div style="overflow-x:auto"><table class="list" style="min-width:900px">
+    <thead><tr>${th('Coverage', 'cov')}${th('Region', 'region')}${th('Client', 'client')}<th>Job</th><th>Svc</th>${th('Open', 'open', 'n')}${th('Pipe', 'pipe', 'n')}${th('Gap', 'gap', 'n')}${th('Score', 'score', 'n')}${th('Age', 'age', 'n')}${th('Recruiter', 'recruiter')}${th('AM', 'am')}</tr></thead>
+    <tbody>${rows.map(j => `<tr class="row" data-job="${j.id}"><td><span class="cov ${j.cov}">${j.cov === 'ok' ? 'COVERED' : j.cov === 'part' ? 'PARTIAL' : (j.recruiter ? 'UNCOVERED' : 'NOBODY')}</span></td><td><span class="reg-tag">${esc(regionLabel(j.region) || 'none')}</span></td><td class="client">${esc(j.client)}</td><td>${esc(j.title)}</td><td><span class="svc ${svcClass(j.svc)}">${esc(svcShort(j.svc))}</span></td><td class="n"><b>${j.open}</b></td><td class="n">${j.p.inproc}</td><td class="n" style="color:${j.open - j.p.inproc > 0 ? 'var(--red)' : 'var(--muted-2)'};font-weight:700">${Math.max(0, j.open - j.p.inproc)}</td><td class="n"><span class="score ${j.score >= 80 ? 'g' : j.score >= 40 ? 'a' : 'r'}">${j.score}</span></td><td class="n">${j.age == null ? '—' : j.age + 'd'}</td><td>${whoTag(j.recruiter)}</td><td class="dim">${esc(j.am || '—')}</td></tr>`).join('') || '<tr><td colspan="12" class="empty">Nothing open here.</td></tr>'}</tbody></table></div></section>`;
+}
+
+/* ---------- STALLED / IN PROCESS / INTERVIEWS + STARTS ---------- */
+function candRow(a, extraCols = '') {
+  return `<tr class="row" data-job="${a.job.id}"><td>${a.cand ? `<a href="#" data-open-cand="${a.cand}" style="font-weight:600">${esc(a.name)}</a>` : `<b>${esc(a.name)}</b>`}</td><td>${stageTag(a.stage)}</td><td class="n"><span class="days ${a.stalled ? 'bad' : ''}">${a.dis}d</span></td><td class="client">${esc(a.job.client)}</td><td>${esc(a.job.title)}</td><td><span class="reg-tag">${esc(regionLabel(a.job.region) || 'none')}</span></td>${extraCols}<td>${whoTag(a.rec)}</td></tr>`;
+}
+function candTable(list, extraTh = '', extraCol = a => '') {
+  return `<div style="overflow-x:auto"><table class="list" style="min-width:860px"><thead><tr><th>Candidate</th><th>Stage</th><th class="n">Days</th><th>Client</th><th>Job</th><th>Region</th>${extraTh}<th>Recruiter</th></tr></thead>
+    <tbody>${list.map(a => candRow(a, extraCol(a))).join('') || '<tr><td colspan="9" class="empty">Nobody here.</td></tr>'}</tbody></table></div>`;
+}
+function stageChips(list, cur) { const c = {}; list.forEach(a => c[a.stage] = (c[a.stage] || 0) + 1); return `<div class="filters"><button class="chip ${!cur ? 'on' : ''}" data-stage="">All ${list.length}</button>${INPROC.filter(k => c[k]).map(k => `<button class="chip ${cur === k ? 'on' : ''}" data-stage="${k}">${STAGE_LABEL[k]} ${c[k]}</button>`).join('')}</div>`; }
+function vStalled() {
+  const list = qFilter(svcFilter(appsIn(S.region)).filter(a => a.stalled), a => a.name + ' ' + a.job.client + ' ' + a.job.title + ' ' + a.rec).sort((a, b) => b.dis - a.dis);
+  const cur = S.hl && INPROC.includes(S.hl) ? S.hl : '';
+  const shown = cur ? list.filter(a => a.stage === cur) : list;
+  const byRec = {}; list.forEach(a => byRec[a.rec || 'unassigned'] = (byRec[a.rec || 'unassigned'] || 0) + 1);
+  const top = Object.keys(byRec).sort((a, b) => byRec[b] - byRec[a]).slice(0, 6);
+  return `<section class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${tile('s', 'Stalled now', list.length, `${pct(list.length, appsIn(S.region).filter(a => INPROC.includes(a.stage)).length)}% of in-process`)}
+    ${tile('d', 'Longest stall', list.length ? list[0].dis + '<small>d</small>' : '—', list.length ? esc(list[0].name + ' · ' + list[0].job.client) : '')}
+    ${tile('r', 'Most stalled recruiter', top.length ? esc(top[0].split(' ')[0]) : '—', top.slice(0, 3).map(r => `${esc(r.split(' ')[0])} ${byRec[r]}`).join(' · '))}
+  </section>
+  <section class="panel">${stageChips(list, cur)}${candTable(shown)}<div class="foot">Stage clock from Fletcher's board: Submit 5d · Pending 3d · Offer 3d · Interview 14d · Onboarding 14d. Days = Days in Current Stage on the ATS applicant.</div></section>`;
+}
+function vInproc() {
+  const list = qFilter(svcFilter(appsIn(S.region)).filter(a => INPROC.includes(a.stage)), a => a.name + ' ' + a.job.client + ' ' + a.job.title + ' ' + a.rec);
+  const cur = S.hl && INPROC.includes(S.hl) ? S.hl : '';
+  const shown = sortable(cur ? list.filter(a => a.stage === cur) : list, (a, k) => ({ days: a.dis, stage: INPROC.indexOf(a.stage), client: a.job.client, rec: a.rec })[k], 'stage', 'desc');
+  return `<section class="panel">${stageChips(list, cur)}${candTable(shown, '<th>Moved</th>', a => `<td class="dim">${a.inWeek ? 'this week' : fmtD(a.csd)}</td>`)}<div class="foot">${list.length} candidates in process · ${list.filter(a => a.inWeek).length} moved stage this week · Source never counts as in process.</div></section>`;
+}
+function vInts() {
+  const apps = svcFilter(appsIn(S.region));
+  const ivs = qFilter(apps.filter(a => a.stage === 'iv' && a.inWeek), a => a.name + ' ' + a.job.client).sort((a, b) => (a.csd || 0) - (b.csd || 0));
+  const pl = regionPl();
+  const starts = pl.filter(p => p.startWk).sort((a, b) => a.st - b.st), terms = pl.filter(p => p.termWk).sort((a, b) => a.tm - b.tm), next = pl.filter(p => p.startNext || (p.status === 'Pending Start' && p.st && p.st >= S.weekEnd)).sort((a, b) => a.st - b.st);
+  const plRow = p => `<tr class="row" data-job="${p.jobId || ''}"><td><b>${esc(p.cand || 'Candidate')}</b></td><td class="client">${esc(p.client)}</td><td>${esc(p.title)}</td><td><span class="reg-tag">${esc(regionLabel(p.region) || 'none')}</span></td><td class="dim">${fmtD(p.st)}${p.tm ? ' → ' + fmtD(p.tm) : ''}</td><td class="dim">${esc(p.reason || p.status)}</td><td>${whoTag(p.rec)}</td></tr>`;
+  const plTable = (list, when) => `<div style="overflow-x:auto"><table class="list"><thead><tr><th>Candidate</th><th>Client</th><th>Job</th><th>Region</th><th>${when}</th><th>Status</th><th>Recruiter</th></tr></thead><tbody>${list.map(plRow).join('') || `<tr><td colspan="7" class="empty">None.</td></tr>`}</tbody></table></div>`;
+  return `<section class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    ${tile('iv', 'Interviews this week', ivs.length, 'entered Interview stage this week')}
+    ${tile('st', 'Starts this week', `<span class="g">${starts.length}</span>`, `${pl.filter(p => p.startWk && p.status === 'Pending Start').length} still pending`)}
+    ${tile('tm', 'Terms this week', `<span class="r">${terms.length}</span>`, `${terms.filter(p => p.neverStarted).length} never started`)}
+    ${tile('nx', 'Pending starts ahead', next.length, 'start date after this week')}
+  </section>
+  <div class="grid2">
+    <section class="panel"><div class="ph"><div class="k">Interviews · this week</div></div>${candTable(ivs, '<th>Interview</th>', a => `<td class="dim">${fmtD(a.csd)}</td>`)}</section>
+    <section class="panel"><div class="ph"><div class="k">Starts · this week</div></div>${plTable(starts, 'Start')}</section>
+    <section class="panel"><div class="ph"><div class="k">Terms · this week</div></div>${plTable(terms, 'Start → term')}</section>
+    <section class="panel"><div class="ph"><div class="k">Pending starts · ahead</div></div>${plTable(next, 'Start')}</section>
+  </div>`;
+}
+
+/* ---------- CROSS SUB ---------- */
+function vCrossSub() {
+  const cands = appsIn(S.region).filter(a => INPROC.includes(a.stage));
+  const opens = S.jobs.filter(j => j.open > 0 && j.p.inproc < j.open);
+  const opps = [];
+  cands.forEach(a => {
+    opens.forEach(j => {
+      if (j.id === a.job.id) return;
+      const m = tradeMatch(a.job.title, j.title); if (!m) return;
+      const sameState = a.job.state && j.state ? a.job.state === j.state : null;
+      const sameRegion = j.region === a.job.region || (REGIONS[j.region] && REGIONS[j.region].parent === a.job.region) || (REGIONS[a.job.region] && REGIONS[a.job.region].parent === j.region);
+      if (sameState === false && !sameRegion) return;
+      opps.push({ a, j, m, sameState, sameRegion, score: m * 10 + (sameRegion ? 5 : 0) + (sameState ? 3 : 0) + (j.score >= 80 ? 2 : 0) + (a.stage === 'pnd' || a.stage === 'off' ? -3 : 0) });
+    });
+  });
+  const byCand = {}; opps.forEach(o => (byCand[o.a.id] || (byCand[o.a.id] = { a: o.a, list: [] })).list.push(o));
+  const groups = qFilter(Object.values(byCand), g => g.a.name + ' ' + g.a.job.client + ' ' + g.a.job.title).sort((x, y) => Math.max(...y.list.map(o => o.score)) - Math.max(...x.list.map(o => o.score)));
+  return `<section class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${tile('c', 'Candidates with a cross-sub fit', groups.length, `of ${cands.length} in process`)}
+    ${tile('o', 'Open reqs they could fill', new Set(opps.map(o => o.j.id)).size, 'reqs still short of pipeline')}
+    ${tile('g', 'Gap those reqs carry', [...new Set(opps.map(o => o.j.id))].reduce((a, id) => a + Math.max(0, S.byJob[id].open - S.byJob[id].p.inproc), 0), 'open balance not yet covered')}
+  </section>
+  <section class="panel">${groups.slice(0, 60).map(g => `<div style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>${g.a.cand ? `<a href="#" data-open-cand="${g.a.cand}">${esc(g.a.name)}</a>` : esc(g.a.name)}</b> ${stageTag(g.a.stage)} <span class="dim" style="color:var(--muted)">on ${esc(g.a.job.client)} — ${esc(g.a.job.title)} · ${esc(regionLabel(g.a.job.region) || 'no region')}</span> ${whoTag(g.a.rec)}</div>
+      <table class="list" style="margin-top:6px"><tbody>${g.list.sort((x, y) => y.score - x.score).slice(0, 4).map(o => `<tr class="row" data-job="${o.j.id}"><td style="width:28px">→</td><td class="client">${esc(o.j.client)}</td><td>${esc(o.j.title)}</td><td><span class="reg-tag">${esc(regionLabel(o.j.region) || 'none')}</span></td><td class="n">gap ${Math.max(0, o.j.open - o.j.p.inproc)}</td><td class="n"><span class="score ${o.j.score >= 80 ? 'g' : o.j.score >= 40 ? 'a' : 'r'}">${o.j.score}</span></td><td class="dim">${o.j.trades.filter(t => g.a.job.trades.includes(t)).join(', ')}${o.sameRegion ? ' · same region' : o.sameState ? ' · same state' : ''}</td><td>${whoTag(o.j.recruiter)}</td></tr>`).join('')}</tbody></table></div>`).join('') || '<div class="empty">No cross-sub fits right now.</div>'}
+    <div class="foot">Fit = shared trade group between the candidate's current req and another open req that still needs pipeline, in the same region or state. Candidates in Pending or Offer rank lower (don't poach a near-close).</div></section>`;
+}
+
+/* ---------- SKILL MARKET ---------- */
+function vSkills() {
+  const jobs = svcFilter(regionJobs()).filter(j => j.open > 0), apps = appsIn(S.region).filter(a => INPROC.includes(a.stage)), ytd = svcFilter(ytdIn(S.region));
+  const g = {};
+  const add = (t, f) => { const o = g[t] || (g[t] = { t, reqs: 0, open: 0, pipe: 0, yOpen: 0, yFill: 0, clients: {}, gp: [] }); f(o); };
+  jobs.forEach(j => j.trades.forEach(t => add(t, o => { o.reqs++; o.open += j.open; o.clients[j.client] = 1; if (j.gp != null) o.gp.push(j.gp); })));
+  apps.forEach(a => a.job.trades.forEach(t => add(t, o => o.pipe++)));
+  ytd.forEach(j => j.trades.forEach(t => add(t, o => { o.yOpen += j.openings; o.yFill += j.filled; })));
+  let rows = Object.values(g).filter(o => o.open > 0);
+  rows = sortable(rows, (o, k) => ({ trade: o.t, reqs: o.reqs, open: o.open, pipe: o.pipe, gap: o.open - o.pipe, fill: pct(o.yFill, o.yOpen), gp: o.gp.length ? o.gp.reduce((a, b) => a + b, 0) / o.gp.length : 0 })[k], 'open', 'desc');
+  const hot = rows.slice().sort((a, b) => (b.open - b.pipe) - (a.open - a.pipe))[0];
+  return `<section class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    ${tile('t', 'Trades in demand', rows.length, `${jobs.length} open reqs mapped to trades`)}
+    ${tile('h', 'Biggest gap', hot ? esc(hot.t) : '—', hot ? `${hot.open - hot.pipe} open with no pipeline · ${pct(hot.yFill, hot.yOpen)}% YTD fill` : '')}
+    ${tile('u', 'Unmapped titles', jobs.filter(j => j.trades[0] === 'other').length, 'titles no trade group recognizes yet')}
+  </section>
+  <section class="panel"><div style="overflow-x:auto"><table class="list" style="min-width:760px"><thead><tr>${th('Trade', 'trade')}${th('Reqs', 'reqs', 'n')}${th('Open', 'open', 'n')}${th('In process', 'pipe', 'n')}${th('Gap', 'gap', 'n')}${th('YTD fill', 'fill', 'n')}${th('Avg GP/hr', 'gp', 'n')}<th>Clients</th></tr></thead>
+    <tbody>${rows.map(o => { const f = pct(o.yFill, o.yOpen); const gp = o.gp.length ? o.gp.reduce((a, b) => a + b, 0) / o.gp.length : 0; return `<tr><td><b>${esc(o.t)}</b></td><td class="n">${o.reqs}</td><td class="n">${o.open}</td><td class="n">${o.pipe}</td><td class="n" style="color:${o.open - o.pipe > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700">${o.open - o.pipe}</td><td class="n"><span class="score ${f >= 60 ? 'g' : f >= 40 ? 'a' : 'r'}">${o.yOpen ? f + '%' : '—'}</span></td><td class="n">${gp ? money(gp) : '—'}</td><td class="dim">${Object.keys(o.clients).slice(0, 4).map(esc).join(', ')}${Object.keys(o.clients).length > 4 ? ` +${Object.keys(o.clients).length - 4}` : ''}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="foot">A req can sit in more than one trade (e.g. "Controls Technician" is controls and technician). YTD fill uses every req opened this year in the same trade.</div></section>`;
+}
+
+/* ---------- SCORECARDS ---------- */
+function vScorecards() {
+  const jobs = regionJobs(), apps = appsIn(S.region), pl = regionPl(), ytd = ytdIn(S.region);
+  const build = (key, label) => {
+    const p = {};
+    const get = n => p[n] || (p[n] = { n, open: 0, bal: 0, cov: 0, inproc: 0, stalled: 0, sub: 0, iv: 0, starts: 0, terms: 0, hc: 0, score: 0, yFill: 0, yOpen: 0 });
+    jobs.filter(j => j.open > 0 && j[key]).forEach(j => { const o = get(j[key]); o.open++; o.bal += j.open; if (j.cov === 'ok') o.cov++; o.score += j.score; });
+    apps.forEach(a => { const n = key === 'recruiter' ? a.rec : a.job.am; if (!n) return; const o = get(n); if (INPROC.includes(a.stage)) o.inproc++; if (a.stalled) o.stalled++; if (a.stage === 'sub' && a.inWeek) o.sub++; if (a.stage === 'iv' && a.inWeek) o.iv++; });
+    pl.forEach(x => { const n = key === 'recruiter' ? x.rec : x.am; if (!n) return; const o = get(n); if (x.startWk) o.starts++; if (x.termWk) o.terms++; if (x.active) o.hc++; });
+    ytd.forEach(j => { const n = key === 'recruiter' ? j.rec : j.am; if (!n) return; const o = get(n); o.yOpen += j.openings; o.yFill += j.filled; });
+    const list = Object.values(p).sort((a, b) => (b.sub + b.iv + b.starts * 2) - (a.sub + a.iv + a.starts * 2) || b.open - a.open);
+    return `<h2 style="font-size:15px;margin:14px 0 8px">${label}</h2><div class="sc-grid">${list.map(o => `<div class="sc"><h4>${whoTag(o.n)}<span class="dim" style="color:var(--muted);font-weight:500;font-size:12px">${o.open} open · ${o.bal} bal · ${pct(o.cov, o.open)}% covered</span></h4>
+      <div class="nums"><div><b>${o.sub}</b><span>Subs wk</span></div><div><b>${o.iv}</b><span>Interviews wk</span></div><div><b style="color:var(--green)">${o.starts}</b><span>Starts wk</span></div><div><b style="color:${o.terms ? 'var(--red)' : 'inherit'}">${o.terms}</b><span>Terms wk</span></div></div>
+      <div class="foot">HC ${o.hc} · in process ${o.inproc} · <span style="color:${o.stalled ? 'var(--red)' : 'inherit'}">${o.stalled} stalled</span> · avg req score ${o.open ? Math.round(o.score / o.open) : '—'} · YTD fill ${o.yOpen ? pct(o.yFill, o.yOpen) + '%' : '—'}</div></div>`).join('') || '<div class="empty">No one to score here.</div>'}</div>`;
+  };
+  return `<section class="panel">${build('recruiter', 'Recruiters')}${build('am', 'Account managers')}<div class="foot">Ranked by this week's production (submittals + interviews + 2× starts). Weekly counts come from stage dates and placement dates; HC is active placements on this person's reqs. Pre-screens join once the activity source is confirmed.</div></section>`;
+}
+
+/* ---------- FULFILLMENT FOCUS ---------- */
+function vFFocus() {
+  const regs = S.region ? [S.region] : TOP_REGIONS.concat(['']).filter(k => k === '' ? S.noRegion : jobsIn(k).some(j => j.open > 0));
+  return regs.map(k => (k === '' ? `<section class="panel" style="margin-bottom:16px"><div class="ph"><div class="k">No region yet</div><h2>${S.noRegion} open reqs waiting on the Region map</h2></div></section>` : `<div style="margin-bottom:16px">${focusBoard(k, true)}</div>`)).join('') + `<div class="foot" style="font-size:12px;color:var(--muted)">Picks save to Spark HQ as you change them. Green = that req has pipeline today. Dashed red = picked, but nobody is in process on it.</div>`;
+}
 
 /* ============================================================================
    LOAD
@@ -740,17 +1089,18 @@ function showGate() { document.getElementById('gate').classList.remove('hidden')
 
 async function loadState() {
   try {
-    const keys = ['targets', 'regions', 'focus:' + ymd(S.week) + ':ALL'].concat(Object.keys(REGIONS).map(k => 'focus:' + ymd(S.week) + ':' + k));
+    const keys = ['targets', 'regions', 'hc_history', focusKey('')].concat(Object.keys(REGIONS).map(k => focusKey(k)));
     const r = await API.call('/pi-state-load?keys=' + encodeURIComponent(keys.join(',')));
     S.state = r.state || {};
     S.targets = (S.state.targets && S.state.targets.value) || {};
-    if (S.state.regions && S.state.regions.value && S.state.regions.value.bu) { S.regionMap = S.state.regions.value; buildModel(S.raw); }
+    S.hcHistory = (S.state.hc_history && Array.isArray(S.state.hc_history.value)) ? S.state.hc_history.value : [];
     Object.keys(S.state).forEach(k => { if (k.startsWith('focus:')) S.focus[k] = S.state[k].value || {}; });
-  } catch (e) {
-    // state routes not deployed yet: board still works, picks just don't persist
-  }
+    if (S.state.regions && S.state.regions.value && S.state.regions.value.bu) { S.regionMap = S.state.regions.value; buildModel(S.raw); }
+  } catch (e) { /* state routes unavailable: board still works, nothing persists */ }
 }
-
+async function loadMe() {
+  try { const me = await API.call('/pi-me'); S.admin = !!me.admin; document.getElementById('admin-row').style.display = S.admin ? '' : 'none'; } catch (e) {}
+}
 async function load(fresh) {
   setLive('stale', fresh ? 'Refreshing' : 'Loading');
   try {
@@ -762,36 +1112,29 @@ async function load(fresh) {
     const at = new Date(raw.asOf);
     setLive('', (raw.cached ? 'Live · cached ' : 'Live · synced ') + at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
     const d = raw.diag || {};
-    const probs = ['jobs','applicants','placements'].filter(k => d[k] && d[k].error);
+    const probs = Object.keys(d).filter(k => d[k] && d[k].error);
     if (probs.length) toast('Salesforce returned an error for ' + probs.join(', ') + '. Open Data check in the sidebar.');
   } catch (e) {
     setLive('err', 'Not connected');
-    if (/404/.test(e.message)) toast('The /pi-board route is not on the HQ worker yet. Paste pi-board-routes.js into cloudworker.js and deploy.');
+    if (/404/.test(e.message)) toast('The /pi-board route is not on the HQ worker yet.');
     else toast(e.message.slice(0, 140));
   }
 }
 
 /* ---------- modals ---------- */
+function modal(html) { const root = document.getElementById('modal-root'); root.innerHTML = `<div class="modal"><div class="box">${html}</div></div>`; root.querySelector('.modal').onclick = e => { if (e.target === root.querySelector('.modal')) root.innerHTML = ''; }; return root; }
 function openTargets() {
   const units = ['ALL'].concat(Object.keys(REGIONS));
-  const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="modal"><div class="box">
-    <h2>Targets</h2><p>Per region. Used by the Active HC, Pre-screens and Submittals tiles. Saved to Spark HQ.</p>
+  const root = modal(`<h2>Targets</h2><p>Per region. Drive the Active HC and Submittals tiles and the region health badges. Saved to Spark HQ.</p>
     <table><thead><tr><th>Region</th><th>HC target</th><th>Pre-screens / wk</th><th>Submittals / wk</th></tr></thead><tbody>
-    ${units.map(u => { const t = S.targets[u] || {}; return `<tr><td>${u === 'ALL' ? 'All regions' : esc(regionLabel(u))}</td>
-      <td><input type="number" data-u="${esc(u)}" data-f="hc" value="${t.hc || ''}"></td>
-      <td><input type="number" data-u="${esc(u)}" data-f="pre" value="${t.pre || ''}"></td>
-      <td><input type="number" data-u="${esc(u)}" data-f="sub" value="${t.sub || ''}"></td></tr>`; }).join('')}
-    </tbody></table>
-    <div class="acts"><button class="btn ghost" id="m-cancel">Cancel</button><button class="btn" id="m-save">Save targets</button></div>
-  </div></div>`;
+    ${units.map(u => { const t = S.targets[u] || {}; return `<tr><td>${u === 'ALL' ? 'All regions' : esc(regionLabel(u))}</td><td><input type="number" data-u="${esc(u)}" data-f="hc" value="${t.hc || ''}"></td><td><input type="number" data-u="${esc(u)}" data-f="pre" value="${t.pre || ''}"></td><td><input type="number" data-u="${esc(u)}" data-f="sub" value="${t.sub || ''}"></td></tr>`; }).join('')}
+    </tbody></table><div class="acts"><button class="btn ghost" id="m-cancel">Cancel</button><button class="btn" id="m-save">Save targets</button></div>`);
   root.querySelector('#m-cancel').onclick = () => root.innerHTML = '';
   root.querySelector('#m-save').onclick = async () => {
-    const t = {};
-    root.querySelectorAll('input').forEach(i => { const u = i.dataset.u; (t[u] || (t[u] = {}))[i.dataset.f] = num(i.value); });
-    S.targets = t; root.innerHTML = ''; renderKpis();
+    const t = {}; root.querySelectorAll('input').forEach(i => { const u = i.dataset.u; (t[u] || (t[u] = {}))[i.dataset.f] = num(i.value); });
+    S.targets = t; root.innerHTML = ''; renderAll();
     try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key: 'targets', value: t }) }); toast('Targets saved'); }
-    catch (e) { toast('Targets kept for this session only (state routes not deployed yet)'); }
+    catch (e) { toast(/403/.test(e.message) ? 'Only admins can save targets' : 'Targets kept for this session only'); }
   };
 }
 function openRegions() {
@@ -801,40 +1144,60 @@ function openRegions() {
   Object.keys(m.bu).forEach(b => bus[b] = bus[b] || 0);
   const names = Object.keys(bus).sort((a, b) => bus[b] - bus[a] || a.localeCompare(b));
   const opts = v => `<option value="">— no region —</option>` + Object.keys(REGIONS).map(k => `<option value="${k}" ${v === k ? 'selected' : ''}>${REGIONS[k].label}</option>`).join('');
-  const root = document.getElementById('modal-root');
-  root.innerHTML = `<div class="modal"><div class="box">
-    <h2>Region map</h2><p>Which Salesforce Business Unit lands in which region. Applies to jobs, placements and headcount. Saved to Spark HQ for everyone.</p>
+  const root = modal(`<h2>Region map</h2><p>Which Salesforce Business Unit lands in which region. Applies to jobs, placements and headcount. Saved to Spark HQ for everyone.</p>
     <table><thead><tr><th>Business Unit (Salesforce)</th><th style="text-align:center">Open reqs</th><th>Region</th></tr></thead><tbody>
     ${names.map(b => `<tr><td>${esc(b)}</td><td style="text-align:center;color:var(--muted)">${bus[b]}</td><td><select data-bu="${esc(b)}">${opts(m.bu[b] || '')}</select></td></tr>`).join('')}
     </tbody></table>
-    <div class="hint">
-      <label><input type="checkbox" id="rm-dc" ${m.dcAlsoGeo ? 'checked' : ''}> Data Center reqs also appear in their geographic region (default: Data Center only)</label><br>
-      Fixed rules on top of this map: anything whose classification, sub-classification or title says "Data Center" is Data Center; Southeast reqs with a Tennessee location are Nashville; a unit with no region falls back to the account's unit.
-    </div>
-    <div class="acts"><button class="btn ghost" id="m-cancel">Cancel</button><button class="btn" id="m-save">Save region map</button></div>
-  </div></div>`;
+    <div class="hint"><label><input type="checkbox" id="rm-dc" ${m.dcAlsoGeo ? 'checked' : ''}> Data Center reqs also appear in their geographic region (default: Data Center only)</label><br>
+    Fixed rules on top of this map: anything whose classification, sub-classification or title says "Data Center" is Data Center; Southeast reqs with a Tennessee location are Nashville; a unit with no region falls back to the account's unit.</div>
+    <div class="acts"><button class="btn ghost" id="m-cancel">Cancel</button><button class="btn" id="m-save">Save region map</button></div>`);
   root.querySelector('#m-cancel').onclick = () => root.innerHTML = '';
   root.querySelector('#m-save').onclick = async () => {
     const nm = { bu: {}, dcAlsoGeo: root.querySelector('#rm-dc').checked };
     root.querySelectorAll('select[data-bu]').forEach(s => { if (s.value) nm.bu[s.dataset.bu] = s.value; });
     S.regionMap = nm; root.innerHTML = ''; buildModel(S.raw); renderAll();
     try { await API.call('/pi-state-save', { method: 'POST', body: JSON.stringify({ key: 'regions', value: nm }) }); toast('Region map saved'); }
-    catch (e) { toast('Region map kept for this session only (' + e.message.slice(0, 60) + ')'); }
+    catch (e) { toast(/403/.test(e.message) ? 'Only admins can save the region map' : 'Region map kept for this session only'); }
   };
 }
 function openDiag() {
   const d = (S.raw && S.raw.diag) || {};
-  const root = document.getElementById('modal-root');
   const line = k => { const x = d[k] || {}; return `<tr><td>${k}</td><td>${x.n == null ? '—' : x.n}</td><td>${(x.dropped || []).join(', ') || '—'}</td><td style="color:var(--red)">${esc(x.error || '')}</td></tr>`; };
-  root.innerHTML = `<div class="modal"><div class="box">
-    <h2>Data check</h2><p>What the HQ worker pulled from Salesforce on the last load. "Dropped" = columns Salesforce rejected and the board worked around; tell Bedros if any appear.</p>
-    <table><thead><tr><th>Query</th><th>Rows</th><th>Dropped columns</th><th>Error</th></tr></thead><tbody>${line('jobs')}${line('applicants')}${line('placements')}</tbody></table>
-    <p style="margin-top:12px">Worker: ${CONFIG.WORKER_URL}<br>As of: ${S.raw ? S.raw.asOf : '—'}${S.raw && S.raw.cached ? ' (cached, Refresh for fresh)' : ''}<br>
-    Open reqs with no region: ${S.noRegion || 0} (fix in Region map).<br>
-    Pre-screens: ATS stages are Source → Submit → Interview → Pending Feedback → Offer → Onboarding → Placement, so pre-screens have to come from activity records. Tile stays blank until that source is confirmed.</p>
-    <div class="acts"><button class="btn" id="m-ok">Close</button></div>
-  </div></div>`;
+  const root = modal(`<h2>Data check</h2><p>What the HQ worker pulled from Salesforce on the last load. "Dropped" = columns Salesforce rejected and the board worked around.</p>
+    <table><thead><tr><th>Query</th><th>Rows</th><th>Dropped columns</th><th>Error</th></tr></thead><tbody>${Object.keys(d).map(line).join('')}</tbody></table>
+    <p style="margin-top:12px">Worker: ${CONFIG.WORKER_URL}<br>As of: ${S.raw ? S.raw.asOf : '—'}${S.raw && S.raw.cached ? ' (cached; Refresh pulls fresh)' : ''}<br>
+    Signed in as ${esc((Auth.user && Auth.user.email) || '')} · ${S.admin ? 'admin' : 'member'}<br>
+    Open reqs with no region: ${S.noRegion || 0}. Headcount history: ${S.hcHistory.length} daily snapshots (one is written each morning by the HQ worker).<br>
+    Pre-screens: ATS stages are Source → Submit → Interview → Pending Feedback → Offer → Onboarding → Placement, so pre-screens have to come from activity records; the tile stays blank until that source is confirmed.</p>
+    <div class="acts"><button class="btn" id="m-ok">Close</button></div>`);
   root.querySelector('#m-ok').onclick = () => root.innerHTML = '';
+}
+function huddleText() {
+  const c = regionStats('');
+  const L = [];
+  L.push(`MORNING HUDDLE · ${S.today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} · week of ${fmtD(S.week)}`);
+  L.push('');
+  L.push(`COMPANY · HC ${c.hc.toLocaleString()}${c.hcT ? ' / ' + c.hcT.toLocaleString() : ''} · open balance ${c.openBal} on ${c.open.length} reqs · covered ${c.covPct}% · in process ${c.inproc} (${c.stalled} stalled, ${c.stallPct}%) · submittals ${c.subWk} · interviews ${c.ivWk} · starts ${c.sw} / terms ${c.tw}`);
+  L.push('');
+  TOP_REGIONS.forEach(k => {
+    const s = regionStats(k); if (!s.open.length && !s.hc) return;
+    const top = s.open.filter(j => j.cov !== 'ok').sort((a, b) => (b.open - b.p.inproc) - (a.open - a.p.inproc)).slice(0, 3).map(j => `${j.client} ${j.title} (${Math.max(0, j.open - j.p.inproc)} short${j.recruiter ? ', ' + j.recruiter.split(' ')[0] : ', nobody'})`);
+    L.push(`${regionLabel(k).toUpperCase()}${s.health != null ? ' · ' + (s.health >= 100 ? 'ON TRACK' : s.health >= 80 ? 'CLOSE' : 'BEHIND') : ''} · HC ${s.hc}${s.hcT ? '/' + s.hcT : ''} · open ${s.openBal} · covered ${s.covPct}% · stalled ${s.stalled} · subs ${s.subWk} · starts ${s.sw} / terms ${s.tw}`);
+    if (top.length) L.push(`  Needs pipeline: ${top.join(' · ')}`);
+    if (s.nobody) L.push(`  ${s.nobody} open req${s.nobody > 1 ? 's' : ''} with no recruiter`);
+    if (s.low) L.push(`  ${s.low} req${s.low > 1 ? 's' : ''} score below 40: kill or fix`);
+  });
+  if (S.noRegion) { L.push(''); L.push(`${S.noRegion} open reqs have no region yet (Region map).`); }
+  const stalled = S.apps.filter(a => a.stalled).sort((a, b) => b.dis - a.dis).slice(0, 5);
+  if (stalled.length) { L.push(''); L.push('LONGEST STALLS: ' + stalled.map(a => `${a.name} ${a.dis}d in ${STAGE_LABEL[a.stage]} at ${a.job.client}`).join(' · ')); }
+  return L.join('\n');
+}
+function openHuddle() {
+  const txt = huddleText();
+  const root = modal(`<h2>Morning huddle</h2><p>Today's summary from live data, ready to paste into Teams.</p><div class="huddle">${esc(txt)}</div>
+    <div class="acts"><button class="btn ghost" id="m-ok">Close</button><button class="btn" id="m-copy">Copy to clipboard</button></div>`);
+  root.querySelector('#m-ok').onclick = () => root.innerHTML = '';
+  root.querySelector('#m-copy').onclick = async () => { try { await navigator.clipboard.writeText(txt); toast('Huddle copied'); } catch (e) { toast('Select the text and copy manually'); } };
 }
 
 /* ---------- boot ---------- */
@@ -844,15 +1207,21 @@ function openDiag() {
   const email = (Auth.user && Auth.user.email) || '';
   document.getElementById('who').textContent = email.split('@')[0] || 'signed in';
   document.getElementById('who-foot').textContent = email;
+  S.region = localStorage.getItem('pi_region') || '';
+  const v = (location.hash || '').replace('#', ''); if (VIEWS[v]) S.view = v;
   document.getElementById('btn-refresh').onclick = () => load(true);
-  document.getElementById('btn-sf').onclick = () => window.open(CONFIG.SF_BASE || (CONFIG.HQ_URL + '/#salesforce'), '_blank', 'noopener');
+  document.getElementById('btn-sf').onclick = () => window.open(CONFIG.SF_BASE, '_blank', 'noopener');
+  document.getElementById('btn-huddle').onclick = openHuddle;
   document.getElementById('btn-tv').onclick = () => document.body.classList.add('tv');
   document.getElementById('btn-tv-exit').onclick = () => document.body.classList.remove('tv');
   document.getElementById('btn-targets').onclick = openTargets;
   document.getElementById('btn-regions').onclick = openRegions;
-  document.getElementById('region-select').onchange = e => { S.region = e.target.value; S.hl = null; S.svc = 'ALL'; renderAll(); };
   document.getElementById('btn-diag').onclick = openDiag;
-  document.getElementById('q').oninput = e => { S.q = e.target.value.trim().toLowerCase(); renderJobs(); };
+  document.getElementById('region-select').onchange = e => { S.region = e.target.value; localStorage.setItem('pi_region', S.region); S.hl = null; S.svc = 'ALL'; if (S.view === 'home') S.view = 'focus'; renderAll(); };
+  document.querySelectorAll('.nav-item[data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
+  window.addEventListener('hashchange', () => { const h = location.hash.replace('#', ''); if (VIEWS[h] && h !== S.view) setView(h); });
+  document.getElementById('q').oninput = e => { S.q = e.target.value.trim().toLowerCase(); renderAll(); };
+  loadMe();
   load(false);
   setInterval(() => load(false), 15 * 60 * 1000);
 })();
