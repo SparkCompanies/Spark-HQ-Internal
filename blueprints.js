@@ -73,7 +73,7 @@
   function blank() {
     return { name: "", company: "Spark Talent Acquisition", title: "", role: "Recruiter", region: "", territory: "", serviceLine: "", secondaryServiceLine: "",
       hc: "", dhFocused: false, reportsTo: "", kpis: [], s4: clone((S.rules && S.rules.s4) || []), contacts: [], titleGroups: [{ group: "", titles: [] }],
-      rolesHeading: "Focused Roles", notes: "", flags: [], leader: "", core: [], sub: [] };
+      rolesHeading: "Focused Roles", notes: "", flags: [], core: [], sub: [] };
   }
   function allTitles(d) { var o = []; (d.titleGroups || []).forEach(function (g) { (g.titles || []).forEach(function (t) { o.push(t); }); }); return o; }
   function needsAttention(b) { var d = b.data || {}; var sy = sync(d); return !!((d.flags && d.flags.length) || !allTitles(d).length || !d.serviceLine || (sy && sy.state !== "ok") || (sy && sy.issues.length) || startsGap(d)); }
@@ -437,7 +437,6 @@
       if (k.line && k.line !== d.serviceLine) ch.push("Service line: " + (d.serviceLine || "blank") + " → " + k.line + " (check the weekly goals)");
       if (k.region && k.region !== d.region) ch.push("Region: " + (d.region || "blank") + " → " + k.region);
       if (k.company && k.company !== d.company) ch.push("Company: " + (d.company || "blank") + " → " + k.company);
-      if (k.leader && normN(k.leader) !== normN(d.leader)) ch.push("Leader: " + (d.leader || "blank") + " → " + k.leader);
       if (JSON.stringify(k.core) !== JSON.stringify(coreOf(d)) || JSON.stringify(k.sub) !== JSON.stringify(subOf(d))) ch.push("Skillsets: " + k.core.length + " core, " + k.sub.length + " sub-core");
       var after = { role: normRole(k.role) || d.role, serviceLine: k.line || d.serviceLine, kpis: d.kpis };
       if (S.kitGoals && goalsOff(after)) ch.push("Weekly goals set to the " + roleShort(after.role) + " · " + after.serviceLine + " standard");
@@ -449,19 +448,19 @@
   function applyKit() {
     var plan = kitPlan(); if (!plan) return;
     var n = plan.upd.length + plan.add.length; if (!n) { flash("Everything already matches Fletcher's update."); return; }
-    if (!window.confirm("Apply Fletcher's Oct 29 update?\n\n" + plan.upd.length + " blueprints get his role, service line, region, leader and skillsets (territory, goals, contacts, daily road and the 365 link stay as they are).\n" + plan.add.length + " new blueprints are created as drafts.\n\nEach one gets a note listing what changed.")) return;
+    if (!window.confirm("Apply Fletcher's Oct 29 update?\n\n" + plan.upd.length + " blueprints get his role, service line, region and skillsets (territory, goals, contacts, daily road and the 365 link stay as they are).\n" + plan.add.length + " new blueprints are created as drafts.\n\nEach one gets a note listing what changed.")) return;
     var at = new Date().toISOString(), done = 0, failed = 0, src = (KIT && KIT.date) || "2026-10-29";
     S.saving = true; render();
     var jobs = plan.upd.map(function (u) {
       var d = clone(u.b.data || {}), k = u.k;
       d.role = normRole(k.role) || d.role; d.serviceLine = k.line || d.serviceLine; d.region = k.region || d.region; d.company = k.company || d.company;
-      if (k.leader) d.leader = k.leader; d.core = k.core.slice(); d.sub = k.sub.slice();
+      d.core = k.core.slice(); d.sub = k.sub.slice();
       if (S.kitGoals && goalsOff(d)) d.kpis = standardKpis(d.role, d.serviceLine);
       d.kitNote = { at: at, src: src, changes: u.ch };
       return { id: u.b.id, status: u.b.status, data: d };
     }).concat(plan.add.map(function (a) {
       var k = a.k, d = blank();
-      d.name = k.name; d.role = normRole(k.role); d.serviceLine = k.line; d.region = k.region; d.company = k.company || d.company; d.leader = k.leader || "";
+      d.name = k.name; d.role = normRole(k.role); d.serviceLine = k.line; d.region = k.region; d.company = k.company || d.company;
       d.core = k.core.slice(); d.sub = k.sub.slice(); d.kpis = standardKpis(d.role, d.serviceLine);
       var p = personFor(d); if (p) applyDir(d, p, false);
       d.kitNote = { at: at, src: src, isNew: true, changes: ["New from Fletcher's update. Add territory, contacts and titles."] };
@@ -484,7 +483,7 @@
     var h = '<div class="bp-sec"><h4>Fletcher\'s Oct 29 update</h4>';
     if (!KIT) return h + '<div class="op-empty">Loading his kit…</div></div>';
     var inRules = !!(R.skills);
-    h += '<div class="bp-hint" style="margin-top:0">His kit sorts every service line into skillset families and gives ' + KIT.docs.length + " producers 5 core and 5 sub-core skillsets plus a leader. Applying it keeps everything HQ added (territory, goals, contacts, daily road, the 365 link) and notes what changed on each blueprint.</div>";
+    h += '<div class="bp-hint" style="margin-top:0">His kit sorts every service line into skillset families and gives ' + KIT.docs.length + " producers 5 core and 5 sub-core skillsets. Leaders come from Microsoft 365, not his list. Applying it keeps everything HQ added (territory, goals, contacts, daily road, the 365 link) and notes what changed on each blueprint.</div>";
     h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
       (inRules ? '<span class="bp-hint ok" style="margin:0">' + ic("check") + "His skillsets are in the rules</span>" : '<button class="bp-btn sm" data-act="kitskills">' + ic("sliders") + "Put his skillsets in the rules</button>") +
       '<label class="bp-chk" style="font-size:12.5px"><input type="checkbox" data-act="kitgoals"' + (S.kitGoals ? " checked" : "") + "> Also reset weekly goals to the standard (" + S.list.filter(function (b) { return !isInactive(b) && goalsOff(b.data || {}); }).length + " differ today)</label>" +
@@ -493,7 +492,6 @@
     if (plan) {
       h += '<div class="bp-hint">' + plan.same.length + " already match." + (plan.add.length ? " New: " + plan.add.map(function (a) { return esc(a.k.name); }).join(", ") + "." : "") +
         (plan.notInKit.length ? " Not in his kit (left alone): " + plan.notInKit.map(esc).join(", ") + "." : "") + "</div>";
-      if (!KIT.docs.every(function (k) { return k.leader; })) h += '<div class="bp-hint">No leader in his kit for: ' + KIT.docs.filter(function (k) { return !k.leader; }).map(function (k) { return esc(k.name); }).join(", ") + ".</div>";
     }
     return h + "</div>";
   }
@@ -626,10 +624,10 @@
     var iss = [];
     if (p.title && normN(p.title) !== normN(d.title)) iss.push({ f: "title", label: "Title", mine: d.title || "(blank)", theirs: p.title });
     if (p.manager && normN(p.manager) !== normN(d.reportsTo)) iss.push({ f: "reportsTo", label: "Reports to", mine: d.reportsTo || "(blank)", theirs: p.manager });
-    /* Fletcher's kit names a leader per producer; it should be their manager in 365 */
-    if (p.manager && d.leader && !sameName(p.manager, d.leader)) iss.push({ f: "leader", label: "Leader", mine: d.leader, theirs: p.manager });
     return { state: "ok", p: p, issues: iss, blankTitle: !p.title, blankMgr: !p.manager };
   }
+  /* LEADER_365_v1: a producer's leader is their manager in Microsoft 365 (the Directory tab), never a separate list */
+  function leaderOf(d) { var p = personFor(d); return (p && p.manager) || d.reportsTo || ""; }
   function companyFor(p) {
     var dom = String(p.email || "").split("@")[1] || "";
     if (dom === "ignitesearch.com") return "Ignite";
@@ -1070,7 +1068,7 @@
     var kp = clean(d.kpis), goals = [], extra = [];
     kp.forEach(function (k) { var g = goal(k); if (g) goals.push(g); else if (!/^\s*references?\b/i.test(k)) extra.push(k); });
     var ref = refFor(d), strip = d.serviceLine ? '<div class="op-strip"><div><i>Target margin</i><b>' + money(L.direct) + "</b> per hire · <b>" + (L.charge != null ? money(L.charge) : "case by case") + "</b>" + (L.charge != null ? "/wk contract" : " contract") + "</div>" + (ref ? "<div><i>References</i><b>" + esc(ref) + "</b></div>" : "") + "</div>" : "";
-    var lead = d.leader || d.reportsTo || "";
+    var lead = leaderOf(d);
     var tiles = '<div class="op-tile gold"><div class="k">HC expectation</div><b>' + esc(hc === "" ? "—" : hc) + '</b><div class="s">Headcount on assignment</div></div>' +
       goals.map(function (g, i) {
         var pr = per(g.l), lab = g.l.replace(/\s*(\/\s*week|\/\s*wk|per week|a week|\/\s*day|per day|a day)\s*$/i, "").replace(/^(your|active)\s+/i, function (m) { return m; });
@@ -1238,7 +1236,7 @@
       if (S.filter === "sync") { var sy = sync(b.data || {}); if (!sy || (sy.state === "ok" && !sy.issues.length)) return false; }
       if (!q) return true;
       var d = b.data || {}, t = terrFor(d);
-      return [b.name, d.title, d.serviceLine, d.secondaryServiceLine, d.territory, d.region, d.reportsTo, d.leader, t && t.name].join(" ").toLowerCase().indexOf(q) >= 0;
+      return [b.name, d.title, d.serviceLine, d.secondaryServiceLine, d.territory, d.region, leaderOf(d), t && t.name].join(" ").toLowerCase().indexOf(q) >= 0;
     });
     h += '<div class="bp-legend"><span><i class="bp-dot pub"></i>Published</span><span><i class="bp-dot draft"></i>Draft</span><span><i class="bp-dot"></i>Imported</span><span><i class="bp-dot warn"></i>Needs attention</span><span>Avatar color = territory</span></div>';
     if (!items.length) return h + '<div class="bp-empty">No blueprints match.</div>';
@@ -1308,8 +1306,9 @@
       '<label>Company<select data-f="company">' + opts(companies, d.company) + "</select></label>" +
       '<label>Title<input data-k="title" data-f="title" value="' + esc(d.title) + '"></label>' +
       '<label>Role<select data-f="role">' + opts(roles, d.role) + "</select></label>" +
-      '<label>Reports to<input data-k="reportsTo" data-f="reportsTo" value="' + esc(d.reportsTo) + '"></label>' +
-      '<label>Leader<input data-k="leader" data-f="leader" list="bpRoster" value="' + esc(d.leader || "") + '" placeholder="From Fletcher\'s leader list"></label>' +
+      (function () { var pm = personFor(d), mg = pm && pm.manager;
+        return mg ? '<label>Leader <span style="font-weight:500;color:#8a8576">from Microsoft 365</span><input value="' + esc(mg) + '" disabled title="Change it on the Directory tab"></label>'
+          : '<label>Leader <span style="font-weight:500;color:#8a8576">' + (pm ? "no manager in 365 yet" : "not linked to 365") + '</span><input data-k="reportsTo" data-f="reportsTo" list="bpRoster" value="' + esc(d.reportsTo) + '" placeholder="Pick from the 365 directory"></label>'; })() +
       '<label>Effective date<input type="date" data-k="effective" data-f="effective" value="' + esc(d.effective || "") + '"></label>' +
       "</div></div>";
     // 2 territory
