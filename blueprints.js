@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v2.0 (My Blueprint + Salesforce actuals) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v2.1 (header bolt) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -316,7 +316,9 @@
     ".bp-terrpick .bp-chip i{width:9px;height:9px;border-radius:50%;display:inline-block}",
     /* one-pager (shared with print / Word export; every rule starts with .op so export can lift them) */
     ".op{background:#fff;border-radius:12px;box-shadow:0 24px 50px -30px rgba(20,18,10,.45),0 0 0 1px #E9E4D8;overflow:hidden;font-family:Outfit,Inter,Arial,sans-serif;color:#1a1915}",
-    ".op-head{background:#111219;color:#fff;padding:16px 20px 15px;border-bottom:3px solid #FFC800}",
+    ".op-head{background:#111219;color:#fff;padding:16px 20px 15px;border-bottom:3px solid #FFC800;position:relative;overflow:hidden;isolation:isolate}",
+    ".op-hbolt{position:absolute;z-index:-1;left:66%;top:50%;width:auto;height:96%;transform:translate(-50%,-50%) rotate(10deg);filter:drop-shadow(0 0 6px rgba(255,200,0,.55))}",
+    ".op-pills span{background:#111219}.op-pills span.g{background:#FFC800}",
     ".op-top{display:flex;justify-content:space-between;align-items:center;gap:12px}",
     ".op-logo{height:26px;width:auto;max-width:150px}",
     ".op-tag{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:#FFC800;font-weight:700}",
@@ -575,6 +577,11 @@
         return '<div class="sp"><b>' + esc(st.time) + (st.tag ? "<i>" + esc(st.tag) + "</i>" : "") + "</b><span>" + esc(st.text) + "</span></div>";
       }).join("") + "</div></div>";
   }
+  /* HEAD_BOLT_v1: an outlined electric-yellow bolt in the empty middle of the dark header (prints with the page) */
+  var HEAD_BOLT = '<svg class="op-hbolt" viewBox="0 0 120 150" aria-hidden="true">' +
+    '<path d="M72 4 L24 82 H58 L44 146 L98 58 H63 Z" fill="none" stroke="#FFC800" stroke-width="10" stroke-linejoin="round" opacity=".16"/>' +
+    '<path d="M72 4 L24 82 H58 L44 146 L98 58 H63 Z" fill="rgba(255,200,0,.06)" stroke="#FFC800" stroke-width="2.6" stroke-linejoin="round"/>' +
+    '<path d="M70 18 L37 72 H63 L54 114" fill="none" stroke="#FFE680" stroke-width=".9" stroke-linecap="round" opacity=".7"/></svg>';
   function per(label) { return /(\ba|\bper|\/)\s*day\b|daily/i.test(label) ? "Day" : /(\ba|\bper|\/)\s*week\b|weekly|\/\s*wk/i.test(label) ? "Week" : ""; }
   function onePager(d, abs, png) {
     var L = line(d.serviceLine) || {};
@@ -623,7 +630,7 @@
     if (d.serviceLine) pills.push("<span>" + esc(d.serviceLine) + (d.secondaryServiceLine ? " + " + esc(d.secondaryServiceLine) : "") + "</span>");
     var tl = String(d.title || d.role || ""), sub = [tl, d.serviceLine && tl.toLowerCase().indexOf(String(d.serviceLine).toLowerCase()) < 0 ? d.serviceLine : ""].filter(Boolean);
     return '<div class="op">' +
-      '<div class="op-head"><div class="op-top"><img class="op-logo" alt="' + esc(d.company || "Spark Companies") + '" src="' + logoUrl(d.company, abs, png) + '"><div class="op-tag">One Page Blueprint</div></div>' +
+      '<div class="op-head">' + HEAD_BOLT + '<div class="op-top"><img class="op-logo" alt="' + esc(d.company || "Spark Companies") + '" src="' + logoUrl(d.company, abs, png) + '"><div class="op-tag">One Page Blueprint</div></div>' +
         '<div class="op-name">' + esc(d.name || "Team member") + "</div>" +
         '<div class="op-title">' + esc(tl || "Title") + (d.dhFocused ? " · Direct hire focused" : "") + "</div>" +
         '<div class="op-hrow"><div class="op-pills">' + pills.join("") + '</div><div class="op-eff"><div class="k">Effective</div><b>' + esc(fmtDate((d.effective || new Date().toISOString().slice(0, 10)) + "T12:00:00")) + "</b>" +
