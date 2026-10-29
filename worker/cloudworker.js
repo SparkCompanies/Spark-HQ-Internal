@@ -5472,6 +5472,9 @@ var worker_default = {
     if (url.pathname === "/pi-board") {
       const who = await verifyUser(request, env);
       if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+      // PLUGIN_BOARD_v1.1: admin-only while the board is being built. Set PI_BOARD_ADMIN_ONLY = false to open it to every HQ user.
+      const PI_BOARD_ADMIN_ONLY = true;
+      if (PI_BOARD_ADMIN_ONLY) { const adm = await verifyAdmin(request, env); if (!adm.ok) return json({ error: "Plugin Board is admin-only while in build" }, 403, origin); }
       try {
         const fresh = url.searchParams.get("fresh") === "1";
         const now = Date.now();
