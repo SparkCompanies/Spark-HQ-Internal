@@ -1,4 +1,4 @@
-/* BLUEPRINTS_v1.7 (one page) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
+/* BLUEPRINTS_v1.8 (lightning bolt road stops) — Blueprint Builder, a sub-item under Leadership in the HQ sidebar.
    Loaded into the HQ shell by spark-home.html (same path as hired-direct.js and benefits.js; index.html is too
    large to edit on github.com). Nothing in index.html changes.
 
@@ -294,6 +294,8 @@
     ".op-tag2{font-size:7.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 5px;border-radius:3px;background:#111;color:#FFC800}",
     ".op-tag2.tools{background:#fff;color:#9a7a1e;border:1px solid #DEBA6F}",
     ".op-road{position:relative;margin-top:2px}",
+    ".op-rd{position:relative}",
+    ".op-road svg.op-bolt{position:absolute;width:22px;height:22px;transform:translate(-50%,-50%);filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.45))}",
     ".op-road svg{display:block;width:100%;height:46px}",
     ".op-road .stops{display:grid;gap:6px;margin-top:4px}",
     ".op-road .sp b{display:block;font-size:11px;font-weight:800;color:#111;white-space:nowrap}",
@@ -472,11 +474,12 @@
     var path = "M" + pts.join("L");
     var dots = stops.map(function (st, i) {
       var cx = (i + 0.5) * W / n, cy = mid + amp * Math.sin(cx / W * Math.PI * 2 * 2.5), gold = !st.tag || st.tag === "PLUG";
-      return '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="7" fill="' + (gold ? "#FFC800" : "#9aa0ad") + '" stroke="#fff" stroke-width="2.5"/>';
+      /* lightning bolts, drawn as HTML on top of the road so they keep their shape when the road stretches */
+      return '<svg class="op-bolt" viewBox="0 0 24 24" style="left:' + (cx / W * 100).toFixed(2) + "%;top:" + (cy / H * 100).toFixed(2) + '%" aria-hidden="true"><path d="M14 1.5L4.5 13.5h6.2l-1.7 9L19.5 10h-6.3z" fill="' + (gold ? "#FFC800" : "#C9CCD4") + '" stroke="#111219" stroke-width="1.4" stroke-linejoin="round"/></svg>';
     }).join("");
-    return '<div class="op-road"><svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+    return '<div class="op-road"><div class="op-rd"><svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
       '<path d="' + path + '" fill="none" stroke="#111219" stroke-width="18" stroke-linecap="round"/>' +
-      '<path d="' + path + '" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="9 8" opacity=".85"/>' + dots + "</svg>" +
+      '<path d="' + path + '" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="9 8" opacity=".85"/></svg>' + dots + "</div>" +
       '<div class="stops" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + stops.map(function (st) {
         return '<div class="sp"><b>' + esc(st.time) + (st.tag ? "<i>" + esc(st.tag) + "</i>" : "") + "</b><span>" + esc(st.text) + "</span></div>";
       }).join("") + "</div></div>";
