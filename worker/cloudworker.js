@@ -2104,27 +2104,20 @@ async function tvCore(env) {
   if (live) ytd += contract + direct;
   const d0 = new Date(yr + "-01-01T12:00:00Z"), d1 = new Date(we + "T12:00:00Z");
   const yearFrac = Math.min(1, Math.max(0, (d1 - d0) / 864e5 + 1) / 365);
-  // Week over week: previous week from the frozen books, hours from a cached engine run.
+  // Week over week: charge from the frozen books; headcount + hours from Salesforce timesheets (below).
   const ps = stored[prevWe] || null;
-  let prevHours = null;
+  let prevHours = null, prevHc = null, hoursOut = hours;
   try {
-    const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/tv-prevhours-" + prevWe);
-    const hit = await cache.match(ck);
-    if (hit) prevHours = (await hit.json()).hours;
-    else {
-      const PB = await tvInternal("/charge-batch?weekEnding=" + prevWe, env);
-      if (PB && PB.ok && PB.summary) {
-        prevHours = r2(PB.summary.totalHours);
-        await cache.put(ck, new Response(JSON.stringify({ hours: prevHours }), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=21600" } }));
-      }
-    }
+    const sw = await tvSfWeeks(env, prevWe);
+    if (sw[we]) { hc = sw[we].headcount; hoursOut = sw[we].hours; }
+    if (sw[prevWe]) { prevHc = sw[prevWe].headcount; prevHours = sw[prevWe].hours; }
   } catch (e) {}
   return {
     weekEnding: we, live, prevWeekEnding: prevWe,
     charge: { contract, direct, total: r2(contract + direct) },
-    hours, headcount: hc,
+    hours: hoursOut, headcount: hc,
     goal: { annual: r2(goal), ytd: r2(ytd), pct: goal > 0 ? r2(ytd / goal * 100) : null, pacePct: r2(yearFrac * 100), weekly: goal > 0 ? r2(goal / 52) : null },
-    prev: ps ? { total: r2(weekTotal(ps)), direct: r2(ps.direct), headcount: ps.hc, hours: prevHours } : (prevHours != null ? { hours: prevHours } : null),
+    prev: ps ? { total: r2(weekTotal(ps)), direct: r2(ps.direct), headcount: prevHc != null ? prevHc : ps.hc, hours: prevHours } : (prevHours != null ? { hours: prevHours, headcount: prevHc } : null),
     board, monthBoard, month: { key: mo, weeks: Object.keys(moWeeks).length }, units, spotlight
   };
 }
@@ -2240,32 +2233,39 @@ async function tvHd(env) {
   return { month: mo, monthName: MON[+p.month - 1], total: rows.length, people };
 }
 __name(tvHd, "tvHd");
-// TV_TREND_v1: week-over-week headcount (from the frozen charge books, same as the Headcount tile)
-// and billable hours (from the timesheet headcount report HQ's Salesforce tab uses), last 12 weeks.
+// TV_SF_HC_v1: headcount + billable hours come from the same Salesforce timesheet query HQ home's
+// Headcount card uses (distinct timesheets with time entries; regular + OT + double-time hours),
+// grouped by pay-period end date, so the TV, HQ home and Salesforce always agree.
+async function tvSfWeeks(env, fromIso) {
+  const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/tv-sfweeks-v1-" + fromIso);
+  try { const hit = await cache.match(ck); if (hit) return await hit.json(); } catch (e) {}
+  const P = "ASYMBL_Time__Timesheet__r.ASYMBL_Time__Pay_Period_End_Date__c";
+  const soql = "SELECT " + P + " we, COUNT_DISTINCT(ASYMBL_Time__Timesheet__c) heads, SUM(ASYMBL_Time__Regular_Hours__c) rh, SUM(ASYMBL_Time__Overtime_Hours__c) oh, SUM(ASYMBL_Time__Double_Time_Hours__c) dh FROM ASYMBL_Time__Time_Entry__c WHERE " + P + " >= " + fromIso + " AND " + P + " <= TODAY GROUP BY " + P + " ORDER BY " + P;
+  const r = await runSalesforceQueryAll(env, soql);
+  if (!r.ok) throw new Error(r.error || "timesheet query failed");
+  const out = {};
+  (r.records || []).forEach((x) => { if (x.we) out[String(x.we).slice(0, 10)] = { headcount: Math.round(Number(x.heads) || 0), hours: Math.round((Number(x.rh) || 0) + (Number(x.oh) || 0) + (Number(x.dh) || 0)) }; });
+  try { await cache.put(ck, new Response(JSON.stringify(out), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=600" } })); } catch (e) {}
+  return out;
+}
+__name(tvSfWeeks, "tvSfWeeks");
 async function tvTrend(env) {
-  const [H, R] = await Promise.all([tvInternal("/charge-history", env), tvInternal("/headcount-wow", env)]);
-  const hc = {};
-  ((H && H.unitWeeks) || []).forEach((r) => { if (r.kind === "hc") hc[r.week_ending] = (hc[r.week_ending] || 0) + (Number(r.charge) || 0); });
-  const iso = (d) => d.toISOString().slice(0, 10);
-  const sundayOf = (s, shift) => { const d = new Date(String(s).slice(0, 10) + "T12:00:00Z"); if (isNaN(d)) return null; d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7) + shift); return iso(d); };
-  const rep = ((R && R.weeks) || []).filter((w) => w && w.date);
-  // The report groups by its own week date; line it up with week-ending Sundays by trying each offset
-  // and keeping the one whose headcount agrees best with the charge books.
-  let best = 0, bestErr = Infinity;
-  [0, -7, 7].forEach((sh) => {
-    let err = 0, n = 0;
-    rep.forEach((w) => { const we = sundayOf(w.date, sh); if (we && hc[we] != null && w.headcount != null) { err += Math.abs(hc[we] - Number(w.headcount)); n++; } });
-    if (n && err / n < bestErr) { bestErr = err / n; best = sh; }
-  });
-  const hrs = {}, rhc = {};
-  rep.forEach((w) => { const we = sundayOf(w.date, best); if (!we) return; if (w.hours != null) hrs[we] = Number(w.hours); if (w.headcount != null) rhc[we] = Number(w.headcount); });
   const cur = tvWeekEnding(0), list = [];
-  for (let i = 11; i >= 0; i--) { const d = new Date(cur + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 7 * i); list.push(iso(d)); }
-  const weeks = list.map((we) => ({ we, headcount: hc[we] != null ? hc[we] : (rhc[we] != null ? rhc[we] : null), hours: hrs[we] != null ? Math.round(hrs[we]) : null }));
-  return { weeks, hoursSource: rep.length ? "report" : null, offset: best };
+  for (let i = 11; i >= 0; i--) { const d = new Date(cur + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 7 * i); list.push(d.toISOString().slice(0, 10)); }
+  const sw = await tvSfWeeks(env, list[0]);
+  return { source: "salesforce", weeks: list.map((we) => ({ we, headcount: sw[we] ? sw[we].headcount : null, hours: sw[we] ? sw[we].hours : null })), hoursSource: "salesforce" };
 }
 __name(tvTrend, "tvTrend");
-var TV_PARTS = { trend: { fn: tvTrend, ttl: 1800 }, core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 }, hd: { fn: tvHd, ttl: 1800 } };
+// TV_HELP_v1: HQ's "Who do I ask?" routing, names only (no phones or emails on the TV).
+async function tvHelp(env) {
+  const R = await tvInternal("/help-routes", env);
+  if (!R || !R.ok) throw new Error((R && R.error) || "help routes failed");
+  let team = null; try { team = await tvTeamData(env); } catch (e) {}
+  const slim = (o) => { if (!o) return null; const m = team && o.kind === "person" && team.byName[tvNameKey(o.name)]; return { name: o.name || "", title: o.kind === "person" ? (o.title || "") : "", kind: o.kind || "person", photo: (m && m.photo) || null }; };
+  return { rows: (R.rows || []).map((x) => ({ topic: x.topic, blurb: x.blurb || "", note: x.note || "", owner: slim(x.owner), backup: slim(x.backup) })) };
+}
+__name(tvHelp, "tvHelp");
+var TV_PARTS = { help: { fn: tvHelp, ttl: 3600 }, trend: { fn: tvTrend, ttl: 1800 }, core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 }, hd: { fn: tvHd, ttl: 1800 } };
 // Pairing (TV_MODE_v2): the TV shows a 6-digit code, an admin types it on the setup page, the TV picks up its key.
 async function tvLoadPairs(env) {
   const r = await sbService(env, "GET", "pi_board_state?select=value&key=eq.tv_pairs");
