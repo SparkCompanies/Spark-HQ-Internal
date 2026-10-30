@@ -2220,7 +2220,27 @@ async function tvReqs(env) {
 }
 __name(tvReqs, "tvReqs");
 
-var TV_PARTS = { core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 } };
+// TV_HD_v1: Hired Direct shout-outs. Every placement marked "Client Hired Direct" this calendar month,
+// credited the same way the coaching email is (candidate owner, then placement recruiter, then owner).
+async function tvHd(env) {
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/Detroit", year: "numeric", month: "2-digit" });
+  const p = {}; f.formatToParts(new Date()).forEach((x) => { if (x.type !== "literal") p[x.type] = x.value; });
+  const mo = p.year + "-" + p.month;
+  const MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const col = await hdCollect(env, { days: "45" });
+  const rows = (col.placements || []).filter((x) => String(x.terminatedDate || x.modified || "").slice(0, 7) === mo);
+  const by = {};
+  rows.forEach((x) => {
+    const n = (x.recruiter && x.recruiter.name) || ""; if (!n) return;
+    const g = by[n] || (by[n] = { name: n, count: 0, clients: {} });
+    g.count++; if (x.client) g.clients[x.client] = (g.clients[x.client] || 0) + 1;
+  });
+  const people = Object.keys(by).map((n) => ({ name: n, count: by[n].count, clients: Object.keys(by[n].clients).sort((a, b) => by[n].clients[b] - by[n].clients[a]) }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  return { month: mo, monthName: MON[+p.month - 1], total: rows.length, people };
+}
+__name(tvHd, "tvHd");
+var TV_PARTS = { core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 }, hd: { fn: tvHd, ttl: 1800 } };
 // Pairing (TV_MODE_v2): the TV shows a 6-digit code, an admin types it on the setup page, the TV picks up its key.
 async function tvLoadPairs(env) {
   const r = await sbService(env, "GET", "pi_board_state?select=value&key=eq.tv_pairs");
