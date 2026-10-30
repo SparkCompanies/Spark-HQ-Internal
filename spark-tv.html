@@ -47,25 +47,25 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .live.stale i{background:var(--y2);animation:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,151,.55)}70%{box-shadow:0 0 0 14px rgba(61,220,151,0)}100%{box-shadow:0 0 0 0 rgba(61,220,151,0)}}
 .clock{text-align:right;line-height:1}
-.clock b{font-family:var(--disp);font-size:54px;font-weight:400;letter-spacing:.03em;display:inline-flex;align-items:baseline;gap:10px}
+.clock b{font-family:var(--disp);font-size:42px;font-weight:400;letter-spacing:.03em;display:inline-flex;align-items:baseline;gap:10px}
 .clock b small{font-size:26px;color:var(--mt)}
 .clock > span{margin-top:8px}
 .clock > span{display:block;font-size:17px;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
 
 /* KPI strip */
 .kpis{position:absolute;left:48px;right:48px;top:128px;height:176px;display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1.35fr;gap:22px;z-index:2}
-.k{position:relative;border-radius:22px;padding:20px 26px;overflow:hidden;
+.k{position:relative;border-radius:22px;padding:18px 24px 16px;overflow:hidden;display:flex;flex-direction:column;
   background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.025) 55%);
   border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12)}
 .k::before{content:"";position:absolute;left:-30%;top:-80%;width:90%;height:160%;background:radial-gradient(closest-side,rgba(251,210,15,.13),transparent);pointer-events:none}
 .k .lb{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
 .k .lb svg{color:var(--y);font-size:22px}
-.k .v{display:inline-block;white-space:nowrap;font-family:var(--disp);font-size:66px;line-height:1;margin-top:12px;font-weight:400;color:#f5f2ea}
+.k .v{display:inline-block;align-self:flex-start;white-space:nowrap;font-family:var(--disp);font-size:66px;line-height:1;margin-top:10px;font-weight:400;color:#f5f2ea}
 .k.hero .v{filter:drop-shadow(0 6px 22px rgba(251,210,15,.22))}
-.k .v + .sub{margin-top:6px} .k .sub{display:flex;gap:14px;align-items:center;font-size:17px;color:var(--mt);margin-top:6px;white-space:nowrap}
+.k .v + .sub{margin-top:auto} .k .sub{margin-top:auto;display:flex;gap:14px;align-items:center;font-size:17px;color:var(--mt);margin-top:6px;white-space:nowrap}
 .wow{display:inline-flex;align-items:center;gap:4px;font-weight:700;padding:3px 10px;border-radius:999px;font-size:16px}
 .wow.up{color:var(--ok);background:rgba(61,220,151,.12)} .wow.dn{color:var(--bad);background:rgba(255,93,93,.12)} .wow.fl{color:var(--mt);background:rgba(255,255,255,.06)}
-.goalk{display:flex;gap:22px;align-items:center}
+.goalk{display:flex;gap:22px;align-items:center;flex:1}
 .ring{position:relative;width:132px;height:132px;flex:none}
 .ring svg{width:132px;height:132px;transform:rotate(-90deg)}
 .ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--disp);font-size:40px;font-weight:400}
@@ -96,8 +96,11 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .row.p1{border-color:rgba(251,210,15,.45);box-shadow:0 0 30px rgba(251,210,15,.15)}
 .nm{flex:1;min-width:0;font-size:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nm small{font-size:15px;color:var(--dm);font-weight:500;margin-left:8px}
-.amt{font-family:var(--disp);font-size:27px;letter-spacing:.03em}
+.amt{font-family:var(--disp);font-size:30px;letter-spacing:.03em}
 .row.zero .amt,.row.zero .nm{color:var(--dm)}
+.amt.lead{color:var(--y);text-shadow:0 0 18px rgba(251,210,15,.45)}
+.slide.on .row{animation:rowIn .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0s)}
+@keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
 /* goal slide */
 .goalwrap{padding:46px 56px;height:calc(100% - 92px);display:flex;flex-direction:column;justify-content:center;gap:40px}
@@ -113,13 +116,56 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .gstat > span{display:block;font-size:18px;color:var(--mt);letter-spacing:.1em;text-transform:uppercase}
 .gstat b{font-family:var(--disp);font-weight:400;font-size:62px;line-height:1}
 
+/* Halloween (TV_HALLOWEEN_v1): same moon, bats, ghosts, spiders, webs and jack-o-lanterns as the HQ home.
+   Runs Oct 24-31 on the TV's own date, then removes itself. Preview any day with ?halloween=1. */
+#stage.hw{background:radial-gradient(900px 600px at 82% -8%,rgba(255,122,24,.20),transparent 60%),radial-gradient(1000px 700px at 0% 110%,rgba(124,58,237,.24),transparent 62%),radial-gradient(ellipse at 50% 30%,#171228 0%,#09080f 72%)}
+.hwl{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.hwl.back{z-index:1}.hwl.front{z-index:7}
+.hw-moon{position:absolute;right:700px;top:-150px;width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle at 38% 36%,#ffe7b3 0%,#ffb347 38%,#ff7a18 72%,#c2410c 100%);
+  box-shadow:0 0 90px 24px rgba(255,122,24,.35),0 0 200px 70px rgba(255,122,24,.12);opacity:.5;animation:hwGlow 6s ease-in-out infinite}
+.hw-moon::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 62% 58%,rgba(0,0,0,.18) 0 9%,transparent 10%),radial-gradient(circle at 30% 70%,rgba(0,0,0,.12) 0 6%,transparent 7%)}
+@keyframes hwGlow{50%{opacity:.7;box-shadow:0 0 120px 34px rgba(255,122,24,.45),0 0 240px 90px rgba(255,122,24,.16)}}
+.hw-web{position:absolute;width:210px;opacity:.16;color:#fff}
+.hw-web.tl{left:0;top:0}.hw-web.br{right:0;bottom:78px;transform:rotate(180deg)}
+.hw-fog{position:absolute;left:-10%;right:-10%;bottom:40px;height:230px;overflow:hidden;filter:blur(20px);opacity:.7}
+.hw-fog i{position:absolute;bottom:0;width:60%;height:150px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(196,181,253,.5) 0%,rgba(124,58,237,.16) 45%,transparent 70%);animation:hwDrift 30s linear infinite}
+.hw-fog i:nth-child(2){left:30%;animation-duration:38s;animation-delay:-12s;opacity:.8}
+.hw-fog i:nth-child(3){left:60%;animation-duration:46s;animation-delay:-20s;opacity:.6}
+@keyframes hwDrift{0%{transform:translateX(-30%)}100%{transform:translateX(60%)}}
+.hw-bat{position:absolute;left:-80px;width:56px;color:#241a3a;filter:drop-shadow(0 0 2px rgba(255,170,90,.9)) drop-shadow(0 0 10px rgba(255,122,24,.55));animation:hwFly linear infinite}
+.hw-bat svg{width:100%;height:auto;display:block;animation:hwFlap .28s ease-in-out infinite alternate;transform-origin:50% 40%}
+@keyframes hwFlap{to{transform:scaleY(.55) scaleX(1.08)}}
+@keyframes hwFly{0%{transform:translate(0,0) rotate(-4deg)}25%{transform:translate(560px,-30px) rotate(6deg)}50%{transform:translate(1100px,16px) rotate(-6deg)}75%{transform:translate(1640px,-20px) rotate(4deg)}100%{transform:translate(2200px,6px) rotate(0)}}
+.hw-ghost{position:absolute;bottom:-110px;width:64px;opacity:0;color:rgba(255,255,255,.85);filter:drop-shadow(0 0 14px rgba(190,170,255,.6));animation:hwRise ease-in-out infinite}
+@keyframes hwRise{0%{transform:translate(0,0);opacity:0}15%{opacity:.45}50%{transform:translate(30px,-420px)}85%{opacity:.3}100%{transform:translate(-16px,-860px);opacity:0}}
+.hw-peek{position:absolute;right:-8px;top:52%;width:96px;opacity:0;animation:hwPeek 16s ease-in-out infinite}
+@keyframes hwPeek{0%,62%,100%{transform:translateX(110px) rotate(8deg);opacity:0}70%,86%{transform:translateX(0) rotate(-6deg);opacity:.95}}
+.hw-spider{position:absolute;top:0;width:2px;background:linear-gradient(rgba(255,255,255,.4),rgba(255,255,255,.08));animation:hwDrop 7s ease-in-out infinite;transform-origin:top}
+.hw-spider svg{position:absolute;left:-17px;bottom:-28px;width:36px;color:#0a0812;filter:drop-shadow(0 0 5px rgba(255,140,40,.55))}
+@keyframes hwDrop{0%,100%{height:30px}50%{height:118px}}
+.hw-pumpkins{position:absolute;right:44px;bottom:86px;display:flex;align-items:flex-end;gap:8px}
+.hw-pumpkins svg{filter:drop-shadow(0 6px 16px rgba(255,122,24,.5))}
+.hw-pumpkins .hw-face{animation:hwFlicker 2.4s steps(1) infinite}
+@keyframes hwFlicker{0%,100%{fill:#ffd36b}30%{fill:#ffb02e}32%{fill:#fff1b8}60%{fill:#ffc44d}}
+.hw-flock{position:absolute;left:-220px;top:24%;width:210px;opacity:0;animation:hwFlock 26s linear infinite;animation-delay:6s}
+@keyframes hwFlock{0%{transform:translate(0,0);opacity:0}2%{opacity:.85}22%{transform:translate(2380px,-150px);opacity:.85}23%,100%{transform:translate(2380px,-150px);opacity:0}}
+.hw-flock svg{width:100%;height:auto}
+.hw-flock .w{animation:hwFlap2 .28s ease-in-out infinite alternate;transform-origin:center}
+@keyframes hwFlap2{to{transform:scaleY(.45)}}
+.top .ttl .hw-pill{display:inline-flex;align-items:center;gap:8px;margin:0 0 0 16px;padding:5px 14px;border-radius:999px;font-family:Jost,sans-serif;font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:none;color:#ffe2c2;vertical-align:middle;
+  background:linear-gradient(135deg,rgba(255,122,24,.25),rgba(124,58,237,.25));border:1px solid rgba(255,160,80,.4);box-shadow:0 6px 20px -6px rgba(255,122,24,.55)}
+.hw-pill svg{width:20px;height:20px}
+#stage.hw .spot .hero{box-shadow:0 0 0 1px rgba(255,140,40,.5),0 0 50px 6px rgba(255,122,24,.3),0 22px 60px rgba(0,0,0,.5);animation:hwCard 4s ease-in-out infinite}
+@keyframes hwCard{50%{box-shadow:0 0 0 1px rgba(255,140,40,.65),0 0 70px 14px rgba(255,122,24,.4),0 22px 60px rgba(0,0,0,.5)}}
+
 /* split-flap numbers (TV_FLAP_v1) */
-.flap{display:inline-flex;gap:.05em;vertical-align:baseline;line-height:1;color:var(--fc,#f5f2ea);-webkit-text-fill-color:currentColor;font-family:var(--disp);font-weight:400}
-.fc{position:relative;display:inline-block;width:.6em;height:1.1em;border-radius:.07em;perspective:4em;
+.flap{display:inline-flex;gap:.04em;vertical-align:baseline;line-height:1;color:var(--fc,#f5f2ea);-webkit-text-fill-color:currentColor;font-family:var(--disp);font-weight:400}
+.fc{position:relative;display:inline-block;width:.5em;height:1.1em;border-radius:.07em;perspective:4em;
   background:#0b0a0e;box-shadow:0 .05em .1em rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05)}
-.fc.p{width:.24em;background:none;box-shadow:none}
-.fc.p.wd{width:.44em}
-.fc.lt{width:.74em}
+.fc.p{width:.2em;background:none;box-shadow:none}
+.fc.p.wd{width:.38em}
+.fc.lt{width:.6em}
 .fc .h{position:absolute;left:0;right:0;height:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .fc .h>i{display:block;height:1.1em;line-height:1.12em;text-align:center;font-style:normal;text-shadow:0 0 .25em var(--fg,transparent)}
 .fc .tp{top:0;border-radius:.07em .07em 0 0;background:linear-gradient(180deg,#2a2930,#1b1a20)}
@@ -456,6 +502,33 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       '<div class="main" id="main"></div>' +
       '<div class="tick"><div class="tag">' + ic('bolt') + 'ON THE BOARD</div><div class="rail"><div class="run" id="run"></div></div></div>';
 
+    var hwNow = new Date(), hwOn = /[?&#]halloween=1/.test(location.search + location.hash) || (hwNow.getMonth() === 9 && hwNow.getDate() >= 24);
+    if (hwOn) { try {
+      stage.classList.add('hw');
+      var BAT = '<svg viewBox="0 0 64 32" fill="currentColor"><path d="M32 10c-2-4-3-6-3-6l-1 4c-6-6-15-7-28-2 7 2 11 6 12 12 3-3 7-3 9 0 2-4 6-4 8-1 1-2 2-3 3-3s2 1 3 3c2-3 6-3 8 1 2-3 6-3 9 0 1-6 5-10 12-12-13-5-22-4-28 2l-1-4s-1 2-3 6z"/></svg>';
+      var GHOST = '<svg viewBox="0 0 40 48" fill="currentColor"><path d="M20 2C10 2 4 10 4 20v24l6-5 5 5 5-5 5 5 5-5 6 5V20C36 10 30 2 20 2z"/><circle cx="14" cy="19" r="2.6" fill="#1a1430"/><circle cx="26" cy="19" r="2.6" fill="#1a1430"/><ellipse cx="20" cy="28" rx="3" ry="4" fill="#1a1430"/></svg>';
+      var PEEK = '<svg viewBox="0 0 64 80"><path d="M32 4C16 4 6 16 6 34v40l8-7 9 7 9-7 9 7 9-7 8 7V34C58 16 48 4 32 4z" fill="#f8f7ff" stroke="#c4b5fd" stroke-width="1.5"/><ellipse cx="24" cy="32" rx="4" ry="6" fill="#1e1b2e"/><ellipse cx="40" cy="32" rx="4" ry="6" fill="#1e1b2e"/><ellipse cx="32" cy="48" rx="5" ry="6" fill="#1e1b2e"/></svg>';
+      var SPIDER = '<svg viewBox="0 0 32 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="16" cy="16" rx="6" ry="7" fill="currentColor"/><circle cx="16" cy="7" r="4" fill="currentColor"/><path d="M10 13 3 8M10 16H2M10 19l-7 5M22 13l7-5M22 16h8M22 19l7 5"/><circle cx="14.5" cy="7" r="1" fill="#ff7a18" stroke="none"/><circle cx="17.5" cy="7" r="1" fill="#ff7a18" stroke="none"/></svg>';
+      var WEB = '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width=".8"><path d="M0 0 100 30M0 0 80 80M0 0 30 100M0 0 100 0M0 0 0 100"/><path d="M20 0Q18 8 23 6Q20 13 8 18Q6 20 0 20"/><path d="M45 0Q42 16 50 13Q44 30 26 37Q18 41 0 45"/><path d="M70 0Q66 25 77 21Q68 48 41 58Q28 64 0 70"/></svg>';
+      var pumpkin = function (w, big) { return '<svg width="' + w + '" viewBox="0 0 64 60"><path d="M30 10c0-5 3-8 7-9l1 3c-3 1-4 3-4 6z" fill="#3f6212"/><ellipse cx="18" cy="35" rx="15" ry="22" fill="#ea580c"/><ellipse cx="46" cy="35" rx="15" ry="22" fill="#ea580c"/><ellipse cx="32" cy="35" rx="16" ry="24" fill="#f97316"/><path d="M32 12v46M20 15c-3 12-3 28 0 40M44 15c3 12 3 28 0 40" stroke="#c2410c" stroke-width="1.4" fill="none" opacity=".6"/>' + (big ? '<g class="hw-face"><path d="M20 30l6-6 4 6zM34 30l6-6 4 6z"/><path d="M18 40q14 12 28 0l-4 2-3-3-4 3-3-3-4 3-3-3-3 3z"/></g>' : '') + '</svg>'; };
+      var fbat = function (x, y, sc) { return '<g transform="translate(' + x + ' ' + y + ') scale(' + sc + ')"><g class="w"><path d="M0 8 Q6 0 12 6 Q15 2 18 6 Q21 2 24 6 Q30 0 36 8 Q28 6 24 12 Q21 9 18 13 Q15 9 12 12 Q8 6 0 8z" fill="#1c1430"/></g></g>'; };
+      var back = document.createElement('div'); back.className = 'hwl back';
+      back.innerHTML = '<div class="hw-moon"></div><div class="hw-web tl">' + WEB + '</div><div class="hw-web br">' + WEB + '</div><div class="hw-fog"><i></i><i></i><i></i></div>';
+      var f = '';
+      [[16, 15, 0, 1], [34, 20, 4, .8], [10, 24, 9, .6], [58, 18, 12, .7]].forEach(function (b) { f += '<div class="hw-bat" style="top:' + b[0] + '%;animation-duration:' + b[1] + 's;animation-delay:' + b[2] + 's;width:' + (56 * b[3]) + 'px">' + BAT + '</div>'; });
+      [['12%', 13, 1], ['46%', 16, 6], ['74%', 14, 3]].forEach(function (g) { f += '<div class="hw-ghost" style="left:' + g[0] + ';animation-duration:' + g[1] + 's;animation-delay:' + g[2] + 's">' + GHOST + '</div>'; });
+      f += '<div class="hw-spider" style="left:720px">' + SPIDER + '</div><div class="hw-spider" style="left:1290px;animation-delay:2.5s;animation-duration:9s">' + SPIDER + '</div>';
+      f += '<div class="hw-peek">' + PEEK + '</div>';
+      f += '<div class="hw-pumpkins">' + pumpkin(52, false) + pumpkin(80, true) + '</div>';
+      f += '<div class="hw-flock"><svg viewBox="0 0 150 70">' + fbat(0, 30, 1.4) + fbat(52, 8, 1) + fbat(92, 36, .8) + fbat(118, 14, .6) + '</svg></div>';
+      var front = document.createElement('div'); front.className = 'hwl front'; front.innerHTML = f;
+      stage.insertBefore(back, stage.firstChild); stage.appendChild(front);
+      var hd = 31 - hwNow.getDate(), isHw = hwNow.getMonth() === 9 && hwNow.getDate() === 31;
+      var hmsg = isHw ? 'Happy Halloween, Spark' : (hd === 1 ? '1 day to Halloween' : hd + ' days to Halloween');
+      var ttl = stage.querySelector('.top .ttl b');
+      if (ttl && hwNow.getMonth() === 9) ttl.insertAdjacentHTML('beforeend', '<span class="hw-pill"><svg viewBox="0 0 64 60">' + pumpkin(20, true).replace(/^<svg[^>]*>|<\/svg>$/g, '') + '</svg>' + hmsg + '</span>');
+    } catch (e) {} }
+
     var D = { core: null, celebrate: null, floor: null, reqs: null, team: null }, at = {}, err = {};
 
     // clock
@@ -612,7 +685,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var lh = Math.max(38, Math.min(56, Math.floor((566 - (u.length - 1) * 12) / Math.max(1, u.length))));
       return '<div class="sh"><h2>' + ic('flame') + 'Business unit race</h2><span class="meta">' + weLabel(c.weekEnding) + ' \u00b7 charge, contract + DH</span></div>' +
         '<div class="race" style="--lh:' + lh + 'px">' + u.map(function (x, i) {
-          return '<div class="lane"><span class="n"><em>' + (i + 1) + '</em>' + esc(x.unit) + '</span><span class="t"><i style="width:' + Math.max(2, x.charge / max * 100).toFixed(1) + '%"></i></span><span class="a">' + (i < 10 ? fl('u' + i, fmt$(x.charge), '', 'once') : fmt$(x.charge)) + '</span></div>';
+          return '<div class="lane"><span class="n"><em>' + (i + 1) + '</em>' + esc(x.unit) + '</span><span class="t"><i style="width:' + Math.max(2, x.charge / max * 100).toFixed(1) + '%"></i></span><span class="a">' + fl('u' + i, fmt$(x.charge), '', 'once') + '</span></div>';
         }).join('') + '</div>';
     }
     function slideWelcome() {
@@ -628,8 +701,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var max = Math.max.apply(null, b.map(function (x) { return x.raw; }).concat([1]));
       var out = b.map(function (p, i) {
         var w = p.raw > 0 ? Math.max(3, p.raw / max * 100) : 0;
-        return '<div class="row' + (i < 3 && p.raw > 0 ? ' p' + (i + 1) : '') + (p.raw <= 0 ? ' zero' : '') + '"><div class="bar" style="width:' + w.toFixed(1) + '%"></div><span class="rk">' + (i + 1) + '</span>' +
-          '<span class="nm">' + esc(p.name) + (cols <= 2 && p.bu ? '<small>' + esc(p.bu) + '</small>' : '') + '</span><span class="amt">' + (p.raw > 0 ? (i < 15 ? fl(title + i, fmt$(p.raw), i === 0 ? 'gold' : '', 'once') : fmt$(p.raw)) : '--') + '</span></div>';
+        return '<div class="row' + (i < 3 && p.raw > 0 ? ' p' + (i + 1) : '') + (p.raw <= 0 ? ' zero' : '') + '" style="--d:' + (i * 0.03).toFixed(2) + 's"><div class="bar" style="width:' + w.toFixed(1) + '%"></div><span class="rk">' + (i + 1) + '</span>' +
+          '<span class="nm">' + esc(p.name) + (cols <= 2 && p.bu ? '<small>' + esc(p.bu) + '</small>' : '') + '</span><span class="amt' + (i === 0 && p.raw > 0 ? ' lead' : '') + '">' + (p.raw > 0 ? fmt$(p.raw) : '--') + '</span></div>';
       }).join('');
       return '<div class="sh"><h2>' + ic('trophy') + esc(title) + '</h2><span class="meta">' + esc(meta) + '</span><span class="sp"></span><span class="chip">' + n + ' producers</span></div>' +
         '<div class="lbw" style="grid-template-rows:repeat(' + rows + ',auto);grid-template-columns:repeat(' + cols + ',1fr);row-gap:' + gap + 'px;--rh:' + rh + 'px">' + out + '</div>';
