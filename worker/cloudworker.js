@@ -2240,7 +2240,32 @@ async function tvHd(env) {
   return { month: mo, monthName: MON[+p.month - 1], total: rows.length, people };
 }
 __name(tvHd, "tvHd");
-var TV_PARTS = { core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 }, hd: { fn: tvHd, ttl: 1800 } };
+// TV_TREND_v1: week-over-week headcount (from the frozen charge books, same as the Headcount tile)
+// and billable hours (from the timesheet headcount report HQ's Salesforce tab uses), last 12 weeks.
+async function tvTrend(env) {
+  const [H, R] = await Promise.all([tvInternal("/charge-history", env), tvInternal("/headcount-wow", env)]);
+  const hc = {};
+  ((H && H.unitWeeks) || []).forEach((r) => { if (r.kind === "hc") hc[r.week_ending] = (hc[r.week_ending] || 0) + (Number(r.charge) || 0); });
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const sundayOf = (s, shift) => { const d = new Date(String(s).slice(0, 10) + "T12:00:00Z"); if (isNaN(d)) return null; d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7) + shift); return iso(d); };
+  const rep = ((R && R.weeks) || []).filter((w) => w && w.date);
+  // The report groups by its own week date; line it up with week-ending Sundays by trying each offset
+  // and keeping the one whose headcount agrees best with the charge books.
+  let best = 0, bestErr = Infinity;
+  [0, -7, 7].forEach((sh) => {
+    let err = 0, n = 0;
+    rep.forEach((w) => { const we = sundayOf(w.date, sh); if (we && hc[we] != null && w.headcount != null) { err += Math.abs(hc[we] - Number(w.headcount)); n++; } });
+    if (n && err / n < bestErr) { bestErr = err / n; best = sh; }
+  });
+  const hrs = {}, rhc = {};
+  rep.forEach((w) => { const we = sundayOf(w.date, best); if (!we) return; if (w.hours != null) hrs[we] = Number(w.hours); if (w.headcount != null) rhc[we] = Number(w.headcount); });
+  const cur = tvWeekEnding(0), list = [];
+  for (let i = 11; i >= 0; i--) { const d = new Date(cur + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 7 * i); list.push(iso(d)); }
+  const weeks = list.map((we) => ({ we, headcount: hc[we] != null ? hc[we] : (rhc[we] != null ? rhc[we] : null), hours: hrs[we] != null ? Math.round(hrs[we]) : null }));
+  return { weeks, hoursSource: rep.length ? "report" : null, offset: best };
+}
+__name(tvTrend, "tvTrend");
+var TV_PARTS = { trend: { fn: tvTrend, ttl: 1800 }, core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 }, hd: { fn: tvHd, ttl: 1800 } };
 // Pairing (TV_MODE_v2): the TV shows a 6-digit code, an admin types it on the setup page, the TV picks up its key.
 async function tvLoadPairs(env) {
   const r = await sbService(env, "GET", "pi_board_state?select=value&key=eq.tv_pairs");
