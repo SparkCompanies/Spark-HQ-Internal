@@ -47,8 +47,10 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .live.stale i{background:var(--y2);animation:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,151,.55)}70%{box-shadow:0 0 0 14px rgba(61,220,151,0)}100%{box-shadow:0 0 0 0 rgba(61,220,151,0)}}
 .clock{text-align:right;line-height:1}
-.clock b{font-family:var(--disp);font-size:60px;font-weight:400;letter-spacing:.03em}
-.clock span{display:block;font-size:17px;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
+.clock b{font-family:var(--disp);font-size:54px;font-weight:400;letter-spacing:.03em;display:inline-flex;align-items:baseline;gap:10px}
+.clock b small{font-size:26px;color:var(--mt)}
+.clock > span{margin-top:8px}
+.clock > span{display:block;font-size:17px;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
 
 /* KPI strip */
 .kpis{position:absolute;left:48px;right:48px;top:128px;height:176px;display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1.35fr;gap:22px;z-index:2}
@@ -58,9 +60,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .k::before{content:"";position:absolute;left:-30%;top:-80%;width:90%;height:160%;background:radial-gradient(closest-side,rgba(251,210,15,.13),transparent);pointer-events:none}
 .k .lb{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
 .k .lb svg{color:var(--y);font-size:22px}
-.k .v{display:inline-block;white-space:nowrap;font-family:var(--disp);font-size:84px;line-height:.95;margin-top:10px;font-weight:400;
-  background:linear-gradient(180deg,#fff 30%,#e9dcb0);-webkit-background-clip:text;background-clip:text;color:transparent}
-.k.hero .v{background:linear-gradient(180deg,#fff7c4 0%,var(--y) 55%,var(--gold));-webkit-background-clip:text;background-clip:text;text-shadow:none;filter:drop-shadow(0 6px 22px rgba(251,210,15,.28))}
+.k .v{display:inline-block;white-space:nowrap;font-family:var(--disp);font-size:66px;line-height:1;margin-top:12px;font-weight:400;color:#f5f2ea}
+.k.hero .v{filter:drop-shadow(0 6px 22px rgba(251,210,15,.22))}
 .k .v + .sub{margin-top:6px} .k .sub{display:flex;gap:14px;align-items:center;font-size:17px;color:var(--mt);margin-top:6px;white-space:nowrap}
 .wow{display:inline-flex;align-items:center;gap:4px;font-weight:700;padding:3px 10px;border-radius:999px;font-size:16px}
 .wow.up{color:var(--ok);background:rgba(61,220,151,.12)} .wow.dn{color:var(--bad);background:rgba(255,93,93,.12)} .wow.fl{color:var(--mt);background:rgba(255,255,255,.06)}
@@ -69,7 +70,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .ring svg{width:132px;height:132px;transform:rotate(-90deg)}
 .ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--disp);font-size:40px;font-weight:400}
 .goalk .gx{min-width:0}
-.goalk .gx .v{font-size:62px;margin-top:4px}
+.goalk .gx .v{font-size:52px;margin-top:6px}
 
 /* main stage */
 .main{position:absolute;left:48px;right:48px;top:326px;bottom:104px;z-index:2}
@@ -95,22 +96,45 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .row.p1{border-color:rgba(251,210,15,.45);box-shadow:0 0 30px rgba(251,210,15,.15)}
 .nm{flex:1;min-width:0;font-size:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nm small{font-size:15px;color:var(--dm);font-weight:500;margin-left:8px}
-.amt{font-family:var(--disp);font-size:30px;letter-spacing:.03em}
+.amt{font-family:var(--disp);font-size:27px;letter-spacing:.03em}
 .row.zero .amt,.row.zero .nm{color:var(--dm)}
 
 /* goal slide */
 .goalwrap{padding:46px 56px;height:calc(100% - 92px);display:flex;flex-direction:column;justify-content:center;gap:40px}
 .gbig{display:flex;align-items:baseline;gap:22px}
-.gbig .num{font-size:170px;line-height:.85;background:linear-gradient(180deg,#fff7c4,var(--y) 55%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 10px 40px rgba(251,210,15,.3))}
-.gbig span{font-size:40px;color:var(--mt)}
+.gbig .num{font-size:150px;line-height:1;filter:drop-shadow(0 10px 40px rgba(251,210,15,.25))}
+.gbig > span{font-size:40px;color:var(--mt)}
 .track{position:relative;height:56px;border-radius:30px;background:rgba(255,255,255,.06);border:1px solid var(--line);box-shadow:inset 0 4px 16px rgba(0,0,0,.6)}
 .track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:30px;background:linear-gradient(90deg,var(--gold),var(--y) 70%,#fff3a8);box-shadow:0 0 40px rgba(251,210,15,.45);transition:width 2s cubic-bezier(.2,.8,.2,1)}
 .track .pace{position:absolute;top:-22px;bottom:-22px;width:3px;background:var(--sky);box-shadow:0 0 14px var(--sky)}
 .track .pace b{position:absolute;top:-34px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:19px;color:var(--sky);letter-spacing:.08em;text-transform:uppercase}
 .gstats{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
 .gstat{padding:22px 26px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
-.gstat span{display:block;font-size:18px;color:var(--mt);letter-spacing:.1em;text-transform:uppercase}
+.gstat > span{display:block;font-size:18px;color:var(--mt);letter-spacing:.1em;text-transform:uppercase}
 .gstat b{font-family:var(--disp);font-weight:400;font-size:62px;line-height:1}
+
+/* split-flap numbers (TV_FLAP_v1) */
+.flap{display:inline-flex;gap:.05em;vertical-align:baseline;line-height:1;color:var(--fc,#f5f2ea);-webkit-text-fill-color:currentColor;font-family:var(--disp);font-weight:400}
+.fc{position:relative;display:inline-block;width:.6em;height:1.1em;border-radius:.07em;perspective:4em;
+  background:#0b0a0e;box-shadow:0 .05em .1em rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05)}
+.fc.p{width:.24em;background:none;box-shadow:none}
+.fc.p.wd{width:.44em}
+.fc.lt{width:.74em}
+.fc .h{position:absolute;left:0;right:0;height:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.fc .h>i{display:block;height:1.1em;line-height:1.12em;text-align:center;font-style:normal;text-shadow:0 0 .25em var(--fg,transparent)}
+.fc .tp{top:0;border-radius:.07em .07em 0 0;background:linear-gradient(180deg,#2a2930,#1b1a20)}
+.fc .bt{bottom:0;border-radius:0 0 .07em .07em;background:linear-gradient(180deg,#141318,#0f0e12)}
+.fc .bt>i{transform:translateY(-50%)}
+.fc.p .h{background:none}
+.fc::after{content:"";position:absolute;left:0;right:0;top:50%;height:.025em;min-height:1px;background:rgba(0,0,0,.85);box-shadow:0 1px 0 rgba(255,255,255,.05);z-index:4}
+.fc.p::after{display:none}
+.fc .ft{top:0;transform-origin:50% 100%;z-index:3;animation:flT var(--fs,.11s) ease-in forwards;background:linear-gradient(180deg,#2a2930,#1b1a20)}
+.fc .fb{bottom:0;transform-origin:50% 0;z-index:3;transform:rotateX(90deg);animation:flB var(--fs,.11s) var(--fs,.11s) ease-out forwards;background:linear-gradient(180deg,#141318,#0f0e12)}
+.fc .ft::after,.fc .fb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.45));pointer-events:none}
+@keyframes flT{to{transform:rotateX(-90deg)}}
+@keyframes flB{to{transform:rotateX(0)}}
+.flap.gold{--fc:#FBD20F;--fg:rgba(251,210,15,.45)}
+.flap.ok{--fc:var(--ok)} .flap.bad{--fc:var(--bad)}
 
 /* celebrations (TV_CEL_v2: lit panels, raised cards, tear-off dates, year medallions) */
 .cel{display:grid;grid-template-columns:1fr 1fr;gap:26px;height:calc(100% - 92px)}
@@ -215,7 +239,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .spot .who .tag{display:inline-flex;align-items:center;gap:10px;font-size:20px;letter-spacing:.16em;text-transform:uppercase;color:var(--y);font-weight:700}
 .spot .who h3{font-family:var(--disp);font-weight:400;font-size:104px;line-height:.95;margin:10px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spot .who .bu{font-size:26px;color:var(--mt)}
-.spot .who .amt{font-family:var(--disp);font-size:120px;line-height:1;margin-top:18px;background:linear-gradient(180deg,#fff7c4,var(--y) 55%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 8px 30px rgba(251,210,15,.3))}
+.spot .who .amt{font-family:var(--disp);font-size:104px;line-height:1;margin-top:18px;filter:drop-shadow(0 8px 30px rgba(251,210,15,.25))}
 .spot .side{display:flex;flex-direction:column;gap:26px}
 .spot .ru{flex:1;display:flex;align-items:center;gap:26px;padding:26px 32px}
 .av-md{width:120px;height:120px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--disp);font-size:54px;overflow:hidden}
@@ -223,9 +247,9 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .ru.s2 .av-md{background:radial-gradient(circle at 35% 30%,#fff,var(--silver) 60%,#8b8f9a);color:#16171b}
 .ru.s3 .av-md{background:radial-gradient(circle at 35% 30%,#ffd9b0,var(--bronze) 60%,#8a5228);color:#1b1006}
 .ru .w{min-width:0}
-.ru .w span{font-size:18px;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
+.ru .w > span{font-size:18px;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
 .ru .w b{display:block;font-size:40px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ru .w i{font-style:normal;font-family:var(--disp);font-size:56px;line-height:1}
+.ru .w > i{font-style:normal;font-family:var(--disp);font-size:56px;line-height:1}
 
 /* unit race */
 .race{display:flex;flex-direction:column;gap:12px}
@@ -328,6 +352,53 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     return '<span class="wow ' + cls + '">' + (cls === 'up' ? ic('up') : cls === 'dn' ? ic('dn') : '') + Math.abs(pct).toFixed(1) + '%</span><span>vs ' + (money ? fmtK(prev) : fmtN(prev)) + ' last wk</span>';
   };
 
+  /* ---------- split-flap numbers (TV_FLAP_v1) ---------- */
+  // fl(id, text, cls, mode) writes a placeholder; runFlaps(root, fromBlank) turns placeholders into flipping tiles.
+  // mode "cycle" rolls digits through 0-9 to the target; "once" does a single flip (used for long lists).
+  var FLAPMEM = {};
+  var fl = function (id, text, cls, mode) { return '<span class="flap' + (cls ? ' ' + cls : '') + '" data-fid="' + esc(id) + '" data-flap="' + esc(text) + '" data-mode="' + (mode || 'cycle') + '"></span>'; };
+  var isP = function (ch) { return !/[0-9A-Za-z%\-]/.test(ch); };
+  var face = function (ch) { ch = ch === ' ' ? '\u00a0' : esc(ch); return ch; };
+  var cellHtml = function (ch) { return '<span class="h tp"><i>' + face(ch) + '</i></span><span class="h bt"><i>' + face(ch) + '</i></span>'; };
+  var flipCell = function (cell, to, steps, delay, speed) {
+    var seq = [], from = cell.getAttribute('data-c') || ' ';
+    if (from === to) return;
+    if (steps && /[0-9]/.test(to)) { var a = /[0-9]/.test(from) ? +from : -1, b = +to; for (var k = a + 1; ; k++) { var d = ((k % 10) + 10) % 10; seq.push(String(d)); if (d === b || seq.length > 10) break; } }
+    else seq.push(to);
+    var i = 0, ms = speed || 110;
+    var step = function () {
+      var prev = cell.getAttribute('data-c') || ' ', next = seq[i++];
+      cell.style.setProperty('--fs', (ms / 1000) + 's');
+      cell.innerHTML = '<span class="h tp"><i>' + face(next) + '</i></span><span class="h bt"><i>' + face(prev) + '</i></span>' +
+        '<span class="h ft"><i>' + face(prev) + '</i></span><span class="h fb"><i>' + face(next) + '</i></span>';
+      cell.setAttribute('data-c', next);
+      setTimeout(function () { if (cell.getAttribute('data-c') === next) cell.innerHTML = cellHtml(next); if (i < seq.length) step(); }, ms * 2 + 10);
+    };
+    setTimeout(step, delay || 0);
+  };
+  var runFlaps = function (root, fromBlank, baseDelay) {
+    var list = (root || document).querySelectorAll('.flap[data-flap]');
+    Array.prototype.forEach.call(list, function (el, n) {
+      var to = el.getAttribute('data-flap'), id = el.getAttribute('data-fid'), mode = el.getAttribute('data-mode');
+      var prev = fromBlank ? '' : (FLAPMEM[id] || '');
+      FLAPMEM[id] = to;
+      var len = Math.max(to.length, prev.length);
+      var pad = function (t) { while (t.length < len) t = ' ' + t; return t; };
+      var P = pad(prev), T = to; while (T.length < len) T = ' ' + T;
+      el.innerHTML = '';
+      for (var i = 0; i < len; i++) {
+        var c = document.createElement('span');
+        c.className = 'fc' + (isP(T[i]) && isP(P[i]) ? ' p' + (/[$:]/.test(T[i] + P[i]) ? ' wd' : '') : (/[A-Z]/.test(T[i]) ? ' lt' : ''));
+        c.setAttribute('data-c', P[i]); c.innerHTML = cellHtml(P[i]);
+        el.appendChild(c);
+        if (P[i] !== T[i]) {
+          var d = (baseDelay || 0) + (mode === 'once' ? n * 25 + i * 35 : n * 120 + i * 70);
+          flipCell(c, T[i], mode !== 'once' && !isP(T[i]), d, mode === 'once' ? 95 : 85);
+        }
+      }
+    });
+  };
+
   /* ---------- route: TV (has key) vs admin setup ---------- */
   // A TV keeps its key in its own browser, so it comes back on its own after a restart.
   // Anyone signed in to HQ on this browser gets the setup page instead (unless the URL carries a key).
@@ -379,7 +450,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 
     stage.innerHTML =
       '<div class="top"><img src="' + LOGO + '" alt="Spark Companies"><div class="ttl"><b>THE PIT</b><span id="weLbl">Live scoreboard</span></div><div class="sp"></div>' +
-      '<div class="live" id="live"><i></i><span id="liveTx">Connecting</span></div><div class="clock"><b id="clk"></b><span id="dt"></span></div></div>' +
+      '<div class="live" id="live"><i></i><span id="liveTx">Connecting</span></div><div class="clock"><b id="clk"><span id="clkF"></span><small id="clkA"></small></b><span id="dt"></span></div></div>' +
       '<div class="kpis" id="kpis"></div>' +
       '<div class="dots" id="dots"></div>' +
       '<div class="main" id="main"></div>' +
@@ -390,7 +461,10 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     // clock
     var tickClock = function () {
       var d = new Date();
-      document.getElementById('clk').textContent = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      var hh = d.getHours() % 12 || 12, mm = ('0' + d.getMinutes()).slice(-2), tt = hh + ':' + mm;
+      var cf = document.getElementById('clkF');
+      if (cf.getAttribute('data-t') !== tt) { cf.setAttribute('data-t', tt); cf.innerHTML = fl('clock', tt); runFlaps(cf, false); }
+      document.getElementById('clkA').textContent = d.getHours() < 12 ? 'AM' : 'PM';
       document.getElementById('dt').textContent = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
       var newest = Math.max.apply(null, Object.keys(at).map(function (k) { return at[k]; }).concat([0]));
       var live = document.getElementById('live'), tx = document.getElementById('liveTx');
@@ -400,7 +474,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       tx.textContent = 'Live \u00b7 updated ' + (mins < 1 ? 'just now' : mins + ' min ago');
       live.classList.toggle('stale', anyErr || mins > 20);
     };
-    setInterval(tickClock, 15000); tickClock();
+    setInterval(tickClock, 5000); tickClock();
 
     // data
     var revoked = false;
@@ -436,14 +510,15 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var pct = g.pct == null ? 0 : g.pct, C = 2 * Math.PI * 56;
       var ahead = g.pct != null && g.pct >= g.pacePct;
       document.getElementById('kpis').innerHTML =
-        '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge \u00b7 week</div><div class="v">' + fmt$(c.charge.total) + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
-        '<div class="k"><div class="lb">' + ic('clock') + 'Hours billed</div><div class="v">' + fmtN(c.hours) + '</div><div class="sub">' + wow(c.hours, p.hours, false) + '</div></div>' +
-        '<div class="k"><div class="lb">' + ic('users') + 'Headcount</div><div class="v">' + fmtN(c.headcount) + '</div><div class="sub">' + wow(c.headcount, p.headcount, false) + '</div></div>' +
-        '<div class="k"><div class="lb">' + ic('handshake') + 'DH billed</div><div class="v">' + fmt$(c.charge.direct) + '</div><div class="sub">' + wow(c.charge.direct, p.direct, true) + '</div></div>' +
+        '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge \u00b7 week</div><div class="v">' + fl('k-charge', fmt$(c.charge.total), 'gold') + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
+        '<div class="k"><div class="lb">' + ic('clock') + 'Hours billed</div><div class="v">' + fl('k-hours', fmtN(c.hours)) + '</div><div class="sub">' + wow(c.hours, p.hours, false) + '</div></div>' +
+        '<div class="k"><div class="lb">' + ic('users') + 'Headcount</div><div class="v">' + fl('k-hc', fmtN(c.headcount)) + '</div><div class="sub">' + wow(c.headcount, p.headcount, false) + '</div></div>' +
+        '<div class="k"><div class="lb">' + ic('handshake') + 'DH billed</div><div class="v">' + fl('k-dh', fmt$(c.charge.direct)) + '</div><div class="sub">' + wow(c.charge.direct, p.direct, true) + '</div></div>' +
         '<div class="k"><div class="goalk"><div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/>' +
           '<circle cx="66" cy="66" r="56" stroke="url(#gg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(pct, 100) / 100).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
           '<defs><linearGradient id="gg"><stop offset="0" stop-color="#CC9F00"/><stop offset="1" stop-color="#FBD20F"/></linearGradient></defs></svg><b>' + Math.round(pct) + '%</b></div>' +
-          '<div class="gx"><div class="lb">' + ic('target') + 'Igniter \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
+          '<div class="gx"><div class="lb">' + ic('target') + 'Igniter \u00b7 YTD</div><div class="v">' + fl('k-ytd', fmtK(g.ytd), 'gold') + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
+      runFlaps(document.getElementById('kpis'), false);
       fitKpis(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitKpis);
     }
 
@@ -501,6 +576,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       cur = (i + slides.length) % slides.length;
       var secs = document.querySelectorAll('#main .slide');
       secs.forEach(function (s, k) { s.classList.toggle('on', k === cur); });
+      // Fresh slide: numbers fall in from blank. Same slide rebuilt by a data refresh: only changed digits flip.
+      if (secs[cur]) runFlaps(secs[cur], !keepTimer, keepTimer ? 0 : 450);
       var dots = document.querySelectorAll('#dots i');
       dots.forEach(function (d, k) { d.className = k < cur ? 'done' : k === cur ? 'on' : ''; d.style.setProperty('--dur', slides[k].dur + 's'); });
       if (keepTimer && timer) return;
@@ -523,11 +600,11 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     function slideSpot() {
       var c = D.core, s = c.spotlight || [], a = s[0];
       var side = s.slice(1).map(function (p, i) {
-        return '<div class="card ru s' + (i + 2) + '">' + avatar(p, 'av-md') + '<div class="w"><span>#' + (i + 2) + ' this week</span><b>' + esc(p.name) + '</b><i>' + fmt$(p.raw) + '</i></div></div>';
+        return '<div class="card ru s' + (i + 2) + '">' + avatar(p, 'av-md') + '<div class="w"><span>#' + (i + 2) + ' this week</span><b>' + esc(p.name) + '</b><i>' + fl('sp' + (i + 2), fmt$(p.raw)) + '</i></div></div>';
       }).join('');
       return '<div class="sh"><h2>' + ic('trophy') + 'Producer of the week</h2><span class="meta">' + weLabel(c.weekEnding) + '</span></div>' +
         '<div class="spot"' + (side ? '' : ' style="grid-template-columns:1fr"') + '><div class="card hero">' + avatar(a, 'av-xl') +
-        '<div class="who"><span class="tag">' + ic('star') + 'Number one</span><h3>' + esc(a.name) + '</h3><div class="bu">' + esc([a.title, a.bu].filter(Boolean).join(' \u00b7 ')) + '</div><div class="amt">' + fmt$(a.raw) + '</div></div></div>' +
+        '<div class="who"><span class="tag">' + ic('star') + 'Number one</span><h3>' + esc(a.name) + '</h3><div class="bu">' + esc([a.title, a.bu].filter(Boolean).join(' \u00b7 ')) + '</div><div class="amt">' + fl('sp1', fmt$(a.raw), 'gold') + '</div></div></div>' +
         (side ? '<div class="side">' + side + '</div>' : '') + '</div>';
     }
     function slideUnits() {
@@ -535,7 +612,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var lh = Math.max(38, Math.min(56, Math.floor((566 - (u.length - 1) * 12) / Math.max(1, u.length))));
       return '<div class="sh"><h2>' + ic('flame') + 'Business unit race</h2><span class="meta">' + weLabel(c.weekEnding) + ' \u00b7 charge, contract + DH</span></div>' +
         '<div class="race" style="--lh:' + lh + 'px">' + u.map(function (x, i) {
-          return '<div class="lane"><span class="n"><em>' + (i + 1) + '</em>' + esc(x.unit) + '</span><span class="t"><i style="width:' + Math.max(2, x.charge / max * 100).toFixed(1) + '%"></i></span><span class="a">' + fmt$(x.charge) + '</span></div>';
+          return '<div class="lane"><span class="n"><em>' + (i + 1) + '</em>' + esc(x.unit) + '</span><span class="t"><i style="width:' + Math.max(2, x.charge / max * 100).toFixed(1) + '%"></i></span><span class="a">' + (i < 10 ? fl('u' + i, fmt$(x.charge), '', 'once') : fmt$(x.charge)) + '</span></div>';
         }).join('') + '</div>';
     }
     function slideWelcome() {
@@ -552,7 +629,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var out = b.map(function (p, i) {
         var w = p.raw > 0 ? Math.max(3, p.raw / max * 100) : 0;
         return '<div class="row' + (i < 3 && p.raw > 0 ? ' p' + (i + 1) : '') + (p.raw <= 0 ? ' zero' : '') + '"><div class="bar" style="width:' + w.toFixed(1) + '%"></div><span class="rk">' + (i + 1) + '</span>' +
-          '<span class="nm">' + esc(p.name) + (cols <= 2 && p.bu ? '<small>' + esc(p.bu) + '</small>' : '') + '</span><span class="amt">' + (p.raw > 0 ? fmt$(p.raw) : '--') + '</span></div>';
+          '<span class="nm">' + esc(p.name) + (cols <= 2 && p.bu ? '<small>' + esc(p.bu) + '</small>' : '') + '</span><span class="amt">' + (p.raw > 0 ? (i < 15 ? fl(title + i, fmt$(p.raw), i === 0 ? 'gold' : '', 'once') : fmt$(p.raw)) : '--') + '</span></div>';
       }).join('');
       return '<div class="sh"><h2>' + ic('trophy') + esc(title) + '</h2><span class="meta">' + esc(meta) + '</span><span class="sp"></span><span class="chip">' + n + ' producers</span></div>' +
         '<div class="lbw" style="grid-template-rows:repeat(' + rows + ',auto);grid-template-columns:repeat(' + cols + ',1fr);row-gap:' + gap + 'px;--rh:' + rh + 'px">' + out + '</div>';
@@ -565,13 +642,13 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var weeksLeft = Math.max(1, Math.ceil((new Date(c.weekEnding.slice(0, 4) + '-12-31T12:00:00') - new Date(c.weekEnding + 'T12:00:00')) / (7 * 864e5)));
       var need = Math.max(0, ((g.annual || 0) - (g.ytd || 0)) / weeksLeft);
       return '<div class="sh"><h2>' + ic('target') + 'Road to Igniter</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company Igniter \u00b7 ' + fmtK(g.annual) + ' \u00b7 contract + DH</span></div>' +
-        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fmtK(g.ytd) + '</span><span>year to date \u00b7 ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% to Ignite</span></div>' +
+        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fl('g-ytd', fmtK(g.ytd), 'gold') + '</span><span>year to date \u00b7 ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% to Ignite</span></div>' +
         '<div class="track"><div class="fill" style="width:' + pct.toFixed(1) + '%"></div><div class="pace" style="left:' + pace.toFixed(1) + '%"><b>Pace ' + Math.round(pace) + '%</b></div></div>' +
         '<div class="gstats">' +
-          '<div class="gstat"><span>This week</span><b>' + fmtK(c.charge.total) + '</b></div>' +
-          '<div class="gstat"><span>Weekly Igniter pace</span><b>' + fmtK(g.weekly) + '</b></div>' +
-          '<div class="gstat"><span>' + (gap >= 0 ? 'Ahead of pace' : 'Behind pace') + '</span><b style="color:' + (gap >= 0 ? 'var(--ok)' : 'var(--bad)') + '">' + fmtK(Math.abs(gap)) + '</b></div>' +
-          '<div class="gstat"><span>Needed / week to finish</span><b>' + fmtK(need) + '</b></div>' +
+          '<div class="gstat"><span>This week</span><b>' + fl('g-wk', fmtK(c.charge.total)) + '</b></div>' +
+          '<div class="gstat"><span>Weekly Igniter pace</span><b>' + fl('g-pace', fmtK(g.weekly)) + '</b></div>' +
+          '<div class="gstat"><span>' + (gap >= 0 ? 'Ahead of pace' : 'Behind pace') + '</span><b style="color:' + (gap >= 0 ? 'var(--ok)' : 'var(--bad)') + '">' + fl('g-gap', fmtK(Math.abs(gap)), gap >= 0 ? 'ok' : 'bad') + '</b></div>' +
+          '<div class="gstat"><span>Needed / week to finish</span><b>' + fl('g-need', fmtK(need)) + '</b></div>' +
         '</div></div>';
     }
 
