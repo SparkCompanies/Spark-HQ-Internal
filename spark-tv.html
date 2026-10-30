@@ -417,7 +417,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         '<div class="k"><div class="goalk"><div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/>' +
           '<circle cx="66" cy="66" r="56" stroke="url(#gg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(pct, 100) / 100).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
           '<defs><linearGradient id="gg"><stop offset="0" stop-color="#CC9F00"/><stop offset="1" stop-color="#FBD20F"/></linearGradient></defs></svg><b>' + Math.round(pct) + '%</b></div>' +
-          '<div class="gx"><div class="lb">' + ic('target') + 'To goal \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
+          '<div class="gx"><div class="lb">' + ic('target') + 'To Igniter \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
       fitKpis(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitKpis);
     }
 
@@ -538,12 +538,12 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var paceAmt = (g.annual || 0) * (g.pacePct || 0) / 100, gap = (g.ytd || 0) - paceAmt;
       var weeksLeft = Math.max(1, Math.ceil((new Date(c.weekEnding.slice(0, 4) + '-12-31T12:00:00') - new Date(c.weekEnding + 'T12:00:00')) / (7 * 864e5)));
       var need = Math.max(0, ((g.annual || 0) - (g.ytd || 0)) / weeksLeft);
-      return '<div class="sh"><h2>' + ic('target') + 'Road to ' + fmtK(g.annual) + '</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company charge goal \u00b7 contract + DH</span></div>' +
-        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fmtK(g.ytd) + '</span><span>year to date \u00b7 ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% of goal</span></div>' +
+      return '<div class="sh"><h2>' + ic('target') + 'Road to Igniter</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company Igniter \u00b7 ' + fmtK(g.annual) + ' \u00b7 contract + DH</span></div>' +
+        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fmtK(g.ytd) + '</span><span>year to date \u00b7 ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% to Ignite</span></div>' +
         '<div class="track"><div class="fill" style="width:' + pct.toFixed(1) + '%"></div><div class="pace" style="left:' + pace.toFixed(1) + '%"><b>Pace ' + Math.round(pace) + '%</b></div></div>' +
         '<div class="gstats">' +
           '<div class="gstat"><span>This week</span><b>' + fmtK(c.charge.total) + '</b></div>' +
-          '<div class="gstat"><span>Weekly goal</span><b>' + fmtK(g.weekly) + '</b></div>' +
+          '<div class="gstat"><span>Weekly Igniter pace</span><b>' + fmtK(g.weekly) + '</b></div>' +
           '<div class="gstat"><span>' + (gap >= 0 ? 'Ahead of pace' : 'Behind pace') + '</span><b style="color:' + (gap >= 0 ? 'var(--ok)' : 'var(--bad)') + '">' + fmtK(Math.abs(gap)) + '</b></div>' +
           '<div class="gstat"><span>Needed / week to finish</span><b>' + fmtK(need) + '</b></div>' +
         '</div></div>';
