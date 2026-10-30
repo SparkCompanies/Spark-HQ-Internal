@@ -874,6 +874,7 @@ async function verifyUser(request, env) {
   const auth = request.headers.get("Authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { ok: false, reason: "No token" };
+  if (tvNonceOk(token)) return { ok: true, email: "tv-display@sparkcompanies.com" };
   const userResp = await fetch(env.SUPABASE_URL + "/auth/v1/user", {
     headers: { "Authorization": "Bearer " + token, "apikey": env.SUPABASE_PUBLISHABLE_KEY }
   });
@@ -888,6 +889,7 @@ async function verifyAdmin(request, env) {
   const auth = request.headers.get("Authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { ok: false, reason: "No token" };
+  if (tvNonceOk(token)) return { ok: true, email: "tv-display@sparkcompanies.com", role: "admin" };
   const userResp = await fetch(env.SUPABASE_URL + "/auth/v1/user", {
     headers: { "Authorization": "Bearer " + token, "apikey": env.SUPABASE_PUBLISHABLE_KEY }
   });
@@ -1966,10 +1968,267 @@ async function srleadRecordingSweep(env, opts) {
   return out;
 }
 
+// == TV_MODE_v1: office pit TV display ================================================
+// /tv-feed?key=<display key>&part=core|celebrate|floor|reqs   (no sign-in; key only)
+// /tv-displays  (GET list | POST {action:"create",name} | POST {action:"revoke",id})  charge admins only
+// Display keys live in pi_board_state under key "tv_displays" as SHA-256 hashes; the raw key is shown once.
+// The feed reuses the existing endpoints in-process with a one-time nonce that never leaves the isolate,
+// so the TV only ever receives the aggregated display numbers, never raw rows.
+var TV_ADMINS = ["aspegel@sparkcompanies.com", "mpatrico@sparkcompanies.com", "pmalani@sparkcompanies.com", "aopalewski@sparkcompanies.com", "eurisitti@sparkcompanies.com", "bnamma@sparkcompanies.com", "bnaama@sparkcompanies.com"];
+var TV_HIDE = { "aaron opalewski": 1, "ryan aymen": 1 };
+function tvNonceOk(tok) {
+  return typeof tok === "string" && tok.indexOf("tvint.") === 0 && !!(globalThis.__tvNonces && globalThis.__tvNonces.has(tok.slice(6)));
+}
+__name(tvNonceOk, "tvNonceOk");
+async function tvSha(s) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(s)));
+  return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+__name(tvSha, "tvSha");
+async function tvLoadDisplays(env) {
+  const r = await sbService(env, "GET", "pi_board_state?select=value&key=eq.tv_displays");
+  return (r.ok && r.data && r.data[0] && Array.isArray(r.data[0].value)) ? r.data[0].value : [];
+}
+__name(tvLoadDisplays, "tvLoadDisplays");
+async function tvSaveDisplays(env, list, by) {
+  return sbService(env, "POST", "pi_board_state?on_conflict=key", [{ key: "tv_displays", value: list, updated_at: new Date().toISOString(), updated_by: by }]);
+}
+__name(tvSaveDisplays, "tvSaveDisplays");
+async function tvInternal(path, env) {
+  const nonce = crypto.randomUUID();
+  if (!globalThis.__tvNonces) globalThis.__tvNonces = new Set();
+  globalThis.__tvNonces.add(nonce);
+  try {
+    const res = await worker_default.fetch(new Request("https://spark-hq-worker.internal" + path, { headers: { "Authorization": "Bearer tvint." + nonce } }), env);
+    let j = null; try { j = await res.json(); } catch (e) {}
+    return j || { ok: false, error: "no body (" + res.status + ")" };
+  } catch (e) {
+    return { ok: false, error: String(e && e.message || e) };
+  } finally {
+    globalThis.__tvNonces.delete(nonce);
+  }
+}
+__name(tvInternal, "tvInternal");
+// Most recent Sunday (America/Detroit) on or before today = the charge week the Charge tab opens to.
+function tvWeekEnding(offsetWeeks) {
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: "America/Detroit", year: "numeric", month: "2-digit", day: "2-digit" });
+  const p = {}; f.formatToParts(new Date()).forEach((x) => { if (x.type !== "literal") p[x.type] = parseInt(x.value, 10); });
+  const d = new Date(Date.UTC(p.year, p.month - 1, p.day, 12));
+  d.setUTCDate(d.getUTCDate() - d.getUTCDay() - 7 * (offsetWeeks || 0));
+  return d.toISOString().slice(0, 10);
+}
+__name(tvWeekEnding, "tvWeekEnding");
+
+async function tvCore(env) {
+  const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  const we = tvWeekEnding(0), prevWe = tvWeekEnding(1);
+  const H = await tvInternal("/charge-history", env);
+  if (!H || !H.ok) throw new Error("charge history: " + ((H && H.error) || "failed"));
+  const ents = {}; (H.units || []).forEach((u) => { if (u.is_entity) ents[u.unit] = 1; });
+  const locked = {}; (H.locks || []).forEach((l) => { if (l.locked) locked[l.week_ending] = 1; });
+  // Stored (frozen) totals per week: entity-level contract + direct, headcount = sum of every hc row.
+  const stored = {};
+  (H.unitWeeks || []).forEach((r) => {
+    const s = stored[r.week_ending] || (stored[r.week_ending] = { contract: 0, direct: 0, hc: 0, total: 0, hasTotal: false });
+    if (r.kind === "hc") s.hc += Number(r.charge) || 0;
+    else if (ents[r.unit] && (r.kind === "contract" || r.kind === "direct")) s[r.kind] += Number(r.charge) || 0;
+    else if (ents[r.unit] && r.kind === "total") { s.total += Number(r.charge) || 0; s.hasTotal = true; }
+  });
+  // Weeks imported from the old charge report carry one "total" row per entity instead of a contract/DH split.
+  const weekTotal = (s) => s.hasTotal ? Math.max(s.total, s.contract + s.direct) : s.contract + s.direct;
+  // Live engine for the week (hours always come from here; charge too when the week is not frozen yet).
+  const B = await tvInternal("/charge-batch?weekEnding=" + we, env);
+  const live = !locked[we];
+  let contract, direct, hc;
+  const hours = B && B.ok && B.summary ? r2(B.summary.totalHours) : null;
+  const people = {};
+  const addP = (n, raw) => { n = String(n || "").trim(); if (!n || /^house/i.test(n) || TV_HIDE[n.toLowerCase()]) return; people[n] = (people[n] || 0) + raw; };
+  if (live && B && B.ok) {
+    contract = r2(B.summary.totalCharge);
+    const hcSet = {}; (B.rows || []).forEach((row) => { if (row.candidate && Number(row.charge)) hcSet[row.candidate] = 1; });
+    hc = Object.keys(hcSet).length;
+    const pickC = (cr, re, fb) => { for (let i = 0; i < cr.length; i++) { if (re.test(String(cr[i].type || "").toLowerCase())) return cr[i].recipient || ""; } return (cr[fb] ? cr[fb].recipient : "") || ""; };
+    (B.rows || []).forEach((row) => {
+      const cr = row.credits || [], c = Number(row.charge) || 0;
+      const a = String(pickC(cr, /account|sales|full/, 0) || "").trim(), rr = String(pickC(cr, /recruit|full/, 1) || "").trim();
+      if (a && rr && a === rr) { addP(a, c); return; }
+      if (a) addP(a, c / 2);
+      if (rr) addP(rr, c / 2);
+    });
+    const D = await tvInternal("/charge-dh?weekEnding=" + we, env);
+    direct = D && D.ok ? r2(D.total) : 0;
+    if (D && D.ok) Object.keys(D.byPerson || {}).forEach((n) => { const p = D.byPerson[n]; addP(n, (Number(p.fd) || 0) + ((Number(p.sales) || 0) + (Number(p.rec) || 0)) / 2); });
+  } else {
+    const s = stored[we] || { contract: 0, direct: 0, hc: 0 };
+    contract = r2(s.contract); direct = r2(s.direct); hc = s.hc;
+    (H.personWeeks || []).filter((r) => r.week_ending === we).forEach((r) => {
+      const raw = r.raw != null ? Number(r.raw) : (Number(r.fd) || 0) + ((Number(r.sales) || 0) + (Number(r.rec) || 0)) / 2;
+      addP(r.person, raw);
+    });
+  }
+  // Every active producer shows, even at $0 for the week.
+  (H.people || []).forEach((p) => { if (p.active !== false && p.person && !(p.person in people)) addP(p.person, 0); });
+  const roster = {}; (H.people || []).forEach((p) => { roster[p.person] = p; });
+  const board = Object.keys(people).map((n) => ({ name: n, raw: r2(people[n]), bu: (roster[n] && (roster[n].bu || roster[n].entity)) || "" }))
+    .sort((a, b) => b.raw - a.raw || a.name.localeCompare(b.name));
+  // Goal: sum of entity-level annual "Igniter" targets; YTD = frozen weeks this year + the live week if not frozen yet.
+  const yr = we.slice(0, 4);
+  let goal = 0; (H.unitTargets || []).forEach((t) => { if (t.period === "annual" && ents[t.unit]) goal += Number(t.amount) || 0; });
+  let ytd = 0; Object.keys(stored).forEach((w) => { if (w.slice(0, 4) === yr && w <= we && !(live && w === we)) ytd += weekTotal(stored[w]); });
+  if (live) ytd += contract + direct;
+  const d0 = new Date(yr + "-01-01T12:00:00Z"), d1 = new Date(we + "T12:00:00Z");
+  const yearFrac = Math.min(1, Math.max(0, (d1 - d0) / 864e5 + 1) / 365);
+  // Week over week: previous week from the frozen books, hours from a cached engine run.
+  const ps = stored[prevWe] || null;
+  let prevHours = null;
+  try {
+    const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/tv-prevhours-" + prevWe);
+    const hit = await cache.match(ck);
+    if (hit) prevHours = (await hit.json()).hours;
+    else {
+      const PB = await tvInternal("/charge-batch?weekEnding=" + prevWe, env);
+      if (PB && PB.ok && PB.summary) {
+        prevHours = r2(PB.summary.totalHours);
+        await cache.put(ck, new Response(JSON.stringify({ hours: prevHours }), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=21600" } }));
+      }
+    }
+  } catch (e) {}
+  return {
+    weekEnding: we, live, prevWeekEnding: prevWe,
+    charge: { contract, direct, total: r2(contract + direct) },
+    hours, headcount: hc,
+    goal: { annual: r2(goal), ytd: r2(ytd), pct: goal > 0 ? r2(ytd / goal * 100) : null, pacePct: r2(yearFrac * 100), weekly: goal > 0 ? r2(goal / 52) : null },
+    prev: ps ? { total: r2(weekTotal(ps)), direct: r2(ps.direct), headcount: ps.hc, hours: prevHours } : (prevHours != null ? { hours: prevHours } : null),
+    board
+  };
+}
+__name(tvCore, "tvCore");
+
+async function tvCelebrate(env) {
+  const c = await tvInternal("/hq-celebrations", env);
+  if (!c || !c.ok) throw new Error((c && c.error) || "celebrations failed");
+  const slim = (x) => ({ name: x.name, company: x.company || "", day: x.day, today: !!x.today, past: !!x.past, years: x.years || null });
+  return { monthName: c.monthName, asOf: c.asOf, birthdays: (c.monthBirthdays || []).map(slim), anniversaries: (c.monthAnniversaries || []).map(slim) };
+}
+__name(tvCelebrate, "tvCelebrate");
+
+async function tvFloor(env) {
+  const [W, O, A, P] = await Promise.all([tvInternal("/sf-wins", env), tvInternal("/whos-out", env), tvInternal("/announcements", env), tvInternal("/pi-board", env)]);
+  const short = (n) => { const t = String(n || "").trim().split(/\s+/); return t.length > 1 ? t[0] + " " + t[t.length - 1].charAt(0) + "." : (t[0] || ""); };
+  const today = new Date(); const ago = new Date(today.getTime() - 7 * 864e5).toISOString().slice(0, 10), ahead = new Date(today.getTime() + 7 * 864e5).toISOString().slice(0, 10);
+  const starts = ((P && P.placements) || []).filter((p) => p.bpats__Start_Date__c && p.bpats__Start_Date__c >= ago && p.bpats__Start_Date__c <= ahead && !p.Terminated_Date__c)
+    .sort((a, b) => String(b.bpats__Start_Date__c).localeCompare(String(a.bpats__Start_Date__c)))
+    .slice(0, 25)
+    .map((p) => {
+      const j = p.bpats__ATS_Job__r || {};
+      return { who: short(p.bpats__ATS_Candidate__r && p.bpats__ATS_Candidate__r.Name), title: j.bpats__Job_Title__c || "", account: (p.bpats__Account__r && p.bpats__Account__r.Name) || "", recruiter: (j.Recruiter__r && j.Recruiter__r.Name) || "", date: p.bpats__Start_Date__c };
+    });
+  return {
+    wins: ((W && W.wins) || []).slice(0, 10).map((w) => ({ account: w.account, name: w.name, owner: w.owner, date: w.closeDate })),
+    starts,
+    out: ((O && O.out) || []).map((o) => ({ name: o.name, title: o.title || "", until: o.until })),
+    outError: O && !O.ok ? (O.error || "unavailable") : null,
+    announcements: ((A && A.rows) || []).slice(0, 6).map((a) => ({ title: a.title, body: String(a.body || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400), pinned: !!a.pinned }))
+  };
+}
+__name(tvFloor, "tvFloor");
+
+async function tvReqs(env) {
+  const P = await tvInternal("/pi-board", env);
+  if (!P || !P.ok) throw new Error((P && P.error) || "plug-in board failed");
+  const CLOSED = /reject|declin|withdr|closed|not selected|dnq|do not/i;
+  const inproc = (name, type) => { const s = (String(name || "") + " " + String(type || "")).toLowerCase(); return /onboard|pending|offer|interview|submit|submittal|client review|sent to client/.test(s) && !/place|hired|start/.test(s); };
+  const pipe = {};
+  (P.applicants || []).forEach((a) => {
+    if (CLOSED.test(String(a.bpats__Applicant_Status__c || ""))) return;
+    const st = a.bpats__Stage__r || {};
+    if (inproc(st.Name || a.Stage_name__c, st.bpats__Stage_Type__c)) pipe[a.bpats__Job__c] = (pipe[a.bpats__Job__c] || 0) + 1;
+  });
+  const now = Date.now();
+  const rows = (P.jobs || []).map((j) => {
+    const open = Math.max(0, (Number(j.bpats__Number_of_Openings__c) || 0) - (Number(j.bpats__Openings_Filled__c) || 0));
+    const p = pipe[j.Id] || 0;
+    return {
+      title: j.bpats__Job_Title__c || j.Name, account: j.bpats__Account_Name__c || "", location: j.bpats__Location__c || "",
+      bu: j.Subdivision__c || "", recruiter: (j.Recruiter__r && j.Recruiter__r.Name) || (j.Account_Manager__r && j.Account_Manager__r.Name) || (j.Owner && j.Owner.Name) || "",
+      open, inProcess: p, gap: open - p,
+      days: j.CreatedDate ? Math.max(0, Math.floor((now - Date.parse(j.CreatedDate)) / 864e5)) : null
+    };
+  }).filter((r) => r.open > 0);
+  // "Hot" = most unfilled seats with the thinnest in-process pipeline, opened in the last 90 days (older reqs are usually stale).
+  const hot = rows.filter((r) => r.days == null || r.days <= 90);
+  hot.sort((a, b) => b.gap - a.gap || b.open - a.open || (a.days || 0) - (b.days || 0));
+  return { totalOpenReqs: rows.length, totalOpenings: rows.reduce((s, r) => s + r.open, 0), hot: hot.slice(0, 10) };
+}
+__name(tvReqs, "tvReqs");
+
+var TV_PARTS = { core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 } };
+
+async function tvHandle(request, env, url, origin) {
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
+  if (url.pathname === "/tv-feed") {
+    const key = String(url.searchParams.get("key") || "").trim();
+    if (key.length < 20) return json({ error: "display key required" }, 401, origin);
+    const h = await tvSha(key);
+    const list = await tvLoadDisplays(env);
+    const d = list.find((x) => x && x.hash === h && x.active !== false);
+    if (!d) return json({ error: "This TV link was revoked or is not valid" }, 401, origin);
+    const part = String(url.searchParams.get("part") || "core");
+    const P = TV_PARTS[part];
+    if (!P) return json({ error: "unknown part" }, 400, origin);
+    const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/tv-feed-v1-" + part);
+    const hit = await cache.match(ck);
+    if (hit) { const hh = new Headers(hit.headers); Object.entries(corsHeaders(origin)).forEach(([k, v]) => hh.set(k, v)); return new Response(hit.body, { status: 200, headers: hh }); }
+    try {
+      const data = await P.fn(env);
+      const body = JSON.stringify({ ok: true, part, asOf: new Date().toISOString(), data });
+      try { await cache.put(ck, new Response(body, { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=" + P.ttl } })); } catch (e) {}
+      // Light "last seen" stamp, at most every 10 minutes per display.
+      if (!d.seen || Date.now() - Date.parse(d.seen) > 6e5) { d.seen = new Date().toISOString(); try { await tvSaveDisplays(env, list, "tv:" + (d.name || "display")); } catch (e) {} }
+      return new Response(body, { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
+    } catch (e) {
+      return json({ ok: false, part, error: String(e && e.message || e).slice(0, 300) }, 502, origin);
+    }
+  }
+  if (url.pathname === "/tv-displays") {
+    const who = await verifyUser(request, env);
+    if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
+    const email = String(who.email || "").toLowerCase();
+    if (TV_ADMINS.indexOf(email) === -1) return json({ error: "Only charge admins can manage TV displays" }, 403, origin);
+    const list = await tvLoadDisplays(env);
+    const pub = (x) => ({ id: x.id, name: x.name, active: x.active !== false, created_by: x.created_by, created_at: x.created_at, seen: x.seen || null, revoked_at: x.revoked_at || null });
+    if (request.method === "GET") return json({ ok: true, displays: list.map(pub) }, 200, origin);
+    if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
+    const body = await request.json().catch(() => ({}));
+    if (body.action === "create") {
+      const name = String(body.name || "").trim().slice(0, 60) || "Pit TV";
+      const bytes = crypto.getRandomValues(new Uint8Array(24));
+      const key = btoa(String.fromCharCode.apply(null, Array.from(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const row = { id: crypto.randomUUID(), name, hash: await tvSha(key), active: true, created_by: email, created_at: new Date().toISOString() };
+      list.push(row);
+      const s = await tvSaveDisplays(env, list, email);
+      if (!s.ok) return json({ error: "could not save display" }, 502, origin);
+      return json({ ok: true, display: pub(row), key }, 200, origin);
+    }
+    if (body.action === "revoke") {
+      const row = list.find((x) => x.id === body.id);
+      if (!row) return json({ error: "not found" }, 404, origin);
+      row.active = false; row.revoked_at = new Date().toISOString(); row.revoked_by = email;
+      const s = await tvSaveDisplays(env, list, email);
+      return json({ ok: s.ok }, s.ok ? 200 : 502, origin);
+    }
+    return json({ error: "unknown action" }, 400, origin);
+  }
+  return null;
+}
+__name(tvHandle, "tvHandle");
+// == /TV_MODE_v1 ======================================================================
+
 var worker_default = {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const url = new URL(request.url);
+    if (url.pathname === "/tv-feed" || url.pathname === "/tv-displays") { const tvR = await tvHandle(request, env, url, origin); if (tvR) return tvR; }
     if (url.pathname === "/intake/preview") {
       const key = url.searchParams.get("key") || "";
       if (!env.AZ_TENANT_ID || key !== env.AZ_TENANT_ID) return json({ error: "Unauthorized" }, 401, origin);
