@@ -1031,10 +1031,10 @@ function rDH(){
   var pm=D.dh.filter(function(d){return d.st!=='falloff'&&PM_RE.test(d.cl||'')});
   act=act.filter(function(d){return !PM_RE.test(d.cl||'')});
   done=done.filter(function(d){return !PM_RE.test(d.cl||'')});
-  var totP=D.dh.filter(function(d){return d.ch>0}).reduce(function(s,d){return s+d.ch},0);
+  var totP=D.dh.filter(function(d){return d.ch>0}).reduce(function(s,d){return s+d.ch},0);var totN=D.dh.reduce(function(s,d){return s+(Number(d.ch)||0)},0);
   var h='<div class="st">Direct Hire Tracker</div>';
-  h+='<div class="g g4" style="margin-bottom:16px">';
-  [['Active',act.length,'var(--blu)'],['Completed',done.length,'var(--grn)'],['Fall-Offs / CNs',fo.length,'var(--red)'],['Positive DH Charge',fmt(totP),'var(--y)']].forEach(function(k){
+  h+='<div class="g g5" style="margin-bottom:16px">';
+  [['Active',act.length,'var(--blu)'],['Completed',done.length,'var(--grn)'],['Fall-Offs / CNs',fo.length,'var(--red)'],['Positive DH Charge',fmt(totP),'var(--tx)'],['Net DH Charge',fmt(totN),'var(--y)']].forEach(function(k){
     h+='<div class="cd" style="padding:16px 20px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.8px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:23px;font-weight:800;margin-top:4px;color:'+k[2]+'">'+k[1]+'</div></div>'});
   h+='</div>';
   function dhTable(rows,title,color){
@@ -1512,11 +1512,11 @@ window.SPARK_LIVE = (function () {
       if (dcur && dcur.drops && dcur.drops.length) {
         D.dh = dcur.drops.map(function (d) {
           var wk = parseInt(d.drop, 10) || 1, of = parseInt(String(d.drop).split('of')[1], 10) || 1;
-          return { en: d.entity, bu: d.bu, cl: d.company, sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: d.amount, wk: wk, of: of, rem: d.remaining, emp: d.employee + (d.split || d.pairSplit ? ' · split' : ''), st: d.remaining > 0 ? 'active' : 'done' };
+          return { en: d.entity, bu: d.bu, cl: d.company, sr: d.sales_rep || '—', rc: d.recruiter || '—', ch: d.amount, wk: wk, of: of, rem: d.remaining, emp: d.employee + (d.split || d.pairSplit ? ' · split' : ''), st: (Number(d.amount) || 0) < 0 ? 'falloff' : d.remaining > 0 ? 'active' : 'done' };
         });
       } else {
         D.dh = (H.dh || []).map(function (r) {
-          return { en: r.entity, bu: r.bu, cl: r.company, sr: r.sales_rep, rc: r.recruiter, ch: Math.round(Number(r.charge) || 0), wk: Number(r.week_num) || 0, of: Number(r.of_weeks) || 0, rem: Number(r.weeks_remaining) || 0, emp: r.employee, st: (Number(r.weeks_remaining) || 0) > 0 ? 'active' : 'done' };
+          return { en: r.entity, bu: r.bu, cl: r.company, sr: r.sales_rep, rc: r.recruiter, ch: Math.round(Number(r.charge) || 0), wk: Number(r.week_num) || 0, of: Number(r.of_weeks) || 0, rem: Number(r.weeks_remaining) || 0, emp: r.employee, st: (Number(r.charge) || 0) < 0 ? 'falloff' : (Number(r.weeks_remaining) || 0) > 0 ? 'active' : 'done' };
         });
       }
       D.bda = MOCK.bda; D.cbd = MOCK.cbd;
