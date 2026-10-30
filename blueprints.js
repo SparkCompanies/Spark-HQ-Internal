@@ -31,7 +31,8 @@
     rules: null, rulesAt: "", rulesBy: "", list: [],
     view: "list", filter: "all", q: "",
     cur: null, curId: null, curStatus: "draft", dirty: false, activeGroup: 0, saving: false, msg: "",
-    rulesDraft: null, rulesLine: "", rulesRole: "", skLine: "", skAllUn: false, kitGoals: true
+    rulesDraft: null, rulesLine: "", rulesRole: "", skLine: "", skAllUn: false, kitGoals: true,
+    panel: "details", zoom: null  /* CANVAS_v1: which tool panel is open beside the page, and the page zoom */
   };
 
   /* ---------- helpers ---------- */
@@ -655,7 +656,10 @@
     check: "M5 12.5l4.5 4.5L19 7", sliders: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
     reset: "M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5", doc: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5",
     map: "M9 3L3 6v15l6-3 6 3 6-3V3l-6 3zM9 3v15M15 6v15", link: "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",
-    users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"
+    users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+    person: "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10", target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4",
+    tag: "M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01", route: "M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 15V9a4 4 0 0 1 4-4h6",
+    chart: "M3 3v18h18M18 17V9M13 17V5M8 17v-3", minus: "M5 12h14"
   };
   function ic(n, cls) { return '<svg class="bp-i ' + (cls || "") + '" viewBox="0 0 24 24" aria-hidden="true"><path d="' + I[n] + '"/></svg>'; }
 
@@ -908,6 +912,35 @@
     ".bp-seg{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}",
     ".bp-rbar{position:sticky;bottom:0;display:flex;gap:8px;align-items:center;padding:12px 0;background:#F7F5EF;border-top:1px solid #E9E4D8}",
     ".bp-rbar .msg{font-size:12.5px;color:#8a8576;margin-right:auto}",
+    /* CANVAS_v1: tool rail + panel on the left, the page on a canvas, producers filmstrip + zoom underneath */
+    ".bp:has(.bp-cv){max-width:none;padding:28px 24px 16px}",
+    ".bp-cv{display:grid;grid-template-columns:76px minmax(300px,380px) minmax(0,1fr);height:calc(100vh - 150px);min-height:560px;border:1px solid #E9E4D8;border-radius:16px;overflow:hidden;background:#fff}",
+    ".bp-rail{display:flex;flex-direction:column;gap:4px;padding:10px 8px;border-right:1px solid #E9E4D8;background:#fff;overflow-y:auto}",
+    ".bp-rail button{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px;border:0;border-radius:12px;background:transparent;color:#5f5a4d;font:600 11px Outfit,Inter,sans-serif;cursor:pointer;flex:none}",
+    ".bp-rail button:hover{background:#F4F1E9}.bp-rail button.on{background:#111;color:#FFC800}",
+    ".bp-rail .bp-i{width:20px;height:20px}",
+    ".bp-rail em{position:absolute;top:4px;right:8px;min-width:17px;height:17px;border-radius:9px;background:#d0452c;color:#fff;font:700 10px/17px Outfit,Inter,sans-serif;font-style:normal;padding:0 4px}",
+    ".bp-pnl{overflow-y:auto;padding:18px 18px 28px;border-right:1px solid #E9E4D8;background:#fff;min-width:0}",
+    ".bp-pnl .bp-f{grid-template-columns:1fr}.bp-pnl .bp-sec:last-child{border-bottom:0;margin-bottom:0}",
+    ".bp-pnl-h{font-size:15px;font-weight:800;margin:0 0 12px;color:#111}",
+    ".bp-board{display:flex;flex-direction:column;min-width:0;min-height:0;background:#E9E4D8}",
+    ".bp-stage{flex:1;min-height:0;overflow:auto;padding:36px 32px 48px;background-image:radial-gradient(#CFC6B2 1px,transparent 1px);background-size:18px 18px;display:flex;justify-content:center;align-items:flex-start}",
+    ".bp-board .bp-prevwrap{position:relative;top:auto;width:739px;min-height:1010px;flex:none}",
+    ".bp-prevwrap .op-head,.bp-prevwrap .op-tiles,.bp-prevwrap .op-strip,.bp-prevwrap .op-extra,.bp-prevwrap .op-sec{cursor:pointer;outline:2px solid transparent;outline-offset:3px;transition:outline-color .12s}",
+    ".bp-prevwrap .op-tiles:hover,.bp-prevwrap .op-strip:hover,.bp-prevwrap .op-extra:hover,.bp-prevwrap .op-sec:hover,.bp-prevwrap .op-head:hover{outline-color:rgba(255,200,0,.55)}",
+    ".bp-prevwrap .bp-on{outline-color:#FFC800!important}",
+    ".bp-pgend{position:absolute;left:-14px;right:-14px;top:974px;border-top:2px dashed #C9A227;pointer-events:none}",
+    ".bp-pgend span{position:absolute;right:0;top:6px;font-size:12px;font-weight:700;background:#F7F5EF;padding:2px 8px;border-radius:6px;white-space:nowrap}",
+    ".bp-prevwrap.over .bp-pgend{border-top-color:#d0452c}",
+    ".bp-strip{display:flex;align-items:center;gap:16px;padding:8px 16px;background:#fff;border-top:1px solid #E9E4D8;flex:none}",
+    ".bp-strip .lab{display:flex;flex-direction:column;flex:none;font-size:12px;color:#7a7566}.bp-strip .lab b{font-size:13px;color:#111}",
+    ".bp-strip .rol{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0;padding:4px}",
+    ".bp-strip .th{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:transparent;cursor:pointer;padding:6px 8px;border-radius:10px;font:600 11px Outfit,Inter,sans-serif;color:#3d3a2e;flex:none}",
+    ".bp-strip .th:hover{background:#F4F1E9}.bp-strip .th.on{background:#FFF6D6;box-shadow:inset 0 0 0 2px #FFC800}",
+    ".bp-strip .zm{display:flex;align-items:center;gap:6px;flex:none}.bp-strip .zm b{min-width:44px;text-align:center;font-size:13px}",
+    ".bp-chkpill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid #f3c3bb;background:#fdecea;color:#a3341f;font:700 12.5px Outfit,Inter,sans-serif;cursor:pointer}",
+    ".bp-chkpill.ok{border-color:#cfe6d6;background:#eef7f1;color:#2f7a4a;cursor:default}",
+    "@media(max-width:1100px){.bp-cv{grid-template-columns:1fr;height:auto}.bp-rail{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid #E9E4D8}.bp-rail button{min-width:64px}.bp-pnl{border-right:0}.bp-stage{min-height:70vh}.bp-strip{flex-wrap:wrap}}",
     "@media(max-width:1100px){.bp-ed{grid-template-columns:1fr}.bp-prevwrap{position:static}}",
     "@media(max-width:720px){.bp{padding:18px 16px 80px}.bp-top{margin-top:-18px}.bp-f{grid-template-columns:1fr}.op-cols,.op-terr{grid-template-columns:1fr}.bp-btn{white-space:normal}.bp-sec h4{flex-wrap:wrap}.bp-rt{min-width:640px}}"
   ].join("\n");
@@ -1258,7 +1291,8 @@
     h += "</div>";
     var ae = document.activeElement, keep = ae && root.contains(ae) && ae.getAttribute("data-k") ? { k: ae.getAttribute("data-k"), s: ae.selectionStart, e: ae.selectionEnd } : null;
     root.innerHTML = h;
-    fitNote();
+    if (S.view === "edit" && S.zoom == null) setZoom(fitZoom());
+    fitNote(); markSel();
     if (keep) { var el = root.querySelector('[data-k="' + keep.k + '"]'); if (el) { el.focus(); try { if (keep.s != null) el.setSelectionRange(keep.s, keep.e); } catch (e) {} } }
   }
   function hero() {
@@ -1352,18 +1386,19 @@
     var std = standardKpis(d.role, d.serviceLine);
     var stLabel = S.curStatus === "published" ? "Published" : S.curStatus === "imported" ? "Imported from Word" : "Draft";
     var h = '<div class="bp-top"><button class="bp-btn ghost" data-act="back" title="All blueprints">' + ic("back") + "</button>" +
-      '<div class="who">' + avatar(d, d.name) + "<div><b>" + esc(d.name || "New blueprint") + '</b><div class="bp-st"><span class="bp-dot ' + (S.curStatus === "published" ? "pub" : S.curStatus === "draft" ? "draft" : "") + '"></span>' + esc(stLabel) + ' · <span class="msg">' + esc(S.msg || (S.dirty ? "Unsaved changes" : "All changes saved")) + "</span></div></div></div>" +
+      '<div class="who">' + avatar(d, d.name) + "<div><b>" + esc(d.name || "New blueprint") + '</b><div class="bp-st"><span class="bp-dot ' + (S.curStatus === "published" ? "pub" : S.curStatus === "draft" ? "draft" : "") + '"></span>' + esc(stLabel) + ' · <span class="msg">' + esc(S.msg || (S.dirty ? "Unsaved changes" : "All changes saved")) + "</span></div></div></div>" + "<!--bpchk-->" +
       (S.curId && d.name ? '<button class="bp-btn sm" data-act="link" title="Copy a link to this blueprint">' + ic("link") + "Link</button>" : "") +
       '<button class="bp-btn sm" data-act="print">' + ic("print") + "PDF</button>" +
       '<button class="bp-btn sm" data-act="word">' + ic("word") + "Word</button>" +
       (S.curId ? '<button class="bp-btn sm" data-act="dup" title="Duplicate">' + ic("copy") + '</button><button class="bp-btn sm danger" data-act="del" title="Delete">' + ic("trash") + "</button>" : "") +
       '<button class="bp-btn" data-act="save" ' + (S.saving ? "disabled" : "") + ">Save draft</button>" +
       '<button class="bp-btn gold" data-act="publish" ' + (S.saving ? "disabled" : "") + ">" + ic("check") + (S.curStatus === "published" ? "Update" : "Publish") + "</button></div>";
-    h += '<div class="bp-ed"><div>';
+    var top = h; h = "";  /* CANVAS_v1: the form is split into tool panels; the page is the canvas */
     (d.flags || []).forEach(function (f, i) { h += '<div class="bp-flag">' + ic("alert") + "<div>" + esc(f) + '</div><button class="bp-btn sm" data-act="unflag" data-i="' + i + '">Resolved</button></div>'; });
     if (d.kitNote) h += '<div class="bp-note gold">' + ic("sliders") + "<div><b>" + (d.kitNote.isNew ? "Added from" : "Changed by") + " Fletcher's " + esc(fmtDate(d.kitNote.src + "T12:00:00")) + " update.</b>" + (d.kitNote.changes || []).map(function (c) { return '<div style="margin-top:3px">' + esc(c) + "</div>"; }).join("") + '</div><button class="bp-btn sm" data-act="kitok">Got it</button></div>';
     var curB = S.curId && S.list.filter(function (x) { return x.id === S.curId; })[0];
     if (curB && needsReprint(curB)) h += '<div class="bp-note">' + ic("print") + "<div><b>Reprint.</b> This blueprint or the rules changed after the last PDF (" + esc(fmtDate(d.printedAt)) + ").</div></div>";
+    var chk = h; h = "";
     // 1 team member
     var sy = sync(d), m365 = "";
     if (DIR && sy) {
@@ -1374,6 +1409,7 @@
         '<div class="bp-hint" style="margin-top:6px">If 365 is the one that\'s wrong, fix it on the Directory tab.</div></div>' + (sy.issues.length > 1 ? '<button class="bp-btn sm" data-act="use365all">Use all</button>' : "") + "</div>";
       else m365 = '<div class="bp-hint ok" style="margin:0 0 12px">' + ic("check") + "Matches Microsoft 365 (" + esc(sy.p.email) + ")" + (sy.blankMgr ? " · no manager set in 365" : "") + (sy.blankTitle ? " · no title set in 365" : "") + "</div>";
     }
+    if (DIR && sy && (sy.state !== "ok" || sy.issues.length)) chk += m365;
     if (d.inactive) m365 = '<div class="bp-note">' + ic("users") + '<div><b>Marked inactive.</b> This blueprint is in Inactive blueprints.</div><button class="bp-btn sm" style="margin-left:auto" data-act="setactive">Make active</button></div>' + m365;
     else if (!(sy && sy.state === "left")) m365 += '<div style="text-align:right;margin:-4px 0 8px"><button class="bp-btn sm ghost" data-act="setinactive" title="Use when they\'ve left but are still in 365, or never had an account">Mark inactive</button></div>';
     h += '<div class="bp-sec">' + secH(1, "Team member") + m365 + '<div class="bp-f">' +
@@ -1403,13 +1439,16 @@
       '<label class="bp-chk" style="align-self:end;padding-bottom:9px"><input type="checkbox" data-f="dhFocused"' + (d.dhFocused ? " checked" : "") + "> Direct hire focused</label></div>" +
       (d.serviceLine ? '<div class="bp-hint">Targets from the rules: <b>' + money(L.direct) + "</b> direct hire · <b>" + (L.charge != null ? money(L.charge) : "case by case") + "</b> weekly charge · standard headcount <b>" + (L.hc != null ? L.hc : "—") + "</b></div>" +
         (L.note ? '<div class="bp-note" style="margin-bottom:0">' + ic("alert") + "<div>" + esc(L.note) + "</div></div>" : "") : "") + "</div>";
+    var P = { details: h }; h = "";
     // 4 goals
     var same = std.length && JSON.stringify(std) === JSON.stringify(d.kpis), gapN = startsGap(d);
     if (gapN) h += '<div class="bp-flag">' + ic("alert") + "<div><b>No weekly starts goal.</b> The standard for " + esc(d.serviceLine) + " is " + gapN + " starts per week (Oct 26 leadership meeting).</div>" + '<button class="bp-btn sm" data-act="addstarts">Add ' + gapN + " starts per week</button></div>";
+    if (gapN) chk += '<div class="bp-flag">' + ic("alert") + "<div><b>No weekly starts goal.</b> The standard for " + esc(d.serviceLine) + " is " + gapN + ' starts per week.</div><button class="bp-btn sm" data-act="addstarts">Add it</button></div>';
     if (d.serviceLine === "Light Industrial" && (d.kpis || []).some(function (x) { return /submi(t|ss)/i.test(x); })) h += '<div class="bp-note">' + ic("alert") + "<div>Light Industrial is measured in starts, not submittals. Consider replacing the submittal goal.</div></div>";
     h += '<div class="bp-sec">' + secH(4, "Weekly goals") + listEditor("kpis", d.kpis, "Add a goal, e.g. 10 submissions per week") +
       (std.length ? (same ? '<div class="bp-hint ok">' + ic("check") + "Matches the standard for " + esc(roleShort(d.role)) + " · " + esc(d.serviceLine) + "</div>"
         : '<div class="bp-hint">Differs from the standard for ' + esc(roleShort(d.role)) + " · " + esc(d.serviceLine) + '<button class="bp-btn sm" data-act="stdkpi">' + ic("reset") + "Use standard</button></div>") : "") + "</div>";
+    P.goals = h; h = "";
     // 5 skillsets + titles
     var sel = allTitles(d), lib = titleLib(d, R), hasSk = !!skillsOf(), nPick = coreOf(d).length + subOf(d).length;
     var lq = (S.libQ || "").toLowerCase(), shown = lib.filter(function (t) { return !lq || t.toLowerCase().indexOf(lq) >= 0; });
@@ -1428,6 +1467,7 @@
         (more ? '<button class="bp-chip sug" data-act="libmore">+ ' + (shown.length - LIM) + " more</button>" : "") + "</div>";
     } else h += '<div class="op-empty">' + (hasSk ? "Pick skillsets above to see their Salesforce titles." : "Pick a service line to see its titles.") + "</div>";
     h += '<div class="bp-add"><input data-k="customTitle" id="bpCustomTitle" placeholder="Title not in the library? Type it and press Enter"><button class="bp-btn sm ghost" data-act="addgrp" title="Split titles into groups">' + ic("plus") + "Group</button></div></div>";
+    P.titles = h; h = "";
     // 6 contacts
     var sug = []; S.list.forEach(function (b) { var x = b.data || {}; if (x.serviceLine === d.serviceLine) (x.contacts || []).forEach(function (c) { if (sug.indexOf(c) < 0 && (d.contacts || []).indexOf(c) < 0) sug.push(c); }); });
     if (!ownsAccounts(d)) h += '<div class="bp-sec">' + secH(6, "Target customer contacts") + '<div class="bp-hint" style="margin-top:0">Recruiters don\'t carry target accounts, so this section isn\'t on their page. It shows for Account Recruiting Managers and Business Development.</div>';
@@ -1438,6 +1478,7 @@
     if (sug.length) h += '<div class="bp-hint">Used on other ' + esc(d.serviceLine) + ' blueprints</div><div class="bp-chips" style="margin-top:6px">' + sug.slice(0, 8).map(function (c) { return '<button class="bp-chip sug" data-act="addsug" data-t="' + esc(c) + '">' + ic("plus") + esc(c) + "</button>"; }).join("") + "</div>";
     }
     h += "</div>";
+    P.contacts = h; h = "";
     // 7 s4 + notes
     var s4same = JSON.stringify(d.s4) === JSON.stringify(S.rules.s4);
     h += '<div class="bp-sec">' + secH(7, "S4 process", s4same ? "" : '<button class="bp-btn sm" data-act="stds4">' + ic("reset") + "Reset to standard</button>") + listEditor("s4", d.s4, "Add a step", true) + "</div>";
@@ -1449,11 +1490,47 @@
           '<input data-k="rx' + i + '" data-act="road" data-i="' + i + '" data-p="text" value="' + esc(st.text) + '">' +
           '<button class="bp-x" title="Remove" data-act="roadrm" data-i="' + i + '">' + ic("x") + "</button></div>";
       }).join("") + '</div><div class="bp-add"><button class="bp-btn sm" data-act="roadadd">' + ic("plus") + "Add a stop</button></div></div>";
+    P.process = h; h = "";
     h += '<div class="bp-sec">' + secH(9, "Notes") + '<div class="bp-f"><label class="full"><textarea data-k="notes" data-f="notes" placeholder="Anything else for this seat (optional)">' + esc(d.notes || "") + "</textarea></label></div></div>";
-    h += "</div>";
-    h += '<div class="bp-prevwrap">' + (S.curId ? scorecard(d, S.actWeek) : "") + '<div class="bp-prevlab"><span>Live preview</span><span class="bp-fit"></span></div>' + onePager(d) + "</div>";
-    h += "</div>";
-    return h;
+    P.notes = h;
+    var nChk = (chk.match(/class="bp-(flag|note)/g) || []).length;
+    P.checks = '<div class="bp-pnl-h">Checks</div>' + (chk || '<div class="bp-hint ok" style="margin:0">' + ic("check") + "Nothing to fix on this blueprint.</div>");
+    P.week = '<div class="bp-pnl-h">This week</div>' + (S.curId ? scorecard(d, S.actWeek) : '<div class="bp-hint" style="margin:0">Save the blueprint to see this week\'s Salesforce numbers.</div>');
+    var pn = P[S.panel] != null ? S.panel : "details";
+    var tools = [["details", "person", "Details"], ["goals", "target", "Goals"], ["titles", "tag", "Titles"], ["contacts", "users", "Contacts"], ["process", "route", "Process"], ["notes", "doc", "Notes"], ["checks", "alert", "Checks"], ["week", "chart", "This week"]];
+    var rail = '<nav class="bp-rail" aria-label="Blueprint tools">' + tools.map(function (x) {
+      return '<button class="' + (x[0] === pn ? "on" : "") + '" data-act="panel" data-p="' + x[0] + '">' + ic(x[1]) + "<span>" + x[2] + "</span>" + (x[0] === "checks" && nChk ? "<em>" + nChk + "</em>" : "") + "</button>";
+    }).join("") + "</nav>";
+    var mates = S.list.filter(function (b) { return !isInactive(b) && (b.data || {}).serviceLine === d.serviceLine; });
+    var strip = '<div class="bp-strip"><div class="lab"><b>' + esc(d.serviceLine || "No service line") + "</b><span>" + mates.length + " blueprint" + (mates.length === 1 ? "" : "s") + '</span></div><div class="rol">' + mates.map(function (b) {
+      return '<button class="th' + (b.id === S.curId ? " on" : "") + '" data-act="stripopen" data-id="' + esc(b.id) + '" title="' + esc(b.name) + '">' + avatar(b.data, b.name) + "<span>" + esc(String(b.name || "").split(" ")[0]) + "</span></button>";
+    }).join("") + '</div><div class="zm"><button class="bp-btn sm" data-act="zoom" data-z="-1" aria-label="Zoom out">' + ic("minus") + '</button><b class="bp-zl">' + Math.round((S.zoom || 1) * 100) + '%</b><button class="bp-btn sm" data-act="zoom" data-z="1" aria-label="Zoom in">' + ic("plus") + '</button><button class="bp-btn sm" data-act="zoom" data-z="fit">Fit</button><button class="bp-btn sm" data-act="zoom" data-z="100">100%</button></div></div>';
+    var pill = nChk ? '<button class="bp-chkpill" data-act="panel" data-p="checks">' + ic("alert") + nChk + (nChk === 1 ? " check" : " checks") + "</button>" : '<span class="bp-chkpill ok">' + ic("check") + "All clear</span>";
+    return top.replace("<!--bpchk-->", pill) + '<div class="bp-cv">' + rail + '<aside class="bp-pnl">' + P[pn] + "</aside>" +
+      '<section class="bp-board" aria-label="Blueprint page"><div class="bp-stage"><div class="bp-prevwrap" style="zoom:' + (S.zoom || 1) + '">' + onePager(d) + '<div class="bp-pgend"><span class="bp-fit"></span></div></div></div>' + strip + "</section></div>";
+  }
+  var BLOCKS = ".bp-prevwrap .op-head,.bp-prevwrap .op-tiles,.bp-prevwrap .op-strip,.bp-prevwrap .op-extra,.bp-prevwrap .op-sec";
+  function blockPanel(el) {
+    var c = String(el.className || "");
+    if (/op-head/.test(c)) return "details";
+    if (/op-tiles|op-strip|op-extra/.test(c)) return "goals";
+    var hd = el.querySelector(".op-nh,.op-hd"), t = hd ? hd.textContent : "";
+    if (/territory/i.test(t)) return "details";
+    if (/contact/i.test(t)) return "contacts";
+    if (/s4|daily road/i.test(t)) return "process";
+    if (/notes/i.test(t)) return "notes";
+    if (/title|skillset/i.test(t)) return "titles";
+    return null;
+  }
+  function markSel() { if (!root) return; Array.prototype.forEach.call(root.querySelectorAll(BLOCKS), function (el) { el.classList.toggle("bp-on", blockPanel(el) === S.panel); }); }
+  function fitZoom() {
+    var st = root && root.querySelector(".bp-stage"); if (!st) return 0.8;
+    var z = Math.min((st.clientWidth - 64) / 739, (st.clientHeight - 60) / 1002);
+    return Math.max(0.4, Math.min(1.5, Math.floor(z * 20) / 20));
+  }
+  function setZoom(z) {
+    S.zoom = z; var pw = root && root.querySelector(".bp-prevwrap"), zl = root && root.querySelector(".bp-zl");
+    if (pw) pw.style.zoom = z; if (zl) zl.textContent = Math.round(z * 100) + "%";
   }
   function roleShort(r) { return r === "Account Recruiting Manager (ARM)" ? "ARM" : r || ""; }
   function listEditor(key, arr, ph, numbered) {
@@ -1585,6 +1662,8 @@
     }).catch(function (e) { S.saving = false; flash(e.message); });
   }
   function onClick(e) {
+    var blk = e.target.closest && e.target.closest(BLOCKS);
+    if (blk && root.contains(blk)) { var bp = blockPanel(blk); if (bp && bp !== S.panel) { S.panel = bp; render(); var pl = root.querySelector(".bp-pnl"); if (pl) pl.scrollTop = 0; } return; }
     var t = e.target.closest("[data-act]"); if (!t || !root.contains(t)) return;
     var act = t.getAttribute("data-act"), d = S.cur;
     if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT") { if (act !== "grp") return; }
@@ -1603,6 +1682,9 @@
       case "stdkpi": d.kpis = standardKpis(d.role, d.serviceLine); touch(); break;
       case "stds4": d.s4 = clone(S.rules.s4); touch(); break;
       case "addstarts": addStarts(d); touch(); break;
+      case "panel": S.panel = t.getAttribute("data-p"); render(); var pl2 = root.querySelector(".bp-pnl"); if (pl2) pl2.scrollTop = 0; break;
+      case "zoom": var zz = t.getAttribute("data-z"); setZoom(zz === "100" ? 1 : zz === "fit" ? fitZoom() : Math.max(0.4, Math.min(1.5, Math.round((S.zoom + (+zz) * 0.1) * 10) / 10))); break;
+      case "stripopen": var sid = t.getAttribute("data-id"); if (sid === S.curId) break; if (!confirmLeave()) return; var sb = S.list.filter(function (x) { return x.id === sid; })[0]; if (sb) openBlueprint(sb); break;
       case "actwk": S.actWeek = t.getAttribute("data-w"); render(); break;
       case "oct26rules": applyOct26Rules(); render(); break;
       case "oct26bulk": bulkStarts(); break;
@@ -1713,6 +1795,7 @@
     if (!root) return;
     var op = root.querySelector(".bp-prevwrap .op"), lab = root.querySelector(".bp-fit"); if (!op || !lab) return;
     var page = 10.15 / 7.7, ratio = op.offsetHeight / Math.max(1, op.offsetWidth);
+    var pw = op.parentNode; if (pw && pw.classList) pw.classList.toggle("over", ratio > page);
     if (ratio <= page) { lab.textContent = "Fits on one page"; lab.style.color = "#2f7a4a"; }
     else { var pct = Math.round(page / ratio * 100); lab.textContent = "Prints on one page at " + pct + "% size" + (pct < 80 ? ", consider trimming" : ""); lab.style.color = pct < 80 ? "#a3341f" : "#8a8576"; }
   }
@@ -1720,7 +1803,7 @@
     clearTimeout(softT);
     softT = setTimeout(function () {
       if (rules) { var m = root.querySelector(".bp-rbar .msg"), btn = root.querySelector('[data-act="rsave"]'); var ch = JSON.stringify(S.rulesDraft) !== JSON.stringify(S.rules); if (m) m.textContent = ch ? "Unsaved rule changes" : "Rules match what's saved"; if (btn) btn.disabled = !ch; return; }
-      var pv = root.querySelector(".bp-prevwrap .op"); if (pv) { pv.outerHTML = onePager(S.cur); fitNote(); }
+      var pv = root.querySelector(".bp-prevwrap .op"); if (pv) { pv.outerHTML = onePager(S.cur); fitNote(); markSel(); }
       var ms = root.querySelector(".bp-top .msg"); if (ms) ms.textContent = "Unsaved changes";
     }, 120);
   }
