@@ -1031,10 +1031,10 @@ function rDH(){
   var pm=D.dh.filter(function(d){return d.st!=='falloff'&&PM_RE.test(d.cl||'')});
   act=act.filter(function(d){return !PM_RE.test(d.cl||'')});
   done=done.filter(function(d){return !PM_RE.test(d.cl||'')});
-  var totP=D.dh.filter(function(d){return d.ch>0}).reduce(function(s,d){return s+d.ch},0);var totN=D.dh.reduce(function(s,d){return s+(Number(d.ch)||0)},0);
+  var totN=D.dh.reduce(function(s,d){return s+(Number(d.ch)||0)},0);
   var h='<div class="st">Direct Hire Tracker</div>';
-  h+='<div class="g g5" style="margin-bottom:16px">';
-  [['Active',act.length,'var(--blu)'],['Completed',done.length,'var(--grn)'],['Fall-Offs / CNs',fo.length,'var(--red)'],['Positive DH Charge',fmt(totP),'var(--tx)'],['Net DH Charge',fmt(totN),'var(--y)']].forEach(function(k){
+  h+='<div class="g g4" style="margin-bottom:16px">';
+  [['Active',act.length,'var(--blu)'],['Completed',done.length,'var(--grn)'],['Fall-Offs / CNs',fo.length,'var(--red)'],['Net DH Charge',fmt(totN),'var(--y)']].forEach(function(k){
     h+='<div class="cd" style="padding:16px 20px"><div style="font-size:8px;color:var(--dm);text-transform:uppercase;letter-spacing:1.8px;font-weight:700">'+k[0]+'</div><div class="m" style="font-size:23px;font-weight:800;margin-top:4px;color:'+k[2]+'">'+k[1]+'</div></div>'});
   h+='</div>';
   function dhTable(rows,title,color){
