@@ -112,22 +112,48 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .gstat span{display:block;font-size:18px;color:var(--mt);letter-spacing:.1em;text-transform:uppercase}
 .gstat b{font-family:var(--disp);font-weight:400;font-size:62px;line-height:1}
 
-/* celebrations */
+/* celebrations (TV_CEL_v2: lit panels, raised cards, tear-off dates, year medallions) */
 .cel{display:grid;grid-template-columns:1fr 1fr;gap:26px;height:calc(100% - 92px)}
-.cel .card{padding:24px 28px;overflow:hidden;position:relative}
-.cel h3{display:flex;align-items:center;gap:12px;font-family:var(--disp);font-weight:400;font-size:42px;letter-spacing:.05em;margin-bottom:14px}
-.cel h3 svg{color:var(--y);font-size:36px}
-.cel .list{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
-.cp{display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.035)}
-.cp .d{width:58px;height:58px;border-radius:14px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,rgba(251,210,15,.22),rgba(251,210,15,.05));border:1px solid rgba(251,210,15,.3)}
-.cp .d b{font-family:var(--disp);font-weight:400;font-size:32px;line-height:.9}
-.cp .d i{font-style:normal;font-size:12px;letter-spacing:.12em;color:var(--mt)}
-.cp .w{min-width:0}
-.cp .w b{display:block;font-size:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cel .card{position:relative;overflow:hidden;padding:26px 30px;isolation:isolate;
+  background:linear-gradient(165deg,rgba(255,255,255,.085),rgba(255,255,255,.015) 60%),repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 2px,transparent 2px 9px),#0e0d12;
+  box-shadow:0 30px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.14),inset 0 -1px 0 rgba(0,0,0,.6)}
+.cel .card::before{content:"";position:absolute;z-index:-1;width:900px;height:620px;left:-260px;top:-360px;border-radius:50%;background:radial-gradient(closest-side,var(--glow),transparent 72%)}
+.cel .card::after{content:"";position:absolute;z-index:-1;inset:auto -120px -220px auto;width:520px;height:420px;border-radius:50%;background:radial-gradient(closest-side,var(--glow2),transparent 70%)}
+.cel .bday{--glow:rgba(255,107,43,.30);--glow2:rgba(251,210,15,.14);--tab1:#ff8a4c;--tab2:#e2541f}
+.cel .anniv{--glow:rgba(251,210,15,.30);--glow2:rgba(108,196,255,.12);--tab1:#ffe066;--tab2:#c99a06}
+.cel .bok{position:absolute;z-index:-1;border-radius:50%;filter:blur(2px);opacity:.55;animation:bok 14s ease-in-out infinite alternate}
+.cel .bok.a{width:14px;height:14px;left:72%;top:18%;background:var(--tab1)}
+.cel .bok.b{width:8px;height:8px;left:86%;top:46%;background:#fff;animation-duration:11s}
+.cel .bok.c{width:20px;height:20px;left:64%;top:78%;background:var(--tab2);opacity:.35;animation-duration:17s}
+.cel .bok.d{width:6px;height:6px;left:93%;top:12%;background:#fff;animation-duration:9s}
+@keyframes bok{from{transform:translate(0,0)}to{transform:translate(-26px,-34px)}}
+.cel h3{display:flex;align-items:center;gap:16px;font-family:var(--disp);font-weight:400;font-size:46px;letter-spacing:.05em;margin-bottom:18px}
+.cel h3 .ico{width:62px;height:62px;border-radius:18px;display:grid;place-items:center;font-size:34px;color:#1a1407;
+  background:linear-gradient(160deg,var(--tab1),var(--tab2));box-shadow:0 10px 26px rgba(0,0,0,.5),0 0 30px var(--glow),inset 0 2px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.25)}
+.cel h3 .ct{margin-left:auto;font-family:Jost,sans-serif;font-size:18px;letter-spacing:.12em;color:var(--mt);font-weight:600}
+.cel .list{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px}
+.cp{position:relative;display:flex;align-items:center;gap:16px;padding:12px 14px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02));
+  box-shadow:0 12px 24px rgba(0,0,0,.45),0 2px 4px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.12);transition:transform .6s}
+.cp .d{width:66px;height:70px;border-radius:12px;flex:none;overflow:hidden;display:flex;flex-direction:column;background:linear-gradient(180deg,#fbf7ec,#e4dccb);
+  box-shadow:0 8px 16px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.4) inset;transform:perspective(300px) rotateX(6deg)}
+.cp .d i{display:block;font-style:normal;font-size:13px;font-weight:700;letter-spacing:.14em;text-align:center;padding:4px 0 3px;color:#fff;
+  background:linear-gradient(180deg,var(--tab1),var(--tab2));box-shadow:0 2px 3px rgba(0,0,0,.25)}
+.cp .d b{flex:1;display:grid;place-items:center;font-family:var(--disp);font-weight:400;font-size:38px;line-height:1;color:#1b1813;
+  background:linear-gradient(180deg,transparent 49%,rgba(0,0,0,.08) 50%,transparent 53%)}
+.cp .w{min-width:0;flex:1}
+.cp .w b{display:block;font-size:23px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cp .w span{font-size:16px;color:var(--mt)}
-.cp.past{opacity:.5}
-.cp.today{background:linear-gradient(90deg,rgba(251,210,15,.25),rgba(251,210,15,.06));box-shadow:0 0 0 2px rgba(251,210,15,.6),0 0 34px rgba(251,210,15,.3)}
-.cp.today .w span{color:var(--y);font-weight:700}
+.cp .yr{width:58px;height:58px;border-radius:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:.9;color:#1a1407;
+  background:radial-gradient(circle at 35% 30%,#fff3a8,var(--y) 50%,var(--gold));box-shadow:0 0 0 3px rgba(251,210,15,.25),0 8px 18px rgba(0,0,0,.5),inset 0 -4px 8px rgba(0,0,0,.2)}
+.cp .yr b{font-family:var(--disp);font-weight:400;font-size:30px}
+.cp .yr i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.12em}
+.cp.past{opacity:.42;filter:saturate(.3)}
+.cp.today{transform:translateY(-4px) scale(1.02);background:linear-gradient(120deg,rgba(251,210,15,.28),rgba(255,107,43,.12) 60%,rgba(255,255,255,.04));
+  box-shadow:0 0 0 2px rgba(251,210,15,.75),0 0 46px rgba(251,210,15,.38),0 20px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.25);overflow:hidden}
+.cp.today::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);transform:translateX(-120%);animation:shine 3.2s ease-in-out infinite}
+@keyframes shine{0%,40%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.cp.today .w span{color:var(--y);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .empty{color:var(--dm);font-size:22px;padding:20px 4px}
 
 /* reqs */
@@ -417,7 +443,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         '<div class="k"><div class="goalk"><div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/>' +
           '<circle cx="66" cy="66" r="56" stroke="url(#gg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(pct, 100) / 100).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
           '<defs><linearGradient id="gg"><stop offset="0" stop-color="#CC9F00"/><stop offset="1" stop-color="#FBD20F"/></linearGradient></defs></svg><b>' + Math.round(pct) + '%</b></div>' +
-          '<div class="gx"><div class="lb">' + ic('target') + 'To Igniter \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
+          '<div class="gx"><div class="lb">' + ic('target') + 'Igniter \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
       fitKpis(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitKpis);
     }
 
@@ -552,8 +578,9 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     function slideCelebrate() {
       var c = D.celebrate, mon = (c.monthName || '').slice(0, 3).toUpperCase();
       var cell = function (x, kind) {
-        var sub = x.today ? (kind === 'b' ? 'Today!' : x.years + ' years today!') : (kind === 'b' ? (x.company || 'Birthday') : x.years + ' year' + (x.years === 1 ? '' : 's') + (x.company ? ' \u00b7 ' + x.company : ''));
-        return '<div class="cp' + (x.today ? ' today' : x.past ? ' past' : '') + '"><div class="d"><i>' + mon + '</i><b>' + x.day + '</b></div><div class="w"><b>' + esc(x.name) + '</b><span>' + esc(sub) + '</span></div></div>';
+        var sub = x.today ? (kind === 'b' ? 'Happy birthday today' : 'Anniversary today') : (x.company || (kind === 'b' ? 'Birthday' : 'Work anniversary'));
+        return '<div class="cp' + (x.today ? ' today' : x.past ? ' past' : '') + '"><div class="d"><i>' + mon + '</i><b>' + x.day + '</b></div><div class="w"><b>' + esc(x.name) + '</b><span>' + esc(sub) + '</span></div>' +
+          (kind === 'a' && x.years ? '<div class="yr"><b>' + x.years + '</b><i>' + (x.years === 1 ? 'YR' : 'YRS') + '</i></div>' : '') + '</div>';
       };
       var col = function (arr, kind, maxN) {
         if (!arr.length) return '<div class="empty">None this month</div>';
@@ -561,9 +588,11 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         var pick = up.concat(past).slice(0, maxN).sort(function (a, b) { return a.day - b.day; });
         return '<div class="list">' + pick.map(function (x) { return cell(x, kind); }).join('') + '</div>' + (arr.length > maxN ? '<div class="empty" style="padding-top:10px">+' + (arr.length - maxN) + ' more this month</div>' : '');
       };
+      var bok = '<i class="bok a"></i><i class="bok b"></i><i class="bok c"></i><i class="bok d"></i>';
+      var b = c.birthdays || [], a = c.anniversaries || [];
       return '<div class="sh"><h2>' + ic('star') + 'Celebrating in ' + esc(c.monthName) + '</h2></div>' +
-        '<div class="cel"><div class="card"><h3>' + ic('cake') + 'Birthdays</h3>' + col(c.birthdays || [], 'b', 14) + '</div>' +
-        '<div class="card"><h3>' + ic('award') + 'Work anniversaries</h3>' + col(c.anniversaries || [], 'a', 14) + '</div></div>';
+        '<div class="cel"><div class="card bday">' + bok + '<h3><span class="ico">' + ic('cake') + '</span>Birthdays<span class="ct">' + b.length + ' this month</span></h3>' + col(b, 'b', 12) + '</div>' +
+        '<div class="card anniv">' + bok + '<h3><span class="ico">' + ic('award') + '</span>Work anniversaries<span class="ct">' + a.length + ' this month</span></h3>' + col(a, 'a', 12) + '</div></div>';
     }
 
     function slideReqs() {
