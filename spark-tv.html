@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* TV_MODE_v1 — office pit TV display. Stage is a fixed 1920x1080 canvas scaled to fit any screen. */
+/* TV_MODE_v1 - office pit TV display. Stage is a fixed 1920x1080 canvas scaled to fit any screen. */
 :root{
   --bg:#07070a; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.075); --line:rgba(255,255,255,.09);
   --tx:#f5f2ea; --mt:#a9a39a; --dm:#6f6a63;
@@ -178,6 +178,59 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .tick .run svg{color:var(--y);margin-right:8px}
 @keyframes run{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 
+/* spotlight */
+.spot{display:grid;grid-template-columns:1.35fr 1fr;gap:26px;height:calc(100% - 92px)}
+.spot .hero{position:relative;overflow:hidden;display:flex;align-items:center;gap:48px;padding:40px 56px}
+.spot .hero::before{content:"";position:absolute;inset:-40%;background:radial-gradient(closest-side,rgba(251,210,15,.22),transparent 70%);left:-30%;top:-50%;pointer-events:none}
+.av-xl{position:relative;width:300px;height:300px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--disp);font-size:130px;color:#1a1407;
+  background:radial-gradient(circle at 35% 30%,#fff3a8,var(--y) 55%,var(--gold));box-shadow:0 0 0 8px rgba(251,210,15,.25),0 0 80px rgba(251,210,15,.45),inset 0 -10px 30px rgba(0,0,0,.25);overflow:hidden}
+.av-xl img{width:100%;height:100%;object-fit:cover}
+.spot .who{position:relative;min-width:0}
+.spot .who .tag{display:inline-flex;align-items:center;gap:10px;font-size:20px;letter-spacing:.16em;text-transform:uppercase;color:var(--y);font-weight:700}
+.spot .who h3{font-family:var(--disp);font-weight:400;font-size:104px;line-height:.95;margin:10px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spot .who .bu{font-size:26px;color:var(--mt)}
+.spot .who .amt{font-family:var(--disp);font-size:120px;line-height:1;margin-top:18px;background:linear-gradient(180deg,#fff7c4,var(--y) 55%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 8px 30px rgba(251,210,15,.3))}
+.spot .side{display:flex;flex-direction:column;gap:26px}
+.spot .ru{flex:1;display:flex;align-items:center;gap:26px;padding:26px 32px}
+.av-md{width:120px;height:120px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--disp);font-size:54px;overflow:hidden}
+.av-md img{width:100%;height:100%;object-fit:cover}
+.ru.s2 .av-md{background:radial-gradient(circle at 35% 30%,#fff,var(--silver) 60%,#8b8f9a);color:#16171b}
+.ru.s3 .av-md{background:radial-gradient(circle at 35% 30%,#ffd9b0,var(--bronze) 60%,#8a5228);color:#1b1006}
+.ru .w{min-width:0}
+.ru .w span{font-size:18px;color:var(--mt);letter-spacing:.12em;text-transform:uppercase}
+.ru .w b{display:block;font-size:40px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ru .w i{font-style:normal;font-family:var(--disp);font-size:56px;line-height:1}
+
+/* unit race */
+.race{display:flex;flex-direction:column;gap:12px}
+.lane{display:grid;grid-template-columns:330px 1fr 190px;align-items:center;gap:22px;height:var(--lh,48px)}
+.lane .n{font-size:24px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:12px}
+.lane .n em{font-style:normal;font-family:var(--disp);font-size:24px;color:var(--mt);width:30px}
+.lane .t{position:relative;height:60%;border-radius:999px;background:rgba(255,255,255,.05);overflow:hidden;box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
+.lane .t i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--y));box-shadow:0 0 24px rgba(251,210,15,.35);transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.lane:first-child .t i{background:linear-gradient(90deg,var(--gold),var(--y) 70%,#fff3a8)}
+.lane .a{font-family:var(--disp);font-size:36px;text-align:right}
+
+/* welcome */
+.welc{display:grid;grid-template-columns:repeat(var(--wc,3),1fr);gap:26px}
+.welc .card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 28px;gap:14px}
+.welc .av-md{width:170px;height:170px;font-size:72px;background:radial-gradient(circle at 35% 30%,#fff3a8,var(--y) 55%,var(--gold));color:#1a1407;box-shadow:0 0 50px rgba(251,210,15,.35)}
+.welc b{font-size:38px;font-weight:600}
+.welc span{font-size:22px;color:var(--mt)}
+.welc em{font-style:normal;font-size:19px;color:var(--y);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+
+/* pairing screen */
+.pair{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;text-align:center;z-index:9}
+.pair img{height:110px;filter:drop-shadow(0 6px 30px rgba(251,210,15,.3))}
+.pair h1{font-family:var(--disp);font-weight:400;font-size:64px;letter-spacing:.06em}
+.pair .code{display:flex;gap:18px}
+.pair .code b{width:150px;height:190px;border-radius:24px;display:grid;place-items:center;font-family:var(--disp);font-weight:400;font-size:160px;
+  background:linear-gradient(170deg,rgba(255,255,255,.1),rgba(255,255,255,.02));border:1px solid rgba(251,210,15,.45);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px rgba(251,210,15,.18);color:var(--y)}
+.pair .code b:nth-child(3){margin-right:36px}
+.pair p{font-size:30px;color:var(--mt);line-height:1.5;max-width:1300px}
+.pair p strong{color:var(--tx)}
+.pair small{font-size:20px;color:var(--dm)}
+
 /* gate / admin */
 .gate{position:absolute;inset:0;display:grid;place-items:center;z-index:9}
 .gate .box{width:880px;padding:56px;text-align:center}
@@ -200,6 +253,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 #admin .newkey{margin-top:16px;padding:16px;border-radius:12px;background:rgba(251,210,15,.08);border:1px solid rgba(251,210,15,.35);word-break:break-all}
 #admin .newkey code{display:block;margin:8px 0 12px;font-size:14px;color:var(--y)}
 #admin a{color:var(--y)}
+#admin input.code{width:200px;font-size:28px;letter-spacing:.3em;text-align:center;font-weight:700}
+#admin .ok{margin-top:14px;color:var(--ok);font-weight:600}
 </style>
 </head>
 <body>
@@ -213,7 +268,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
   var SB_URL = 'https://rdyzvohphrmkkowdsoam.supabase.co';
   var SB_KEY = 'sb_publishable_F1SY19w16Y4Frjd3C9RSGQ_6v4DmiO5';
   var LOGO = 'brand/spark-companies-reversed.svg';
-  var REFRESH = { core: 5, floor: 5, reqs: 10, celebrate: 60 }; // minutes
+  var REFRESH = { core: 5, floor: 5, reqs: 10, celebrate: 60, team: 60 }; // minutes
+  var LS = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
 
   /* ---------- helpers ---------- */
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -247,11 +303,46 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
   };
 
   /* ---------- route: TV (has key) vs admin setup ---------- */
-  var key = (function () {
-    var m = /[#&?]key=([A-Za-z0-9_-]{20,})/.exec(location.hash + '&' + location.search);
-    return m ? m[1] : null;
-  })();
-  if (key) tv(); else admin();
+  // A TV keeps its key in its own browser, so it comes back on its own after a restart.
+  // Anyone signed in to HQ on this browser gets the setup page instead (unless the URL carries a key).
+  var hasHqSession = (function () { try { var v = JSON.parse(LS('spark_hq_sb_auth') || 'null'); var s = v && (v.currentSession || v); return !!(s && s.access_token); } catch (e) { return false; } })();
+  var urlKey = (function () { var m = /[#&?]key=([A-Za-z0-9_-]{20,})/.exec(location.hash + '&' + location.search); return m ? m[1] : null; })();
+  var wantsSetup = /[#&?]setup/.test(location.hash + location.search);
+  var key = urlKey || (!hasHqSession && !wantsSetup ? LS('spark_tv_key') : null);
+  if (urlKey && !hasHqSession) LS('spark_tv_key', urlKey);
+  if (key) tv(); else if (hasHqSession || wantsSetup) admin(); else pair();
+
+  /* ================================================================= PAIRING (TV with no key yet) */
+  function pair() {
+    var stage = document.getElementById('stage');
+    stage.hidden = false;
+    var fit = function () { var s = Math.min(innerWidth / 1920, innerHeight / 1080); stage.style.transform = 'translate(' + ((innerWidth - 1920 * s) / 2) + 'px,' + ((innerHeight - 1080 * s) / 2) + 'px) scale(' + s + ')'; };
+    addEventListener('resize', fit); fit();
+    var pid = LS('spark_tv_pid');
+    if (!pid || !/^[A-Za-z0-9_-]{24,64}$/.test(pid)) {
+      var b = new Uint8Array(24); crypto.getRandomValues(b);
+      pid = Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+      LS('spark_tv_pid', pid);
+    }
+    var draw = function (code, msg) {
+      var digits = String(code || '------').split('').map(function (d) { return '<b>' + esc(d) + '</b>'; }).join('');
+      stage.innerHTML = '<div class="pair"><img src="' + LOGO + '" alt="Spark Companies"><h1>Connect this TV</h1><div class="code">' + digits + '</div>' +
+        '<p>On a computer signed in to HQ, go to <strong>hq.sparktalentinc.com/tv</strong><br>and type this code under <strong>Pair a TV</strong>.</p><small>' + esc(msg || 'Waiting for a code\u2026') + '</small></div>';
+    };
+    var start = function () {
+      draw(null, 'Getting a code\u2026');
+      return fetch(WORKER + '/tv-pair?pid=' + pid, { method: 'POST' }).then(function (r) { return r.json(); })
+        .then(function (j) { if (!j.ok) throw new Error(j.error || 'failed'); draw(j.code, 'Code is good for 15 minutes. This screen updates by itself.'); })
+        .catch(function () { draw(null, 'Can\u2019t reach HQ right now. Trying again\u2026'); setTimeout(start, 15000); });
+    };
+    var poll = function () {
+      fetch(WORKER + '/tv-pair?pid=' + pid, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.key) { LS('spark_tv_key', j.key); LS('spark_tv_pid', null); location.replace(location.pathname); return; }
+        if (j.expired) start();
+      }).catch(function () {});
+    };
+    start(); setInterval(poll, 3000);
+  }
 
   /* ================================================================= TV */
   function tv() {
@@ -268,7 +359,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       '<div class="main" id="main"></div>' +
       '<div class="tick"><div class="tag">' + ic('bolt') + 'ON THE BOARD</div><div class="rail"><div class="run" id="run"></div></div></div>';
 
-    var D = { core: null, celebrate: null, floor: null, reqs: null }, at = {}, err = {};
+    var D = { core: null, celebrate: null, floor: null, reqs: null, team: null }, at = {}, err = {};
 
     // clock
     var tickClock = function () {
@@ -280,7 +371,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var anyErr = Object.keys(err).some(function (k) { return err[k]; });
       if (!newest) { tx.textContent = anyErr ? 'Reconnecting' : 'Connecting'; live.classList.toggle('stale', anyErr); return; }
       var mins = Math.floor((Date.now() - newest) / 60000);
-      tx.textContent = 'Live · updated ' + (mins < 1 ? 'just now' : mins + ' min ago');
+      tx.textContent = 'Live \u00b7 updated ' + (mins < 1 ? 'just now' : mins + ' min ago');
       live.classList.toggle('stale', anyErr || mins > 20);
     };
     setInterval(tickClock, 15000); tickClock();
@@ -289,7 +380,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     var revoked = false;
     var load = function (part) {
       return fetch(WORKER + '/tv-feed?part=' + part + '&key=' + encodeURIComponent(key), { cache: 'no-store' })
-        .then(function (r) { if (r.status === 401) { revoked = true; throw new Error('revoked'); } return r.json(); })
+        .then(function (r) { if (r.status === 401) { revoked = true; LS('spark_tv_key', null); throw new Error('revoked'); } return r.json(); })
         .then(function (j) { if (!j || !j.ok) throw new Error((j && j.error) || 'failed'); D[part] = j.data; at[part] = Date.parse(j.asOf) || Date.now(); err[part] = null; render(part); })
         .catch(function (e) { err[part] = String(e.message || e); if (revoked) showRevoked(); })
         .then(tickClock);
@@ -301,7 +392,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     setTimeout(function () { location.reload(); }, 6 * 3600 * 1000);
 
     function showRevoked() {
-      stage.innerHTML = '<div class="gate"><div class="box card"><img src="' + LOGO + '" style="height:80px" alt=""><h1>This TV link is off</h1><p>The display key was revoked. Open <b>hq.sparktalentinc.com/spark-tv.html</b> on a computer to make a new TV link.</p></div></div>';
+      stage.innerHTML = '<div class="gate"><div class="box card"><img src="' + LOGO + '" style="height:80px" alt=""><h1>This TV link is off</h1><p>This TV was disconnected in HQ. Reconnecting\u2026</p></div></div>';
+      setTimeout(function () { location.replace(location.pathname); }, 4000);
     }
 
     function render(part) {
@@ -312,20 +404,20 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 
     function renderKpis() {
       var c = D.core; if (!c) return;
-      document.getElementById('weLbl').textContent = 'Week ending ' + weLabel(c.weekEnding).replace('WE ', '') + (c.live ? ' · live' : '');
+      document.getElementById('weLbl').textContent = 'Week ending ' + weLabel(c.weekEnding).replace('WE ', '') + (c.live ? ' \u00b7 live' : '');
       var p = c.prev || {};
       var g = c.goal || {};
       var pct = g.pct == null ? 0 : g.pct, C = 2 * Math.PI * 56;
       var ahead = g.pct != null && g.pct >= g.pacePct;
       document.getElementById('kpis').innerHTML =
-        '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge · week</div><div class="v">' + fmt$(c.charge.total) + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
+        '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge \u00b7 week</div><div class="v">' + fmt$(c.charge.total) + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('clock') + 'Hours billed</div><div class="v">' + fmtN(c.hours) + '</div><div class="sub">' + wow(c.hours, p.hours, false) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('users') + 'Headcount</div><div class="v">' + fmtN(c.headcount) + '</div><div class="sub">' + wow(c.headcount, p.headcount, false) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('handshake') + 'DH billed</div><div class="v">' + fmt$(c.charge.direct) + '</div><div class="sub">' + wow(c.charge.direct, p.direct, true) + '</div></div>' +
         '<div class="k"><div class="goalk"><div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/>' +
           '<circle cx="66" cy="66" r="56" stroke="url(#gg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(pct, 100) / 100).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
           '<defs><linearGradient id="gg"><stop offset="0" stop-color="#CC9F00"/><stop offset="1" stop-color="#FBD20F"/></linearGradient></defs></svg><b>' + Math.round(pct) + '%</b></div>' +
-          '<div class="gx"><div class="lb">' + ic('target') + 'To goal \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' · </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
+          '<div class="gx"><div class="lb">' + ic('target') + 'To goal \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
       fitKpis(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitKpis);
     }
 
@@ -345,10 +437,10 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         (cl.anniversaries || []).filter(function (x) { return x.today; }).forEach(function (x) { items.push(ic('award') + '<b>' + esc(x.name) + '</b> celebrates ' + x.years + ' year' + (x.years === 1 ? '' : 's') + ' with Spark today'); });
       }
       if (f) {
-        (f.wins || []).forEach(function (w) { items.push(ic('trophy') + 'New business: <b>' + esc(w.account || w.name) + '</b>' + (w.owner ? ' · ' + esc(w.owner) : '')); });
-        (f.starts || []).forEach(function (s) { items.push(ic('rocket') + '<b>' + esc(s.who) + '</b> ' + (s.date > new Date().toISOString().slice(0, 10) ? 'starts' : 'started') + ' as ' + esc(s.title) + (s.account ? ' at ' + esc(s.account) : '') + (s.recruiter ? ' · placed by <b>' + esc(s.recruiter) + '</b>' : '')); });
+        (f.wins || []).forEach(function (w) { items.push(ic('trophy') + 'New business: <b>' + esc(w.account || w.name) + '</b>' + (w.owner ? ' \u00b7 ' + esc(w.owner) : '')); });
+        (f.starts || []).forEach(function (s) { items.push(ic('rocket') + '<b>' + esc(s.who) + '</b> ' + (s.date > new Date().toISOString().slice(0, 10) ? 'starts' : 'started') + ' as ' + esc(s.title) + (s.account ? ' at ' + esc(s.account) : '') + (s.recruiter ? ' \u00b7 placed by <b>' + esc(s.recruiter) + '</b>' : '')); });
       }
-      if (!items.length) items.push(ic('bolt') + 'Let’s get after it, Spark.');
+      if (!items.length) items.push(ic('bolt') + 'Let\u2019s get after it, Spark.');
       var run = document.getElementById('run');
       run.innerHTML = items.map(function (x) { return '<span>' + x + '</span>'; }).join('');
       run.style.setProperty('--td', Math.max(40, items.length * 9) + 's');
@@ -358,7 +450,14 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     var slides = [], cur = -1, timer = null;
     function buildSlides() {
       var list = [];
-      if (D.core) { list.push({ id: 'board', dur: 30, html: slideBoard }); list.push({ id: 'goal', dur: 15, html: slideGoal }); }
+      if (D.core) {
+        if ((D.core.spotlight || []).length) list.push({ id: 'spot', dur: 12, html: slideSpot });
+        list.push({ id: 'board', dur: 30, html: slideBoard });
+        if ((D.core.monthBoard || []).some(function (x) { return x.raw > 0; })) list.push({ id: 'month', dur: 25, html: slideMonth });
+        if ((D.core.units || []).length) list.push({ id: 'units', dur: 15, html: slideUnits });
+        list.push({ id: 'goal', dur: 15, html: slideGoal });
+      }
+      if (D.team && (D.team.newHires || []).length) list.push({ id: 'welcome', dur: 12, html: slideWelcome });
       if (D.celebrate) list.push({ id: 'celebrate', dur: 18, html: slideCelebrate });
       if (D.reqs) list.push({ id: 'reqs', dur: 20, html: slideReqs });
       if (D.floor) list.push({ id: 'floor', dur: 16, html: slideFloor });
@@ -383,8 +482,44 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       timer = setTimeout(function () { timer = null; show(cur + 1); }, slides[cur].dur * 1000);
     }
 
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    function slideMonth() {
+      var c = D.core, m = c.month || {}, name = m.key ? MONTHS[+m.key.slice(5, 7) - 1] : 'Month';
+      return boardHtml(c.monthBoard || [], name + ' to date', (m.weeks || 0) + ' week' + (m.weeks === 1 ? '' : 's') + ' \u00b7 raw charge, contract + DH');
+    }
     function slideBoard() {
-      var c = D.core, b = c.board || [];
+      var c = D.core;
+      return boardHtml(c.board || [], 'Charge leaders', weLabel(c.weekEnding) + ' \u00b7 raw charge, contract + DH');
+    }
+    function avatar(p, cls) {
+      return '<div class="' + cls + '">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="">' : esc(initials(p.name))) + '</div>';
+    }
+    function slideSpot() {
+      var c = D.core, s = c.spotlight || [], a = s[0];
+      var side = s.slice(1).map(function (p, i) {
+        return '<div class="card ru s' + (i + 2) + '">' + avatar(p, 'av-md') + '<div class="w"><span>#' + (i + 2) + ' this week</span><b>' + esc(p.name) + '</b><i>' + fmt$(p.raw) + '</i></div></div>';
+      }).join('');
+      return '<div class="sh"><h2>' + ic('trophy') + 'Producer of the week</h2><span class="meta">' + weLabel(c.weekEnding) + '</span></div>' +
+        '<div class="spot"' + (side ? '' : ' style="grid-template-columns:1fr"') + '><div class="card hero">' + avatar(a, 'av-xl') +
+        '<div class="who"><span class="tag">' + ic('star') + 'Number one</span><h3>' + esc(a.name) + '</h3><div class="bu">' + esc([a.title, a.bu].filter(Boolean).join(' \u00b7 ')) + '</div><div class="amt">' + fmt$(a.raw) + '</div></div></div>' +
+        (side ? '<div class="side">' + side + '</div>' : '') + '</div>';
+    }
+    function slideUnits() {
+      var c = D.core, u = c.units || [], max = Math.max.apply(null, u.map(function (x) { return x.charge; }).concat([1]));
+      var lh = Math.max(38, Math.min(56, Math.floor((566 - (u.length - 1) * 12) / Math.max(1, u.length))));
+      return '<div class="sh"><h2>' + ic('flame') + 'Business unit race</h2><span class="meta">' + weLabel(c.weekEnding) + ' \u00b7 charge, contract + DH</span></div>' +
+        '<div class="race" style="--lh:' + lh + 'px">' + u.map(function (x, i) {
+          return '<div class="lane"><span class="n"><em>' + (i + 1) + '</em>' + esc(x.unit) + '</span><span class="t"><i style="width:' + Math.max(2, x.charge / max * 100).toFixed(1) + '%"></i></span><span class="a">' + fmt$(x.charge) + '</span></div>';
+        }).join('') + '</div>';
+    }
+    function slideWelcome() {
+      var h = (D.team.newHires || []).slice(0, 6), today = new Date().toISOString().slice(0, 10);
+      return '<div class="sh"><h2>' + ic('handshake') + 'Welcome to the team</h2></div><div class="welc" style="--wc:' + Math.min(3, h.length) + '">' + h.map(function (p) {
+        var d = new Date(p.hire + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        return '<div class="card">' + avatar(p, 'av-md') + '<b>' + esc(p.name) + '</b><span>' + esc([p.title, p.company].filter(Boolean).join(' \u00b7 ')) + '</span><em>' + (p.hire > today ? 'Starts ' : 'Started ') + d + '</em></div>';
+      }).join('') + '</div>';
+    }
+    function boardHtml(b, title, meta) {
       var n = b.length, cols = n <= 12 ? 1 : n <= 26 ? 2 : n <= 45 ? 3 : 4;
       var rows = Math.ceil(n / cols), gap = rows > 12 ? 6 : 10, avail = 566, rh = Math.max(30, Math.min(56, Math.floor((avail - (rows - 1) * gap) / rows)));
       var max = Math.max.apply(null, b.map(function (x) { return x.raw; }).concat([1]));
@@ -393,7 +528,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         return '<div class="row' + (i < 3 && p.raw > 0 ? ' p' + (i + 1) : '') + (p.raw <= 0 ? ' zero' : '') + '"><div class="bar" style="width:' + w.toFixed(1) + '%"></div><span class="rk">' + (i + 1) + '</span>' +
           '<span class="nm">' + esc(p.name) + (cols <= 2 && p.bu ? '<small>' + esc(p.bu) + '</small>' : '') + '</span><span class="amt">' + (p.raw > 0 ? fmt$(p.raw) : '--') + '</span></div>';
       }).join('');
-      return '<div class="sh"><h2>' + ic('trophy') + 'Charge leaders</h2><span class="meta">' + weLabel(c.weekEnding) + ' · raw charge, contract + DH</span><span class="sp"></span><span class="chip">' + n + ' producers</span></div>' +
+      return '<div class="sh"><h2>' + ic('trophy') + esc(title) + '</h2><span class="meta">' + esc(meta) + '</span><span class="sp"></span><span class="chip">' + n + ' producers</span></div>' +
         '<div class="lbw" style="grid-template-rows:repeat(' + rows + ',auto);grid-template-columns:repeat(' + cols + ',1fr);row-gap:' + gap + 'px;--rh:' + rh + 'px">' + out + '</div>';
     }
 
@@ -403,8 +538,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var paceAmt = (g.annual || 0) * (g.pacePct || 0) / 100, gap = (g.ytd || 0) - paceAmt;
       var weeksLeft = Math.max(1, Math.ceil((new Date(c.weekEnding.slice(0, 4) + '-12-31T12:00:00') - new Date(c.weekEnding + 'T12:00:00')) / (7 * 864e5)));
       var need = Math.max(0, ((g.annual || 0) - (g.ytd || 0)) / weeksLeft);
-      return '<div class="sh"><h2>' + ic('target') + 'Road to ' + fmtK(g.annual) + '</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company charge goal · contract + DH</span></div>' +
-        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fmtK(g.ytd) + '</span><span>year to date · ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% of goal</span></div>' +
+      return '<div class="sh"><h2>' + ic('target') + 'Road to ' + fmtK(g.annual) + '</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company charge goal \u00b7 contract + DH</span></div>' +
+        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fmtK(g.ytd) + '</span><span>year to date \u00b7 ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% of goal</span></div>' +
         '<div class="track"><div class="fill" style="width:' + pct.toFixed(1) + '%"></div><div class="pace" style="left:' + pace.toFixed(1) + '%"><b>Pace ' + Math.round(pace) + '%</b></div></div>' +
         '<div class="gstats">' +
           '<div class="gstat"><span>This week</span><b>' + fmtK(c.charge.total) + '</b></div>' +
@@ -417,7 +552,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     function slideCelebrate() {
       var c = D.celebrate, mon = (c.monthName || '').slice(0, 3).toUpperCase();
       var cell = function (x, kind) {
-        var sub = x.today ? (kind === 'b' ? 'Today!' : x.years + ' years today!') : (kind === 'b' ? (x.company || 'Birthday') : x.years + ' year' + (x.years === 1 ? '' : 's') + (x.company ? ' · ' + x.company : ''));
+        var sub = x.today ? (kind === 'b' ? 'Today!' : x.years + ' years today!') : (kind === 'b' ? (x.company || 'Birthday') : x.years + ' year' + (x.years === 1 ? '' : 's') + (x.company ? ' \u00b7 ' + x.company : ''));
         return '<div class="cp' + (x.today ? ' today' : x.past ? ' past' : '') + '"><div class="d"><i>' + mon + '</i><b>' + x.day + '</b></div><div class="w"><b>' + esc(x.name) + '</b><span>' + esc(sub) + '</span></div></div>';
       };
       var col = function (arr, kind, maxN) {
@@ -438,8 +573,8 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
           '<td class="c"><span class="pill ' + (j.gap > 0 ? 'hot' : 'ok') + '">' + j.open + '</span></td><td class="c"><span class="pill ok">' + j.inProcess + '</span></td>' +
           '<td>' + esc(j.bu || '--') + '</td><td class="c">' + (j.days == null ? '--' : j.days + 'd') + '</td><td>' + esc(j.recruiter || '--') + '</td></tr>';
       }).join('');
-      return '<div class="sh"><h2>' + ic('flame') + 'Hot reqs</h2><span class="meta">Most open seats with the thinnest pipeline · Plug-In Board</span><span class="sp"></span>' +
-        '<span class="chip">' + fmtN(r.totalOpenReqs) + ' open reqs · ' + fmtN(r.totalOpenings) + ' openings</span></div>' +
+      return '<div class="sh"><h2>' + ic('flame') + 'Hot reqs</h2><span class="meta">Most open seats with the thinnest pipeline \u00b7 Plug-In Board</span><span class="sp"></span>' +
+        '<span class="chip">' + fmtN(r.totalOpenReqs) + ' open reqs \u00b7 ' + fmtN(r.totalOpenings) + ' openings</span></div>' +
         (rows ? '<table class="tbl"><thead><tr><th>Position</th><th>Client</th><th>Location</th><th class="c">Open</th><th class="c">In process</th><th>Unit</th><th class="c">Age</th><th>Recruiter</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="card empty" style="padding:30px">No open reqs right now.</div>');
     }
 
@@ -451,10 +586,10 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       }).join('');
       var starts = (f.starts || []).slice(0, 8).map(function (s) {
         var d = new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
-        return '<div class="fi"><span class="av">' + esc(initials(s.who)) + '</span><span class="w">' + esc(s.who) + ' · ' + esc(s.title) + (s.account ? '<small>' + esc(s.account) + '</small>' : '') + '</span><span class="r">' + d + (s.recruiter ? ' · ' + esc(s.recruiter) : '') + '</span></div>';
+        return '<div class="fi"><span class="av">' + esc(initials(s.who)) + '</span><span class="w">' + esc(s.who) + ' \u00b7 ' + esc(s.title) + (s.account ? '<small>' + esc(s.account) + '</small>' : '') + '</span><span class="r">' + d + (s.recruiter ? ' \u00b7 ' + esc(s.recruiter) : '') + '</span></div>';
       }).join('');
       return '<div class="sh"><h2>' + ic('users') + 'Around the floor</h2></div>' +
-        '<div class="floor"><div class="card"><h3>' + ic('plane') + 'Who’s out</h3><div class="fl">' + (out || '<div class="empty">' + (f.outError ? 'Out-of-office feed unavailable' : 'Everyone’s in today') + '</div>') + '</div></div>' +
+        '<div class="floor"><div class="card"><h3>' + ic('plane') + 'Who\u2019s out</h3><div class="fl">' + (out || '<div class="empty">' + (f.outError ? 'Out-of-office feed unavailable' : 'Everyone\u2019s in today') + '</div>') + '</div></div>' +
         '<div class="card"><h3>' + ic('rocket') + 'Starts this week</h3><div class="fl">' + (starts || '<div class="empty">No starts this week yet</div>') + '</div></div></div>';
     }
 
@@ -489,19 +624,21 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
     };
     var base = location.origin + location.pathname;
     el.innerHTML = '<header><img src="' + LOGO + '" alt="Spark Companies"><h1>Pit TV setup</h1></header>' +
-      '<div class="card"><h2>Add a TV</h2><p class="note">Each TV gets its own private link. Open the link once in the TV’s browser (full screen, F11) and it stays on the scoreboard, refreshing itself. The link shows weekly charge numbers, so only open it on office TVs. Revoke it here if a TV is moved or replaced.</p>' +
+      '<div class="card"><h2>Pair a TV</h2><p class="note">On the TV\u2019s browser, go to <b>hq.sparktalentinc.com/tv</b>. It shows a 6-digit code. Type the code and a name for the TV here. The TV connects within a few seconds and remembers itself after that.</p>' +
+      '<input id="pc" class="code" inputmode="numeric" maxlength="7" placeholder="000000"> <input id="pn" placeholder="TV name, e.g. Troy pit - left" maxlength="60"> <button id="pair">Pair TV</button><div id="pairok"></div></div>' +
+      '<div class="card"><h2>Or make a link</h2><p class="note">Each TV gets its own private link. Open the link once in the TV\u2019s browser (full screen, F11) and it stays on the scoreboard, refreshing itself. The link shows weekly charge numbers, so only open it on office TVs. Revoke it here if a TV is moved or replaced.</p>' +
       '<input id="nm" placeholder="TV name, e.g. Troy pit - left" maxlength="60"> <button id="add">Create TV link</button><div id="newk"></div></div>' +
-      '<div class="card"><h2>TVs</h2><div id="lst" class="note">Loading…</div></div>';
+      '<div class="card"><h2>TVs</h2><div id="lst" class="note">Loading\u2026</div></div>';
     var draw = function () {
       api('GET').then(function (j) {
         var d = j.displays || [];
         document.getElementById('lst').innerHTML = !d.length ? 'No TVs yet.' : '<table><thead><tr><th>Name</th><th>Status</th><th>Last seen</th><th>Created</th><th></th></tr></thead><tbody>' +
           d.slice().reverse().map(function (x) {
-            return '<tr><td>' + esc(x.name) + '</td><td>' + (x.active ? '<span style="color:var(--ok)">Active</span>' : '<span style="color:var(--dm)">Revoked</span>') + '</td><td>' + (x.seen ? new Date(x.seen).toLocaleString() : 'Never') + '</td><td>' + esc((x.created_by || '').split('@')[0]) + ' · ' + new Date(x.created_at).toLocaleDateString() + '</td><td>' +
+            return '<tr><td>' + esc(x.name) + '</td><td>' + (x.active ? '<span style="color:var(--ok)">Active</span>' : '<span style="color:var(--dm)">Revoked</span>') + '</td><td>' + (x.seen ? new Date(x.seen).toLocaleString() : 'Never') + '</td><td>' + esc((x.created_by || '').split('@')[0]) + ' \u00b7 ' + new Date(x.created_at).toLocaleDateString() + '</td><td>' +
               (x.active ? '<button class="danger" data-rv="' + esc(x.id) + '">Revoke</button>' : '') + '</td></tr>';
           }).join('') + '</tbody></table>';
       }).catch(function (e) {
-        document.getElementById('lst').innerHTML = esc(e.message) + (/sign in/i.test(e.message) ? ' — <a href="/">open HQ</a>, sign in, then come back.' : '');
+        document.getElementById('lst').innerHTML = esc(e.message) + (/sign in/i.test(e.message) ? ' \u2014 <a href="/">open HQ</a>, sign in, then come back.' : '');
       });
     };
     el.addEventListener('click', function (ev) {
@@ -510,8 +647,15 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         t.disabled = true;
         api('POST', { action: 'create', name: document.getElementById('nm').value }).then(function (j) {
           var link = base + '#key=' + j.key;
-          document.getElementById('newk').innerHTML = '<div class="newkey"><b>' + esc(j.display.name) + '</b> link (shown once — copy it now):<code>' + esc(link) + '</code><button id="cp" data-l="' + esc(link) + '">Copy link</button> <a href="' + esc(link) + '" target="_blank" rel="noopener">Preview</a></div>';
+          document.getElementById('newk').innerHTML = '<div class="newkey"><b>' + esc(j.display.name) + '</b> link (shown once \u2014 copy it now):<code>' + esc(link) + '</code><button id="cp" data-l="' + esc(link) + '">Copy link</button> <a href="' + esc(link) + '" target="_blank" rel="noopener">Preview</a></div>';
           document.getElementById('nm').value = ''; draw();
+        }).catch(function (e) { alert(e.message); }).then(function () { t.disabled = false; });
+      }
+      if (t.id === 'pair') {
+        t.disabled = true;
+        api('POST', { action: 'pair', code: document.getElementById('pc').value, name: document.getElementById('pn').value }).then(function (j) {
+          document.getElementById('pairok').innerHTML = '<div class="ok">' + esc(j.display.name) + ' is paired. It will switch to the scoreboard in a few seconds.</div>';
+          document.getElementById('pc').value = ''; document.getElementById('pn').value = ''; draw();
         }).catch(function (e) { alert(e.message); }).then(function () { t.disabled = false; });
       }
       if (t.id === 'cp') { navigator.clipboard.writeText(t.getAttribute('data-l')).then(function () { t.textContent = 'Copied'; }); }

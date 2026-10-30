@@ -1,4 +1,7 @@
 {
+  "routes": [
+    { "route": "/tv", "rewrite": "/spark-tv.html" }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [

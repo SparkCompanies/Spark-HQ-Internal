@@ -1968,7 +1968,7 @@ async function srleadRecordingSweep(env, opts) {
   return out;
 }
 
-// == TV_MODE_v1: office pit TV display ================================================
+// == TV_MODE_v1 (+v2 pairing, spotlight, month, units, welcome): office pit TV display ================================================
 // /tv-feed?key=<display key>&part=core|celebrate|floor|reqs   (no sign-in; key only)
 // /tv-displays  (GET list | POST {action:"create",name} | POST {action:"revoke",id})  charge admins only
 // Display keys live in pi_board_state under key "tv_displays" as SHA-256 hashes; the raw key is shown once.
@@ -2039,7 +2039,7 @@ async function tvCore(env) {
   // Live engine for the week (hours always come from here; charge too when the week is not frozen yet).
   const B = await tvInternal("/charge-batch?weekEnding=" + we, env);
   const live = !locked[we];
-  let contract, direct, hc;
+  let contract, direct, hc, D = null;
   const hours = B && B.ok && B.summary ? r2(B.summary.totalHours) : null;
   const people = {};
   const addP = (n, raw) => { n = String(n || "").trim(); if (!n || /^house/i.test(n) || TV_HIDE[n.toLowerCase()]) return; people[n] = (people[n] || 0) + raw; };
@@ -2055,7 +2055,7 @@ async function tvCore(env) {
       if (a) addP(a, c / 2);
       if (rr) addP(rr, c / 2);
     });
-    const D = await tvInternal("/charge-dh?weekEnding=" + we, env);
+    D = await tvInternal("/charge-dh?weekEnding=" + we, env);
     direct = D && D.ok ? r2(D.total) : 0;
     if (D && D.ok) Object.keys(D.byPerson || {}).forEach((n) => { const p = D.byPerson[n]; addP(n, (Number(p.fd) || 0) + ((Number(p.sales) || 0) + (Number(p.rec) || 0)) / 2); });
   } else {
@@ -2071,6 +2071,32 @@ async function tvCore(env) {
   const roster = {}; (H.people || []).forEach((p) => { roster[p.person] = p; });
   const board = Object.keys(people).map((n) => ({ name: n, raw: r2(people[n]), bu: (roster[n] && (roster[n].bu || roster[n].entity)) || "" }))
     .sort((a, b) => b.raw - a.raw || a.name.localeCompare(b.name));
+  // Month to date (TV_MODE_v2): every frozen week ending in this week's month, plus the live week.
+  const mo = we.slice(0, 7), moPeople = {};
+  const addM = (n, raw) => { n = String(n || "").trim(); if (!n || /^house/i.test(n) || TV_HIDE[n.toLowerCase()]) return; moPeople[n] = (moPeople[n] || 0) + raw; };
+  const moWeeks = {};
+  (H.personWeeks || []).forEach((r) => {
+    if (r.week_ending.slice(0, 7) !== mo || r.week_ending > we || (live && r.week_ending === we)) return;
+    moWeeks[r.week_ending] = 1;
+    addM(r.person, r.raw != null ? Number(r.raw) : (Number(r.fd) || 0) + ((Number(r.sales) || 0) + (Number(r.rec) || 0)) / 2);
+  });
+  if (live) { moWeeks[we] = 1; Object.keys(people).forEach((n) => addM(n, people[n])); }
+  Object.keys(people).forEach((n) => { if (!(n in moPeople)) moPeople[n] = 0; });
+  const monthBoard = Object.keys(moPeople).map((n) => ({ name: n, raw: r2(moPeople[n]), bu: (roster[n] && (roster[n].bu || roster[n].entity)) || "" }))
+    .sort((a, b) => b.raw - a.raw || a.name.localeCompare(b.name));
+  // Business-unit race for the week: contract by each placement's unit (BU, else entity) + DH by unit.
+  const lanes = {};
+  const addL = (k, v) => { k = String(k || "").replace(/ \u00b7 DH$/, "").trim(); v = Number(v) || 0; if (!k || !v) return; lanes[k] = (lanes[k] || 0) + v; };
+  if (B && B.ok) (B.rows || []).forEach((row) => addL(row.bu || row.entity, row.charge));
+  if (live) { if (D && D.ok) (D.drops || []).forEach((x) => addL(x.bu || x.entity, x.amount)); }
+  else (H.unitWeeks || []).forEach((r) => { if (r.week_ending === we && r.kind === "direct" && / \u00b7 DH$/.test(r.unit)) addL(r.unit, r.charge); });
+  const units = Object.keys(lanes).map((k) => ({ unit: k, charge: r2(lanes[k]) })).filter((x) => x.charge > 0).sort((a, b) => b.charge - a.charge).slice(0, 12);
+  // Producer of the week: top three with their Microsoft 365 photo when we can match the name.
+  let team = null; try { team = await tvTeamData(env); } catch (e) {}
+  const spotlight = board.filter((x) => x.raw > 0).slice(0, 3).map((x) => {
+    const m = team && team.byName[tvNameKey(x.name)];
+    return { name: x.name, raw: x.raw, bu: x.bu, title: (m && m.title) || "", photo: (m && m.photo) || null };
+  });
   // Goal: sum of entity-level annual "Igniter" targets; YTD = frozen weeks this year + the live week if not frozen yet.
   const yr = we.slice(0, 4);
   let goal = 0; (H.unitTargets || []).forEach((t) => { if (t.period === "annual" && ents[t.unit]) goal += Number(t.amount) || 0; });
@@ -2099,10 +2125,42 @@ async function tvCore(env) {
     hours, headcount: hc,
     goal: { annual: r2(goal), ytd: r2(ytd), pct: goal > 0 ? r2(ytd / goal * 100) : null, pacePct: r2(yearFrac * 100), weekly: goal > 0 ? r2(goal / 52) : null },
     prev: ps ? { total: r2(weekTotal(ps)), direct: r2(ps.direct), headcount: ps.hc, hours: prevHours } : (prevHours != null ? { hours: prevHours } : null),
-    board
+    board, monthBoard, month: { key: mo, weeks: Object.keys(moWeeks).length }, units, spotlight
   };
 }
 __name(tvCore, "tvCore");
+
+// Team data shared by the spotlight and the welcome slide, cached for an hour.
+function tvNameKey(n) { const t = String(n || "").toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean); return t.length < 2 ? t.join(" ") : t[0] + " " + t[t.length - 1]; }
+__name(tvNameKey, "tvNameKey");
+async function tvTeamData(env) {
+  const cache = caches.default, ck = new Request("https://spark-hq-cache.internal/tv-team-v1");
+  const hit = await cache.match(ck);
+  if (hit) return await hit.json();
+  const token = await getGraphToken(env);
+  const users = await fetchDirectory(token);
+  const DOM = ["sparkcompanies.com", "sparktalentinc.com", "ignitesearch.com", "flexworkforceco.com", "johnjosephpartners.com"];
+  const people = users.filter((u) => u.accountEnabled !== false && u.givenName && u.surname).map((u) => ({
+    name: u.displayName || (u.givenName + " " + u.surname), email: String(u.mail || u.userPrincipalName || "").toLowerCase(),
+    title: u.jobTitle || "", company: u.companyName || "", hire: u.employeeHireDate ? String(u.employeeHireDate).slice(0, 10) : ""
+  })).filter((p) => p.email && DOM.indexOf(p.email.split("@")[1]) !== -1);
+  let photos = {};
+  try { const Ph = await tvInternal("/photos", env); photos = (Ph && Ph.photos) || {}; } catch (e) {}
+  const byName = {};
+  people.forEach((p) => { byName[tvNameKey(p.name)] = { title: p.title, photo: photos[p.email] || null }; });
+  const now = Date.now(), lo = new Date(now - 14 * 864e5).toISOString().slice(0, 10), hi = new Date(now + 7 * 864e5).toISOString().slice(0, 10);
+  const newHires = people.filter((p) => p.hire && p.hire >= lo && p.hire <= hi).sort((a, b) => a.hire.localeCompare(b.hire))
+    .map((p) => ({ name: p.name, title: p.title, company: p.company, hire: p.hire, photo: photos[p.email] || null }));
+  const out = { byName, newHires };
+  try { await cache.put(ck, new Response(JSON.stringify(out), { headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } })); } catch (e) {}
+  return out;
+}
+__name(tvTeamData, "tvTeamData");
+async function tvTeam(env) {
+  const t = await tvTeamData(env);
+  return { newHires: t.newHires || [] };
+}
+__name(tvTeam, "tvTeam");
 
 async function tvCelebrate(env) {
   const c = await tvInternal("/hq-celebrations", env);
@@ -2162,7 +2220,27 @@ async function tvReqs(env) {
 }
 __name(tvReqs, "tvReqs");
 
-var TV_PARTS = { core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 } };
+var TV_PARTS = { core: { fn: tvCore, ttl: 300 }, celebrate: { fn: tvCelebrate, ttl: 3600 }, floor: { fn: tvFloor, ttl: 300 }, reqs: { fn: tvReqs, ttl: 600 }, team: { fn: tvTeam, ttl: 3600 } };
+// Pairing (TV_MODE_v2): the TV shows a 6-digit code, an admin types it on the setup page, the TV picks up its key.
+async function tvLoadPairs(env) {
+  const r = await sbService(env, "GET", "pi_board_state?select=value&key=eq.tv_pairs");
+  const now = Date.now();
+  return ((r.ok && r.data && r.data[0] && Array.isArray(r.data[0].value)) ? r.data[0].value : []).filter((x) => x && Date.parse(x.exp) > now);
+}
+__name(tvLoadPairs, "tvLoadPairs");
+async function tvSavePairs(env, list) {
+  return sbService(env, "POST", "pi_board_state?on_conflict=key", [{ key: "tv_pairs", value: list, updated_at: new Date().toISOString(), updated_by: "tv-pair" }]);
+}
+__name(tvSavePairs, "tvSavePairs");
+async function tvNewDisplay(env, list, name, email) {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  const key = btoa(String.fromCharCode.apply(null, Array.from(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const row = { id: crypto.randomUUID(), name: String(name || "").trim().slice(0, 60) || "Pit TV", hash: await tvSha(key), active: true, created_by: email, created_at: new Date().toISOString() };
+  list.push(row);
+  const s = await tvSaveDisplays(env, list, email);
+  return s.ok ? { key, row } : null;
+}
+__name(tvNewDisplay, "tvNewDisplay");
 
 async function tvHandle(request, env, url, origin) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(origin) });
@@ -2190,6 +2268,29 @@ async function tvHandle(request, env, url, origin) {
       return json({ ok: false, part, error: String(e && e.message || e).slice(0, 300) }, 502, origin);
     }
   }
+  if (url.pathname === "/tv-pair") {
+    const pid = String(url.searchParams.get("pid") || "").trim();
+    if (!/^[A-Za-z0-9_-]{24,64}$/.test(pid)) return json({ error: "pid required" }, 400, origin);
+    const ph = await tvSha("pair:" + pid);
+    let pairs = await tvLoadPairs(env);
+    let rec = pairs.find((x) => x.ph === ph);
+    if (request.method === "POST") {
+      if (!rec) {
+        if (pairs.length >= 40) return json({ error: "Too many TVs waiting to pair. Try again in a few minutes." }, 429, origin);
+        let code; do { code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000)); } while (pairs.some((x) => x.code === code));
+        rec = { code, ph, exp: new Date(Date.now() + 15 * 60000).toISOString(), key: null, name: null };
+        pairs.push(rec);
+        const s = await tvSavePairs(env, pairs);
+        if (!s.ok) return json({ error: "could not start pairing" }, 502, origin);
+      }
+      return json({ ok: true, code: rec.code, expiresAt: rec.exp }, 200, origin);
+    }
+    if (!rec) return json({ ok: true, expired: true }, 200, origin);
+    if (!rec.key) return json({ ok: true, waiting: true, code: rec.code, expiresAt: rec.exp }, 200, origin);
+    const out = { ok: true, key: rec.key, name: rec.name };
+    await tvSavePairs(env, pairs.filter((x) => x !== rec));
+    return json(out, 200, origin);
+  }
   if (url.pathname === "/tv-displays") {
     const who = await verifyUser(request, env);
     if (!who.ok) return json({ error: who.reason || "Unauthorized" }, 401, origin);
@@ -2201,14 +2302,21 @@ async function tvHandle(request, env, url, origin) {
     if (request.method !== "POST") return json({ error: "method not allowed" }, 405, origin);
     const body = await request.json().catch(() => ({}));
     if (body.action === "create") {
-      const name = String(body.name || "").trim().slice(0, 60) || "Pit TV";
-      const bytes = crypto.getRandomValues(new Uint8Array(24));
-      const key = btoa(String.fromCharCode.apply(null, Array.from(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-      const row = { id: crypto.randomUUID(), name, hash: await tvSha(key), active: true, created_by: email, created_at: new Date().toISOString() };
-      list.push(row);
-      const s = await tvSaveDisplays(env, list, email);
-      if (!s.ok) return json({ error: "could not save display" }, 502, origin);
-      return json({ ok: true, display: pub(row), key }, 200, origin);
+      const made = await tvNewDisplay(env, list, body.name, email);
+      if (!made) return json({ error: "could not save display" }, 502, origin);
+      return json({ ok: true, display: pub(made.row), key: made.key }, 200, origin);
+    }
+    if (body.action === "pair") {
+      const code = String(body.code || "").replace(/\D/g, "");
+      const pairs = await tvLoadPairs(env);
+      const rec = pairs.find((x) => x.code === code && !x.key);
+      if (!rec) return json({ error: "That code isn't showing on any TV right now. Check the number on the TV screen." }, 404, origin);
+      const made = await tvNewDisplay(env, list, body.name, email);
+      if (!made) return json({ error: "could not save display" }, 502, origin);
+      rec.key = made.key; rec.name = made.row.name; rec.exp = new Date(Date.now() + 5 * 60000).toISOString();
+      const s = await tvSavePairs(env, pairs);
+      if (!s.ok) return json({ error: "could not finish pairing" }, 502, origin);
+      return json({ ok: true, display: pub(made.row) }, 200, origin);
     }
     if (body.action === "revoke") {
       const row = list.find((x) => x.id === body.id);
@@ -2228,7 +2336,7 @@ var worker_default = {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const url = new URL(request.url);
-    if (url.pathname === "/tv-feed" || url.pathname === "/tv-displays") { const tvR = await tvHandle(request, env, url, origin); if (tvR) return tvR; }
+    if (url.pathname === "/tv-feed" || url.pathname === "/tv-displays" || url.pathname === "/tv-pair") { const tvR = await tvHandle(request, env, url, origin); if (tvR) return tvR; }
     if (url.pathname === "/intake/preview") {
       const key = url.searchParams.get("key") || "";
       if (!env.AZ_TENANT_ID || key !== env.AZ_TENANT_ID) return json({ error: "Unauthorized" }, 401, origin);
