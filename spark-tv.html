@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* TV_MODE_v1 - office pit TV display. Stage is a fixed 1920x1080 canvas scaled to fit any screen. */
+/* TV_MODE_v1 — office pit TV display. Stage is a fixed 1920x1080 canvas scaled to fit any screen. */
 :root{
   --bg:#07070a; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.075); --line:rgba(255,255,255,.09);
   --tx:#f5f2ea; --mt:#a9a39a; --dm:#6f6a63;
@@ -280,7 +280,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var anyErr = Object.keys(err).some(function (k) { return err[k]; });
       if (!newest) { tx.textContent = anyErr ? 'Reconnecting' : 'Connecting'; live.classList.toggle('stale', anyErr); return; }
       var mins = Math.floor((Date.now() - newest) / 60000);
-      tx.textContent = 'Live \u00b7 updated ' + (mins < 1 ? 'just now' : mins + ' min ago');
+      tx.textContent = 'Live · updated ' + (mins < 1 ? 'just now' : mins + ' min ago');
       live.classList.toggle('stale', anyErr || mins > 20);
     };
     setInterval(tickClock, 15000); tickClock();
@@ -312,20 +312,20 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 
     function renderKpis() {
       var c = D.core; if (!c) return;
-      document.getElementById('weLbl').textContent = 'Week ending ' + weLabel(c.weekEnding).replace('WE ', '') + (c.live ? ' \u00b7 live' : '');
+      document.getElementById('weLbl').textContent = 'Week ending ' + weLabel(c.weekEnding).replace('WE ', '') + (c.live ? ' · live' : '');
       var p = c.prev || {};
       var g = c.goal || {};
       var pct = g.pct == null ? 0 : g.pct, C = 2 * Math.PI * 56;
       var ahead = g.pct != null && g.pct >= g.pacePct;
       document.getElementById('kpis').innerHTML =
-        '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge \u00b7 week</div><div class="v">' + fmt$(c.charge.total) + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
+        '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge · week</div><div class="v">' + fmt$(c.charge.total) + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('clock') + 'Hours billed</div><div class="v">' + fmtN(c.hours) + '</div><div class="sub">' + wow(c.hours, p.hours, false) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('users') + 'Headcount</div><div class="v">' + fmtN(c.headcount) + '</div><div class="sub">' + wow(c.headcount, p.headcount, false) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('handshake') + 'DH billed</div><div class="v">' + fmt$(c.charge.direct) + '</div><div class="sub">' + wow(c.charge.direct, p.direct, true) + '</div></div>' +
         '<div class="k"><div class="goalk"><div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/>' +
           '<circle cx="66" cy="66" r="56" stroke="url(#gg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(pct, 100) / 100).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
           '<defs><linearGradient id="gg"><stop offset="0" stop-color="#CC9F00"/><stop offset="1" stop-color="#FBD20F"/></linearGradient></defs></svg><b>' + Math.round(pct) + '%</b></div>' +
-          '<div class="gx"><div class="lb">' + ic('target') + 'To goal \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' \u00b7 </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
+          '<div class="gx"><div class="lb">' + ic('target') + 'To goal \u00b7 YTD</div><div class="v">' + fmtK(g.ytd) + '</div><div class="sub"><span>of ' + fmtK(g.annual) + ' · </span><span class="wow ' + (ahead ? 'up' : 'dn') + '">' + (ahead ? 'Ahead of pace' : 'Behind pace') + '</span></div></div></div></div>';
       fitKpis(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitKpis);
     }
 
@@ -345,10 +345,10 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         (cl.anniversaries || []).filter(function (x) { return x.today; }).forEach(function (x) { items.push(ic('award') + '<b>' + esc(x.name) + '</b> celebrates ' + x.years + ' year' + (x.years === 1 ? '' : 's') + ' with Spark today'); });
       }
       if (f) {
-        (f.wins || []).forEach(function (w) { items.push(ic('trophy') + 'New business: <b>' + esc(w.account || w.name) + '</b>' + (w.owner ? ' \u00b7 ' + esc(w.owner) : '')); });
-        (f.starts || []).forEach(function (s) { items.push(ic('rocket') + '<b>' + esc(s.who) + '</b> ' + (s.date > new Date().toISOString().slice(0, 10) ? 'starts' : 'started') + ' as ' + esc(s.title) + (s.account ? ' at ' + esc(s.account) : '') + (s.recruiter ? ' \u00b7 placed by <b>' + esc(s.recruiter) + '</b>' : '')); });
+        (f.wins || []).forEach(function (w) { items.push(ic('trophy') + 'New business: <b>' + esc(w.account || w.name) + '</b>' + (w.owner ? ' · ' + esc(w.owner) : '')); });
+        (f.starts || []).forEach(function (s) { items.push(ic('rocket') + '<b>' + esc(s.who) + '</b> ' + (s.date > new Date().toISOString().slice(0, 10) ? 'starts' : 'started') + ' as ' + esc(s.title) + (s.account ? ' at ' + esc(s.account) : '') + (s.recruiter ? ' · placed by <b>' + esc(s.recruiter) + '</b>' : '')); });
       }
-      if (!items.length) items.push(ic('bolt') + 'Let\u2019s get after it, Spark.');
+      if (!items.length) items.push(ic('bolt') + 'Let’s get after it, Spark.');
       var run = document.getElementById('run');
       run.innerHTML = items.map(function (x) { return '<span>' + x + '</span>'; }).join('');
       run.style.setProperty('--td', Math.max(40, items.length * 9) + 's');
@@ -393,7 +393,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         return '<div class="row' + (i < 3 && p.raw > 0 ? ' p' + (i + 1) : '') + (p.raw <= 0 ? ' zero' : '') + '"><div class="bar" style="width:' + w.toFixed(1) + '%"></div><span class="rk">' + (i + 1) + '</span>' +
           '<span class="nm">' + esc(p.name) + (cols <= 2 && p.bu ? '<small>' + esc(p.bu) + '</small>' : '') + '</span><span class="amt">' + (p.raw > 0 ? fmt$(p.raw) : '--') + '</span></div>';
       }).join('');
-      return '<div class="sh"><h2>' + ic('trophy') + 'Charge leaders</h2><span class="meta">' + weLabel(c.weekEnding) + ' \u00b7 raw charge, contract + DH</span><span class="sp"></span><span class="chip">' + n + ' producers</span></div>' +
+      return '<div class="sh"><h2>' + ic('trophy') + 'Charge leaders</h2><span class="meta">' + weLabel(c.weekEnding) + ' · raw charge, contract + DH</span><span class="sp"></span><span class="chip">' + n + ' producers</span></div>' +
         '<div class="lbw" style="grid-template-rows:repeat(' + rows + ',auto);grid-template-columns:repeat(' + cols + ',1fr);row-gap:' + gap + 'px;--rh:' + rh + 'px">' + out + '</div>';
     }
 
@@ -403,5 +403,124 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
       var paceAmt = (g.annual || 0) * (g.pacePct || 0) / 100, gap = (g.ytd || 0) - paceAmt;
       var weeksLeft = Math.max(1, Math.ceil((new Date(c.weekEnding.slice(0, 4) + '-12-31T12:00:00') - new Date(c.weekEnding + 'T12:00:00')) / (7 * 864e5)));
       var need = Math.max(0, ((g.annual || 0) - (g.ytd || 0)) / weeksLeft);
-      return '<div class="sh"><h2>' + ic('target') + 'Road to ' + fmtK(g.annual) + '</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company charge goal \u00b7 contract + DH</span></div>' +
-        '<div class="card
+      return '<div class="sh"><h2>' + ic('target') + 'Road to ' + fmtK(g.annual) + '</h2><span class="meta">' + c.weekEnding.slice(0, 4) + ' company charge goal · contract + DH</span></div>' +
+        '<div class="card goalwrap"><div class="gbig"><span class="num">' + fmtK(g.ytd) + '</span><span>year to date · ' + (g.pct == null ? '--' : g.pct.toFixed(1)) + '% of goal</span></div>' +
+        '<div class="track"><div class="fill" style="width:' + pct.toFixed(1) + '%"></div><div class="pace" style="left:' + pace.toFixed(1) + '%"><b>Pace ' + Math.round(pace) + '%</b></div></div>' +
+        '<div class="gstats">' +
+          '<div class="gstat"><span>This week</span><b>' + fmtK(c.charge.total) + '</b></div>' +
+          '<div class="gstat"><span>Weekly goal</span><b>' + fmtK(g.weekly) + '</b></div>' +
+          '<div class="gstat"><span>' + (gap >= 0 ? 'Ahead of pace' : 'Behind pace') + '</span><b style="color:' + (gap >= 0 ? 'var(--ok)' : 'var(--bad)') + '">' + fmtK(Math.abs(gap)) + '</b></div>' +
+          '<div class="gstat"><span>Needed / week to finish</span><b>' + fmtK(need) + '</b></div>' +
+        '</div></div>';
+    }
+
+    function slideCelebrate() {
+      var c = D.celebrate, mon = (c.monthName || '').slice(0, 3).toUpperCase();
+      var cell = function (x, kind) {
+        var sub = x.today ? (kind === 'b' ? 'Today!' : x.years + ' years today!') : (kind === 'b' ? (x.company || 'Birthday') : x.years + ' year' + (x.years === 1 ? '' : 's') + (x.company ? ' · ' + x.company : ''));
+        return '<div class="cp' + (x.today ? ' today' : x.past ? ' past' : '') + '"><div class="d"><i>' + mon + '</i><b>' + x.day + '</b></div><div class="w"><b>' + esc(x.name) + '</b><span>' + esc(sub) + '</span></div></div>';
+      };
+      var col = function (arr, kind, maxN) {
+        if (!arr.length) return '<div class="empty">None this month</div>';
+        var up = arr.filter(function (x) { return !x.past; }), past = arr.filter(function (x) { return x.past; });
+        var pick = up.concat(past).slice(0, maxN).sort(function (a, b) { return a.day - b.day; });
+        return '<div class="list">' + pick.map(function (x) { return cell(x, kind); }).join('') + '</div>' + (arr.length > maxN ? '<div class="empty" style="padding-top:10px">+' + (arr.length - maxN) + ' more this month</div>' : '');
+      };
+      return '<div class="sh"><h2>' + ic('star') + 'Celebrating in ' + esc(c.monthName) + '</h2></div>' +
+        '<div class="cel"><div class="card"><h3>' + ic('cake') + 'Birthdays</h3>' + col(c.birthdays || [], 'b', 14) + '</div>' +
+        '<div class="card"><h3>' + ic('award') + 'Work anniversaries</h3>' + col(c.anniversaries || [], 'a', 14) + '</div></div>';
+    }
+
+    function slideReqs() {
+      var r = D.reqs;
+      var rows = (r.hot || []).slice(0, 9).map(function (j) {
+        return '<tr><td class="t">' + (j.gap > 0 ? '<span class="flame">' + ic('flame') + '</span> ' : '') + esc(j.title) + '</td><td>' + esc(j.account) + '</td><td>' + esc(j.location) + '</td>' +
+          '<td class="c"><span class="pill ' + (j.gap > 0 ? 'hot' : 'ok') + '">' + j.open + '</span></td><td class="c"><span class="pill ok">' + j.inProcess + '</span></td>' +
+          '<td>' + esc(j.bu || '--') + '</td><td class="c">' + (j.days == null ? '--' : j.days + 'd') + '</td><td>' + esc(j.recruiter || '--') + '</td></tr>';
+      }).join('');
+      return '<div class="sh"><h2>' + ic('flame') + 'Hot reqs</h2><span class="meta">Most open seats with the thinnest pipeline · Plug-In Board</span><span class="sp"></span>' +
+        '<span class="chip">' + fmtN(r.totalOpenReqs) + ' open reqs · ' + fmtN(r.totalOpenings) + ' openings</span></div>' +
+        (rows ? '<table class="tbl"><thead><tr><th>Position</th><th>Client</th><th>Location</th><th class="c">Open</th><th class="c">In process</th><th>Unit</th><th class="c">Age</th><th>Recruiter</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="card empty" style="padding:30px">No open reqs right now.</div>');
+    }
+
+    function slideFloor() {
+      var f = D.floor;
+      var out = (f.out || []).slice(0, 8).map(function (o) {
+        var until = o.until ? 'Back ' + new Date(o.until).toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' }) : 'Out today';
+        return '<div class="fi"><span class="av">' + esc(initials(o.name)) + '</span><span class="w">' + esc(o.name) + (o.title ? '<small>' + esc(o.title) + '</small>' : '') + '</span><span class="r">' + until + '</span></div>';
+      }).join('');
+      var starts = (f.starts || []).slice(0, 8).map(function (s) {
+        var d = new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        return '<div class="fi"><span class="av">' + esc(initials(s.who)) + '</span><span class="w">' + esc(s.who) + ' · ' + esc(s.title) + (s.account ? '<small>' + esc(s.account) + '</small>' : '') + '</span><span class="r">' + d + (s.recruiter ? ' · ' + esc(s.recruiter) : '') + '</span></div>';
+      }).join('');
+      return '<div class="sh"><h2>' + ic('users') + 'Around the floor</h2></div>' +
+        '<div class="floor"><div class="card"><h3>' + ic('plane') + 'Who’s out</h3><div class="fl">' + (out || '<div class="empty">' + (f.outError ? 'Out-of-office feed unavailable' : 'Everyone’s in today') + '</div>') + '</div></div>' +
+        '<div class="card"><h3>' + ic('rocket') + 'Starts this week</h3><div class="fl">' + (starts || '<div class="empty">No starts this week yet</div>') + '</div></div></div>';
+    }
+
+    function slideAnn() {
+      var a = (D.floor.announcements || []).slice(0, 3);
+      return '<div class="sh"><h2>' + ic('mega') + 'Announcements</h2></div><div class="ann">' +
+        a.map(function (x) { return '<div class="card"><h3>' + (x.pinned ? ic('star') : '') + esc(x.title) + '</h3>' + (x.body ? '<p>' + esc(x.body) + '</p>' : '') + '</div>'; }).join('') + '</div>';
+    }
+  }
+
+  /* ================================================================= ADMIN (TV link setup) */
+  function admin() {
+    document.body.classList.add('admin');
+    var el = document.getElementById('admin'); el.hidden = false;
+    var token = function () {
+      try { var v = JSON.parse(localStorage.getItem('spark_hq_sb_auth') || 'null'); var s = v && (v.currentSession || v); return s && s.access_token; } catch (e) { return null; }
+    };
+    var refresh = function () {
+      try {
+        var v = JSON.parse(localStorage.getItem('spark_hq_sb_auth') || 'null'); var s = v && (v.currentSession || v); if (!s || !s.refresh_token) return Promise.resolve(null);
+        return fetch(SB_URL + '/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY }, body: JSON.stringify({ refresh_token: s.refresh_token }) })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) { if (!d || !d.access_token) return null; var ns = Object.assign({}, s, d); if (d.expires_in) ns.expires_at = Math.floor(Date.now() / 1000) + d.expires_in; localStorage.setItem('spark_hq_sb_auth', JSON.stringify(v && v.currentSession ? Object.assign({}, v, { currentSession: ns }) : ns)); return d.access_token; });
+      } catch (e) { return Promise.resolve(null); }
+    };
+    var api = function (method, body, retried) {
+      return fetch(WORKER + '/tv-displays', { method: method, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token() || '') }, body: body ? JSON.stringify(body) : undefined })
+        .then(function (r) {
+          if (r.status === 401 && !retried) return refresh().then(function (t) { if (!t) throw new Error('Sign in to HQ first'); return api(method, body, true); });
+          return r.json().then(function (j) { if (!r.ok || !j.ok) throw new Error(j.error || ('Error ' + r.status)); return j; });
+        });
+    };
+    var base = location.origin + location.pathname;
+    el.innerHTML = '<header><img src="' + LOGO + '" alt="Spark Companies"><h1>Pit TV setup</h1></header>' +
+      '<div class="card"><h2>Add a TV</h2><p class="note">Each TV gets its own private link. Open the link once in the TV’s browser (full screen, F11) and it stays on the scoreboard, refreshing itself. The link shows weekly charge numbers, so only open it on office TVs. Revoke it here if a TV is moved or replaced.</p>' +
+      '<input id="nm" placeholder="TV name, e.g. Troy pit - left" maxlength="60"> <button id="add">Create TV link</button><div id="newk"></div></div>' +
+      '<div class="card"><h2>TVs</h2><div id="lst" class="note">Loading…</div></div>';
+    var draw = function () {
+      api('GET').then(function (j) {
+        var d = j.displays || [];
+        document.getElementById('lst').innerHTML = !d.length ? 'No TVs yet.' : '<table><thead><tr><th>Name</th><th>Status</th><th>Last seen</th><th>Created</th><th></th></tr></thead><tbody>' +
+          d.slice().reverse().map(function (x) {
+            return '<tr><td>' + esc(x.name) + '</td><td>' + (x.active ? '<span style="color:var(--ok)">Active</span>' : '<span style="color:var(--dm)">Revoked</span>') + '</td><td>' + (x.seen ? new Date(x.seen).toLocaleString() : 'Never') + '</td><td>' + esc((x.created_by || '').split('@')[0]) + ' · ' + new Date(x.created_at).toLocaleDateString() + '</td><td>' +
+              (x.active ? '<button class="danger" data-rv="' + esc(x.id) + '">Revoke</button>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table>';
+      }).catch(function (e) {
+        document.getElementById('lst').innerHTML = esc(e.message) + (/sign in/i.test(e.message) ? ' — <a href="/">open HQ</a>, sign in, then come back.' : '');
+      });
+    };
+    el.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t.id === 'add') {
+        t.disabled = true;
+        api('POST', { action: 'create', name: document.getElementById('nm').value }).then(function (j) {
+          var link = base + '#key=' + j.key;
+          document.getElementById('newk').innerHTML = '<div class="newkey"><b>' + esc(j.display.name) + '</b> link (shown once — copy it now):<code>' + esc(link) + '</code><button id="cp" data-l="' + esc(link) + '">Copy link</button> <a href="' + esc(link) + '" target="_blank" rel="noopener">Preview</a></div>';
+          document.getElementById('nm').value = ''; draw();
+        }).catch(function (e) { alert(e.message); }).then(function () { t.disabled = false; });
+      }
+      if (t.id === 'cp') { navigator.clipboard.writeText(t.getAttribute('data-l')).then(function () { t.textContent = 'Copied'; }); }
+      var rv = t.getAttribute && t.getAttribute('data-rv');
+      if (rv && confirm('Revoke this TV link? That TV will go dark until you give it a new link.')) api('POST', { action: 'revoke', id: rv }).then(draw).catch(function (e) { alert(e.message); });
+    });
+    draw();
+  }
+})();
+</script>
+</body>
+</html>
