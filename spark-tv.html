@@ -619,7 +619,7 @@ svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-l
         '<div class="k hero"><div class="lb">' + ic('bolt') + 'Total charge \u00b7 week</div><div class="v">' + fl('k-charge', fmt$(c.charge.total), 'gold') + '</div><div class="sub">' + wow(c.charge.total, p.total, true) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('clock') + 'Hours billed</div><div class="v">' + fl('k-hours', fmtN(c.hours)) + '</div><div class="sub">' + wow(c.hours, p.hours, false) + '</div></div>' +
         '<div class="k"><div class="lb">' + ic('users') + 'Headcount</div><div class="v">' + fl('k-hc', fmtN(c.headcount)) + '</div><div class="sub">' + wow(c.headcount, p.headcount, false) + '</div></div>' +
-        '<div class="k"><div class="lb">' + ic('handshake') + 'DH billed</div><div class="v">' + fl('k-dh', fmt$(c.charge.direct)) + '</div><div class="sub">' + wow(c.charge.direct, p.direct, true) + '</div></div>' +
+        '<div class="k"><div class="lb">' + ic('handshake') + 'DH charge</div><div class="v">' + fl('k-dh', fmt$(c.charge.direct)) + '</div><div class="sub">' + wow(c.charge.direct, p.direct, true) + '</div></div>' +
         '<div class="k"><div class="goalk"><div class="ring"><svg viewBox="0 0 132 132"><circle cx="66" cy="66" r="56" stroke="rgba(255,255,255,.1)" stroke-width="12" fill="none"/>' +
           '<circle cx="66" cy="66" r="56" stroke="url(#gg)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="' + (C * Math.min(pct, 100) / 100).toFixed(1) + ' ' + C.toFixed(1) + '"/>' +
           '<defs><linearGradient id="gg"><stop offset="0" stop-color="#CC9F00"/><stop offset="1" stop-color="#FBD20F"/></linearGradient></defs></svg><b>' + Math.round(pct) + '%</b></div>' +
